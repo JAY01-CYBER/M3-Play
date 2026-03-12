@@ -1,19 +1,15 @@
-// Simple Search Logic using Piped API
-class YoutubeRepository {
-    private val baseUrl = "https://pipedapi.kavin.rocks"
+package com.j.m3play.data
 
-    // Search function to get songs
+import com.j.m3play.model.Song
+
+class YoutubeRepository {
     suspend fun searchSongs(query: String): List<Song> {
-        // Yahan hum API call karenge (Retrofit ya Ktor se)
-        // For now, ye metadata return karega: 
-        // Title, Artist, Thumbnail, StreamUrl
-        return emptyList() 
+        val normalized = query.trim().lowercase()
+        if (normalized.isBlank()) return SampleCatalog.trendingSongs
+
+        return SampleCatalog.trendingSongs.filter {
+            it.title.lowercase().contains(normalized) ||
+                it.artist.lowercase().contains(normalized)
+        }
     }
 }
-
-data class Song(
-    val title: String,
-    val artist: String,
-    val thumbnailUrl: String,
-    val streamUrl: String
-)
