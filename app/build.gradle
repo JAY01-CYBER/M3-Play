@@ -1,0 +1,15 @@
+dependencies {
+    // Jetpack Compose UI
+    implementation "androidx.compose.ui:ui:1.5.0"
+    implementation "androidx.compose.material3:material3:1.1.0"
+    
+    // Media3 (ExoPlayer) - Music Play karne ke liye
+    implementation "androidx.media3:media3-exoplayer:1.1.0"
+    implementation "androidx.media3:media3-session:1.1.0"
+
+    // Coil - YouTube Thumbnails load karne ke liye
+    implementation "io.coil-kt:coil-compose:2.4.0"
+
+    // Navigation
+    implementation "androidx.navigation:navigation-compose:2.7.0"
+}
