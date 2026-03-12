@@ -3,14 +3,11 @@ name: Build M3-Play APK
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch: # Isse aap manually bhi build button daba kar start kar sakte hain
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -22,12 +19,15 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew
+      # Ye step GitHub ko bolega ki khud Gradle install kare
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.10
 
       - name: Build with Gradle
-        # "assembleDebug" se testing APK banta hai
-        run: ./gradlew assembleDebug
+        # Hum './gradlew' ki jagah seedha 'gradle' command use karenge
+        run: gradle assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
