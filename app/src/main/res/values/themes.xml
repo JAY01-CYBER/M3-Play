@@ -1,78 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     
-    <!-- Base application theme -->
-    <style name="Theme.M3Play" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- Simple theme - no Material 3 specific attributes -->
+    <style name="Theme.M3Play" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Primary colors -->
         <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryContainer">@color/purple_200</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryInverse">@color/teal_200</item>
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
         
-        <!-- Secondary colors -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryContainer">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/white</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:statusBarColor">@color/purple_700</item>
+        <item name="android:navigationBarColor">@color/black</item>
         
-        <!-- Tertiary colors -->
-        <item name="colorTertiary">@color/purple_200</item>
-        <item name="colorTertiaryContainer">@color/purple_500</item>
-        <item name="colorOnTertiary">@color/white</item>
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/black</item>
+        <item name="android:textColorSecondary">@color/grey</item>
         
-        <!-- Surface and Background -->
-        <item name="colorSurface">@color/surface</item>
-        <item name="colorSurfaceVariant">@color/grey</item>
-        <item name="colorOnSurface">@color/black</item>
-        <item name="colorOnSurfaceVariant">@color/grey</item>
-        <item name="android:colorBackground">@color/background</item>
-        <item name="colorOnBackground">@color/black</item>
-        
-        <!-- Error colors -->
-        <item name="colorError">@color/error</item>
-        <item name="colorErrorContainer">@color/error_light</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="colorOnErrorContainer">@color/black</item>
-        
-        <!-- Outline and Surface Tint -->
-        <item name="colorOutline">@color/grey</item>
-        <item name="colorSurfaceTint">@color/purple_500</item>
-        
-        <!-- Status and Navigation Bar -->
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <!-- Window properties -->
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        
-        <!-- Typography (optional - uses Material3 defaults) -->
-        <item name="android:fontFamily">@font/roboto</item>
-        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
-        <item name="android:textColorSecondary">?attr/colorOnSurfaceVariant</item>
-        
-        <!-- Shape (optional - uses Material3 defaults) -->
-        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.Material3.SmallComponent</item>
-        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Material3.MediumComponent</item>
-        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.Material3.LargeComponent</item>
-    </style>
-
-    <!-- Optional: Dark theme variant -->
-    <style name="Theme.M3Play.Dark" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Dark theme colors -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryContainer">@color/purple_500</item>
-        <item name="colorOnPrimary">@color/black</item>
-        
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryContainer">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/white</item>
-        
-        <item name="android:colorBackground">@color/black</item>
-        <item name="colorOnBackground">@color/white</item>
-        
-        <item name="colorSurface">@color/grey</item>
-        <item name="colorOnSurface">@color/white</item>
-        
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
     </style>
     
 </resources>
