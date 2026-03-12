@@ -1,17 +1,40 @@
-name: Build M3-Play APK
+name: Android Release Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 'release/**'
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      publish_to_play:
+        description: 'Deploy release bundle to Play Console (requires Play secrets)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  build_release:
+    name: Build, Validate, and Publish Android Release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate protected ref for shipping
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/')
+        run: |
+          if [[ "${{ github.ref_protected }}" != "true" ]]; then
+            echo "Release shipping is only allowed from protected tags/branches."
+            exit 1
+          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -25,11 +48,121 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Build with Gradle
-        run: gradle assembleDebug
+      - name: Read Android version metadata
+        id: version
+        run: |
+          VERSION_CODE=$(sed -n "s/.*versionCode \([0-9]\+\).*/\1/p" app/build.gradle | head -n1)
+          VERSION_NAME=$(sed -n "s/.*versionName \"\([^\"]\+\)\".*/\1/p" app/build.gradle | head -n1)
 
-      - name: Upload APK Artifact
+          if [[ -z "$VERSION_CODE" || -z "$VERSION_NAME" ]]; then
+            echo "Unable to read versionCode/versionName from app/build.gradle"
+            exit 1
+          fi
+
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || [[ "$VERSION_CODE" -le 0 ]]; then
+            echo "versionCode must be a positive integer. Found: $VERSION_CODE"
+            exit 1
+          fi
+
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag/version consistency
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION_NAME="${{ steps.version.outputs.version_name }}"
+          if [[ "$TAG" != "$VERSION_NAME" ]]; then
+            echo "Tag version ($TAG) must match app versionName ($VERSION_NAME)."
+            exit 1
+          fi
+
+      - name: Validate versionCode monotonicity
+        run: |
+          CURRENT_CODE=${{ steps.version.outputs.version_code }}
+          PREV_TAG=$(git tag --list 'v*.*.*' --sort=-v:refname | sed -n '2p')
+
+          if [[ -n "$PREV_TAG" ]]; then
+            PREV_CODE=$(git show "$PREV_TAG:app/build.gradle" | sed -n "s/.*versionCode \([0-9]\+\).*/\1/p" | head -n1)
+            if [[ -n "$PREV_CODE" ]] && [[ "$CURRENT_CODE" -le "$PREV_CODE" ]]; then
+              echo "versionCode ($CURRENT_CODE) must be greater than previous release versionCode ($PREV_CODE)."
+              exit 1
+            fi
+          fi
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo "Missing secret ANDROID_KEYSTORE_BASE64 for release signing"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release-keystore.jks"
+
+      - name: Build signed release APK and AAB
+        env:
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [[ -z "$KEY_ALIAS" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_PASSWORD" ]]; then
+            echo "Missing one or more Android signing secrets"
+            exit 1
+          fi
+
+          ./gradlew clean assembleRelease bundleRelease \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release-keystore.jks" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+
+      - name: Generate release notes from commit history
+        id: notes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*.*.*' 2>/dev/null || true)
+          {
+            echo "## Release v${{ steps.version.outputs.version_name }}"
+            echo
+            echo "- Version code: ${{ steps.version.outputs.version_code }}"
+            echo "- Commit: $GITHUB_SHA"
+            echo
+            echo "## Changes"
+            if [[ -n "$LAST_TAG" ]]; then
+              git log "$LAST_TAG"..HEAD --pretty=format:'- %s (%h)'
+            else
+              git log --pretty=format:'- %s (%h)'
+            fi
+          } > release-notes.md
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: M3-Play-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: android-release-artifacts
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/mapping/release/mapping.txt
+            release-notes.md
+
+      - name: Publish artifacts to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/mapping/release/mapping.txt
+
+      - name: Deploy to Google Play (optional)
+        if: (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.publish_to_play == 'true') && secrets.PLAY_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.j.m3play
+          releaseFiles: app/build/outputs/bundle/release/*.aab
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
+          track: internal
+          status: completed
