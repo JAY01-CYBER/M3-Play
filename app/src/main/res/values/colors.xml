@@ -1,28 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary colors -->
+    <!-- Primary Colors -->
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_100">#FFF3E5FF</color>
     
-    <!-- Secondary colors -->
+    <!-- Secondary Colors -->
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
+    <color name="teal_500">#FF009688</color>
+    <color name="teal_100">#FFB2DFDB</color>
     
-    <!-- Basic colors -->
+    <!-- Basic Colors -->
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF000000</color>
     <color name="grey">#FF9E9E9E</color>
+    <color name="dark_grey">#FF616161</color>
+    <color name="light_grey">#FFF5F5F5</color>
+    <color name="medium_grey">#FFE0E0E0</color>
     
-    <!-- Surface colors -->
+    <!-- Surface Colors -->
     <color name="surface">#FFF5F5F5</color>
+    <color name="surface_dark">#FF1E1E1E</color>
     <color name="background">#FFFFFFFF</color>
-    <color name="error">#FFB00020</color>
+    <color name="background_dark">#FF121212</color>
     
-    <!-- On colors (text/icons on colored backgrounds) -->
+    <!-- Error Colors -->
+    <color name="error">#FFB00020</color>
+    <color name="error_light">#FFFF8A80</color>
+    <color name="error_dark">#FFD32F2F</color>
+    <color name="error_container">#FFFFDAD6</color>
+    <color name="on_error_container">#FF410E0B</color>
+    
+    <!-- Success Colors -->
+    <color name="success">#FF4CAF50</color>
+    <color name="success_light">#FFC8E6C9</color>
+    <color name="success_dark">#FF2E7D32</color>
+    
+    <!-- Warning Colors -->
+    <color name="warning">#FFFFC107</color>
+    <color name="warning_light">#FFFFF9C4</color>
+    <color name="warning_dark">#FFFFA000</color>
+    
+    <!-- Info Colors -->
+    <color name="info">#FF2196F3</color>
+    <color name="info_light">#FFBBDEFB</color>
+    <color name="info_dark">#FF1976D2</color>
+    
+    <!-- On Colors (Text/Icon colors on colored backgrounds) -->
     <color name="on_primary">#FFFFFFFF</color>
+    <color name="on_primary_container">#FF1E1E1E</color>
     <color name="on_secondary">#FF000000</color>
+    <color name="on_secondary_container">#FF1E1E1E</color>
     <color name="on_background">#FF000000</color>
     <color name="on_surface">#FF000000</color>
+    <color name="on_surface_variant">#FF616161</color>
     <color name="on_error">#FFFFFFFF</color>
+    <color name="on_success">#FFFFFFFF</color>
+    <color name="on_warning">#FF000000</color>
+    <color name="on_info">#FFFFFFFF</color>
+    
+    <!-- Outline Colors -->
+    <color name="outline">#FF9E9E9E</color>
+    <color name="outline_variant">#FFE0E0E0</color>
+    
+    <!-- Inverse Colors -->
+    <color name="inverse_primary">#FFBB86FC</color>
+    <color name="inverse_surface">#FF1E1E1E</color>
+    <color name="inverse_on_surface">#FFFFFFFF</color>
+    
+    <!-- Scrim (overlay) -->
+    <color name="scrim">#52000000</color>
+    
+    <!-- Material You / Dynamic Colors (for Android 12+) -->
+    <color name="md_theme_light_primary">#FF6750A4</color>
+    <color name="md_theme_light_onPrimary">#FFFFFFFF</color>
+    <color name="md_theme_light_secondary">#FF625B71</color>
+    <color name="md_theme_light_onSecondary">#FFFFFFFF</color>
+    <color name="md_theme_light_tertiary">#FF7E5260</color>
+    <color name="md_theme_light_onTertiary">#FFFFFFFF</color>
+    <color name="md_theme_light_error">#FFBA1A1A</color>
+    <color name="md_theme_light_onError">#FFFFFFFF</color>
+    <color name="md_theme_light_background">#FFFFFBFE</color>
+    <color name="md_theme_light_onBackground">#FF1C1B1F</color>
+    <color name="md_theme_light_surface">#FFFFFBFE</color>
+    <color name="md_theme_light_onSurface">#FF1C1B1F</color>
+    
+    <!-- Dark theme variants -->
+    <color name="md_theme_dark_primary">#FFD0BCFF</color>
+    <color name="md_theme_dark_onPrimary">#FF381E72</color>
+    <color name="md_theme_dark_secondary">#FFCCC2DC</color>
+    <color name="md_theme_dark_onSecondary">#FF332D41</color>
+    <color name="md_theme_dark_tertiary">#FFEFB8C8</color>
+    <color name="md_theme_dark_onTertiary">#FF4A2532</color>
+    <color name="md_theme_dark_error">#FFF2B8B5</color>
+    <color name="md_theme_dark_onError">#FF601410</color>
+    <color name="md_theme_dark_background">#FF1C1B1F</color>
+    <color name="md_theme_dark_onBackground">#FFE6E1E5</color>
+    <color name="md_theme_dark_surface">#FF1C1B1F</color>
+    <color name="md_theme_dark_onSurface">#FFE6E1E5</color>
 </resources>
