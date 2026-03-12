@@ -26,7 +26,6 @@ jobs:
           gradle-version: 8.7
 
       - name: Build with Gradle
-        # Using direct gradle command to avoid wrapper issues
         run: gradle assembleDebug
 
       - name: Upload APK Artifact
