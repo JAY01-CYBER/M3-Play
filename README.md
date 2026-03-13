@@ -57,6 +57,36 @@ It is built for fast iteration, feature isolation, and easy long-term maintenanc
 
 ---
 
+
+## 🔁 Sync with OpenTune upstream
+
+To pull in the full file/folder layout from [`Arturo254/OpenTune`](https://github.com/Arturo254/OpenTune), run:
+
+```bash
+./scripts_sync_opentune.sh
+```
+
+Other supported workflows:
+
+```bash
+# specific branch
+./scripts_sync_opentune.sh main
+
+# if GitHub is blocked, import from a local clone
+./scripts_sync_opentune.sh --from-local /path/to/OpenTune
+
+# import from downloaded archives
+./scripts_sync_opentune.sh --from-tar /path/to/OpenTune.tar.gz
+./scripts_sync_opentune.sh --from-zip /path/to/OpenTune.zip
+
+# preview changes only
+./scripts_sync_opentune.sh --dry-run --from-local /path/to/OpenTune
+```
+
+The script mirrors upstream content into this repository (excluding `.git`).
+
+---
+
 ## ▶️ Getting Started
 
 ### 1) Clone
