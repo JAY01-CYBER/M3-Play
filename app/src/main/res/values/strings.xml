@@ -1,30 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">M3 Play</string>
-    <string name="title_home">Home</string>
-    <string name="title_profile">Profile</string>
-    <string name="title_settings">Settings</string>
-    
-    <!-- Button texts -->
-    <string name="button_ok">OK</string>
-    <string name="button_cancel">Cancel</string>
-    <string name="button_save">Save</string>
-    <string name="button_retry">Retry</string>
-    
-    <!-- Common messages -->
-    <string name="message_loading">Loading...</string>
-    <string name="message_error">Something went wrong</string>
-    <string name="message_no_internet">No internet connection</string>
-    <string name="message_empty">No data available</string>
-    <string name="message_success">Success!</string>
-    
-    <!-- Content descriptions for accessibility -->
-    <string name="cd_profile_icon">Profile icon</string>
-    <string name="cd_settings_icon">Settings icon</string>
-    <string name="cd_back_button">Back button</string>
-    <string name="cd_menu_button">Menu button</string>
-    
-    <!-- Additional app strings -->
-    <string name="app_version">Version 1.0</string>
-    <string name="developed_by">Developed by J</string>
+    <string name="app_name">InnerTuneStyle</string>
 </resources>

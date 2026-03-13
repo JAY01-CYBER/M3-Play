@@ -5,6 +5,7 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -13,5 +14,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "M3-Play"
-include ':app'
+rootProject.name = "InnerTuneStyle"
+include(":app")
+include(":core:model")
+include(":core:data")
+include(":feature:home")
