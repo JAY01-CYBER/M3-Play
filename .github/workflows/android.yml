@@ -1,8 +1,10 @@
-name: Build M3-Play APK
+name: Build and Ship M3-Play APK
 
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -10,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -22,14 +24,24 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.7
 
-      - name: Build with Gradle
-        run: gradle assembleDebug
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
 
-      - name: Upload APK Artifact
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: M3-Play-Debug-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: m3-play-apks
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true
