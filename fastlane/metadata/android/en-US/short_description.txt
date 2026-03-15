@@ -1,1 +1,1 @@
-A Material 3 YouTube Music client for Android
+A YouTube Music client with Material Design 3, for Android

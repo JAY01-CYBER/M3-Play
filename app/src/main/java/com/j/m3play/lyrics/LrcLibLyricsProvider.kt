@@ -1,19 +1,15 @@
 package com.j.m3play.lyrics
 
 import android.content.Context
-import com.zionhuang.lrclib.LrcLib
+import com.arturo254.lrclib.LrcLib
 import com.j.m3play.constants.EnableLrcLibKey
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.get
 
-/**
- * Source: https://github.com/Malopieds/InnerTune
- */
 object LrcLibLyricsProvider : LyricsProvider {
     override val name = "LrcLib"
 
-    override fun isEnabled(context: Context): Boolean =
-        context.dataStore[EnableLrcLibKey] ?: true
+    override fun isEnabled(context: Context): Boolean = context.dataStore[EnableLrcLibKey] ?: true
 
     override suspend fun getLyrics(
         id: String,

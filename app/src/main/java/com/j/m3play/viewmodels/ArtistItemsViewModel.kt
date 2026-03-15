@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.BrowseEndpoint
-import com.zionhuang.innertube.models.filterExplicit
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.models.BrowseEndpoint
+import com.arturo254.innertube.models.filterExplicit
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.models.ItemsPage
 import com.j.m3play.utils.dataStore
@@ -20,7 +20,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ArtistItemsViewModel @Inject constructor(
+class ArtistItemsViewModel
+@Inject
+constructor(
     @ApplicationContext val context: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -32,20 +34,22 @@ class ArtistItemsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            YouTube.artistItems(
-                BrowseEndpoint(
-                    browseId = browseId,
-                    params = params
-                )
-            ).onSuccess { artistItemsPage ->
-                title.value = artistItemsPage.title
-                itemsPage.value = ItemsPage(
-                    items = artistItemsPage.items.distinctBy { it.id },
-                    continuation = artistItemsPage.continuation
-                )
-            }.onFailure {
-                reportException(it)
-            }
+            YouTube
+                .artistItems(
+                    BrowseEndpoint(
+                        browseId = browseId,
+                        params = params,
+                    ),
+                ).onSuccess { artistItemsPage ->
+                    title.value = artistItemsPage.title
+                    itemsPage.value =
+                        ItemsPage(
+                            items = artistItemsPage.items.distinctBy { it.id },
+                            continuation = artistItemsPage.continuation,
+                        )
+                }.onFailure {
+                    reportException(it)
+                }
         }
     }
 
@@ -53,14 +57,16 @@ class ArtistItemsViewModel @Inject constructor(
         viewModelScope.launch {
             val oldItemsPage = itemsPage.value ?: return@launch
             val continuation = oldItemsPage.continuation ?: return@launch
-            YouTube.artistItemsContinuation(continuation)
+            YouTube
+                .artistItemsContinuation(continuation)
                 .onSuccess { artistItemsContinuationPage ->
                     itemsPage.update {
                         ItemsPage(
-                            items = (oldItemsPage.items + artistItemsContinuationPage.items)
-                                .distinctBy { it.id }
-                                .filterExplicit(context.dataStore.get(HideExplicitKey, false)),
-                            continuation = artistItemsContinuationPage.continuation
+                            items =
+                                (oldItemsPage.items + artistItemsContinuationPage.items)
+                                    .distinctBy { it.id }
+                                    .filterExplicit(context.dataStore.get(HideExplicitKey, false)),
+                            continuation = artistItemsContinuationPage.continuation,
                         )
                     }
                 }.onFailure {

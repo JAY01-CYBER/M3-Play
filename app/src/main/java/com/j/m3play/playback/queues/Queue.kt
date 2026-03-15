@@ -6,8 +6,11 @@ import com.j.m3play.models.MediaMetadata
 
 interface Queue {
     val preloadItem: MediaMetadata?
+
     suspend fun getInitialStatus(): Status
+
     fun hasNextPage(): Boolean
+
     suspend fun nextPage(): List<MediaItem>
 
     data class Status(
@@ -19,9 +22,11 @@ interface Queue {
         fun filterExplicit(enabled: Boolean = true) =
             if (enabled) {
                 copy(
-                    items = items.filterExplicit()
+                    items = items.filterExplicit(),
                 )
-            } else this
+            } else {
+                this
+            }
     }
 }
 
@@ -30,5 +35,6 @@ fun List<MediaItem>.filterExplicit(enabled: Boolean = true) =
         filterNot {
             it.metadata?.explicit == true
         }
-    } else this
-
+    } else {
+        this
+    }

@@ -1,7 +1,6 @@
 package com.j.m3play.playback
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
@@ -17,7 +16,7 @@ class SleepTimer(
     val player: Player,
 ) : Player.Listener {
     private var sleepTimerJob: Job? = null
-    var triggerTime by mutableLongStateOf(-1L)
+    var triggerTime by mutableStateOf(-1L)
         private set
     var pauseWhenSongEnd by mutableStateOf(false)
         private set
@@ -31,11 +30,12 @@ class SleepTimer(
             pauseWhenSongEnd = true
         } else {
             triggerTime = System.currentTimeMillis() + minute.minutes.inWholeMilliseconds
-            sleepTimerJob = scope.launch {
-                delay(minute.minutes)
-                player.pause()
-                triggerTime = -1L
-            }
+            sleepTimerJob =
+                scope.launch {
+                    delay(minute.minutes)
+                    player.pause()
+                    triggerTime = -1L
+                }
         }
     }
 
@@ -46,14 +46,19 @@ class SleepTimer(
         triggerTime = -1L
     }
 
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+    override fun onMediaItemTransition(
+        mediaItem: MediaItem?,
+        reason: Int,
+    ) {
         if (pauseWhenSongEnd) {
             pauseWhenSongEnd = false
             player.pause()
         }
     }
 
-    override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
+    override fun onPlaybackStateChanged(
+        @Player.State playbackState: Int,
+    ) {
         if (playbackState == Player.STATE_ENDED && pauseWhenSongEnd) {
             pauseWhenSongEnd = false
             player.pause()

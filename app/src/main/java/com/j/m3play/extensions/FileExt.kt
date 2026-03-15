@@ -9,4 +9,5 @@ import java.util.zip.ZipOutputStream
 operator fun File.div(child: String): File = File(this, child)
 
 fun InputStream.zipInputStream(): ZipInputStream = ZipInputStream(this)
+
 fun OutputStream.zipOutputStream(): ZipOutputStream = ZipOutputStream(this)

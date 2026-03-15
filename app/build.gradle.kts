@@ -1,104 +1,101 @@
 @file:Suppress("UnstableApiUsage")
 
-val isFullBuild: Boolean by rootProject.extra
-
 plugins {
     id("com.android.application")
     kotlin("android")
+    kotlin("plugin.serialization") version "2.1.0"
     kotlin("kapt")
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.compose.compiler)
 }
 
-if (isFullBuild && System.getenv("PULL_REQUEST") == null) {
-    apply(plugin = "com.google.gms.google-services")
-    apply(plugin = "com.google.firebase.crashlytics")
-    apply(plugin = "com.google.firebase.firebase-perf")
-}
-
 android {
     namespace = "com.j.m3play"
+    //noinspection GradleDependency
     compileSdk = 35
-    buildToolsVersion = "35.0.0"
+
     defaultConfig {
         applicationId = "com.j.m3play"
         minSdk = 24
         targetSdk = 35
-        versionCode = 26
-        versionName = "0.5.10"
+        versionCode = 126
+        versionName = "2.0.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             isCrunchPngs = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         debug {
             applicationIdSuffix = ".debug"
         }
     }
-    flavorDimensions += "version"
-    productFlavors {
-        create("full") {
-            dimension = "version"
-        }
-        create("foss") {
-            dimension = "version"
-        }
-    }
 
-//    splits {
-//        abi {
-//            isEnable = true
-//            reset()
-//            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-//            isUniversalApk = false
-//        }
-//    }
-    
     signingConfigs {
         getByName("debug") {
             if (System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD") != null) {
                 storeFile = file(System.getenv("MUSIC_DEBUG_KEYSTORE_FILE"))
                 storePassword = System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD")
-                keyAlias = "debug"
+                keyAlias = System.getenv("MUSIC_DEBUG_SIGNING_KEY_ALIAS") ?: "androiddebugkey"
                 keyPassword = System.getenv("MUSIC_DEBUG_SIGNING_KEY_PASSWORD")
             }
         }
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/NOTICE.md"
+            excludes += "META-INF/CONTRIBUTORS.md"
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/io.netty.versions.properties"
+        }
+    }
+
     buildFeatures {
         buildConfig = true
         compose = true
     }
+
+    // ✅ Alineamos TODO a Java 21
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
+
     kotlin {
-        jvmToolchain(17)
+        jvmToolchain(21)
     }
+
     kotlinOptions {
         freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.isReturnDefaultValues = true
     }
-    // avoid DEPENDENCY_INFO_BLOCK for IzzyOnDroid
+
+    lint {
+        disable += "MissingTranslation"
+    }
+
     dependenciesInfo {
-        // Disables dependency metadata when building APKs.
         includeInApk = false
-        // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
-    lint {
-        lintConfig = file("app/lint.xml")
-    }
+
 }
 
 ksp {
@@ -121,7 +118,6 @@ dependencies {
     implementation(libs.compose.ui.util)
     implementation(libs.compose.ui.tooling)
     implementation(libs.compose.animation)
-    implementation(libs.compose.animation.graphics)
     implementation(libs.compose.reorderable)
 
     implementation(libs.viewmodel)
@@ -130,42 +126,46 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.palette)
     implementation(projects.materialColorUtilities)
-    implementation(libs.squigglyslider)
 
     implementation(libs.coil)
-
     implementation(libs.shimmer)
 
     implementation(libs.media3)
     implementation(libs.media3.session)
     implementation(libs.media3.okhttp)
+    implementation(libs.squigglyslider)
 
     implementation(libs.room.runtime)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.blurry)
+    implementation(libs.material.ripple)
+    implementation(libs.room.runtime.android)
+    implementation(libs.material.icons.extended)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+    implementation(libs.graphics.shapes)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.constraintlayout)
+    implementation(libs.itextg)
+    implementation(libs.mpandroidchart)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
 
     implementation(libs.apache.lang3)
 
     implementation(libs.hilt)
+    implementation("org.jsoup:jsoup:1.18.1")
     kapt(libs.hilt.compiler)
 
     implementation(projects.innertube)
     implementation(projects.kugou)
     implementation(projects.lrclib)
     implementation(projects.kizzy)
+    implementation(project(":jossredconnect"))
 
     implementation(libs.ktor.client.core)
 
     coreLibraryDesugaring(libs.desugaring)
-
-    "fullImplementation"(platform(libs.firebase.bom))
-    "fullImplementation"(libs.firebase.analytics)
-    "fullImplementation"(libs.firebase.crashlytics)
-    "fullImplementation"(libs.firebase.config)
-    "fullImplementation"(libs.firebase.perf)
-    "fullImplementation"(libs.mlkit.language.id)
-    "fullImplementation"(libs.mlkit.translate)
-    "fullImplementation"(libs.opencc4j)
 
     implementation(libs.timber)
 }

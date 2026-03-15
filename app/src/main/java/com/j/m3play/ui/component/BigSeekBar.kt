@@ -40,15 +40,20 @@ fun BigSeekBar(
             }
             .pointerInput(progressProvider) {
                 detectHorizontalDragGestures { _, dragAmount ->
-                    onProgressChange((progressProvider() + dragAmount * 1.2f / width).coerceIn(0f, 1f))
+                    onProgressChange(
+                        (progressProvider() + dragAmount * 1.2f / width).coerceIn(
+                            0f,
+                            1f
+                        )
+                    )
                 }
-            }
+            },
     ) {
         drawRect(color = background)
 
         drawRect(
             color = color,
-            size = size.copy(width = size.width * progressProvider())
+            size = size.copy(width = size.width * progressProvider()),
         )
     }
 }

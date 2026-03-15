@@ -1,21 +1,16 @@
 package com.j.m3play.viewmodels
 
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.pages.ArtistPage
-import com.j.m3play.constants.HideExplicitKey
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.pages.ArtistPage
 import com.j.m3play.db.MusicDatabase
-import com.j.m3play.utils.dataStore
-import com.j.m3play.utils.get
 import com.j.m3play.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,7 +18,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ArtistViewModel @Inject constructor(
-    @ApplicationContext context: Context,
     database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -35,10 +29,14 @@ class ArtistViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
+        fetchArtistsFromYTM()
+    }
+
+    private fun fetchArtistsFromYTM() {
         viewModelScope.launch {
             YouTube.artist(artistId)
                 .onSuccess {
-                    artistPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false))
+                    artistPage = it
                 }.onFailure {
                     reportException(it)
                 }

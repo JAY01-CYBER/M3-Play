@@ -17,7 +17,9 @@ import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
-class LyricsMenuViewModel @Inject constructor(
+class LyricsMenuViewModel
+@Inject
+constructor(
     private val lyricsHelper: LyricsHelper,
     val database: MusicDatabase,
 ) : ViewModel() {
@@ -25,18 +27,24 @@ class LyricsMenuViewModel @Inject constructor(
     val results = MutableStateFlow(emptyList<LyricsResult>())
     val isLoading = MutableStateFlow(false)
 
-    fun search(mediaId: String, title: String, artist: String, duration: Int) {
+    fun search(
+        mediaId: String,
+        title: String,
+        artist: String,
+        duration: Int,
+    ) {
         isLoading.value = true
         results.value = emptyList()
         job?.cancel()
-        job = viewModelScope.launch(Dispatchers.IO) {
-            lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
-                results.update {
-                    it + result
+        job =
+            viewModelScope.launch(Dispatchers.IO) {
+                lyricsHelper.getAllLyrics(mediaId, title, artist, duration) { result ->
+                    results.update {
+                        it + result
+                    }
                 }
+                isLoading.value = false
             }
-            isLoading.value = false
-        }
     }
 
     fun cancelSearch() {
@@ -44,12 +52,16 @@ class LyricsMenuViewModel @Inject constructor(
         job = null
     }
 
-    fun refetchLyrics(mediaMetadata: MediaMetadata, lyricsEntity: LyricsEntity?) {
+    fun refetchLyrics(
+        mediaMetadata: MediaMetadata,
+        lyricsEntity: LyricsEntity?,
+    ) {
         database.query {
             lyricsEntity?.let(::delete)
-            val lyrics = runBlocking {
-                lyricsHelper.getLyrics(mediaMetadata)
-            }
+            val lyrics =
+                runBlocking {
+                    lyricsHelper.getLyrics(mediaMetadata)
+                }
             upsert(LyricsEntity(mediaMetadata.id, lyrics))
         }
     }

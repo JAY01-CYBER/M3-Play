@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,30 +21,38 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.utils.parseCookieString
 import com.j.m3play.LocalDatabase
 import com.j.m3play.R
+import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.db.entities.Playlist
-import com.j.m3play.db.entities.PlaylistEntity
+import com.j.m3play.ui.component.CreatePlaylistDialog
 import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.ListDialog
 import com.j.m3play.ui.component.ListItem
 import com.j.m3play.ui.component.PlaylistListItem
-import com.j.m3play.ui.component.TextFieldDialog
+import com.j.m3play.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
 fun AddToPlaylistDialog(
     isVisible: Boolean,
-    onGetSong: suspend () -> List<String>, // list of song ids. Songs should be inserted to database in this function.
+    allowSyncing: Boolean = true,
+    initialTextFieldValue: String? = null,
+    onGetSong: suspend (Playlist) -> List<String>, // list of song ids. Songs should be inserted to database in this function.
     onDismiss: () -> Unit,
 ) {
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-
     var playlists by remember {
         mutableStateOf(emptyList<Playlist>())
+    }
+    val (innerTubeCookie) = rememberPreference(InnerTubeCookieKey, "")
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in parseCookieString(innerTubeCookie)
     }
     var showCreatePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
@@ -65,14 +72,14 @@ fun AddToPlaylistDialog(
     }
 
     LaunchedEffect(Unit) {
-        database.playlistsByCreateDateAsc().collect {
+        database.editablePlaylistsByCreateDateAsc().collect {
             playlists = it.asReversed()
         }
     }
 
     if (isVisible) {
         ListDialog(
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
         ) {
             item {
                 ListItem(
@@ -98,7 +105,7 @@ fun AddToPlaylistDialog(
                         selectedPlaylist = playlist
                         coroutineScope.launch(Dispatchers.IO) {
                             if (songIds == null) {
-                                songIds = onGetSong()
+                                songIds = onGetSong(playlist)
                             }
                             duplicates = database.playlistDuplicates(playlist.id, songIds!!)
                             if (duplicates.isNotEmpty()) {
@@ -106,6 +113,12 @@ fun AddToPlaylistDialog(
                             } else {
                                 onDismiss()
                                 database.addSongToPlaylist(playlist, songIds!!)
+
+                                playlist.playlist.browseId?.let { plist ->
+                                    songIds?.forEach {
+                                        YouTube.addToPlaylist(plist, it)
+                                    }
+                                }
                             }
                         }
                     }
@@ -115,22 +128,14 @@ fun AddToPlaylistDialog(
     }
 
     if (showCreatePlaylistDialog) {
-        TextFieldDialog(
-            icon = { Icon(painter = painterResource(R.drawable.add), contentDescription = null) },
-            title = { Text(text = stringResource(R.string.create_playlist)) },
+        CreatePlaylistDialog(
             onDismiss = { showCreatePlaylistDialog = false },
-            onDone = { playlistName ->
-                database.query {
-                    insert(
-                        PlaylistEntity(
-                            name = playlistName
-                        )
-                    )
-                }
-            }
+            initialTextFieldValue = initialTextFieldValue,
+            allowSyncing = allowSyncing
         )
     }
 
+    // duplicate songs warning
     if (showDuplicateDialog) {
         DefaultDialog(
             title = { Text(stringResource(R.string.duplicates)) },

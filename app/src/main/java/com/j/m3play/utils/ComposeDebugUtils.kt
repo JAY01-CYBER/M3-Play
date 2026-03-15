@@ -2,7 +2,7 @@ package com.j.m3play.utils
 
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -20,8 +20,9 @@ import kotlinx.coroutines.delay
 import kotlin.math.min
 
 /**
- * A [Modifier] that draws a border around elements that are recomposing. The border increases in
- * size and interpolates from red to green as more recompositions occur before a timeout.
+ * A [Modifier] that draws a border around elements that are recomposing.
+ * The border increases in size and interpolates from red to green as more
+ * recompositions occur before a timeout.
  */
 @Stable
 fun Modifier.recomposeHighlighter(): Modifier = this.then(recomposeModifier)
@@ -37,13 +38,13 @@ private val recomposeModifier =
         totalCompositions[0]++
 
         // The value of totalCompositions at the last timeout.
-        val totalCompositionsAtLastTimeout = remember { mutableLongStateOf(0L) }
+        val totalCompositionsAtLastTimeout = remember { mutableStateOf(0L) }
 
         // Start the timeout, and reset everytime there's a recomposition. (Using totalCompositions
         // as the key is really just to cause the timer to restart every composition).
         LaunchedEffect(totalCompositions[0]) {
             delay(3000)
-            totalCompositionsAtLastTimeout.longValue = totalCompositions[0]
+            totalCompositionsAtLastTimeout.value = totalCompositions[0]
         }
 
         Modifier.drawWithCache {
@@ -74,7 +75,7 @@ private val recomposeModifier =
                             lerp(
                                 Color.Yellow.copy(alpha = 0.8f),
                                 Color.Red.copy(alpha = 0.5f),
-                                min(1f, (numCompositionsSinceTimeout - 1).toFloat() / 100f)
+                                min(1f, (numCompositionsSinceTimeout - 1).toFloat() / 100f),
                             ) to numCompositionsSinceTimeout.toInt().dp.toPx()
                         }
                     }
@@ -92,7 +93,7 @@ private val recomposeModifier =
                     brush = SolidColor(color),
                     topLeft = rectTopLeft,
                     size = size,
-                    style = style
+                    style = style,
                 )
             }
         }

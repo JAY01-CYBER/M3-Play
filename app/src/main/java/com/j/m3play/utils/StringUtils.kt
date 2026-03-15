@@ -1,7 +1,6 @@
 package com.j.m3play.utils
 
 import java.math.BigInteger
-import java.net.URLEncoder
 import java.security.MessageDigest
 
 fun makeTimeString(duration: Long?): String {
@@ -26,8 +25,7 @@ fun md5(str: String): String {
 }
 
 fun joinByBullet(vararg str: String?) =
-    str.filterNot {
-        it.isNullOrEmpty()
-    }.joinToString(separator = " • ")
-
-fun String.urlEncode(): String = URLEncoder.encode(this, "UTF-8")
+    str
+        .filterNot {
+            it.isNullOrEmpty()
+        }.joinToString(separator = " • ")

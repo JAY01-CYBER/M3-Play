@@ -48,16 +48,6 @@
 # @Serializable and @Polymorphic are used at runtime for polymorphic serialization.
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault
 
-# Don't print notes about potential mistakes or omissions in the configuration for kotlinx-serialization classes
-# See also https://github.com/Kotlin/kotlinx.serialization/issues/1900
--dontnote kotlinx.serialization.**
-
-# Serialization core uses `java.lang.ClassValue` for caching inside these specified classes.
-# If there is no `java.lang.ClassValue` (for example, in Android), then R8/ProGuard will print a warning.
-# However, since in this case they will not be used, we can disable these warnings
--dontwarn kotlinx.serialization.internal.ClassValueReferences
-
-
 -dontwarn javax.servlet.ServletContainerInitializer
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
 -dontwarn org.bouncycastle.jsse.BCSSLSocket
@@ -69,13 +59,56 @@
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
 -dontwarn org.slf4j.impl.StaticLoggerBinder
--dontwarn com.google.firebase.perf.network.FirebasePerfOkHttpClient
--dontwarn com.google.firebase.perf.network.FirebasePerfUrlConnection
-# opencc4j
--keep class com.github.houbb.opencc4j.** { *; }
--dontwarn com.huaban.analysis.jieba.JiebaSegmenter
 
-# Keep Data data classes
--keep class com.my.kizzy.remote.** { <fields>; }
-# Keep Gateway data classes
--keep class com.my.kizzy.gateway.entities.** { <fields>; }
+## Rules for NewPipeExtractor
+-keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.javascript.engine.** { *; }
+-dontwarn org.mozilla.javascript.JavaToJSONConverters
+-dontwarn org.mozilla.javascript.tools.**
+-keep class javax.script.** { *; }
+-dontwarn javax.script.**
+-keep class jdk.dynalink.** { *; }
+-dontwarn jdk.dynalink.**
+
+## Logging (does not affect Timber)
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    ## Leave in release builds
+    #public static int i(...);
+    #public static int w(...);
+    #public static int e(...);
+}
+
+# Generated automatically by the Android Gradle plugin.
+-dontwarn java.beans.BeanDescriptor
+-dontwarn java.beans.BeanInfo
+-dontwarn java.beans.IntrospectionException
+-dontwarn java.beans.Introspector
+-dontwarn java.beans.PropertyDescriptor
+-dontwarn okhttp3.internal.Util
+
+
+## Rules for PipePipeExtractor
+-keep class project.pipepipe.extractor.** { *; }
+-keep class project.pipepipe.shared.** { *; }
+
+## Netty rules (used by PipePipeExtractor dependencies)
+-dontwarn io.netty.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn reactor.blockhound.**
+-dontwarn io.micrometer.context.**
+-dontwarn javax.enterprise.inject.**
+
+## Lettuce (Redis client used by PipePipeExtractor)
+-dontwarn io.lettuce.core.**
+
+## Reactor
+-dontwarn reactor.util.context.**
+
+## Keep Wire protobuf classes
+-keep class com.squareup.wire.** { *; }
+

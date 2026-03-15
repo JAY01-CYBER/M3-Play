@@ -1,43 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
-        android:shortcutId="search"
         android:enabled="true"
-        android:icon="@drawable/shortcut_search"
+        android:icon="@drawable/search"
+        android:shortcutId="search"
         android:shortcutShortLabel="@string/search">
         <intent
+            android:action="com.j.m3play.action.SEARCH"
             android:targetClass="com.j.m3play.MainActivity"
-            android:targetPackage="com.j.m3play"
-            android:action="com.j.m3play.action.SEARCH" />
+            android:targetPackage="com.j.m3play" />
     </shortcut>
     <shortcut
-        android:shortcutId="songs"
         android:enabled="true"
-        android:icon="@drawable/shortcut_songs"
-        android:shortcutShortLabel="@string/songs">
+        android:icon="@drawable/explore"
+        android:shortcutId="explore"
+        android:shortcutShortLabel="@string/explore">
         <intent
+            android:action="com.j.m3play.action.EXPLORE"
             android:targetClass="com.j.m3play.MainActivity"
-            android:targetPackage="com.j.m3play"
-            android:action="com.j.m3play.action.SONGS" />
+            android:targetPackage="com.j.m3play" />
     </shortcut>
     <shortcut
-        android:shortcutId="albums"
         android:enabled="true"
-        android:icon="@drawable/shortcut_albums"
-        android:shortcutShortLabel="@string/albums">
+        android:icon="@drawable/library_music"
+        android:shortcutId="library"
+        android:shortcutShortLabel="@string/filter_library">
         <intent
+            android:action="com.j.m3play.action.LIBRARY"
             android:targetClass="com.j.m3play.MainActivity"
-            android:targetPackage="com.j.m3play"
-            android:action="com.j.m3play.action.ALBUMS" />
-    </shortcut>
-    <shortcut
-        android:shortcutId="playlists"
-        android:enabled="true"
-        android:icon="@drawable/shortcut_playlists"
-        android:shortcutShortLabel="@string/playlists">
-        <intent
-            android:targetClass="com.j.m3play.MainActivity"
-            android:targetPackage="com.j.m3play"
-            android:action="com.j.m3play.action.PLAYLISTS" />
+            android:targetPackage="com.j.m3play" />
     </shortcut>
 </shortcuts>

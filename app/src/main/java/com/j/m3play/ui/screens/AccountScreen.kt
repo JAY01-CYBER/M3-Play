@@ -31,6 +31,8 @@ import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
+import com.j.m3play.ui.menu.YouTubeAlbumMenu
+import com.j.m3play.ui.menu.YouTubeArtistMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.viewmodels.AccountViewModel
@@ -49,12 +51,43 @@ fun AccountScreen(
 
     val playlists by viewModel.playlists.collectAsState()
 
+    val albums by viewModel.albums.collectAsState()
+
+    val artists by viewModel.artists.collectAsState()
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = GridThumbnailHeight + 24.dp),
-        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+        contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
     ) {
         items(
             items = playlists.orEmpty(),
+            key = { it.id },
+        ) { item ->
+            YouTubeGridItem(
+                item = item,
+                fillMaxWidth = true,
+                modifier =
+                    Modifier
+                        .combinedClickable(
+                            onClick = {
+                                navController.navigate("online_playlist/${item.id}")
+                            },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                menuState.show {
+                                    YouTubePlaylistMenu(
+                                        playlist = item,
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss,
+                                    )
+                                }
+                            },
+                        ),
+            )
+        }
+
+        items(
+            items = albums.orEmpty(),
             key = { it.id }
         ) { item ->
             YouTubeGridItem(
@@ -63,14 +96,39 @@ fun AccountScreen(
                 modifier = Modifier
                     .combinedClickable(
                         onClick = {
-                            navController.navigate("online_playlist/${item.id}")
+                            navController.navigate("album/${item.id}")
                         },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             menuState.show {
-                                YouTubePlaylistMenu(
-                                    playlist = item,
-                                    coroutineScope = coroutineScope,
+                                YouTubeAlbumMenu(
+                                    albumItem = item,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        }
+                    )
+            )
+        }
+
+        items(
+            items = artists.orEmpty(),
+            key = { it.id }
+        ) { item ->
+            YouTubeGridItem(
+                item = item,
+                fillMaxWidth = true,
+                modifier = Modifier
+                    .combinedClickable(
+                        onClick = {
+                            navController.navigate("artist/${item.id}")
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show {
+                                YouTubeArtistMenu(
+                                    artist = item,
                                     onDismiss = menuState::dismiss
                                 )
                             }
@@ -93,14 +151,13 @@ fun AccountScreen(
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
+                onLongClick = navController::backToMain,
             ) {
                 Icon(
                     painterResource(R.drawable.arrow_back),
-                    contentDescription = null
+                    contentDescription = null,
                 )
             }
         },
-        scrollBehavior = scrollBehavior
     )
 }

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.offline.Download
 import com.j.m3play.R
+import com.j.m3play.utils.makeTimeString
 
 val GridMenuItemHeight = 108.dp
 
@@ -143,8 +144,50 @@ fun LazyGridScope.DownloadGridMenu(
         else -> {
             GridMenuItem(
                 icon = R.drawable.download,
-                title = R.string.action_download,
+                title = R.string.download,
                 onClick = onDownload
+            )
+        }
+    }
+}
+
+fun LazyGridScope.SleepTimerGridMenu(
+    modifier: Modifier = Modifier,
+    sleepTimerTimeLeft: Long,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    item {
+        Column(
+            modifier = modifier
+                .clip(ShapeDefaults.Large)
+                .height(GridMenuItemHeight)
+                .clickable(
+                    onClick = onClick
+                )
+                .padding(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+                content = {
+                    Icon(
+                        painterResource(R.drawable.bedtime),
+                        contentDescription = null,
+                        modifier = Modifier.alpha(if (enabled) 1f else 0.5f)
+                    )
+                }
+            )
+            Text(
+                text = if (enabled) makeTimeString(sleepTimerTimeLeft) else stringResource(
+                    id = R.string.sleep_timer
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

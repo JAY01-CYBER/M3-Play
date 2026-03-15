@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
-import androidx.media3.common.PlaybackException
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -13,13 +12,14 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
-import com.zionhuang.innertube.YouTube
+import com.arturo254.innertube.YouTube
 import com.j.m3play.constants.AudioQuality
 import com.j.m3play.constants.AudioQualityKey
 import com.j.m3play.db.MusicDatabase
 import com.j.m3play.db.entities.FormatEntity
 import com.j.m3play.di.DownloadCache
 import com.j.m3play.di.PlayerCache
+import com.j.m3play.utils.YTPlayerUtils
 import com.j.m3play.utils.enumPreference
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +35,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class DownloadUtil @Inject constructor(
+class DownloadUtil
+@Inject
+constructor(
     @ApplicationContext context: Context,
     val database: MusicDatabase,
     val databaseProvider: DatabaseProvider,
@@ -45,86 +47,88 @@ class DownloadUtil @Inject constructor(
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
-    private val dataSourceFactory = ResolvingDataSource.Factory(
-        CacheDataSource.Factory()
-            .setCache(playerCache)
-            .setUpstreamDataSourceFactory(
-                OkHttpDataSource.Factory(
-                    OkHttpClient.Builder()
-                        .proxy(YouTube.proxy)
-                        .build()
-                )
-            )
-    ) { dataSpec ->
-        val mediaId = dataSpec.key ?: error("No media id")
-        val length = if (dataSpec.length >= 0) dataSpec.length else 1
+    private val dataSourceFactory =
+        ResolvingDataSource.Factory(
+            CacheDataSource
+                .Factory()
+                .setCache(playerCache)
+                .setUpstreamDataSourceFactory(
+                    OkHttpDataSource.Factory(
+                        OkHttpClient
+                            .Builder()
+                            .proxy(YouTube.proxy)
+                            .build(),
+                    ),
+                ),
+        ) { dataSpec ->
+            val mediaId = dataSpec.key ?: error("No media id")
+            val length = if (dataSpec.length >= 0) dataSpec.length else 1
 
-        if (playerCache.isCached(mediaId, dataSpec.position, length)) {
-            return@Factory dataSpec
-        }
-
-        songUrlCache[mediaId]?.takeIf { it.second < System.currentTimeMillis() }?.let {
-            return@Factory dataSpec.withUri(it.first.toUri())
-        }
-
-        val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
-        val playerResponse = runBlocking(Dispatchers.IO) {
-            YouTube.player(mediaId)
-        }.getOrThrow()
-        if (playerResponse.playabilityStatus.status != "OK") {
-            throw PlaybackException(playerResponse.playabilityStatus.reason, null, PlaybackException.ERROR_CODE_REMOTE_ERROR)
-        }
-
-        val format =
-            if (playedFormat != null) {
-                playerResponse.streamingData?.adaptiveFormats?.find { it.itag == playedFormat.itag }
-            } else {
-                playerResponse.streamingData?.adaptiveFormats
-                    ?.filter { it.isAudio }
-                    ?.maxByOrNull {
-                        it.bitrate * when (audioQuality) {
-                            AudioQuality.AUTO -> if (connectivityManager.isActiveNetworkMetered) -1 else 1
-                            AudioQuality.HIGH -> 1
-                            AudioQuality.LOW -> -1
-                        } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
-                    }
-            }!!.let {
-                // Specify range to avoid YouTube's throttling
-                it.copy(url = "${it.url}&range=0-${it.contentLength ?: 10000000}")
+            if (playerCache.isCached(mediaId, dataSpec.position, length)) {
+                return@Factory dataSpec
             }
 
-        database.query {
-            upsert(
-                FormatEntity(
-                    id = mediaId,
-                    itag = format.itag,
-                    mimeType = format.mimeType.split(";")[0],
-                    codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
-                    bitrate = format.bitrate,
-                    sampleRate = format.audioSampleRate,
-                    contentLength = format.contentLength!!,
-                    loudnessDb = playerResponse.playerConfig?.audioConfig?.loudnessDb
+            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+                return@Factory dataSpec.withUri(it.first.toUri())
+            }
+
+            val playedFormat = runBlocking(Dispatchers.IO) { database.format(mediaId).first() }
+            val playbackData = runBlocking(Dispatchers.IO) {
+                YTPlayerUtils.playerResponseForPlayback(
+                    mediaId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
                 )
+            }.getOrThrow()
+            val format = playbackData.format
+
+            database.query {
+                upsert(
+                    FormatEntity(
+                        id = mediaId,
+                        itag = format.itag,
+                        mimeType = format.mimeType.split(";")[0],
+                        codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                        bitrate = format.bitrate,
+                        sampleRate = format.audioSampleRate,
+                        contentLength = format.contentLength!!,
+                        loudnessDb = playbackData.audioConfig?.loudnessDb,
+                        playbackUrl = playbackData.streamUrl
+                    ),
+                )
+            }
+
+            val streamUrl = playbackData.streamUrl.let {
+                // Specify range to avoid YouTube's throttling
+                "${it}&range=0-${format.contentLength ?: 10000000}"
+            }
+
+            songUrlCache[mediaId] =
+                streamUrl to System.currentTimeMillis() + (playbackData.streamExpiresInSeconds * 1000L)
+            dataSpec.withUri(streamUrl.toUri())
+        }
+    val downloadNotificationHelper =
+        DownloadNotificationHelper(context, ExoDownloadService.CHANNEL_ID)
+    val downloadManager: DownloadManager =
+        DownloadManager(
+            context,
+            databaseProvider,
+            downloadCache,
+            dataSourceFactory,
+            Executor(Runnable::run)
+        ).apply {
+            maxParallelDownloads = 3
+            addListener(
+                ExoDownloadService.TerminalStateNotificationHelper(
+                    context = context,
+                    notificationHelper = downloadNotificationHelper,
+                    nextNotificationId = ExoDownloadService.NOTIFICATION_ID + 1,
+                ),
             )
         }
-
-        songUrlCache[mediaId] = format.url!! to playerResponse.streamingData!!.expiresInSeconds * 1000L
-        dataSpec.withUri(format.url!!.toUri())
-    }
-    val downloadNotificationHelper = DownloadNotificationHelper(context, ExoDownloadService.CHANNEL_ID)
-    val downloadManager: DownloadManager = DownloadManager(context, databaseProvider, downloadCache, dataSourceFactory, Executor(Runnable::run)).apply {
-        maxParallelDownloads = 3
-        addListener(
-            ExoDownloadService.TerminalStateNotificationHelper(
-                context = context,
-                notificationHelper = downloadNotificationHelper,
-                nextNotificationId = ExoDownloadService.NOTIFICATION_ID + 1
-            )
-        )
-    }
     val downloads = MutableStateFlow<Map<String, Download>>(emptyMap())
 
-    fun getDownload(songId: String?): Flow<Download?> = downloads.map { it[songId] }
+    fun getDownload(songId: String): Flow<Download?> = downloads.map { it[songId] }
 
     init {
         val result = mutableMapOf<String, Download>()
@@ -135,14 +139,18 @@ class DownloadUtil @Inject constructor(
         downloads.value = result
         downloadManager.addListener(
             object : DownloadManager.Listener {
-                override fun onDownloadChanged(downloadManager: DownloadManager, download: Download, finalException: Exception?) {
+                override fun onDownloadChanged(
+                    downloadManager: DownloadManager,
+                    download: Download,
+                    finalException: Exception?,
+                ) {
                     downloads.update { map ->
                         map.toMutableMap().apply {
                             set(download.request.id, download)
                         }
                     }
                 }
-            }
+            },
         )
     }
 }

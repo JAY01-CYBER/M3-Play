@@ -1,8 +1,8 @@
 package com.j.m3play.playback.queues
 
 import androidx.media3.common.MediaItem
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.WatchEndpoint
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.models.WatchEndpoint
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import kotlinx.coroutines.Dispatchers.IO

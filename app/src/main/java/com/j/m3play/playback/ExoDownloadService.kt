@@ -23,7 +23,7 @@ class ExoDownloadService : DownloadService(
     NOTIFICATION_ID,
     1000L,
     CHANNEL_ID,
-    R.string.action_download,
+    R.string.download,
     0
 ) {
     @Inject
@@ -42,7 +42,10 @@ class ExoDownloadService : DownloadService(
 
     override fun getScheduler(): Scheduler = PlatformScheduler(this, JOB_ID)
 
-    override fun getForegroundNotification(downloads: MutableList<Download>, notMetRequirements: Int): Notification =
+    override fun getForegroundNotification(
+        downloads: MutableList<Download>,
+        notMetRequirements: Int
+    ): Notification =
         Notification.Builder.recoverBuilder(
             this, downloadUtil.downloadNotificationHelper.buildProgressNotification(
                 this,
@@ -60,7 +63,9 @@ class ExoDownloadService : DownloadService(
                 PendingIntent.getService(
                     this,
                     0,
-                    Intent(this, ExoDownloadService::class.java).setAction(REMOVE_ALL_PENDING_DOWNLOADS),
+                    Intent(this, ExoDownloadService::class.java).setAction(
+                        REMOVE_ALL_PENDING_DOWNLOADS
+                    ),
                     PendingIntent.FLAG_IMMUTABLE
                 )
             ).build()
@@ -68,7 +73,8 @@ class ExoDownloadService : DownloadService(
 
 
     /**
-     * This helper will outlive the lifespan of a single instance of [ExoDownloadService]
+     * This helper will outlive the lifespan of a single instance of
+     * [ExoDownloadService]
      */
     class TerminalStateNotificationHelper(
         private val context: Context,

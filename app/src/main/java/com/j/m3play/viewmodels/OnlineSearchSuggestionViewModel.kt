@@ -3,9 +3,9 @@ package com.j.m3play.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.YTItem
-import com.zionhuang.innertube.models.filterExplicit
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.models.YTItem
+import com.arturo254.innertube.models.filterExplicit
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.db.MusicDatabase
 import com.j.m3play.db.entities.SearchHistory
@@ -23,8 +23,10 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class OnlineSearchSuggestionViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+class OnlineSearchSuggestionViewModel
+@Inject
+constructor(
+    @ApplicationContext val context: Context,
     database: MusicDatabase,
 ) : ViewModel() {
     val query = MutableStateFlow("")
@@ -33,32 +35,43 @@ class OnlineSearchSuggestionViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            query.flatMapLatest { query ->
-                if (query.isEmpty()) {
-                    database.searchHistory().map { history ->
-                        SearchSuggestionViewState(
-                            history = history
-                        )
-                    }
-                } else {
-                    val result = YouTube.searchSuggestions(query).getOrNull()
-                    database.searchHistory(query)
-                        .map { it.take(3) }
-                        .map { history ->
+            query
+                .flatMapLatest { query ->
+                    if (query.isEmpty()) {
+                        database.searchHistory().map { history ->
                             SearchSuggestionViewState(
                                 history = history,
-                                suggestions = result?.queries?.filter { query ->
-                                    history.none { it.query == query }
-                                }.orEmpty(),
-                                items = result?.recommendedItems
-                                    ?.filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                                    .orEmpty()
                             )
                         }
+                    } else {
+                        val result = YouTube.searchSuggestions(query).getOrNull()
+                        database
+                            .searchHistory(query)
+                            .map { it.take(3) }
+                            .map { history ->
+                                SearchSuggestionViewState(
+                                    history = history,
+                                    suggestions =
+                                        result
+                                            ?.queries
+                                            ?.filter { query ->
+                                                history.none { it.query == query }
+                                            }.orEmpty(),
+                                    items =
+                                        result
+                                            ?.recommendedItems
+                                            ?.filterExplicit(
+                                                context.dataStore.get(
+                                                    HideExplicitKey,
+                                                    false,
+                                                ),
+                                            ).orEmpty(),
+                                )
+                            }
+                    }
+                }.collect {
+                    _viewState.value = it
                 }
-            }.collect {
-                _viewState.value = it
-            }
         }
     }
 }

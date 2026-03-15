@@ -1,5 +1,6 @@
 package com.j.m3play.ui.menu
 
+import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.Intent
 import androidx.compose.animation.animateContentSize
@@ -17,10 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +34,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -50,18 +53,22 @@ import com.j.m3play.R
 import com.j.m3play.db.entities.LyricsEntity
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.component.DefaultDialog
-import com.j.m3play.ui.component.GridMenu
-import com.j.m3play.ui.component.GridMenuItem
 import com.j.m3play.ui.component.ListDialog
 import com.j.m3play.ui.component.TextFieldDialog
+import com.j.m3play.ui.component.MenuItemData
+import com.j.m3play.ui.component.MenuGroup
+import com.j.m3play.ui.component.NewAction
+import com.j.m3play.ui.component.NewActionGrid
 import com.j.m3play.viewmodels.LyricsMenuViewModel
 
-
+@SuppressLint("LocalContextGetResourceValueCall")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LyricsMenu(
     lyricsProvider: () -> LyricsEntity?,
     mediaMetadataProvider: () -> MediaMetadata,
     onDismiss: () -> Unit,
+    onLyricsUpdated: () -> Unit = {},
     viewModel: LyricsMenuViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -83,11 +90,13 @@ fun LyricsMenu(
                     upsert(
                         LyricsEntity(
                             id = mediaMetadataProvider().id,
-                            lyrics = it
-                        )
+                            lyrics = it,
+                        ),
                     )
                 }
-            }
+                onLyricsUpdated()
+                onDismiss()
+            },
         )
     }
 
@@ -98,33 +107,41 @@ fun LyricsMenu(
         mutableStateOf(false)
     }
 
-    val searchMediaMetadata = remember(showSearchDialog) {
-        mediaMetadataProvider()
-    }
-    val (titleField, onTitleFieldChange) = rememberSaveable(showSearchDialog, stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(
-            TextFieldValue(
-                text = mediaMetadataProvider().title
+    val searchMediaMetadata =
+        remember(showSearchDialog) {
+            mediaMetadataProvider()
+        }
+    val (titleField, onTitleFieldChange) =
+        rememberSaveable(showSearchDialog, stateSaver = TextFieldValue.Saver) {
+            mutableStateOf(
+                TextFieldValue(
+                    text = mediaMetadataProvider().title,
+                ),
             )
-        )
-    }
-    val (artistField, onArtistFieldChange) = rememberSaveable(showSearchDialog, stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(
-            TextFieldValue(
-                text = mediaMetadataProvider().artists.joinToString { it.name }
+        }
+    val (artistField, onArtistFieldChange) =
+        rememberSaveable(showSearchDialog, stateSaver = TextFieldValue.Saver) {
+            mutableStateOf(
+                TextFieldValue(
+                    text = mediaMetadataProvider().artists.joinToString { it.name },
+                ),
             )
-        )
-    }
+        }
 
     if (showSearchDialog) {
         DefaultDialog(
             modifier = Modifier.verticalScroll(rememberScrollState()),
             onDismiss = { showSearchDialog = false },
-            icon = { Icon(painter = painterResource(R.drawable.search), contentDescription = null) },
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = null
+                )
+            },
             title = { Text(stringResource(R.string.search_lyrics)) },
             buttons = {
                 TextButton(
-                    onClick = { showSearchDialog = false }
+                    onClick = { showSearchDialog = false },
                 ) {
                     Text(stringResource(android.R.string.cancel))
                 }
@@ -138,12 +155,15 @@ fun LyricsMenu(
                         try {
                             context.startActivity(
                                 Intent(Intent.ACTION_WEB_SEARCH).apply {
-                                    putExtra(SearchManager.QUERY, "${artistField.text} ${titleField.text} lyrics")
-                                }
+                                    putExtra(
+                                        SearchManager.QUERY,
+                                        "${artistField.text} ${titleField.text} lyrics"
+                                    )
+                                },
                             )
                         } catch (_: Exception) {
                         }
-                    }
+                    },
                 ) {
                     Text(stringResource(R.string.search_online))
                 }
@@ -152,19 +172,24 @@ fun LyricsMenu(
 
                 TextButton(
                     onClick = {
-                        viewModel.search(searchMediaMetadata.id, titleField.text, artistField.text, searchMediaMetadata.duration)
+                        viewModel.search(
+                            searchMediaMetadata.id,
+                            titleField.text,
+                            artistField.text,
+                            searchMediaMetadata.duration
+                        )
                         showSearchResultDialog = true
-                    }
+                    },
                 ) {
                     Text(stringResource(android.R.string.ok))
                 }
-            }
+            },
         ) {
             OutlinedTextField(
                 value = titleField,
                 onValueChange = onTitleFieldChange,
                 singleLine = true,
-                label = { Text(stringResource(R.string.song_title)) }
+                label = { Text(stringResource(R.string.song_title)) },
             )
 
             Spacer(Modifier.height(12.dp))
@@ -173,7 +198,7 @@ fun LyricsMenu(
                 value = artistField,
                 onValueChange = onArtistFieldChange,
                 singleLine = true,
-                label = { Text(stringResource(R.string.song_artists)) }
+                label = { Text(stringResource(R.string.song_artists)) },
             )
         }
     }
@@ -183,59 +208,63 @@ fun LyricsMenu(
         val isLoading by viewModel.isLoading.collectAsState()
 
         var expandedItemIndex by rememberSaveable {
-            mutableIntStateOf(-1)
+            mutableStateOf(-1)
         }
 
         ListDialog(
-            onDismiss = { showSearchResultDialog = false }
+            onDismiss = { showSearchResultDialog = false },
         ) {
             itemsIndexed(results) { index, result ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onDismiss()
-                            viewModel.cancelSearch()
-                            database.query {
-                                upsert(
-                                    LyricsEntity(
-                                        id = searchMediaMetadata.id,
-                                        lyrics = result.lyrics
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.cancelSearch()
+                                database.query {
+                                    upsert(
+                                        LyricsEntity(
+                                            id = searchMediaMetadata.id,
+                                            lyrics = result.lyrics,
+                                        ),
                                     )
-                                )
+                                }
+                                onLyricsUpdated()
+                                showSearchResultDialog = false
+                                onDismiss()
                             }
-                        }
-                        .padding(12.dp)
-                        .animateContentSize()
+                            .padding(12.dp)
+                            .animateContentSize(),
                 ) {
                     Column(
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(
                             text = result.lyrics,
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = if (index == expandedItemIndex) Int.MAX_VALUE else 2,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            modifier = Modifier.padding(bottom = 4.dp),
                         )
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = result.providerName,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary,
-                                maxLines = 1
+                                maxLines = 1,
                             )
                             if (result.lyrics.startsWith("[")) {
                                 Icon(
                                     painter = painterResource(R.drawable.sync),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier
-                                        .padding(start = 4.dp)
-                                        .size(18.dp)
+                                    modifier =
+                                        Modifier
+                                            .padding(start = 4.dp)
+                                            .size(18.dp),
                                 )
                             }
                         }
@@ -244,11 +273,11 @@ fun LyricsMenu(
                     IconButton(
                         onClick = {
                             expandedItemIndex = if (expandedItemIndex == index) -1 else index
-                        }
+                        },
                     ) {
                         Icon(
                             painter = painterResource(if (index == expandedItemIndex) R.drawable.expand_less else R.drawable.expand_more),
-                            contentDescription = null
+                            contentDescription = null,
                         )
                     }
                 }
@@ -258,7 +287,7 @@ fun LyricsMenu(
                 item {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         CircularProgressIndicator()
                     }
@@ -270,40 +299,99 @@ fun LyricsMenu(
                     Text(
                         text = context.getString(R.string.lyrics_not_found),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(),
                     )
                 }
             }
         }
     }
 
-    GridMenu(
-        contentPadding = PaddingValues(
-            start = 8.dp,
-            top = 8.dp,
-            end = 8.dp,
-            bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-        )
+    // Header con información de la canción
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        GridMenuItem(
-            icon = R.drawable.edit,
-            title = R.string.edit
-        ) {
-            showEditDialog = true
-        }
-        GridMenuItem(
-            icon = R.drawable.cached,
-            title = R.string.refetch
-        ) {
-            onDismiss()
-            viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
-        }
-        GridMenuItem(
-            icon = R.drawable.search,
-            title = R.string.search,
-        ) {
-            showSearchDialog = true
+        Text(
+            text = mediaMetadataProvider().title,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = mediaMetadataProvider().artists.joinToString { it.name },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    HorizontalDivider()
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    LazyColumn(
+        contentPadding = PaddingValues(
+            start = 0.dp,
+            top = 0.dp,
+            end = 0.dp,
+            bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
+        ),
+    ) {
+        // Grid de acciones principales
+        item {
+            NewActionGrid(
+                actions = listOf(
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.edit),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.edit),
+                        onClick = { showEditDialog = true }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.cached),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.refetch),
+                        onClick = {
+                            viewModel.refetchLyrics(mediaMetadataProvider(), lyricsProvider())
+                            onLyricsUpdated()
+                            onDismiss()
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(R.string.search),
+                        onClick = { showSearchDialog = true }
+                    )
+                ),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp)
+            )
         }
     }
 }

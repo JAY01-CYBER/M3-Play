@@ -8,9 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.zionhuang.innertube.YouTube
-import com.zionhuang.innertube.models.filterExplicit
-import com.zionhuang.innertube.pages.SearchSummaryPage
+import com.arturo254.innertube.YouTube
+import com.arturo254.innertube.models.filterExplicit
+import com.arturo254.innertube.pages.SearchSummaryPage
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.models.ItemsPage
 import com.j.m3play.utils.dataStore
@@ -21,11 +21,12 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.collections.set
 
 @HiltViewModel
-class OnlineSearchViewModel @Inject constructor(
-    @ApplicationContext context: Context,
+class OnlineSearchViewModel
+@Inject
+constructor(
+    @ApplicationContext val context: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     val query = savedStateHandle.get<String>("query")!!
@@ -38,26 +39,38 @@ class OnlineSearchViewModel @Inject constructor(
             filter.collect { filter ->
                 if (filter == null) {
                     if (summaryPage == null) {
-                        YouTube.searchSummary(query)
+                        YouTube
+                            .searchSummary(query)
                             .onSuccess {
-                                summaryPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false))
-                            }
-                            .onFailure {
+                                summaryPage =
+                                    it.filterExplicit(
+                                        context.dataStore.get(
+                                            HideExplicitKey,
+                                            false,
+                                        ),
+                                    )
+                            }.onFailure {
                                 reportException(it)
                             }
                     }
                 } else {
                     if (viewStateMap[filter.value] == null) {
-                        YouTube.search(query, filter)
+                        YouTube
+                            .search(query, filter)
                             .onSuccess { result ->
-                                viewStateMap[filter.value] = ItemsPage(
-                                    result.items
-                                        .distinctBy { it.id }
-                                        .filterExplicit(context.dataStore.get(HideExplicitKey, false)),
-                                    result.continuation
-                                )
-                            }
-                            .onFailure {
+                                viewStateMap[filter.value] =
+                                    ItemsPage(
+                                        result.items
+                                            .distinctBy { it.id }
+                                            .filterExplicit(
+                                                context.dataStore.get(
+                                                    HideExplicitKey,
+                                                    false
+                                                )
+                                            ),
+                                        result.continuation,
+                                    )
+                            }.onFailure {
                                 reportException(it)
                             }
                     }
@@ -73,8 +86,12 @@ class OnlineSearchViewModel @Inject constructor(
             val viewState = viewStateMap[filter] ?: return@launch
             val continuation = viewState.continuation
             if (continuation != null) {
-                val searchResult = YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
-                viewStateMap[filter] = ItemsPage((viewState.items + searchResult.items).distinctBy { it.id }, searchResult.continuation)
+                val searchResult =
+                    YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
+                viewStateMap[filter] = ItemsPage(
+                    (viewState.items + searchResult.items).distinctBy { it.id },
+                    searchResult.continuation
+                )
             }
         }
     }

@@ -30,6 +30,7 @@ fun NavigationTitle(
     label: String? = null,
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    onPlayAllClick: (() -> Unit)? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -40,7 +41,7 @@ fun NavigationTitle(
             .clickable(enabled = onClick != null) {
                 onClick?.invoke()
             }
-            .padding(horizontal = 12.dp, vertical = 16.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         thumbnail?.invoke()
 
