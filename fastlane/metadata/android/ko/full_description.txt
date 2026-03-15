@@ -1,0 +1,17 @@
+Android용 Material 3 YouTube Music 클라이언트
+
+<br><b>기능</b>
+
+- YT/YT Music의 곡을 광고 없이 재생
+- 백그라운드 재생
+- YouTube Music의 음악, 동영상, 앨범, 재생목록 검색
+- 보관함 관리
+- 오프라인 재생을 위해 음악 캐시 및 다운로드
+- 실시간 가사
+- 무음 구간 건너뛰기
+- 오디오 노멀라이즈
+- 동적 테마
+- 현지화
+- Android Auto 지원
+- 개인화된 추천
+- Material 3

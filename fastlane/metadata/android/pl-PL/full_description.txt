@@ -1,0 +1,17 @@
+Klient YouTube Music oparty o Material 3 dla systemu Android
+
+<br><b>Funkcje:</b>
+
+- Odtwarzanie utworów z YT/YT Music bez reklam
+- Odtwarzanie w tle
+- Wyszukiwanie utworów, filmów, albumów i playlist z YouTube Music
+- Zarządzanie biblioteką
+- Pamięć podręczna i pobieranie utworów do odtwarzania offline
+- Zsynchronizowane teksty piosenek
+- Pomijanie ciszy
+- Normalizacja dźwięku
+- Dynamiczny motyw
+- Lokalizacja
+- Obsługa Android Auto
+- Spersonalizowany szybki wybór
+- Materiał 3

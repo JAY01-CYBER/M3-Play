@@ -1,0 +1,17 @@
+Um reprodutor de música YouTube Music para Android
+
+<br><b>Funcionalidades:</b>
+
+- Reprodução de músicas no YouTube/YouTube Music sem anúncios
+- Reprodução em segundo plano
+- Pesquisa de músicas, vídeos, álbuns e listas de reprodução direto de YT Music
+- Gestão de biblioteca
+- Descarga de músicas para reprodução offline
+- Letras sincronizadas
+- Ignorar silêncio em músicas
+- Normalização de áudio
+- Tema dinâmico 
+- Localização 
+- Suporte a Android Auto
+- Recomendações personalizadas
+- Interface Material 3
