@@ -106,7 +106,6 @@ import org.json.JSONObject
 import java.io.File
 import java.net.URL
 
-
 @SuppressLint("ObsoleteSdkInt")
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 fun getAppVersion(context: Context): String {
@@ -138,7 +137,7 @@ fun VersionCard(uriHandler: UriHandler) {
     Spacer(Modifier.height(16.dp))
 
     SettingsCategory(
-        title = stringResource(R.string.app_info), // Añade este string: "Información de la app"
+        title = stringResource(R.string.app_info),
         items = listOf(
             SettingsCategoryItem(
                 icon = painterResource(R.drawable.info),
@@ -164,7 +163,9 @@ fun VersionCard(uriHandler: UriHandler) {
                         modifier = Modifier.size(20.dp)
                     )
                 },
-                onClick = { uriHandler.openUri("https://github.com/Arturo254/OpenTune/releases/latest") }
+                onClick = {
+                    uriHandler.openUri("https://github.com/JAY01-CYBER/M3-Play/releases/latest")
+                }
             )
         )
     )
@@ -492,7 +493,7 @@ fun installApk(context: Context, apkUri: Uri) {
 
 suspend fun checkForUpdates(): String? = withContext(Dispatchers.IO) {
     try {
-        val url = URL("https://api.github.com/repos/Arturo254/OpenTune/releases/latest")
+        val url = URL("https://api.github.com/repos/JAY01-CYBER/M3-Play/releases/latest")
         val connection = url.openConnection()
         connection.connect()
         val json = connection.getInputStream().bufferedReader().use { it.readText() }
@@ -560,12 +561,9 @@ fun SettingsScreen(
                 var imageLoadError by remember { mutableStateOf(false) }
                 var isImageLoading by remember { mutableStateOf(false) }
 
-                // Avatar con efecto de ondas y sombra suave
                 Box(
                     contentAlignment = Alignment.Center
                 ) {
-
-                    // Avatar principal
                     Box(
                         modifier = Modifier
                             .size(96.dp)
@@ -709,7 +707,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Indicador de estado online (opcional)
                     Box(
                         modifier = Modifier
                             .size(20.dp)
@@ -729,7 +726,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Nombre con animación sutil
                 AnimatedContent(
                     targetState = accountName.replace("@", "").takeIf { it.isNotBlank() } ?: "",
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -745,14 +741,11 @@ fun SettingsScreen(
                     )
                 }
 
-
             } else {
-                // Estado no logueado - más compacto y elegante
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Logo con efecto glassmorphism
                     Box(
                         modifier = Modifier
                             .size(80.dp)
@@ -786,14 +779,14 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "OpenTune",
+                            text = "M3 Play",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
-                            text = "Tu música, sin límites",
+                            text = "Your music, no limits",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -802,7 +795,6 @@ fun SettingsScreen(
             }
         }
 
-        // Categoría principal de configuraciones
         SettingsCategory(
             title = stringResource(R.string.general_settings),
             items = listOf(
@@ -856,7 +848,6 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Categoría de comunidad e información
         SettingsCategory(
             title = stringResource(R.string.community),
             items = listOf(
@@ -869,7 +860,9 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.paypal),
                     title = { Text(stringResource(R.string.Donate)) },
                     isHighlighted = true,
-                    onClick = { uriHandler.openUri("https://www.paypal.com/paypalme/opentune") }
+                    onClick = {
+                        uriHandler.openUri("upi://pay?pa=6354471314@upi&pn=Jay&cu=INR")
+                    }
                 ),
                 SettingsCategoryItem(
                     icon = painterResource(R.drawable.telegram),
@@ -881,16 +874,12 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Card de actualización disponible
         UpdateCard()
-
-        // Card de versión
         VersionCard(uriHandler)
 
         Spacer(Modifier.height(16.dp))
     }
 
-    // Diálogo de traducción
     if (showTranslateDialog) {
         AlertDialog(
             onDismissRequest = { showTranslateDialog = false },
@@ -909,7 +898,6 @@ fun SettingsScreen(
         )
     }
 
-    // Bottom Sheet de Changelog
     if (showChangelogSheet) {
         ModalBottomSheet(
             onDismissRequest = { showChangelogSheet = false },
@@ -949,7 +937,7 @@ fun SettingsScreen(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painterResource(R.drawable.arrow_back),
+                    painter = painterResource(R.drawable.arrow_back),
                     contentDescription = null,
                 )
             }

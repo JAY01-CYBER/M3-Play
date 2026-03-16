@@ -1,8 +1,10 @@
 package com.j.m3play.ui.player
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -197,17 +199,26 @@ fun Thumbnail(
                                             .clip(RoundedCornerShape(thumbnailCornerRadius.dp * 2))
                                             .background(MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(item.mediaMetadata.artworkUri?.toString())
-                                                .memoryCachePolicy(CachePolicy.ENABLED)
-                                                .diskCachePolicy(CachePolicy.ENABLED)
-                                                .networkCachePolicy(CachePolicy.ENABLED)
-                                                .build(),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
+                                        AnimatedContent(
+                                            targetState = item.mediaMetadata.artworkUri?.toString(),
+                                            transitionSpec = {
+                                                fadeIn().togetherWith(fadeOut())
+                                            },
+                                            label = "player_album_art_transition"
+                                        ) { artworkUrl ->
+                                            AsyncImage(
+                                                model = ImageRequest.Builder(LocalContext.current)
+                                                    .data(artworkUrl)
+                                                    .crossfade(true)
+                                                    .memoryCachePolicy(CachePolicy.ENABLED)
+                                                    .diskCachePolicy(CachePolicy.ENABLED)
+                                                    .networkCachePolicy(CachePolicy.ENABLED)
+                                                    .build(),
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                     }
                                 }
                             }

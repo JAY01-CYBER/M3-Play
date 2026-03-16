@@ -12,16 +12,34 @@ plugins {
 
 android {
     namespace = "com.j.m3play"
-    //noinspection GradleDependency
     compileSdk = 35
 
     defaultConfig {
         applicationId = "com.j.m3play"
         minSdk = 24
         targetSdk = 35
-        versionCode = 126
-        versionName = "2.0.12"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            if (System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD") != null) {
+                storeFile = file(System.getenv("MUSIC_DEBUG_KEYSTORE_FILE") ?: "debug.keystore")
+                storePassword = System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("MUSIC_DEBUG_SIGNING_KEY_ALIAS") ?: "androiddebugkey"
+                keyPassword = System.getenv("MUSIC_DEBUG_SIGNING_KEY_PASSWORD")
+            }
+        }
+
+        create("release") {
+            val keystorePath = System.getenv("RELEASE_STORE_FILE") ?: "release.jks"
+            storeFile = file(keystorePath)
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
     }
 
     buildTypes {
@@ -29,24 +47,15 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isCrunchPngs = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+
         debug {
             applicationIdSuffix = ".debug"
-        }
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            if (System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD") != null) {
-                storeFile = file(System.getenv("MUSIC_DEBUG_KEYSTORE_FILE"))
-                storePassword = System.getenv("MUSIC_DEBUG_SIGNING_STORE_PASSWORD")
-                keyAlias = System.getenv("MUSIC_DEBUG_SIGNING_KEY_ALIAS") ?: "androiddebugkey"
-                keyPassword = System.getenv("MUSIC_DEBUG_SIGNING_KEY_PASSWORD")
-            }
         }
     }
 
@@ -66,7 +75,6 @@ android {
         compose = true
     }
 
-    // ✅ Alineamos TODO a Java 21
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_21
@@ -95,7 +103,6 @@ android {
         includeInApk = false
         includeInBundle = false
     }
-
 }
 
 ksp {

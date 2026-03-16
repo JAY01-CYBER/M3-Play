@@ -33,10 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -88,6 +88,7 @@ import com.j.m3play.playback.queues.LocalAlbumRadio
 import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
+import com.j.m3play.ui.component.AnimatedRefreshIndicator
 import com.j.m3play.ui.component.ArtistGridItem
 import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.HideOnScrollFAB
@@ -325,13 +326,14 @@ fun HomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
         indicator = {
-            Indicator(
-                isRefreshing = isRefreshing,
-                state = pullRefreshState,
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedRefreshIndicator(isRefreshing = isRefreshing)
+            }
         }
     ) {
         BoxWithConstraints(

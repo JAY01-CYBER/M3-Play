@@ -22,6 +22,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.shadow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -78,6 +81,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -1104,7 +1108,9 @@ class MainActivity : ComponentActivity() {
                                     if (shouldShowBottomNav) {
                                         NavigationBar(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(15.dp))
+                                                 .padding(horizontal = 18.dp, vertical = 14.dp)
+                                                 .shadow(14.dp, RoundedCornerShape(30.dp), clip = false)
+                                                 .clip(RoundedCornerShape(30.dp))
                                                 .align(Alignment.BottomCenter)
                                                 .offset {
                                                     if (navigationBarHeight == 0.dp) {
@@ -1128,8 +1134,9 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                     }
                                                 },
-                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                            containerColor = if (pureBlack) Color.Black.copy(alpha = 0.96f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f),
+                                            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tonalElevation = 12.dp
                                         ) {
                                             var lastTapTime by remember { mutableLongStateOf(0L) }
                                             var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
@@ -1141,8 +1148,21 @@ class MainActivity : ComponentActivity() {
                                                         it.route == screen.route
                                                     } == true
 
+                                                val iconScale by animateFloatAsState(
+                                                    targetValue = if (isSelected) 1.12f else 1f,
+                                                    animationSpec = tween(durationMillis = 220),
+                                                    label = "navIconScale"
+                                                )
+
                                                 NavigationBarItem(
                                                     selected = isSelected,
+                                                    colors = NavigationBarItemDefaults.colors(
+                                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                                                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    ),
                                                     icon = {
                                                         Icon(
                                                             painter = painterResource(
@@ -1153,6 +1173,7 @@ class MainActivity : ComponentActivity() {
                                                                 }
                                                             ),
                                                             contentDescription = stringResource(screen.titleId),
+                                                            modifier = Modifier.scale(iconScale)
                                                         )
                                                     },
                                                     label = {
