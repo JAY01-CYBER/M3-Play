@@ -391,4 +391,20 @@
 
     <string name="widget_music_player">Music Player</string>
     <string name="widget_turntable">Turntable</string>
+    <!-- Widget strings fix -->
+
+<string name="album_art">Album art</string>
+<string name="not_playing">Not playing</string>
+<string name="tap_to_play">Tap to play</string>
+
+<string name="like">Like</string>
+<string name="play_pause">Play/Pause</string>
+<string name="previous">Previous</string>
+<string name="next">Next</string>
+
+<string name="widget_description">Music widget</string>
+<string name="turntable_widget_description">Turntable widget</string>
+
+<string name="widget_music_player">Music Player</string>
+<string name="widget_turntable">Turntable</string>
 </resources>
