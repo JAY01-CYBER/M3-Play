@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/search"
+        android:shortcutId="search"
+        android:shortcutShortLabel="@string/search">
+        <intent
+            android:action="com.j.m3play.action.SEARCH"
+            android:targetClass="com.j.m3play.MainActivity"
+            android:targetPackage="com.j.m3play" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/explore"
+        android:shortcutId="explore"
+        android:shortcutShortLabel="@string/explore">
+        <intent
+            android:action="com.j.m3play.action.EXPLORE"
+            android:targetClass="com.j.m3play.MainActivity"
+            android:targetPackage="com.j.m3play" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/library_music"
+        android:shortcutId="library"
+        android:shortcutShortLabel="@string/filter_library">
+        <intent
+            android:action="com.j.m3play.action.LIBRARY"
+            android:targetClass="com.j.m3play.MainActivity"
+            android:targetPackage="com.j.m3play" />
+    </shortcut>
+</shortcuts>
