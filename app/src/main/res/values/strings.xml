@@ -388,4 +388,7 @@
     <string name="standard_lyrics_blur">Standard lyrics blur</string>
     <string name="listen_together_smart_resync">Smart Network Resync</string>
     <string name="listen_together_smart_resync_desc">Automatically catch up with the host after a connection drop</string>
+
+    <string name="widget_music_player">Music Player</string>
+    <string name="widget_turntable">Turntable</string>
 </resources>
