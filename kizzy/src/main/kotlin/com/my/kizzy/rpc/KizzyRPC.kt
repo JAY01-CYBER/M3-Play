@@ -18,7 +18,6 @@ import com.my.kizzy.gateway.entities.presence.Assets
 import com.my.kizzy.gateway.entities.presence.Metadata
 import com.my.kizzy.gateway.entities.presence.Presence
 import com.my.kizzy.gateway.entities.presence.Timestamps
-import com.my.kizzy.repository.KizzyRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -28,9 +27,16 @@ import org.json.JSONObject
 /**
  * Modified by Zion Huang
  */
-open class KizzyRPC(token: String) {
-    private val kizzyRepository = KizzyRepository()
-    private val discordWebSocket = DiscordWebSocket(token)
+open class KizzyRPC(
+    private val token: String,
+    os: String = "Android",
+    browser: String = "Discord Android",
+    device: String = "Generic Android Device",
+    private val userAgent: String = "Discord-Android/314013;RNA",
+    private val superPropertiesBase64: String? = null
+) {
+    private val discordWebSocket = DiscordWebSocket(token, os, browser, device)
+    private val discordApiClient = HttpClient()
 
     fun closeRPC() {
         discordWebSocket.close()
@@ -40,7 +46,7 @@ open class KizzyRPC(token: String) {
         return discordWebSocket.isWebSocketConnected()
     }
 
-    suspend fun stopActivity() {
+    open suspend fun close() {
         if (!isRpcRunning()) {
             discordWebSocket.connect()
         }
@@ -73,6 +79,19 @@ open class KizzyRPC(token: String) {
         if (!isRpcRunning()) {
             discordWebSocket.connect()
         }
+
+        val resolveExternal: suspend (String) -> String? = { image ->
+            if (applicationId.isNullOrBlank()) null
+            else fetchExternalAsset(
+                client = discordApiClient,
+                applicationId = applicationId,
+                token = token,
+                imageUrl = image,
+                userAgent = userAgent,
+                superPropertiesBase64 = superPropertiesBase64,
+            )
+        }
+
         val presence = Presence(
             activities = listOf(
                 Activity(
@@ -85,8 +104,8 @@ open class KizzyRPC(token: String) {
                     statusDisplayType = statusDisplayType.value,
                     timestamps = Timestamps(startTime, endTime),
                     assets = Assets(
-                        largeImage = largeImage?.resolveImage(kizzyRepository),
-                        smallImage = smallImage?.resolveImage(kizzyRepository),
+                        largeImage = largeImage?.resolveImage(resolveExternal),
+                        smallImage = smallImage?.resolveImage(resolveExternal),
                         largeText = largeText,
                         smallText = smallText
                     ),
@@ -118,17 +137,32 @@ open class KizzyRPC(token: String) {
     }
 
     companion object {
-        suspend fun getUserInfo(token: String): Result<UserInfo> = runCatching {
+        suspend fun getUserInfo(
+            token: String,
+            userAgent: String = "Discord-Android/314013;RNA",
+            superPropertiesBase64: String? = null
+        ): Result<UserInfo> = runCatching {
             val client = HttpClient()
             val response = client.get("https://discord.com/api/v9/users/@me") {
                 header("Authorization", token)
+                header("User-Agent", userAgent)
+                if (superPropertiesBase64 != null) {
+                    header("X-Super-Properties", superPropertiesBase64)
+                }
             }.bodyAsText()
             val json = JSONObject(response)
+            val id = json.getString("id")
             val username = json.getString("username")
-            val name = json.getString("global_name")
+            val name = json.optString("global_name", username)
+            val avatarHash = json.optString("avatar")
+            val avatar = if (avatarHash.isNotEmpty() && avatarHash != "null") {
+                "https://cdn.discordapp.com/avatars/$id/$avatarHash.png"
+            } else {
+                null
+            }
             client.close()
 
-            UserInfo(username, name)
+            UserInfo(id, username, name, avatar)
         }
     }
 }
