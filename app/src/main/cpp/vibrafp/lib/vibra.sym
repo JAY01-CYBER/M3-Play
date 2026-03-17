@@ -1,6 +1,6 @@
 {
   global:
-    Java_com_vivimusic_music_recognition_VibraSignature_*;
+    Java_com_m3playmusic_music_recognition_VibraSignature_*;
   local:
     *;
 };

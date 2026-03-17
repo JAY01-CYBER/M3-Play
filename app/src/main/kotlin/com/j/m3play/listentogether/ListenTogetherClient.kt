@@ -411,7 +411,7 @@ class ListenTogetherClient @Inject constructor(
 
     private fun getServerUrl(): String {
         val savedUrl = context.dataStore.get(ListenTogetherServerUrlKey, DEFAULT_SERVER_URL)
-        // If the saved URL is no longer in our list (e.g. Meowery was removed), revert to ViviMusic default
+        // If the saved URL is no longer in our list (e.g. Meowery was removed), revert to M3Play default
         return if (ListenTogetherServers.findByUrl(savedUrl) != null) {
             savedUrl
         } else {

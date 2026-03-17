@@ -106,7 +106,7 @@ fun AboutScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(R.string.vivi_music_title),
+                text = stringResource(R.string.m3play_title),
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 48.sp,
@@ -179,7 +179,7 @@ fun AboutScreen(
 
             // UPI Badge
             Surface(
-                onClick = { uriHandler.safeOpenUri(context, "upi://pay?pa=vividhpashokan@axl&pn=Vividh P Ashokan") },
+                onClick = { uriHandler.safeOpenUri(context, "upi://pay?pa=m3playdhpashokan@axl&pn=M3Playdh P Ashokan") },
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
                 modifier = Modifier.height(36.dp)
@@ -242,7 +242,7 @@ fun AboutScreen(
                     description = { Text(stringResource(R.string.app_developer)) },
                     tintIcon = false,
                     iconShape = cookieShape,
-                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/vivizzz007") }
+                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/m3playzzz007") }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.web_link),
@@ -281,7 +281,7 @@ fun AboutScreen(
                     icon = painterResource(R.drawable.github),
                     title = { Text(stringResource(R.string.github_repository)) },
                     description = { Text(stringResource(R.string.view_source_code)) },
-                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/vivizzz007/vivi-music") }
+                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/m3playzzz007/m3-play") }
                 ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.telegram), // add a telegram icon drawable
@@ -309,10 +309,10 @@ fun AboutScreen(
                     description = { Text(BuildConfig.VERSION_CODE.toString()) }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.license_vivi),
+                    icon = painterResource(R.drawable.license_m3play),
                     title = { Text(stringResource(R.string.license)) },
                     description = { Text("GPL-3.0 • Free Open Source Software") },
-                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/vivizzz007/vivi-music/blob/main/LICENSE") }
+                    onClick = { uriHandler.safeOpenUri(context, "https://github.com/m3playzzz007/m3-play/blob/main/LICENSE") }
                 ),
             )
         )

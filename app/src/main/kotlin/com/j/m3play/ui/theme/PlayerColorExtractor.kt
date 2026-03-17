@@ -51,13 +51,13 @@ object PlayerColorExtractor {
             val bestColor = Color(bestSwatch.rgb)
             // Ensure the color is suitable for use
             if (isColorVibrant(bestColor)) {
-                enhanceColorVividness(bestColor, 1.3f)
+                enhanceColorM3Playdness(bestColor, 1.3f)
             } else {
                 // If not vibrant, use dominant color with slight enhancement
-                enhanceColorVividness(fallbackDominant, 1.1f)
+                enhanceColorM3Playdness(fallbackDominant, 1.1f)
             }
         } else {
-            enhanceColorVividness(fallbackDominant, 1.1f)
+            enhanceColorM3Playdness(fallbackDominant, 1.1f)
         }
         
         // Create sophisticated gradient with 3 color points
@@ -91,18 +91,18 @@ object PlayerColorExtractor {
     }
     
     /**
-     * Enhances color vividness by adjusting saturation and brightness
+     * Enhances color m3playdness by adjusting saturation and brightness
      * 
      * @param color The color to enhance
      * @param saturationFactor Factor to multiply saturation by (default 1.4)
-     * @return Enhanced color with improved vividness
+     * @return Enhanced color with improved m3playdness
      */
-    private fun enhanceColorVividness(color: Color, saturationFactor: Float = 1.4f): Color {
+    private fun enhanceColorM3Playdness(color: Color, saturationFactor: Float = 1.4f): Color {
         val argb = color.toArgb()
         val hsv = FloatArray(3)
         android.graphics.Color.colorToHSV(argb, hsv)
         
-        // Increase saturation for more vivid colors
+        // Increase saturation for more m3playd colors
         hsv[1] = (hsv[1] * saturationFactor).coerceAtMost(1.0f)
         // Adjust brightness for better visibility
         hsv[2] = (hsv[2] * 0.9f).coerceIn(0.4f, 0.85f)

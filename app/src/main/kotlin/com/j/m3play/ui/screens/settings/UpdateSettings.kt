@@ -97,7 +97,7 @@ fun UpdateSettings(
                     onClick = {
                         val isFoss = !BuildConfig.CAST_AVAILABLE
                         if (isFoss) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/vivizzz007/vivi-music"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/m3playzzz007/m3-play"))
                             context.startActivity(intent)
                         } else {
                             navController.navigate("update")

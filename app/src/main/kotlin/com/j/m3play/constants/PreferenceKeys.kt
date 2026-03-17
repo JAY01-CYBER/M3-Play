@@ -430,7 +430,7 @@ enum class LyricsAnimationStyle {
     KARAOKE,
     APPLE,
     APPLE_V2,
-    VIVIMUSIC_1,
+    M3PLAY_1,
     LYRICS_V2,
 }
 

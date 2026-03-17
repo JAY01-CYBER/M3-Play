@@ -946,7 +946,7 @@ fun BottomSheetPlayer(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        painter = painterResource(R.drawable.vivi_music_icon),
+                                        painter = painterResource(R.drawable.m3play_music_icon),
                                         contentDescription = null,
                                         modifier = Modifier
                                             .size(32.dp),

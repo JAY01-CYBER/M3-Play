@@ -20,10 +20,10 @@ object ListenTogetherServers {
     private const val ServersJson = """
         [
           {
-            "name": "ViviMusic Sync Server",
+            "name": "M3Play Sync Server",
             "url": "wss://m3play-listen-together.onrender.com",
             "location": "USA",
-            "operator": "Vividh"
+            "operator": "M3Playdh"
           }
         ]
     """
