@@ -30,7 +30,20 @@ jobs:
       - name: Ensure schema directory exists
         run: mkdir -p app/schemas/com.j.m3play.db.InternalDatabase
 
-      - name: Build debug APK
+      - name: Setup Debug Keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000
+
+      - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload debug APK
@@ -64,7 +77,20 @@ jobs:
       - name: Ensure schema directory exists
         run: mkdir -p app/schemas/com.j.m3play.db.InternalDatabase
 
-      - name: Build release APK
+      - name: Setup Debug Keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000
+
+      - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Upload release APK
