@@ -5,28 +5,6 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# WEB_REMIX Streaming - WebView JavaScript interfaces
--keepclassmembers class com.j.m3play.utils.sabr.EjsNTransformSolver$SolverWebView {
-    @android.webkit.JavascriptInterface public *;
-}
--keepclassmembers class com.j.m3play.utils.cipher.CipherWebView {
-    @android.webkit.JavascriptInterface public *;
-}
--keepclassmembers class com.j.m3play.utils.potoken.PoTokenWebView {
-    @android.webkit.JavascriptInterface public *;
-}
-
-# Keep streaming utility classes
--keep class com.j.m3play.utils.cipher.** { *; }
--keep class com.j.m3play.utils.sabr.** { *; }
--keep class com.j.m3play.utils.potoken.** { *; }
-
-# Keep coroutine continuation for WebView callbacks
--keepclassmembers class * {
-    void resume(...);
-    void resumeWithException(...);
-}
-
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:
@@ -83,7 +61,6 @@
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 
 ## Rules for NewPipeExtractor
--keep class org.schabi.newpipe.extractor.services.youtube.protos.** { *; }
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.javascript.engine.** { *; }
@@ -111,76 +88,27 @@
 -dontwarn java.beans.IntrospectionException
 -dontwarn java.beans.Introspector
 -dontwarn java.beans.PropertyDescriptor
+-dontwarn okhttp3.internal.Util
 
-# Keep all classes within the kuromoji package
--keep class com.atilika.kuromoji.** { *; }
 
-## Queue Persistence Rules
-# Keep queue-related classes to prevent serialization issues in release builds
--keep class com.j.m3play.models.PersistQueue { *; }
--keep class com.j.m3play.models.PersistPlayerState { *; }
--keep class com.j.m3play.models.QueueData { *; }
--keep class com.j.m3play.models.QueueType { *; }
--keep class com.j.m3play.playback.queues.** { *; }
+## Rules for PipePipeExtractor
+-keep class project.pipepipe.extractor.** { *; }
+-keep class project.pipepipe.shared.** { *; }
 
-# Keep serialization methods for queue persistence
--keepclassmembers class * implements java.io.Serializable {
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-}
+## Netty rules (used by PipePipeExtractor dependencies)
+-dontwarn io.netty.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.logging.log4j.**
+-dontwarn reactor.blockhound.**
+-dontwarn io.micrometer.context.**
+-dontwarn javax.enterprise.inject.**
 
-## UCrop Rules
--dontwarn com.yalantis.ucrop**
--keep class com.yalantis.ucrop** { *; }
--keep interface com.yalantis.ucrop** { *; }
+## Lettuce (Redis client used by PipePipeExtractor)
+-dontwarn io.lettuce.core.**
 
-## Google Cast Rules
--keep class com.j.m3play.cast.** { *; }
--keep class com.google.android.gms.cast.** { *; }
--keep class androidx.mediarouter.** { *; }
+## Reactor
+-dontwarn reactor.util.context.**
 
-## JSoup re2j optional dependency
--dontwarn com.google.re2j.**
+## Keep Wire protobuf classes
+-keep class com.squareup.wire.** { *; }
 
-# Vibra fingerprint library
--keep class com.j.m3play.recognition.VibraSignature { *; }
--keepclassmembers class com.j.m3play.recognition.VibraSignature {
-    native <methods>;
-}
-
-## Kotlin Reflection Fix
--keep class kotlin.Metadata { *; }
--keep class kotlin.reflect.** { *; }
--dontwarn kotlin.reflect.**
-
-## Ktor Serialization
--keep class io.ktor.** { *; }
--keepclassmembers class io.ktor.** { *; }
--dontwarn io.ktor.**
-
-## Shazam Models
--keep class com.music.shazamkit.models.** { *; }
--keepclassmembers class com.music.shazamkit.models.** {
-    *;
-}
-
-## Kotlinx Serialization
--keepattributes *Annotation*
--keepclassmembers class com.music.shazamkit.models.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.music.shazamkit.models.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
-## Listen Together Serialization
--keep class com.j.m3play.listentogether.** { *; }
--keepclassmembers class com.j.m3play.listentogether.** {
-    *;
-}
--keepclassmembers class com.j.m3play.listentogether.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.j.m3play.listentogether.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}

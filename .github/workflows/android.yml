@@ -2,100 +2,30 @@ name: Build M3-Play APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build-debug:
-    name: Build Debug APK
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
+      - uses: gradle/actions/setup-gradle@v4
       - name: Grant execute permission
         run: chmod +x gradlew
-
-      - name: Ensure schema directory exists
-        run: mkdir -p app/schemas/com.j.m3play.db.InternalDatabase
-
       - name: Setup Debug Keystore
         run: |
           mkdir -p ~/.android
-          keytool -genkeypair \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000
-
-      - name: Build Debug APK
+          keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -keyalg RSA -keysize 2048 -validity 10000
+      - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
-
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: M3-Play-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-
-  build-release:
-    name: Build Release APK
-    runs-on: ubuntu-latest
-    needs: build-debug
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Grant execute permission
-        run: chmod +x gradlew
-
-      - name: Ensure schema directory exists
-        run: mkdir -p app/schemas/com.j.m3play.db.InternalDatabase
-
-      - name: Setup Debug Keystore
-        run: |
-          mkdir -p ~/.android
-          keytool -genkeypair \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
-
-      - name: Upload release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: M3-Play-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error

@@ -1,16 +1,16 @@
+@file:Suppress("DEPRECATION")
+
 plugins {
-    alias(libs.plugins.hilt) apply (false)
-    alias(libs.plugins.kotlin.ksp) apply (false)
-    alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.protobufPlugin) apply false
+    alias(libs.plugins.hilt) apply(false)
+    alias(libs.plugins.kotlin.ksp) apply(false)
+    alias(libs.plugins.compose.compiler) apply false
 }
 
-buildscript {
+    buildscript {
     repositories {
         google()
         mavenCentral()
         maven { setUrl("https://jitpack.io") }
-        maven { setUrl("https://maven.aliyun.com/repository/public") }
     }
     dependencies {
         classpath(libs.gradle)
@@ -18,7 +18,7 @@ buildscript {
     }
 }
 
-tasks.register<Delete>("clean") {
+tasks.register<Delete>("Clean") {
     delete(rootProject.layout.buildDirectory)
 }
 

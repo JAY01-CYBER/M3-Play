@@ -1,21 +1,6 @@
 plugins {
-    id("com.android.library")
     alias(libs.plugins.kotlin.serialization)
-}
-
-android {
-    namespace = "com.my.kizzy"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
+    kotlin("jvm")
 }
 
 kotlin {
@@ -30,6 +15,4 @@ dependencies {
     implementation(libs.ktor.client.encoding)
     implementation(libs.json)
     testImplementation(libs.junit)
-
-    coreLibraryDesugaring(libs.desugaring)
 }

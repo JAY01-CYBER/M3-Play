@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=M3-Play
+Comment=Lightweight YouTube client
+Exec=opentube
+Icon=opentube
+Terminal=false
+Type=Application
+Categories=AudioVideo;Player;Network;
