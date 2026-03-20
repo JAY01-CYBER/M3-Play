@@ -15,6 +15,7 @@ val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
+val HapticsEnabledKey = booleanPreferencesKey("haptics_enabled")
 
 enum class SliderStyle {
     DEFAULT,
