@@ -920,6 +920,7 @@ fun BottomSheetPlayer(
                             )
                             .background(textButtonColor)
                             .clickable {
+                                Haptics.click(haptic, context)
                                 playerConnection.toggleLike()
                             }
                     ) {
@@ -948,6 +949,7 @@ fun BottomSheetPlayer(
                             .clip(RoundedCornerShape(10.dp))
                             .background(textButtonColor)
                             .clickable {
+                                Haptics.click(haptic, context)
                                 when (download?.state) {
                                     Download.STATE_COMPLETED -> {
                                         DownloadService.sendRemoveDownload(
@@ -1030,6 +1032,7 @@ fun BottomSheetPlayer(
                             )
                             .background(textButtonColor)
                             .clickable {
+                                Haptics.click(haptic, context)
                                 menuState.show {
                                     PlayerMenu(
                                         mediaMetadata = mediaMetadata,
