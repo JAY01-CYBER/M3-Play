@@ -859,6 +859,7 @@ fun BottomSheetPlayer(
                                             }
                                         },
                                         onLongClick = {
+                                            Haptics.longPress(haptic, context)
                                             clipboardManager.setText(AnnotatedString(title))
                                             Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
                                         }
