@@ -1237,6 +1237,7 @@ fun BottomSheetPlayer(
                             indication = null,
                             interactionSource = backInteractionSource
                         ) {
+                            Haptics.tick(haptic, context)
                             playerConnection.seekToPrevious()
                         },
                     contentAlignment = Alignment.Center
