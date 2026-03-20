@@ -174,6 +174,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.j.m3play.utils.Haptics
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
