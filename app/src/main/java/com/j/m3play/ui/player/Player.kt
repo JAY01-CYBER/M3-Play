@@ -186,6 +186,7 @@ fun BottomSheetPlayer(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val database = LocalDatabase.current
     val menuState = LocalMenuState.current
 
