@@ -1268,7 +1268,7 @@ fun BottomSheetPlayer(
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                             } else {
-                                haptic.performHapticFeedback(Haptics.Click)
+                                Haptics.click(haptic, context)
                                 playerConnection.player.togglePlayPause()
                             }
                         },
