@@ -1087,6 +1087,7 @@ fun BottomSheetPlayer(
                             sliderPosition = it.toLong()
                         },
                         onValueChangeFinished = {
+                            Haptics.tick(haptic, context)
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
@@ -1116,6 +1117,7 @@ fun BottomSheetPlayer(
                             sliderPosition = it.toLong()
                         },
                         onValueChangeFinished = {
+                            onValueChangeFinished
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
