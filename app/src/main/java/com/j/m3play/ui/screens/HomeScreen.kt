@@ -129,6 +129,8 @@ fun HomeScreen(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val hapticsEnabled by rememberPreference(HapticsEnabledKey, defaultValue = true)
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
