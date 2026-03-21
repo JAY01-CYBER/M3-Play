@@ -182,6 +182,7 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             if (it.id == mediaMetadata?.id) {
                                 playerConnection.player.togglePlayPause()
                             } else {
@@ -191,9 +192,7 @@ fun HomeScreen(
                             }
                         },
                         onLongClick = {
-                            haptic.performHapticFeedback(
-                                HapticFeedbackType.LongPress,
-                            )
+                            if (hapticsEnabled) Haptics.longPress(haptic, context)
                             menuState.show {
                                 SongMenu(
                                     originalSong = it,
