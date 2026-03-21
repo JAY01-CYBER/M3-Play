@@ -1,10 +1,10 @@
 name: M3 Play Signed Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
-      workflow_dispatch
 
 permissions:
   contents: write
@@ -37,9 +37,9 @@ jobs:
         run: |
           ./gradlew assembleUniversalRelease \
             -Pandroid.injected.signing.store.file=keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
 
       - name: Find APK
         run: |
@@ -47,7 +47,8 @@ jobs:
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
           echo "Found APK at: $APK_PATH"
 
-      - name: Create GitHub Release and upload APK
+      - name: Create Release for tag builds
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.APK_PATH }}
@@ -63,3 +64,10 @@ jobs:
             - APK attached below
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK artifact for manual runs
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: M3Play-signed-release
+          path: ${{ env.APK_PATH }}
