@@ -195,7 +195,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingReleases,
                     error = uiState.releasesError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("Arturo254", "OpenTune") }
+                    onRetry = { viewModel.loadChangelog("JAY01-CYBER", "M3-Play") }
                 )
             }
 
@@ -205,7 +205,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
                     isLoading = uiState.isLoadingCommits,
                     error = uiState.commitsError,
                     lastUpdated = uiState.lastUpdated,
-                    onRetry = { viewModel.loadChangelog("Arturo254", "OpenTune") }
+                    onRetry = { viewModel.loadChangelog("JAY01-CYBER", "M3-Play") }
                 )
             }
         }
@@ -1161,7 +1161,7 @@ class ChangelogViewModel : ViewModel() {
                     connection.connectTimeout = 15000
                     connection.readTimeout = 15000
                     connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                    connection.setRequestProperty("User-Agent", "OpenTune-App")
+                    connection.setRequestProperty("User-Agent", "M3-Play-App")
 
                     if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                         if (attempt == 2) throw IOException("Error HTTP: ${connection.responseCode}")
@@ -1209,7 +1209,7 @@ class ChangelogViewModel : ViewModel() {
                     connection.connectTimeout = 15000
                     connection.readTimeout = 15000
                     connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                    connection.setRequestProperty("User-Agent", "OpenTune-App")
+                    connection.setRequestProperty("User-Agent", "M3-Play-App")
 
                     if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                         if (attempt == 2) throw IOException("Error HTTP: ${connection.responseCode}")
