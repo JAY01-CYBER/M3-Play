@@ -867,7 +867,7 @@ fun SettingsScreen(
                 SettingsCategoryItem(
                     icon = painterResource(R.drawable.telegram),
                     title = { Text(stringResource(R.string.Telegramchanel)) },
-                    onClick = { uriHandler.openUri("https://t.me/opentune_updates") }
+                    onClick = { uriHandler.openUri("https://t.me/M3Play_updates") }
                 )
             )
         )
