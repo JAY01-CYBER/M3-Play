@@ -267,6 +267,7 @@ fun HomeScreen(
             modifier = Modifier
                 .combinedClickable(
                     onClick = {
+                        if (hapticsEnabled) Haptics.click(haptic, context)
                         when (item) {
                             is SongItem -> playerConnection.playQueue(
                                 YouTubeQueue(
@@ -282,7 +283,7 @@ fun HomeScreen(
                         }
                     },
                     onLongClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (hapticsEnabled) Haptics.longPress(haptic, context)
                         menuState.show {
                             when (item) {
                                 is SongItem -> YouTubeSongMenu(
