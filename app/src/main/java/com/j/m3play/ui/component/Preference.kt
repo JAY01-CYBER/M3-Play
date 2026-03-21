@@ -67,8 +67,11 @@ fun PreferenceEntry(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable(
-                enabled = isEnabled && onClick != null,
-                onClick = onClick ?: {},
+    enabled = isEnabled && onClick != null,
+    onClick = {
+        if (hapticsEnabled) Haptics.click(haptic, context)
+        onClick?.invoke()
+    },
             )
             .alpha(if (isEnabled) 1f else 0.5f)
             .padding(horizontal = 20.dp, vertical = 16.dp),
