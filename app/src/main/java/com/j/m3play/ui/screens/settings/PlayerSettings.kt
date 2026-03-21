@@ -168,8 +168,8 @@ fun PlayerSettings(
                 )},
 
                 {SwitchPreference(
-            title = { Text("Haptics") },
-            description = "Vibration feedback on player controls",
+            title = { Text(stringResource(R.string.haptics)) },
+            description = stringResource(R.string.haptics_desc),
             icon = { Icon(painterResource(R.drawable.volume_up), null) },
             checked = hapticsEnabled,
             onCheckedChange = onHapticsEnabledChange
