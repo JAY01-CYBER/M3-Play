@@ -365,7 +365,7 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
                     contentColor = MaterialTheme.colorScheme.onError
                 )
             ) {
-                Text("Reintentar")
+                Text("Retry")
             }
         }
     }
