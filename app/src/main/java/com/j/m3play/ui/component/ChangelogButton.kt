@@ -348,7 +348,7 @@ private fun ErrorContent(error: String, onRetry: () -> Unit) {
                 modifier = Modifier.size(24.dp)
             )
             Text(
-                text = "Error al cargar",
+                text = "Error loading data",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
