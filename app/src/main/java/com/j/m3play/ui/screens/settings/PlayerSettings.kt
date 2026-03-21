@@ -77,6 +77,10 @@ fun PlayerSettings(
         StopMusicOnTaskClearKey,
         defaultValue = false
     )
+    val (hapticsEnabled, onHapticsEnabledChange) = rememberPreference(
+    HapticsEnabledKey,
+    defaultValue = true
+    )
 
     SettingsPage(
         title = stringResource(R.string.player_and_audio),
