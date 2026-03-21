@@ -270,9 +270,9 @@ private fun ReleasesContent(
     onRetry: () -> Unit
 ) {
     when {
-        isLoading -> LoadingIndicator(message = "Cargando releases…")
+        isLoading -> LoadingIndicator(message = "Loading releases…")
         error != null -> ErrorContent(error, onRetry)
-        releases.isEmpty() -> EmptyContent("No hay releases disponibles")
+        releases.isEmpty() -> EmptyContent("No releases available")
         else -> SuccessReleasesContent(releases, lastUpdated)
     }
 }
@@ -287,9 +287,9 @@ private fun CommitsContent(
     onRetry: () -> Unit
 ) {
     when {
-        isLoading -> LoadingIndicator(message = "Cargando commits…")
+        isLoading -> LoadingIndicator(message = "Loading commits…")
         error != null -> ErrorContent(error, onRetry)
-        commits.isEmpty() -> EmptyContent("No hay commits disponibles")
+        commits.isEmpty() -> EmptyContent("No commits available")
         else -> SuccessCommitsContent(commits, lastUpdated)
     }
 }
