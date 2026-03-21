@@ -7,25 +7,40 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.j.m3play.constants.HapticsEnabledKey
+import com.j.m3play.utils.dataStore
+import com.j.m3play.utils.get
 
 object Haptics {
 
+    private fun isEnabled(context: Context): Boolean {
+        return context.dataStore.get(HapticsEnabledKey, true)
+    }
+
     fun click(haptic: HapticFeedback? = null, context: Context? = null) {
+        if (context != null && !isEnabled(context)) return
+
         haptic?.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             ?: context?.let { vibrate(it, 12L, 80) }
     }
 
     fun tick(haptic: HapticFeedback? = null, context: Context? = null) {
+        if (context != null && !isEnabled(context)) return
+
         haptic?.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             ?: context?.let { vibrate(it, 8L, 60) }
     }
 
     fun longPress(haptic: HapticFeedback? = null, context: Context? = null) {
+        if (context != null && !isEnabled(context)) return
+
         haptic?.performHapticFeedback(HapticFeedbackType.LongPress)
             ?: context?.let { vibrate(it, 35L, 180) }
     }
 
     fun success(context: Context) {
+        if (!isEnabled(context)) return
+
         waveform(
             context = context,
             timings = longArrayOf(0, 20, 30, 35),
@@ -34,6 +49,8 @@ object Haptics {
     }
 
     fun error(context: Context) {
+        if (!isEnabled(context)) return
+
         waveform(
             context = context,
             timings = longArrayOf(0, 35, 40, 35, 40, 45),
