@@ -437,7 +437,7 @@ private fun LastUpdatedIndicator(lastUpdated: String?) {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                text = "Última actualización: $it",
+                text = "Last updated: $it",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
