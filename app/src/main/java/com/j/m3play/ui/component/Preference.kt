@@ -59,6 +59,9 @@ fun PreferenceEntry(
     onClick: (() -> Unit)? = null,
     isEnabled: Boolean = true,
 ) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val hapticsEnabled by rememberPreference(HapticsEnabledKey, defaultValue = true)
     Row(
         modifier = modifier
             .fillMaxWidth()
