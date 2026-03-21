@@ -488,7 +488,7 @@ fun BottomSheetPlayer(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        Haptics.success(context)
+                        if (hapticsEnabled) Haptics.success(context)
                         showSleepTimerDialog = false
                         playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt())
                     },
