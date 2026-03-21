@@ -166,7 +166,7 @@ fun ChangelogScreen(viewModel: ChangelogViewModel = viewModel()) {
     var selectedTab by remember { mutableStateOf(ChangelogTab.RELEASES) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadChangelog("Arturo254", "OpenTune")
+        viewModel.loadChangelog("JAY01-CYBER", "M3-Play")
     }
 
     Column(
