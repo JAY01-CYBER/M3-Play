@@ -237,12 +237,11 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             navController.navigate("artist/${it.id}")
                         },
                         onLongClick = {
-                            haptic.performHapticFeedback(
-                                HapticFeedbackType.LongPress,
-                            )
+                            if (hapticsEnabled) Haptics.longPress(haptic, context)
                             menuState.show {
                                 ArtistMenu(
                                     originalArtist = it,
