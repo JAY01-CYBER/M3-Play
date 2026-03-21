@@ -166,6 +166,14 @@ fun PlayerSettings(
                     checked = stopMusicOnTaskClear,
                     onCheckedChange = onStopMusicOnTaskClearChange
                 )},
+
+                {SwitchPreference(
+            title = { Text("Haptics") },
+            description = "Vibration feedback on player controls",
+            icon = { Icon(painterResource(R.drawable.volume_up), null) },
+            checked = hapticsEnabled,
+            onCheckedChange = onHapticsEnabledChange
+        )},
             )
         )
     }
