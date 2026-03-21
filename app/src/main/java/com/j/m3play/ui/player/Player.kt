@@ -243,6 +243,7 @@ fun BottomSheetPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
     val showLyrics by rememberPreference(ShowLyricsKey, defaultValue = false)
+    val hapticsEnabled by rememberPreference(HapticsEnabledKey, defaultValue = true)
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.SQUIGGLY)
 
     var position by rememberSaveable(playbackState) {
