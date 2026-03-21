@@ -37,6 +37,7 @@ import com.j.m3play.ui.component.SwitchPreference
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import com.j.m3play.constants.HapticsEnabledKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
