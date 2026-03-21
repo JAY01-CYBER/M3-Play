@@ -446,6 +446,7 @@ fun HomeScreen(
                                     trailingContent = {
                                         IconButton(
                                             onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
                                                 menuState.show {
                                                     SongMenu(
                                                         originalSong = song!!,
@@ -465,6 +466,7 @@ fun HomeScreen(
                                         .width(horizontalLazyGridItemWidth)
                                         .combinedClickable(
                                             onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
                                                 if (song!!.id == mediaMetadata?.id) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
@@ -472,7 +474,7 @@ fun HomeScreen(
                                                 }
                                             },
                                             onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
                                                 menuState.show {
                                                     SongMenu(
                                                         originalSong = song!!,
