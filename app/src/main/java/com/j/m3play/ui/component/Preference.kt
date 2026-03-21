@@ -40,6 +40,11 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.j.m3play.constants.HapticsEnabledKey
+import com.j.m3play.utils.Haptics
+import com.j.m3play.utils.rememberPreference
 import com.j.m3play.R
 import kotlin.math.roundToInt
 
