@@ -499,7 +499,7 @@ fun BottomSheetPlayer(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        Haptics.success(context)
+                        if (hapticsEnabled) Haptics.success(context)
                         showSleepTimerDialog = false },
                 ) {
                     Text(stringResource(android.R.string.cancel))
@@ -602,7 +602,7 @@ fun BottomSheetPlayer(
             confirmButton = {
                 TextButton(
                     onClick = { 
-                        Haptics.success(context)
+                        if (hapticsEnabled) Haptics.success(context)
                         showDetailsDialog = false },
                 ) {
                     Text(stringResource(android.R.string.ok))
@@ -866,7 +866,7 @@ fun BottomSheetPlayer(
                                             }
                                         },
                                         onLongClick = {
-                                            Haptics.longPress(haptic, context)
+                                            if (hapticsEnabled) Haptics.longPress(haptic, context)
                                             clipboardManager.setText(AnnotatedString(title))
                                             Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
                                         }
@@ -927,7 +927,7 @@ fun BottomSheetPlayer(
                             )
                             .background(textButtonColor)
                             .clickable {
-                                Haptics.click(haptic, context)
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 playerConnection.toggleLike()
                             }
                     ) {
@@ -956,7 +956,7 @@ fun BottomSheetPlayer(
                             .clip(RoundedCornerShape(10.dp))
                             .background(textButtonColor)
                             .clickable {
-                                Haptics.click(haptic, context)
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 when (download?.state) {
                                     Download.STATE_COMPLETED -> {
                                         DownloadService.sendRemoveDownload(
@@ -1039,7 +1039,7 @@ fun BottomSheetPlayer(
                             )
                             .background(textButtonColor)
                             .clickable {
-                                Haptics.click(haptic, context)
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 menuState.show {
                                     PlayerMenu(
                                         mediaMetadata = mediaMetadata,
@@ -1073,7 +1073,7 @@ fun BottomSheetPlayer(
                             sliderPosition = it.toLong()
                         },
                         onValueChangeFinished = {
-                            Haptics.tick(haptic, context)
+                            if (hapticsEnabled) Haptics.tick(haptic, context)
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
@@ -1097,7 +1097,7 @@ fun BottomSheetPlayer(
                             sliderPosition = it.toLong()
                         },
                         onValueChangeFinished = {
-                            Haptics.tick(haptic, context)
+                            if (hapticsEnabled) Haptics.tick(haptic, context)
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
@@ -1127,7 +1127,7 @@ fun BottomSheetPlayer(
                             sliderPosition = it.toLong()
                         },
                         onValueChangeFinished = {
-                            Haptics.tick(haptic, context)
+                            if (hapticsEnabled) Haptics.tick(haptic, context)
                             sliderPosition?.let {
                                 playerConnection.player.seekTo(it)
                                 position = it
@@ -1251,7 +1251,7 @@ fun BottomSheetPlayer(
                             indication = null,
                             interactionSource = backInteractionSource
                         ) {
-                            Haptics.tick(haptic, context)
+                            if (hapticsEnabled) Haptics.tick(haptic, context)
                             playerConnection.seekToPrevious()
                         },
                     contentAlignment = Alignment.Center
@@ -1283,7 +1283,7 @@ fun BottomSheetPlayer(
                                 playerConnection.player.seekTo(0, 0)
                                 playerConnection.player.playWhenReady = true
                             } else {
-                                Haptics.click(haptic, context)
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 playerConnection.player.togglePlayPause()
                             }
                         },
@@ -1324,7 +1324,7 @@ fun BottomSheetPlayer(
                             indication = null,
                             interactionSource = nextInteractionSource
                         ) {
-                            Haptics.tick(haptic, context)
+                            if (hapticsEnabled) Haptics.tick(haptic, context)
                             playerConnection.seekToNext()
                         },
                     contentAlignment = Alignment.Center
