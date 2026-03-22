@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/assets/logo.png" width="120"/>
+
 # 🎵 M3 Play
 
 ### Expressive Music Experience
@@ -38,13 +40,13 @@ It delivers a smooth and clean experience with powerful features like online str
 
 <div align="center">
 
-<img src="screenshots/home.png" width="250"/>
-<img src="screenshots/player.png" width="250"/>
-<img src="screenshots/explore.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/home.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/player.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/explore.png" width="250"/>
 
-<img src="screenshots/library.png" width="250"/>
-<img src="screenshots/settings.png" width="250"/>
-<img src="screenshots/theme.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/library.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/settings.png" width="250"/>
+<img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/screenshots/theme.png" width="250"/>
 
 </div>
 
@@ -59,8 +61,6 @@ It delivers a smooth and clean experience with powerful features like online str
 ---
 
 ## 📢 Telegram Channel
-
-Stay updated with latest releases:
 
 👉 https://t.me/M3Play_updates 🚀
 
