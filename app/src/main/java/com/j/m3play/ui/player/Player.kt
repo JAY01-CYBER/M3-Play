@@ -243,6 +243,29 @@ fun BottomSheetPlayer(
 
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
+    val swipeModifier = Modifier.pointerInput(Unit) {
+    var totalDrag = 0f
+
+    detectHorizontalDragGestures(
+        onHorizontalDrag = { _, dragAmount ->
+            totalDrag += dragAmount
+        },
+        onDragEnd = {
+            when {
+                totalDrag < -120 && canSkipNext -> {
+                    playerConnection.seekToNext()
+                }
+                totalDrag > 120 && canSkipPrevious -> {
+                    playerConnection.seekToPrevious()
+                }
+            }
+            totalDrag = 0f
+        },
+        onDragCancel = {
+            totalDrag = 0f
+        }
+    )
+}
 
     val showLyrics by rememberPreference(ShowLyricsKey, defaultValue = false)
     val hapticsEnabled by rememberPreference(HapticsEnabledKey, defaultValue = true)
