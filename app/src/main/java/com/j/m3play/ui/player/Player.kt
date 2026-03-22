@@ -1369,12 +1369,18 @@ fun BottomSheetPlayer(
                 enter = fadeIn(tween(800)),
                 exit = fadeOut(tween(600))
             ) {
-                val animatedGradientColors = gradientColors.map { color ->
-                    androidx.compose.animation.animateColorAsState(
-                        targetValue = color,
-                        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
-                        label = "gradientColor"
-                    ).value
+                val transition = updateTransition(targetState = gradientColors, label = "bgTransition")
+
+val animatedGradientColors = gradientColors.mapIndexed { index, color ->
+    transition.animateColor(
+        transitionSpec = {
+            tween(durationMillis = 700)
+        },
+        label = "gradientColor$index"
+    ) { colors ->
+        colors.getOrNull(index) ?: Color.Black
+    }.value
+}
                 }
 
                 Box(
