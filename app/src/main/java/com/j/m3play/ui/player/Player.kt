@@ -1465,7 +1465,9 @@ fun BottomSheetPlayer(
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
                                 onOpenFullscreenLyrics = onOpenFullscreenLyrics,
-                                modifier = Modifier.size(thumbnailSize)
+                                modifier = Modifier
+                                    .size(thumbnailSize)
+                                    .then(swipeModifier)
                             )
                         }
                     }
@@ -1505,7 +1507,9 @@ fun BottomSheetPlayer(
                         ) {
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
-                                onOpenFullscreenLyrics = onOpenFullscreenLyrics,
+                                onOpenFullscreenLyrics = 
+                            onOpenFullscreenLyrics,
+                                modifier = swipeModifier
                             )
                         }
                     }
