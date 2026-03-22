@@ -197,6 +197,29 @@ fun BottomSheetPlayer(
 
     var showFullscreenLyrics by remember { mutableStateOf(false) }
     val playerConnection = LocalPlayerConnection.current ?: return
+    val swipeModifier = Modifier.pointerInput(Unit) {
+    var totalDrag = 0f
+
+    detectHorizontalDragGestures(
+        onHorizontalDrag = { _, dragAmount ->
+            totalDrag += dragAmount
+        },
+        onDragEnd = {
+            when {
+                totalDrag < -120 && canSkipNext -> {
+                    playerConnection.seekToNext()
+                }
+                totalDrag > 120 && canSkipPrevious -> {
+                    playerConnection.seekToPrevious()
+                }
+            }
+            totalDrag = 0f
+        },
+        onDragCancel = {
+            totalDrag = 0f
+        }
+    )
+    }
 
     val playerTextAlignment by rememberEnumPreference(
         PlayerTextAlignmentKey,
