@@ -1365,34 +1365,40 @@ fun BottomSheetPlayer(
 
             // Animated gradient background
             AnimatedVisibility(
-                visible = playerBackground == PlayerBackgroundStyle.GRADIENT && gradientColors.size >= 2,
-                enter = fadeIn(tween(800)),
-                exit = fadeOut(tween(600))
-            ) {
-                val transition = updateTransition(targetState = gradientColors, label = "bgTransition")
+    visible = playerBackground == PlayerBackgroundStyle.GRADIENT && gradientColors.size >= 2,
+    enter = fadeIn(tween(800)),
+    exit = fadeOut(tween(600))
+) {
+    val transition = updateTransition(
+        targetState = gradientColors,
+        label = "bgTransition"
+    )
 
-val animatedGradientColors = gradientColors.mapIndexed { index, color ->
-    transition.animateColor(
-        transitionSpec = {
-            tween(durationMillis = 700)
-        },
-        label = "gradientColor$index"
-    ) { colors ->
-        colors.getOrNull(index) ?: Color.Black
-    }.value
-}
-                }
+    val animatedGradientColors = gradientColors.mapIndexed { index, _ ->
+        transition.animateColor(
+            transitionSpec = {
+                tween(durationMillis = 700)
+            },
+            label = "gradientColor$index"
+        ) { colors ->
+            colors.getOrNull(index) ?: Color.Black
+        }.value
+    }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .alpha(backgroundAlpha)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = if (animatedGradientColors.isNotEmpty()) animatedGradientColors else gradientColors
-                            )
-                        )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(backgroundAlpha)
+            .background(
+                Brush.verticalGradient(
+                    colors = if (animatedGradientColors.isNotEmpty())
+                        animatedGradientColors
+                    else
+                        gradientColors
                 )
+            )
+    )
+            }
             }
 
             // Animated dark overlay
