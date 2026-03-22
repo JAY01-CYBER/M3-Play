@@ -1521,4 +1521,3 @@ fun BottomSheetPlayer(
             textBackgroundColor = TextBackgroundColor,
         )
     }
-}
