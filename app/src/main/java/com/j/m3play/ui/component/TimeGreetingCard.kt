@@ -1,5 +1,10 @@
 package com.j.m3play.ui.component
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +27,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.util.Calendar
 
 @Composable
@@ -34,7 +43,7 @@ fun TimeGreetingCard(
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
 
     val greeting = when (hour) {
         in 5..11 -> "Good Morning"
@@ -57,29 +66,54 @@ fun TimeGreetingCard(
         else -> "🌌"
     }
 
-    val cardColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val subTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val buttonColor = MaterialTheme.colorScheme.surface
-    val buttonIconColor = MaterialTheme.colorScheme.onSurface
-    val sparkleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+        )
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
+    val sparkleAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkleAlpha"
+    )
 
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 18.dp,
+                shape = RoundedCornerShape(34.dp),
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            ),
         shape = RoundedCornerShape(34.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 22.dp, vertical = 22.dp)
+            modifier = Modifier
+                .background(
+                    brush = gradientBrush,
+                    shape = RoundedCornerShape(34.dp)
+                )
+                .padding(horizontal = 22.dp, vertical = 22.dp)
         ) {
             Text(
-                text = "✦ ✦ ✦",
-                color = sparkleColor,
+                text = "✨ ✨ ✨",
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 8.dp)
-                    .alpha(0.9f)
+                    .padding(top = 2.dp, end = 6.dp)
+                    .alpha(sparkleAlpha)
             )
 
             Row(
@@ -88,12 +122,12 @@ fun TimeGreetingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = emoji,
-                        style = MaterialTheme.typography.headlineLarge
+                        fontSize = 42.sp
                     )
 
                     Spacer(modifier = Modifier.width(14.dp))
@@ -101,16 +135,19 @@ fun TimeGreetingCard(
                     Column {
                         Text(
                             text = greeting,
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = textColor
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
                             text = subtitle,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = subTextColor
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                lineHeight = 24.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
@@ -119,15 +156,24 @@ fun TimeGreetingCard(
 
                 Box(
                     modifier = Modifier
-                        .size(66.dp)
-                        .background(buttonColor, CircleShape)
+                        .size(68.dp)
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = CircleShape,
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        )
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = CircleShape
+                        )
                         .clickable(onClick = onSearchClick),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Search,
                         contentDescription = "Search",
-                        tint = buttonIconColor,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(30.dp)
                     )
                 }
