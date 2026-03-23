@@ -1,12 +1,17 @@
 package com.j.m3play.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,15 +32,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @Composable
@@ -43,7 +54,7 @@ fun TimeGreetingCard(
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
     val greeting = when (hour) {
         in 5..11 -> "Good Morning"
@@ -53,9 +64,9 @@ fun TimeGreetingCard(
     }
 
     val subtitle = when (hour) {
-        in 5..11 -> "Start your day with uplifting tunes ☀️"
-        in 12..16 -> "Turn up the focus with great tunes 🔥"
-        in 17..20 -> "Time to unwind with soothing melodies 🌅"
+        in 5..11 -> "Start your day with music ☀️"
+        in 12..16 -> "Boost your mood with beats 🔥"
+        in 17..20 -> "Relax with soothing melodies 🌅"
         else -> "Slow down and enjoy the night 🌙"
     }
 
@@ -66,116 +77,143 @@ fun TimeGreetingCard(
         else -> "🌌"
     }
 
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
-        )
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(60)
+        visible = true
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "card_anim")
+
+    val emojiScale by infiniteTransition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "emojiScale"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
     val sparkleAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.95f,
+        initialValue = 0.25f,
+        targetValue = 0.8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1600),
+            animation = tween(1800),
             repeatMode = RepeatMode.Reverse
         ),
         label = "sparkleAlpha"
     )
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 18.dp,
-                shape = RoundedCornerShape(34.dp),
-                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-            ),
-        shape = RoundedCornerShape(34.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+    var searchPressed by remember { mutableStateOf(false) }
+    val searchScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (searchPressed) 0.92f else 1f,
+        animationSpec = spring(),
+        label = "searchScale"
+    )
+    val scope = rememberCoroutineScope()
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(350)) + slideInVertically(
+            initialOffsetY = { it / 5 },
+            animationSpec = tween(420)
         )
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    brush = gradientBrush,
-                    shape = RoundedCornerShape(34.dp)
-                )
-                .padding(horizontal = 22.dp, vertical = 22.dp)
-        ) {
-            Text(
-                text = "✨ ✨ ✨",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 6.dp)
-                    .alpha(sparkleAlpha)
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = emoji,
-                        fontSize = 42.sp
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.20f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(28.dp)
                     )
+                    .padding(horizontal = 18.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    text = "✨ ✨ ✨",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .alpha(sparkleAlpha * 0.7f),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
-                            text = greeting,
-                            style = MaterialTheme.typography.headlineLarge.copy(
+                            text = emoji,
+                            fontSize = 30.sp,
+                            modifier = Modifier.scale(emojiScale)
+                        )
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column {
+                            Text(
+                                text = greeting,
+                                style = MaterialTheme.typography.headlineMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                        )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                lineHeight = 24.sp,
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .scale(searchScale)
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = CircleShape
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                scope.launch {
+                                    searchPressed = true
+                                    delay(90)
+                                    searchPressed = false
+                                    onSearchClick()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = "Search",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .shadow(
-                            elevation = 10.dp,
-                            shape = CircleShape,
-                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        )
-                        .background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = CircleShape
-                        )
-                        .clickable(onClick = onSearchClick),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(30.dp)
-                    )
                 }
             }
         }
