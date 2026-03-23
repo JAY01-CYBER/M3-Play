@@ -367,6 +367,16 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
+                 TimeGreetingCard(
+                  onSearchClick = {
+                   navController.navigate("explore")
+                     },
+             modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .animateItem()
+    )
+                }
+                item {
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
