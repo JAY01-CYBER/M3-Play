@@ -538,68 +538,58 @@ Row(
                     }
 
                     item {
-                        LazyHorizontalGrid(
-                            state = quickPicksLazyGridState,
-                            rows = GridCells.Fixed(4),
-                            flingBehavior = rememberSnapFlingBehavior(quickpickssnaplayoutinfopro ider),
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(380.dp)
-                                .animateItem()
-                        ) {
-                            items(
-                                // MEJORA 4: Prevenir duplicados
-                                items = quickPicks.distinctBy { it.id },
-                                key = { it.id }
-                            ) { originalSong ->
-                                // fetch song from database to keep updated
-                                val song by database.song(originalSong.id)
-                                    .collectAsState(initial = originalSong)
+    LazyHorizontalGrid(
+        state = quickPicksLazyGridState,
+        rows = GridCells.Fixed(4),
+        flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
+        contentPadding = WindowInsets.systemBars
+            .only(WindowInsetsSides.Horizontal)
+            .asPaddingValues(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(380.dp)
+            .animateItem()
+    ) {
+        items(
+            items = quickPicks.distinctBy { it.id },
+            key = { it.id }
+        ) { originalSong ->
+            val song by database.song(originalSong.id)
+                .collectAsState(initial = originalSong)
 
-                                val subtitleText = song!!.artists.joinToString { it.name }
+            val subtitleText = song!!.artists.joinToString { it.name }
 
-M3PlayQuickPickCard(
-    song = song!!,
-    subtitle = subtitleText,
-    isPlaying = isPlaying,
-    isActive = song!!.id == mediaMetadata?.id,
-    onClick = {
-        if (hapticsEnabled) Haptics.click(haptic, context)
-
-        if (song!!.id == mediaMetadata?.id) {
-            playerConnection.player.togglePlayPause()
-        } else {
-            playerConnection.playQueue(
-                YouTubeQueue.radio(song!!.toMediaItem())
-            )
-        }
-    },
-    onMoreClick = {
-        if (hapticsEnabled) Haptics.click(haptic, context)
-
-        menuState.show {
-            SongMenu(
-                originalSong = song!!,
-                navController = navController,
-                onDismiss = menuState::dismiss
-            )
-        }
-    },
-    modifier = Modifier
-        .width(horizontalLazyGridItemWidth)
-)
-                                                }
-                                            }
-                                        )
-                                )
-                            }
-                        }
+            M3PlayQuickPickCard(
+                song = song!!,
+                subtitle = subtitleText,
+                onClick = {
+                    if (hapticsEnabled) Haptics.click(haptic, context)
+                    if (song!!.id == mediaMetadata?.id) {
+                        playerConnection.player.togglePlayPause()
+                    } else {
+                        playerConnection.playQueue(
+                            YouTubeQueue.radio(song!!.toMediaItem())
+                        )
                     }
-                }
-
+                },
+                onMenuClick = {
+                    if (hapticsEnabled) Haptics.click(haptic, context)
+                    menuState.show {
+                        SongMenu(
+                            originalSong = song!!,
+                            navController = navController,
+                            onDismiss = menuState::dismiss
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .width(horizontalLazyGridItemWidth)
+                    .padding(vertical = 4.dp)
+            )
+        }
+    }
+                    }
+                    
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
                     item {
                         NavigationTitle(
