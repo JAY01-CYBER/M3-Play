@@ -492,25 +492,56 @@ item {
                     item {
                         // MEJORA 2: Añadir botón Play All
                         val quickPicksTitle = stringResource(R.string.quick_picks)
-                        NavigationTitle(
-                            title = quickPicksTitle,
-                            modifier = Modifier.animateItem(),
-                            onPlayAllClick = {
-                                playerConnection.playQueue(
-                                    ListQueue(
-                                        title = quickPicksTitle,
-                                        items = quickPicks.distinctBy { it.id }.map { it.toMediaItem() }
-                                    )
-                                )
-                            }
-                        )
+
+Row(
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = 6.dp)
+        .animateItem(),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.SpaceBetween
+) {
+    Text(
+        text = quickPicksTitle,
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(999.dp)
+            )
+            .clickable {
+                playerConnection.playQueue(
+                    ListQueue(
+                        title = quickPicksTitle,
+                        items = quickPicks.distinctBy { it.id }.map { it.toMediaItem() }
+                    )
+                )
+            }
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Play all",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
                     }
 
                     item {
                         LazyHorizontalGrid(
                             state = quickPicksLazyGridState,
                             rows = GridCells.Fixed(4),
-                            flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
+                            flingBehavior = rememberSnapFlingBehavior(quickpickssnaplayoutinfopro ider),
                             contentPadding = WindowInsets.systemBars
                                 .only(WindowInsetsSides.Horizontal)
                                 .asPaddingValues(),
