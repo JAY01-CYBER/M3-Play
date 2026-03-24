@@ -469,6 +469,23 @@ item {
     }
 }
 
+               item {
+    Spacer(modifier = Modifier.height(10.dp))
+}
+
+item {
+    M3PlayHeroCarousel(
+        items = heroItems,
+        onItemClick = { item ->
+            navController.navigate("album/${item.id}")
+        },
+        modifier = Modifier.animateItem()
+    )
+}
+
+item {
+    Spacer(modifier = Modifier.height(6.dp))
+}
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     item {
                         // MEJORA 2: Añadir botón Play All
