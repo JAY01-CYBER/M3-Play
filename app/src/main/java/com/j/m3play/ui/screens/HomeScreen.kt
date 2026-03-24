@@ -132,6 +132,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
+import com.j.m3play.ui.component.M3PlayHeroCarousel
+import com.j.m3play.ui.component.M3PlayHeroItem
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
