@@ -417,13 +417,14 @@ item {
             .animateItem(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+
         ActionCard(
             title = "History",
             icon = R.drawable.history,
             onClick = {
                 navController.navigate("history")
             },
-                modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f)
         )
 
         ActionCard(
@@ -434,8 +435,9 @@ item {
                     navController.navigate("account")
                 } else {
                     navController.navigate("library")
-                },
-                    modifier = Modifier.weight(1f)
+                }
+            },
+            modifier = Modifier.weight(1f)
         )
     }
 }
