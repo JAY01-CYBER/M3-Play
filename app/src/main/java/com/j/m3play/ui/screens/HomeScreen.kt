@@ -924,11 +924,11 @@ fun ActionCard(
 ) {
     Box(
         modifier = modifier
-            .height(60.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .height(48.dp) // 👈 ultra compact
+            .clip(RoundedCornerShape(999.dp)) // 👈 pill shape
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -937,14 +937,14 @@ fun ActionCard(
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(16.dp) // 👈 small icon
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall, // 👈 compact text
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
