@@ -435,7 +435,6 @@ item {
                 } else {
                     navController.navigate("library")
                 }
-                },
                     modifier = Modifier.weight(1f)
             }
         )
