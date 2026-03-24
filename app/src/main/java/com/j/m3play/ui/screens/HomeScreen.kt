@@ -117,6 +117,8 @@ import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
 import com.j.m3play.ui.component.TimeGreetingCard
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -376,37 +378,60 @@ fun HomeScreen(
     )
                 }
                 item {
-                    Row(
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .fillMaxWidth()
-                            .animateItem()
-                    ) {
-                        ChipsRow(
-                            chips = listOfNotNull(
-                                Pair("history", stringResource(R.string.history)),
-                                Pair("stats", stringResource(R.string.stats)),
-                                Pair("liked", stringResource(R.string.liked)),
-                                Pair("downloads", stringResource(R.string.offline)),
-                                if (isLoggedIn) Pair(
-                                    "account",
-                                    stringResource(R.string.account)
-                                ) else null
-                            ),
-                            currentValue = "",
-                            onValueUpdate = { value ->
-                                when (value) {
-                                    "history" -> navController.navigate("history")
-                                    "stats" -> navController.navigate("stats")
-                                    "liked" -> navController.navigate("auto_playlist/liked")
-                                    "downloads" -> navController.navigate("auto_playlist/downloaded")
-                                    "account" -> if (isLoggedIn) navController.navigate("account")
-                                }
-                            },
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer
-                        )
-                    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .animateItem(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ActionCard(
+            title = "Liked",
+            icon = R.drawable.favorite,
+            onClick = {
+                navController.navigate("auto_playlist/liked")
+            }
+        )
+
+        ActionCard(
+            title = "Downloads",
+            icon = R.drawable.download,
+            onClick = {
+                navController.navigate("auto_playlist/downloaded")
+            }
+        )
+    }
+}
+
+item {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .animateItem(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ActionCard(
+            title = "History",
+            icon = R.drawable.history,
+            onClick = {
+                navController.navigate("history")
+            }
+        )
+
+        ActionCard(
+            title = if (isLoggedIn) "Account" else "Library",
+            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
+            onClick = {
+                if (isLoggedIn) {
+                    navController.navigate("account")
+                } else {
+                    navController.navigate("library")
                 }
+            }
+        )
+    }
+}
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     item {
@@ -876,6 +901,42 @@ fun HomeScreen(
                         }
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+fun ActionCard(
+    title: String,
+    icon: Int,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .height(72.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
