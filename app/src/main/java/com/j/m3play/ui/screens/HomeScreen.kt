@@ -547,7 +547,7 @@ Row(
                                 .asPaddingValues(),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(ListItemHeight * 4)
+                                .height(380.dp)
                                 .animateItem()
                         ) {
                             items(
