@@ -134,6 +134,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import com.j.m3play.ui.component.M3PlayHeroCarousel
 import com.j.m3play.ui.component.M3PlayHeroItem
+import androidx.compose.foundation.border
+import com.j.m3play.ui.component.M3PlayQuickPickCard
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
