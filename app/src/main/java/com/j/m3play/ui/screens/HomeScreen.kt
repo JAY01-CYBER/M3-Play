@@ -123,6 +123,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.font.FontWeight
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -922,30 +931,64 @@ fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var pressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "card_scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (pressed) 0.9f else 1f,
+        animationSpec = tween(durationMillis = 140),
+        label = "card_alpha"
+    )
+
     Box(
         modifier = modifier
-            .height(48.dp) // 👈 ultra compact
-            .clip(RoundedCornerShape(999.dp)) // 👈 pill shape
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clickable { onClick() }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .height(48.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        tryAwaitRelease()
+                        pressed = false
+                        onClick()
+                    }
+                )
+            }
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp) // 👈 small icon
+                modifier = Modifier.size(16.dp)
             )
 
             Spacer(modifier = Modifier.width(6.dp))
 
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodySmall, // 👈 compact text
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
             )
         }
     }
