@@ -434,9 +434,8 @@ item {
                     navController.navigate("account")
                 } else {
                     navController.navigate("library")
-                }
+                },
                     modifier = Modifier.weight(1f)
-            }
         )
     }
 }
