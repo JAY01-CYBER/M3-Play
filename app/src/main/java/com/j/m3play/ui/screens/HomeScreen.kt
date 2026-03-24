@@ -394,7 +394,8 @@ fun HomeScreen(
             icon = R.drawable.favorite,
             onClick = {
                 navController.navigate("auto_playlist/liked")
-            }
+            },
+                modifier = Modifier.weight(1f)
         )
 
         ActionCard(
@@ -402,7 +403,8 @@ fun HomeScreen(
             icon = R.drawable.download,
             onClick = {
                 navController.navigate("auto_playlist/downloaded")
-            }
+            },
+                modifier = Modifier.weight(1f)
         )
     }
 }
@@ -420,7 +422,8 @@ item {
             icon = R.drawable.history,
             onClick = {
                 navController.navigate("history")
-            }
+            },
+                modifier = Modifier.weight(1f)
         )
 
         ActionCard(
@@ -431,7 +434,8 @@ item {
                     navController.navigate("account")
                 } else {
                     navController.navigate("library")
-                }
+                },
+                    modifier = Modifier.weight(1f)
             }
         )
     }
