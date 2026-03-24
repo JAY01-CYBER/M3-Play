@@ -387,7 +387,7 @@ fun HomeScreen(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .animateItem(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ActionCard(
             title = "Liked",
