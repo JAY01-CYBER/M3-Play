@@ -39,12 +39,12 @@ fun M3PlayQuickPickCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(
-                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.72f)
+                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f)
             )
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -52,11 +52,11 @@ fun M3PlayQuickPickCard(
             contentDescription = song.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(50.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .size(46.dp)
+                .clip(RoundedCornerShape(9.dp))
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         Column(
             modifier = Modifier.weight(1f),
@@ -64,7 +64,7 @@ fun M3PlayQuickPickCard(
         ) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -74,7 +74,7 @@ fun M3PlayQuickPickCard(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -82,7 +82,7 @@ fun M3PlayQuickPickCard(
 
         IconButton(
             onClick = onMenuClick,
-            modifier = Modifier.size(34.dp)
+            modifier = Modifier.size(30.dp)
         ) {
             Icon(
                 painter = painterResource(R.drawable.more_vert),
