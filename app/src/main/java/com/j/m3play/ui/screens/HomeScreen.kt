@@ -559,49 +559,38 @@ Row(
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
-                                SongListItem(
-                                    song = song!!,
-                                    showInLibraryIcon = true,
-                                    isActive = song!!.id == mediaMetadata?.id,
-                                    isPlaying = isPlaying,
-                                    trailingContent = {
-                                        IconButton(
-                                            onClick = {
-                                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = song!!,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.more_vert),
-                                                contentDescription = null
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .width(horizontalLazyGridItemWidth)
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                                if (song!!.id == mediaMetadata?.id) {
-                                                    playerConnection.player.togglePlayPause()
-                                                } else {
-                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
-                                                }
-                                            },
-                                            onLongClick = {
-                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = song!!,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
+                                val subtitleText = song!!.artists.joinToString { it.name }
+
+M3PlayQuickPickCard(
+    song = song!!,
+    subtitle = subtitleText,
+    isPlaying = isPlaying,
+    isActive = song!!.id == mediaMetadata?.id,
+    onClick = {
+        if (hapticsEnabled) Haptics.click(haptic, context)
+
+        if (song!!.id == mediaMetadata?.id) {
+            playerConnection.player.togglePlayPause()
+        } else {
+            playerConnection.playQueue(
+                YouTubeQueue.radio(song!!.toMediaItem())
+            )
+        }
+    },
+    onMoreClick = {
+        if (hapticsEnabled) Haptics.click(haptic, context)
+
+        menuState.show {
+            SongMenu(
+                originalSong = song!!,
+                navController = navController,
+                onDismiss = menuState::dismiss
+            )
+        }
+    },
+    modifier = Modifier
+        .width(horizontalLazyGridItemWidth)
+)
                                                 }
                                             }
                                         )
