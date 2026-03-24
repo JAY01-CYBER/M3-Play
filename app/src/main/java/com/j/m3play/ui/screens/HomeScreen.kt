@@ -978,43 +978,16 @@ fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var pressed by remember { mutableStateOf(false) }
-
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 140),
-        label = "card_scale"
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = if (pressed) 0.9f else 1f,
-        animationSpec = tween(durationMillis = 140),
-        label = "card_alpha"
-    )
-
     Box(
         modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                this.alpha = alpha
-            }
             .height(48.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(
                 MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
             )
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        tryAwaitRelease()
-                        pressed = false
-                        onClick()
-                    }
-                )
-            }
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -1039,5 +1012,3 @@ fun ActionCard(
             )
         }
     }
-}
-}
