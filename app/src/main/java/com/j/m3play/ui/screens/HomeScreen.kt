@@ -584,7 +584,7 @@ Row(
                 },
                 modifier = Modifier
                     .width(horizontalLazyGridItemWidth)
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 3.dp)
             )
         }
     }
