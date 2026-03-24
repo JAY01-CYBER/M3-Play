@@ -159,6 +159,22 @@ fun HomeScreen(
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
+    val heroItems = remember(explorePage) {
+    buildList {
+        explorePage?.newReleaseAlbums
+            ?.take(5)
+            ?.forEach { album ->
+                add(
+                    M3PlayHeroItem(
+                        id = album.id,
+                        title = album.title,
+                        subtitle = "New Release",
+                        imageUrl = album.thumbnail
+                    )
+                )
+            }
+    }
+    }
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
