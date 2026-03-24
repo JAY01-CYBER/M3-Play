@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,10 +39,12 @@ fun M3PlayQuickPickCard(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.72f))
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.72f)
+            )
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -51,11 +52,11 @@ fun M3PlayQuickPickCard(
             contentDescription = song.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .size(50.dp)
+                .clip(RoundedCornerShape(10.dp))
         )
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(
             modifier = Modifier.weight(1f),
@@ -63,25 +64,26 @@ fun M3PlayQuickPickCard(
         ) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
-
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        IconButton(onClick = onMenuClick) {
+        IconButton(
+            onClick = onMenuClick,
+            modifier = Modifier.size(34.dp)
+        ) {
             Icon(
                 painter = painterResource(R.drawable.more_vert),
                 contentDescription = null,
