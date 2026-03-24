@@ -914,11 +914,11 @@ item {
 fun ActionCard(
     title: String,
     icon: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .height(72.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer)
