@@ -377,7 +377,7 @@ fun HomeScreen(
                    navController.navigate("explore")
                      },
              modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .animateItem()
     )
                 }
