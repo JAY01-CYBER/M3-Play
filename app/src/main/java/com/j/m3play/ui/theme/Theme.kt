@@ -13,6 +13,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import com.j.m3play.ui.theme.Typography
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.ui.graphics.Color
@@ -61,7 +62,7 @@ fun OpenTuneTheme(
 
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = MaterialTheme.typography,
+        typography = Typography,
         shapes = MaterialTheme.shapes,
         motionScheme = motionScheme,
         content = content
