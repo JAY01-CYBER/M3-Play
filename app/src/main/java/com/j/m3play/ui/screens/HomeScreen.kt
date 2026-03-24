@@ -568,7 +568,7 @@ Row(
                         playerConnection.player.togglePlayPause()
                     } else {
                         playerConnection.playQueue(
-                            YouTubeQueue.radio(song!!.toMediaItem())
+                            YouTubeQueue.radio(song!!.toMediaMetadata())
                         )
                     }
                 },
