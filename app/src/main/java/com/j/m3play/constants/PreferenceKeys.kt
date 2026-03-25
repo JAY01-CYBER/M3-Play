@@ -308,6 +308,11 @@ val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val RepeatModeKey = intPreferencesKey("repeatMode")
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val MiniPlayerStyleKey = stringPreferencesKey("mini_player_style")
+enum class MiniPlayerStyle {
+    DEFAULT,
+    MODERN,
+    CARD
+}
 
 val SearchSourceKey = stringPreferencesKey("searchSource")
 val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
