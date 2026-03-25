@@ -111,6 +111,22 @@ fun MiniPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    ModernMiniPlayer(
+    title = mediaMetadata?.title ?: "Unknown",
+    artist = mediaMetadata?.artists?.joinToString { it.name } ?: "",
+    imageUrl = currentSong?.thumbnailUrl,
+    progress = if (duration > 0) position.toFloat() / duration else 0f,
+    isPlaying = isPlaying,
+    onPlayPause = {
+        playerConnection.player.togglePlayPause()
+    },
+    onNext = {
+        playerConnection.player.seekToNext()
+    },
+    onClick = { }
+)
+
+return
 
     // Obtener el estado del tema para calcular el color de fondo correcto
     val isSystemInDarkTheme = isSystemInDarkTheme()
