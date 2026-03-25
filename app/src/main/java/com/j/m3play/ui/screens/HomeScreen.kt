@@ -161,6 +161,7 @@ fun HomeScreen(
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
         val heroItems = remember(explorePage,isRefreshing) {
         buildList {
@@ -184,7 +185,6 @@ fun HomeScreen(
     val allYtItems by viewModel.allYtItems.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
     val quickPicksLazyGridState = rememberLazyGridState()
