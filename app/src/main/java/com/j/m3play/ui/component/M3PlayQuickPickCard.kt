@@ -38,13 +38,13 @@ fun M3PlayQuickPickCard(
 ) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.92f)
             .clip(RoundedCornerShape(18.dp))
             .background(
                 MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f)
             )
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 7.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
@@ -52,7 +52,7 @@ fun M3PlayQuickPickCard(
             contentDescription = song.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(46.dp)
+                .size(50.dp)
                 .clip(RoundedCornerShape(9.dp))
         )
 
