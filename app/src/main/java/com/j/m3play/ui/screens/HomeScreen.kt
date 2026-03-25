@@ -167,15 +167,16 @@ fun HomeScreen(
         explorePage?.newReleaseAlbums
             ?.shuffled()
             ?.take(5)
-            ?.map { album ->
+            ?.forEach { album ->
                     M3PlayHeroItem(
                         id = album.id,
                         title = album.title,
                         subtitle = "New Release",
                         imageUrl = album.thumbnail
                     )
+                 )
             }
-            ?: emptyList()
+    }
     }
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
