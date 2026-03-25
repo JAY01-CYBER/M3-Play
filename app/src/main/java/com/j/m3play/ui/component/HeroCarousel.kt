@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,10 +34,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
 import coil.compose.AsyncImage
 import com.j.m3play.R
+import kotlinx.coroutines.delay
 
 data class M3PlayHeroItem(
     val id: String,
@@ -55,6 +55,16 @@ fun M3PlayHeroCarousel(
     if (items.isEmpty()) return
 
     val pagerState = rememberPagerState(pageCount = { items.size })
+
+    LaunchedEffect(items.size) {
+        if (items.size <= 1) return@LaunchedEffect
+
+        while (true) {
+            delay(3500)
+            val nextPage = (pagerState.currentPage + 1) % items.size
+            pagerState.animateScrollToPage(nextPage)
+        }
+    }
 
     Column(modifier = modifier) {
         HorizontalPager(
