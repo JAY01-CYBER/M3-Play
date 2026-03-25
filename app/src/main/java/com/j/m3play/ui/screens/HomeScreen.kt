@@ -539,16 +539,23 @@ Row(
 
                     item {
     LazyHorizontalGrid(
-        state = quickPicksLazyGridState,
-        rows = GridCells.Fixed(4),
-        flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
-        contentPadding = WindowInsets.systemBars
-            .only(WindowInsetsSides.Horizontal)
-            .asPaddingValues(),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(380.dp)
-            .animateItem()
+    state = quickPicksLazyGridState,
+    rows = GridCells.Fixed(4),
+
+    // ✅ ADD THIS
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+    horizontalArrangement = Arrangement.spacedBy(10.dp),
+
+    flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
+
+    // ❌ REMOVE WindowInsets wala
+    // ✅ ADD THIS
+    contentPadding = PaddingValues(horizontal = 16.dp),
+
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(300.dp) // 👈 380 → 300
+        .animateItem()
     ) {
         items(
             items = quickPicks.distinctBy { it.id },
