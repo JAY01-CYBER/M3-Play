@@ -162,7 +162,7 @@ fun HomeScreen(
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
-        val heroItems = remember(explorePage) {
+        val heroItems = remember(explorePage,isRefreshing) {
         buildList {
             explorePage?.newReleaseAlbums
                 ?.shuffled()
