@@ -165,18 +165,17 @@ fun HomeScreen(
     val heroItems = remember(explorePage) {
     buildList {
         explorePage?.newReleaseAlbums
+            ?.shuffled()
             ?.take(5)
-            ?.forEach { album ->
-                add(
+            ?.map { album ->
                     M3PlayHeroItem(
                         id = album.id,
                         title = album.title,
                         subtitle = "New Release",
                         imageUrl = album.thumbnail
                     )
-                )
             }
-    }
+            ?: emptyList()
     }
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
