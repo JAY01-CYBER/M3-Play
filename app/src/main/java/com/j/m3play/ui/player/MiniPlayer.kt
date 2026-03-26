@@ -207,11 +207,11 @@ fun MiniPlayer(
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
                     elevation = 8.dp,
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(24.dp),
                     clip = false
                 ),
             tonalElevation = 2.dp,
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             color = Color.Transparent
         ) {
             Box(
