@@ -319,7 +319,7 @@ fun MiniPlayer(
                                     .fillMaxSize()
                                     .background(
                                         color = Color.Black.copy(alpha = overlayAlpha),
-                                        shape = currentThumbnailShape
+                                        shape = RoundedCornerShape(12.dp)
                                     )
                             )
 
