@@ -379,7 +379,7 @@ Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = title,
                                     color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -396,7 +396,7 @@ Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = artists,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                        fontSize = 12.sp,
+                                        fontSize = 11.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.basicMarquee(),
