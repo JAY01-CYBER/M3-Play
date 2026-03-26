@@ -95,6 +95,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.fillMaxHeight
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
