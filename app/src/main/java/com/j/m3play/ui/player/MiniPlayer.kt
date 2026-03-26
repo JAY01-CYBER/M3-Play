@@ -138,8 +138,8 @@ fun MiniPlayer(
 
     // Calcular el color de fondo correcto
     val miniPlayerBackgroundColor = when {
-        useDarkTheme && pureBlack -> Color.Black.copy(alpha = 0.95f)
-        else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f)
+    useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+    else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.98f)
     }
 
     val currentView = LocalView.current
