@@ -301,7 +301,7 @@ Spacer(modifier = Modifier.height(8.dp))
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
