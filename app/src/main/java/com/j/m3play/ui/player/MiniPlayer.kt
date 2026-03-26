@@ -287,26 +287,13 @@ fun MiniPlayer(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(48.dp)
                     ) {
-                        if (duration > 0) {
-                            CircularProgressIndicator(
-                                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                                modifier = Modifier.size(48.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 3.dp,
-                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
-                        }
+                        
 
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(currentThumbnailShape)
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                    shape = currentThumbnailShape
-                                )
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable {
                                     if (playbackState == Player.STATE_ENDED) {
                                         playerConnection.player.seekTo(0, 0)
