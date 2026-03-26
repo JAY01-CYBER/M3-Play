@@ -436,7 +436,7 @@ Spacer(modifier = Modifier.height(8.dp))
                             } else {
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             },
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
 
@@ -449,7 +449,7 @@ Spacer(modifier = Modifier.height(8.dp))
                             painter = painterResource(R.drawable.skip_next),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }
