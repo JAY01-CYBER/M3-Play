@@ -310,7 +310,7 @@ fun MiniPlayer(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(currentThumbnailShape)
+                                        .clip(RoundedCornerShape(12.dp))
                                 )
                             }
 
