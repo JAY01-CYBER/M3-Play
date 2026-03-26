@@ -277,6 +277,25 @@ fun MiniPlayer(
                         )
                     }
             ) {
+    Box(
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(3.dp)
+        .clip(RoundedCornerShape(99.dp))
+        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+) {
+    Box(
+    modifier = Modifier
+        .fillMaxWidth(if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
+        )
+        .fillMaxHeight()
+        .clip(RoundedCornerShape(99.dp))
+        .background(MaterialTheme.colorScheme.primary)
+)
+}
+
+Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
