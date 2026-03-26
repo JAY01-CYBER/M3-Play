@@ -281,9 +281,9 @@ fun MiniPlayer(
     Box(
     modifier = Modifier
         .fillMaxWidth()
-        .height(3.dp)
+        .height(4.dp)
         .clip(RoundedCornerShape(99.dp))
-        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
 ) {
     Box(
     modifier = Modifier
@@ -295,7 +295,7 @@ fun MiniPlayer(
 )
 }
 
-Spacer(modifier = Modifier.height(6.dp))
+Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
