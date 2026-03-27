@@ -288,9 +288,11 @@ fun MiniPlayer(
                                 .background(artworkBgColor),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (mediaMetadata?.thumbnailUrl != null) {
+                            val thumbnailUrl = mediaMetadata?.thumbnailUrl
+
+                            if (thumbnailUrl != null) {
                                 AsyncImage(
-                                    model = mediaMetadata.thumbnailUrl,
+                                    model = thumbnailUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
