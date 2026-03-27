@@ -286,26 +286,35 @@ fun MiniPlayer(
         .height(2.dp)
         .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 ) {
+    Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 14.dp, vertical = 10.dp)
+) {
     Box(
         modifier = Modifier
-            .fillMaxWidth(
-                if (duration > 0)
-                    (position.toFloat() / duration).coerceIn(0f, 1f)
-                else 0f
-            )
-            .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.primary)
-    )
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(
+                    if (duration > 0) {
+                        (position.toFloat() / duration).coerceIn(0f, 1f)
+                    } else 0f
+                )
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary)
+        )
     }
 
-Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                ) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxSize()
+    ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(48.dp)
