@@ -34,15 +34,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -55,12 +56,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,14 +74,10 @@ import coil.compose.AsyncImage
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
-import com.j.m3play.constants.DefaultMiniPlayerThumbnailShape
-import com.j.m3play.constants.MiniPlayerThumbnailShapeKey
 import com.j.m3play.constants.PureBlackKey
-import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.screens.settings.DarkMode
-import com.j.m3play.utils.getMiniPlayerThumbnailShape
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlinx.coroutines.launch
@@ -88,7 +85,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiniPlayer(
     position: Long,
@@ -112,31 +109,28 @@ fun MiniPlayer(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val miniPlayerThumbnailShapeState = rememberPreference(
-        key = MiniPlayerThumbnailShapeKey,
-        defaultValue = DefaultMiniPlayerThumbnailShape
-    )
-
-    val miniPlayerThumbnailShape = remember(miniPlayerThumbnailShapeState.value, isPlaying) {
-        if (isPlaying) {
-            getMiniPlayerThumbnailShape(miniPlayerThumbnailShapeState.value)
-        } else {
-            MaterialShapes.Circle
-        }
+    val backgroundColor = when {
+        useDarkTheme && pureBlack -> Color(0xFF0E0E10)
+        useDarkTheme -> Color(0xFF17171C)
+        else -> Color(0xFFF3F0F8)
     }
 
-    val currentThumbnailShape = remember(isPlaying, miniPlayerThumbnailShape) {
-        if (isPlaying) {
-            miniPlayerThumbnailShape
-        } else {
-            MaterialShapes.Square
-        }
-    }.toShape()
-
-    val miniPlayerBackgroundColor = when {
-        useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+    val progressTrackColor = if (useDarkTheme) {
+        Color(0xFF3A3A44)
+    } else {
+        Color(0xFFD9D2E5)
     }
+
+    val progressColor = if (useDarkTheme) {
+        Color(0xFF8B7CFF)
+    } else {
+        Color(0xFF6C4DFF)
+    }
+
+    val textPrimary = if (useDarkTheme) Color(0xFFF6F4FB) else Color(0xFF191724)
+    val textSecondary = if (useDarkTheme) Color(0xFFB7B3C7) else Color(0xFF8D88A0)
+    val smallButtonBg = if (useDarkTheme) Color(0xFF2A2A33) else Color(0xFFE7E2F1)
+    val imageContainerBg = if (useDarkTheme) Color(0xFF23232C) else Color(0xFFEAE2FF)
 
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
@@ -155,7 +149,7 @@ fun MiniPlayer(
     )
 
     val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.0f else 0.4f,
+        targetValue = if (isPlaying) 0.0f else 0.20f,
         label = "overlay_alpha",
         animationSpec = animationSpec
     )
@@ -166,12 +160,20 @@ fun MiniPlayer(
 
     val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
+    val safeDuration = if (duration > 0) duration else 1L
+    val progress = (position.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
+
+    val titleText = mediaMetadata?.title?.takeIf { it.isNotBlank() } ?: "Unknown title"
+    val artistText = mediaMetadata?.artists
+        ?.joinToString { it.name }
+        ?.takeIf { it.isNotBlank() } ?: "Unknown artist"
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(110.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
             .background(Color.Transparent)
     ) {
         Surface(
@@ -179,27 +181,34 @@ fun MiniPlayer(
                 .then(
                     if (isTabletLandscape) {
                         Modifier
-                            .width(480.dp)
+                            .width(520.dp)
                             .align(Alignment.CenterEnd)
                     } else {
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(64.dp)
+                .height(92.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(24.dp),
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(30.dp),
                     clip = false
                 ),
-            tonalElevation = 2.dp,
-            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(30.dp),
             color = Color.Transparent
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color = miniPlayerBackgroundColor)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                backgroundColor,
+                                backgroundColor.copy(alpha = 0.98f)
+                            )
+                        )
+                    )
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragStart = {
@@ -245,7 +254,6 @@ fun MiniPlayer(
 
                                 if (shouldChangeSong) {
                                     val isRightSwipe = currentOffset > 0
-
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
                                     } else if (!isRightSwipe && canSkipNext) {
@@ -262,31 +270,54 @@ fun MiniPlayer(
                             }
                         )
                     }
+                    .clickable { }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(2.dp)
-                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                            .height(10.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(
-                                    if (duration > 0) {
-                                        (position.toFloat() / duration).coerceIn(0f, 1f)
-                                    } else 0f
-                                )
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.primary)
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .align(Alignment.Center)
+                                .clip(RoundedCornerShape(100))
+                                .background(progressTrackColor)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progress)
+                                .height(4.dp)
+                                .align(Alignment.CenterStart)
+                                .clip(RoundedCornerShape(100))
+                                .background(progressColor)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .align(Alignment.CenterStart)
+                                .clip(CircleShape)
+                                .background(progressColor)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .align(Alignment.CenterEnd)
+                                .clip(CircleShape)
+                                .background(progressColor)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -294,172 +325,184 @@ fun MiniPlayer(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(imageContainerBg)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        if (playbackState == Player.STATE_ENDED) {
-                                            playerConnection.player.seekTo(0, 0)
-                                            playerConnection.player.playWhenReady = true
-                                        } else {
-                                            playerConnection.player.togglePlayPause()
-                                        }
-                                    }
-                            ) {
-                                mediaMetadata?.let { metadata ->
-                                    AsyncImage(
-                                        model = metadata.thumbnailUrl,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(12.dp))
-                                    )
-                                }
-
-                                Box(
+                            mediaMetadata?.let { metadata ->
+                                AsyncImage(
+                                    model = metadata.thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            color = Color.Black.copy(alpha = overlayAlpha * 0.8f),
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(14.dp))
                                 )
+                            } ?: Icon(
+                                painter = painterResource(R.drawable.music_note),
+                                contentDescription = null,
+                                tint = textSecondary,
+                                modifier = Modifier.size(22.dp)
+                            )
 
-                                androidx.compose.animation.AnimatedVisibility(
-                                    visible = playbackState == Player.STATE_ENDED || !isPlaying,
-                                    enter = fadeIn(),
-                                    exit = fadeOut()
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(
-                                                if (playbackState == Player.STATE_ENDED) {
-                                                    R.drawable.replay
-                                                } else {
-                                                    R.drawable.play
-                                                }
-                                            ),
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            }
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color.Black.copy(alpha = overlayAlpha))
+                            )
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.Center
                         ) {
-                            mediaMetadata?.let { metadata ->
-                                AnimatedContent(
-                                    targetState = metadata.title,
-                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                    label = "",
-                                ) { title ->
-                                    Text(
-                                        text = title,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.basicMarquee(),
-                                    )
-                                }
+                            AnimatedContent(
+                                targetState = titleText,
+                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                label = "mini_title"
+                            ) { title ->
+                                Text(
+                                    text = title,
+                                    color = textPrimary,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee()
+                                )
+                            }
 
-                                if (metadata.artists.any { it.name.isNotBlank() }) {
-                                    AnimatedContent(
-                                        targetState = metadata.artists.joinToString { it.name },
-                                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                        label = "",
-                                    ) { artists ->
-                                        Text(
-                                            text = artists,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                            fontSize = 11.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.basicMarquee(),
-                                        )
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            AnimatedContent(
+                                targetState = artistText,
+                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                label = "mini_artist"
+                            ) { artists ->
+                                Text(
+                                    text = artists,
+                                    color = if (error != null) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        textSecondary
+                                    },
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(
+                                        if (useDarkTheme) {
+                                            Color(0xFF242430)
+                                        } else {
+                                            Color(0xFFE9E1FF)
+                                        }
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "${formatMiniPlayerTime(position)}/${formatMiniPlayerTime(duration)}",
+                                    color = textPrimary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(progressColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (playbackState == Player.STATE_ENDED) {
+                                        playerConnection.player.seekTo(0, 0)
+                                        playerConnection.player.playWhenReady = true
+                                    } else {
+                                        playerConnection.player.togglePlayPause()
                                     }
-                                }
-
-                                androidx.compose.animation.AnimatedVisibility(
-                                    visible = error != null,
-                                    enter = fadeIn(),
-                                    exit = fadeOut(),
-                                ) {
-                                    Text(
-                                        text = "Error playing",
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontSize = 10.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
+                                },
+                                modifier = Modifier.size(52.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
+                                        Icons.Rounded.Pause
+                                    } else {
+                                        Icons.Rounded.PlayArrow
+                                    },
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(26.dp)
+                                )
                             }
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        IconButton(
-                            onClick = { playerConnection.toggleLike() },
-                            modifier = Modifier.size(36.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(smallButtonBg),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                painter = painterResource(
-                                    if (currentSong?.song?.liked == true) {
-                                        R.drawable.favorite
-                                    } else {
-                                        R.drawable.favorite_border
-                                    }
-                                ),
-                                contentDescription = if (currentSong?.song?.liked == true) {
-                                    "Unlike"
-                                } else {
-                                    "Like"
-                                },
-                                tint = if (currentSong?.song?.liked == true) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                },
-                                modifier = Modifier.size(17.dp)
-                            )
-                        }
-
-                        IconButton(
-                            enabled = canSkipNext,
-                            onClick = { playerConnection.player.seekToNext() },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.skip_next),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.size(17.dp)
-                            )
+                            IconButton(
+                                enabled = canSkipNext,
+                                onClick = { playerConnection.player.seekToNext() },
+                                modifier = Modifier.size(42.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SkipNext,
+                                    contentDescription = null,
+                                    tint = textPrimary.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        IconButton(
+            onClick = { playerConnection.toggleLike() },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(x = (-112).dp, y = 14.dp)
+                .size(28.dp)
+        ) {
+            Icon(
+                painter = painterResource(
+                    if (currentSong?.song?.liked == true) {
+                        R.drawable.favorite
+                    } else {
+                        R.drawable.favorite_border
+                    }
+                ),
+                contentDescription = if (currentSong?.song?.liked == true) "Unlike" else "Like",
+                tint = if (currentSong?.song?.liked == true) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    textSecondary
+                },
+                modifier = Modifier.size(18.dp)
+            )
         }
 
         if (offsetXAnimatable.value.absoluteValue > 50f) {
@@ -483,7 +526,7 @@ fun MiniPlayer(
                         }
                     ),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(
+                    tint = progressColor.copy(
                         alpha = (
                             offsetXAnimatable.value.absoluteValue / autoSwipeThreshold
                             ).coerceIn(0f, 1f)
@@ -493,6 +536,16 @@ fun MiniPlayer(
             }
         }
     }
+}
+
+private fun formatMiniPlayerTime(timeMs: Long): String {
+    if (timeMs <= 0L) return "0:00"
+
+    val totalSeconds = timeMs / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+
+    return String.format("%d:%02d", minutes, seconds)
 }
 
 @Composable
@@ -511,7 +564,7 @@ fun MiniMediaInfo(
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(ThumbnailCornerRadius)),
+                    .clip(RoundedCornerShape(14.dp)),
             )
 
             androidx.compose.animation.AnimatedVisibility(
@@ -524,7 +577,7 @@ fun MiniMediaInfo(
                         .size(48.dp)
                         .background(
                             color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(ThumbnailCornerRadius),
+                            shape = RoundedCornerShape(14.dp),
                         ),
                 ) {
                     Icon(
