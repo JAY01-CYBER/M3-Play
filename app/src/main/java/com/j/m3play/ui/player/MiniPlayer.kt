@@ -217,7 +217,9 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(miniPlayerBackgroundColor)
+                    ..background(
+    MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragStart = {
