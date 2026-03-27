@@ -315,8 +315,8 @@ Spacer(modifier = Modifier.height(8.dp))
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable {
                                     if (playbackState == Player.STATE_ENDED) {
                                         playerConnection.player.seekTo(0, 0)
