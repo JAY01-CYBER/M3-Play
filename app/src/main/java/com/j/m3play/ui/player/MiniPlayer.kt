@@ -3,10 +3,15 @@ package com.j.m3play.ui.player
 import android.content.res.Configuration
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -39,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -87,7 +91,6 @@ import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiniPlayer(
     position: Long,
@@ -118,7 +121,7 @@ fun MiniPlayer(
     val coroutineScope = rememberCoroutineScope()
     val view = LocalView.current
 
-    val offsetXAnimatable = remember { Animatable(0f) }
+    val offsetXAnimatable = remember { androidx.compose.animation.core.Animatable(0f) }
     var dragStartTime by remember { mutableLongStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
     var swipeThresholdTriggered by remember { mutableStateOf(false) }
@@ -128,26 +131,20 @@ fun MiniPlayer(
         stiffness = Spring.StiffnessLow
     )
 
-    val artworkOverlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.03f else 0.12f,
-        animationSpec = springSpec,
-        label = "mini_artwork_overlay"
-    )
-
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
         return (600 / (1f + exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
 
     val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
-    val progressValue = if (duration > 0L) {
+    val rawProgress = if (duration > 0L) {
         (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
     } else {
         0f
     }
 
     val animatedProgress by animateFloatAsState(
-        targetValue = progressValue,
+        targetValue = rawProgress,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessLow
@@ -160,23 +157,14 @@ fun MiniPlayer(
         ?.joinToString { it.name }
         ?.takeIf { it.isNotBlank() } ?: "Unknown artist"
 
-    val containerColor = if (useDarkTheme && pureBlack) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    val leftSectionColor = if (useDarkTheme) {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-    }
-
-    val rightSectionColor = if (useDarkTheme) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer
-    }
+    val containerColor by animateColorAsState(
+        targetValue = if (useDarkTheme && pureBlack) {
+            MaterialTheme.colorScheme.surface
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        label = "mini_container"
+    )
 
     val artworkBgColor = if (useDarkTheme) {
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
@@ -191,10 +179,17 @@ fun MiniPlayer(
         MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progressTrackColor = MaterialTheme.colorScheme.surfaceVariant
+    val playButtonColor = MaterialTheme.colorScheme.primary
+    val playIconColor = MaterialTheme.colorScheme.onPrimary
+    val nextButtonColor = MaterialTheme.colorScheme.secondaryContainer
+    val nextIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(94.dp)
+            .height(92.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .padding(horizontal = 14.dp, vertical = 6.dp)
     ) {
@@ -209,15 +204,15 @@ fun MiniPlayer(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(82.dp)
+                .height(80.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
                     elevation = 10.dp,
-                    shape = RoundedCornerShape(28.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ),
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             color = containerColor,
-            tonalElevation = 4.dp,
+            tonalElevation = 6.dp,
             shadowElevation = 0.dp
         ) {
             Box(
@@ -305,211 +300,173 @@ fun MiniPlayer(
                         )
                     }
                     .clickable {
-                        // Full player open karna ho to yaha action laga dena
+                        // Full player open action yaha laga sakta hai
                     }
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Box(
+                    LinearProgressIndicator(
+                        progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(4.dp)
-                            .padding(horizontal = 10.dp)
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(animatedProgress)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(99.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+                        color = progressColor,
+                        trackColor = progressTrackColor
+                    )
 
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 8.dp, top = 6.dp, end = 8.dp, bottom = 8.dp),
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
+                        Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            shape = RoundedCornerShape(
-                                topStart = 24.dp,
-                                bottomStart = 24.dp,
-                                topEnd = 18.dp,
-                                bottomEnd = 18.dp
-                            ),
-                            color = leftSectionColor,
-                            tonalElevation = 0.dp
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(artworkBgColor),
+                            contentAlignment = Alignment.Center
                         ) {
+                            val thumbnailUrl = mediaMetadata?.thumbnailUrl
+
+                            if (thumbnailUrl != null) {
+                                AsyncImage(
+                                    model = thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(14.dp))
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.play),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            AnimatedContent(
+                                targetState = titleText,
+                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                label = "mini_title"
+                            ) { title ->
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = titleColor,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
                             Row(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(artworkBgColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val thumbnailUrl = mediaMetadata?.thumbnailUrl
-
-                                    if (thumbnailUrl != null) {
-                                        AsyncImage(
-                                            model = thumbnailUrl,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(RoundedCornerShape(16.dp))
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .matchParentSize()
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(Color.Black.copy(alpha = artworkOverlayAlpha))
-                                        )
-                                    } else {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                AnimatedContent(
+                                    targetState = if (error != null) "Error playing" else artistText,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "mini_artist"
+                                ) { subtitle ->
+                                    Text(
+                                        text = subtitle,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = subtitleColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .weight(1f, fill = false)
+                                            .basicMarquee()
+                                    )
                                 }
 
-                                Spacer(modifier = Modifier.width(10.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
 
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    AnimatedContent(
-                                        targetState = titleText,
-                                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                        label = "mini_title"
-                                    ) { title ->
-                                        Text(
-                                            text = title,
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = FontWeight.SemiBold
-                                            ),
-                                            color = titleColor,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.basicMarquee()
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(2.dp))
-
-                                    AnimatedContent(
-                                        targetState = if (error != null) "Error playing" else artistText,
-                                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                        label = "mini_artist"
-                                    ) { subtitle ->
-                                        Text(
-                                            text = subtitle,
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontWeight = FontWeight.Medium
-                                            ),
-                                            color = subtitleColor,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.basicMarquee()
-                                        )
-                                    }
-                                }
+                                MiniVisualizer(
+                                    isPlaying = isPlaying,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                )
                             }
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Surface(
+                        Box(
                             modifier = Modifier
-                                .width(74.dp)
-                                .fillMaxHeight(),
-                            shape = RoundedCornerShape(22.dp),
-                            color = rightSectionColor,
-                            tonalElevation = 0.dp
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(playButtonColor),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            IconButton(
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    if (playbackState == Player.STATE_ENDED) {
+                                        playerConnection.player.seekTo(0, 0)
+                                        playerConnection.player.playWhenReady = true
+                                    } else {
+                                        playerConnection.player.togglePlayPause()
+                                    }
+                                },
+                                modifier = Modifier.size(42.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                Icon(
+                                    imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
+                                        Icons.Rounded.Pause
+                                    } else {
+                                        Icons.Rounded.PlayArrow
+                                    },
+                                    contentDescription = null,
+                                    tint = playIconColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
 
-                                            if (playbackState == Player.STATE_ENDED) {
-                                                playerConnection.player.seekTo(0, 0)
-                                                playerConnection.player.playWhenReady = true
-                                            } else {
-                                                playerConnection.player.togglePlayPause()
-                                            }
-                                        },
-                                        modifier = Modifier.size(44.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
-                                                Icons.Rounded.Pause
-                                            } else {
-                                                Icons.Rounded.PlayArrow
-                                            },
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    }
-                                }
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconButton(
-                                        onClick = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            playerConnection.player.seekToNext()
-                                        },
-                                        enabled = canSkipNext,
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.SkipNext,
-                                            contentDescription = null,
-                                            tint = if (canSkipNext) {
-                                                MaterialTheme.colorScheme.onSecondaryContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.4f)
-                                            },
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(nextButtonColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    playerConnection.player.seekToNext()
+                                },
+                                enabled = canSkipNext,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SkipNext,
+                                    contentDescription = null,
+                                    tint = if (canSkipNext) {
+                                        nextIconColor
+                                    } else {
+                                        nextIconColor.copy(alpha = 0.4f)
+                                    },
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }
@@ -548,6 +505,80 @@ fun MiniPlayer(
             }
         }
     }
+}
+
+@Composable
+private fun MiniVisualizer(
+    isPlaying: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val transition = rememberInfiniteTransition(label = "mini_visualizer")
+
+    val bar1 by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 380, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "bar1"
+    )
+
+    val bar2 by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 520, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "bar2"
+    )
+
+    val bar3 by transition.animateFloat(
+        initialValue = 0.30f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 460, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "bar3"
+    )
+
+    val passiveAlpha = 0.35f
+
+    Row(
+        modifier = modifier.height(14.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        VisualizerBar(
+            heightFraction = if (isPlaying) bar1 else passiveAlpha,
+            color = color
+        )
+        VisualizerBar(
+            heightFraction = if (isPlaying) bar2 else 0.55f,
+            color = color
+        )
+        VisualizerBar(
+            heightFraction = if (isPlaying) bar3 else passiveAlpha,
+            color = color
+        )
+    }
+}
+
+@Composable
+private fun VisualizerBar(
+    heightFraction: Float,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .width(3.dp)
+            .fillMaxHeight(heightFraction.coerceIn(0.2f, 1f))
+            .clip(RoundedCornerShape(99.dp))
+            .background(color)
+    )
 }
 
 @Composable
