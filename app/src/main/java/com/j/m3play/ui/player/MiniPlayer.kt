@@ -351,18 +351,26 @@ Spacer(modifier = Modifier.height(8.dp))
                                 enter = fadeIn(),
                                 exit = fadeOut()
                             ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (playbackState == Player.STATE_ENDED) {
-                                            R.drawable.replay
-                                        } else {
-                                            R.drawable.play
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
+ Box(
+    modifier = Modifier
+        .size(28.dp)
+        .clip(CircleShape)
+        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)),
+    contentAlignment = Alignment.Center
+) {
+    Icon(
+        painter = painterResource(
+            if (playbackState == Player.STATE_ENDED) {
+                R.drawable.replay
+            } else {
+                R.drawable.play
+            }
+        ),
+        contentDescription = null,
+        tint = Color.White,
+        modifier = Modifier.size(16.dp)
+    )
+ }
                             }
                         }
                     }
