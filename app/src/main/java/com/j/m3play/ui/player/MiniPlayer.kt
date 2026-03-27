@@ -34,13 +34,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,6 +70,7 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
 import com.j.m3play.constants.PureBlackKey
+import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.screens.settings.DarkMode
@@ -84,7 +81,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MiniPlayer(
     position: Long,
@@ -107,51 +104,9 @@ fun MiniPlayer(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val containerColor = when {
-        useDarkTheme && pureBlack -> Color(0xFF12100F)
-        useDarkTheme -> Color(0xFF1D1918)
-        else -> Color(0xFFF6EFED)
-    }
-
-    val artworkBgColor = when {
-        useDarkTheme -> Color(0xFF2B2422)
-        else -> Color(0xFFF0E1DD)
-    }
-
-    val primaryButtonColor = when {
-        useDarkTheme -> Color(0xFF8A6B63)
-        else -> Color(0xFF5B4542)
-    }
-
-    val secondaryButtonColor = when {
-        useDarkTheme -> Color(0xFF2D2523)
-        else -> Color(0xFFE9DBD7)
-    }
-
-    val progressColor = when {
-        useDarkTheme -> Color(0xFFC7A8A0)
-        else -> Color(0xFF9C746E)
-    }
-
-    val progressTrackColor = when {
-        useDarkTheme -> Color(0xFF3B312F)
-        else -> Color(0xFFDECFCA)
-    }
-
-    val titleColor = when {
-        useDarkTheme -> Color(0xFFF8F1EF)
-        else -> Color(0xFF2B1F1D)
-    }
-
-    val subtitleColor = when {
-        useDarkTheme -> Color(0xFFC2B2AD)
-        else -> Color(0xFF8D736D)
-    }
-
-    val shadowColor = if (useDarkTheme) {
-        Color.Black.copy(alpha = 0.28f)
-    } else {
-        Color(0xFFB89E97).copy(alpha = 0.22f)
+    val miniPlayerBackgroundColor = when {
+        useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
     }
 
     val layoutDirection = LocalLayoutDirection.current
@@ -171,7 +126,7 @@ fun MiniPlayer(
     )
 
     val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.0f else 0.10f,
+        targetValue = if (isPlaying) 0.0f else 0.38f,
         label = "overlay_alpha",
         animationSpec = animationSpec
     )
@@ -182,47 +137,40 @@ fun MiniPlayer(
 
     val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
-    val safeDuration = if (duration > 0) duration else 1L
-    val progress = (position.toFloat() / safeDuration.toFloat()).coerceIn(0f, 1f)
-
-    val titleText = mediaMetadata?.title?.takeIf { it.isNotBlank() } ?: "Unknown title"
-    val artistText = mediaMetadata?.artists
-        ?.joinToString { it.name }
-        ?.takeIf { it.isNotBlank() } ?: "Unknown artist"
-
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(96.dp)
+            .height(84.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(Color.Transparent)
     ) {
         Surface(
             modifier = Modifier
                 .then(
                     if (isTabletLandscape) {
                         Modifier
-                            .width(520.dp)
+                            .width(480.dp)
                             .align(Alignment.CenterEnd)
                     } else {
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(84.dp)
+                .height(68.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 14.dp,
-                    shape = RoundedCornerShape(28.dp),
-                    ambientColor = shadowColor,
-                    spotColor = shadowColor
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    clip = false
                 ),
-            color = containerColor,
-            shape = RoundedCornerShape(28.dp),
-            tonalElevation = 0.dp
+            tonalElevation = 2.dp,
+            shape = RoundedCornerShape(24.dp),
+            color = Color.Transparent
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(color = miniPlayerBackgroundColor)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragStart = {
@@ -284,9 +232,6 @@ fun MiniPlayer(
                             }
                         )
                     }
-                    .clickable {
-                        // yaha full player open karna ho to action lagao
-                    }
             ) {
                 Column(
                     modifier = Modifier
@@ -296,80 +241,95 @@ fun MiniPlayer(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(7.dp)
+                            .padding(horizontal = 8.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(3.dp)
-                                .align(Alignment.Center)
-                                .clip(RoundedCornerShape(50))
-                                .background(progressTrackColor)
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(progress)
-                                .height(3.dp)
-                                .align(Alignment.CenterStart)
-                                .clip(RoundedCornerShape(50))
-                                .background(progressColor)
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .align(Alignment.CenterStart)
-                                .clip(CircleShape)
-                                .background(progressColor)
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .align(Alignment.CenterEnd)
-                                .clip(CircleShape)
-                                .background(progressColor)
+                                .fillMaxWidth(
+                                    if (duration > 0) {
+                                        (position.toFloat() / duration).coerceIn(0f, 1f)
+                                    } else 0f
+                                )
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(99.dp))
+                                .background(MaterialTheme.colorScheme.primary)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(9.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(artworkBgColor),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.size(50.dp)
                         ) {
-                            if (mediaMetadata?.thumbnailUrl != null) {
-                                AsyncImage(
-                                    model = mediaMetadata?.thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(R.drawable.play),
-                                    contentDescription = null,
-                                    tint = subtitleColor,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
                             Box(
+                                contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .matchParentSize()
+                                    .size(46.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(Color.Black.copy(alpha = overlayAlpha))
-                            )
+                                    .clickable {
+                                        if (playbackState == Player.STATE_ENDED) {
+                                            playerConnection.player.seekTo(0, 0)
+                                            playerConnection.player.playWhenReady = true
+                                        } else {
+                                            playerConnection.player.togglePlayPause()
+                                        }
+                                    }
+                            ) {
+                                mediaMetadata?.let { metadata ->
+                                    AsyncImage(
+                                        model = metadata.thumbnailUrl,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(16.dp))
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            color = Color.Black.copy(alpha = overlayAlpha * 0.8f),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                )
+
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = playbackState == Player.STATE_ENDED || !isPlaying,
+                                    enter = fadeIn(),
+                                    exit = fadeOut()
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.92f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(
+                                                if (playbackState == Player.STATE_ENDED) {
+                                                    R.drawable.replay
+                                                } else {
+                                                    R.drawable.play
+                                                }
+                                            ),
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -378,42 +338,56 @@ fun MiniPlayer(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.Center
                         ) {
-                            AnimatedContent(
-                                targetState = titleText,
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                label = "mini_title"
-                            ) { title ->
-                                Text(
-                                    text = title,
-                                    color = titleColor,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.basicMarquee()
-                                )
-                            }
+                            mediaMetadata?.let { metadata ->
+                                AnimatedContent(
+                                    targetState = metadata.title,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "",
+                                ) { title ->
+                                    Text(
+                                        text = title,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.basicMarquee(),
+                                    )
+                                }
 
-                            Spacer(modifier = Modifier.height(3.dp))
+                                val subtitle = buildString {
+                                    val artistsText = metadata.artists.joinToString { it.name }.ifBlank { "<unknown>" }
+                                    append(artistsText)
+                                    if (duration > 0) {
+                                        append("  •  ")
+                                        append("${position / 1000 / 60}:${(position / 1000 % 60).toString().padStart(2, '0')}")
+                                        append("/")
+                                        append("${duration / 1000 / 60}:${(duration / 1000 % 60).toString().padStart(2, '0')}")
+                                    }
+                                }
 
-                            AnimatedContent(
-                                targetState = if (error != null) "Error playing" else artistText,
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                label = "mini_artist"
-                            ) { subtitle ->
                                 Text(
                                     text = subtitle,
-                                    color = if (error != null) {
-                                        MaterialTheme.colorScheme.error
-                                    } else {
-                                        subtitleColor
-                                    },
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                                    fontSize = 11.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.basicMarquee()
+                                    modifier = Modifier.basicMarquee(),
                                 )
+
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = error != null,
+                                    enter = fadeIn(),
+                                    exit = fadeOut(),
+                                ) {
+                                    Text(
+                                        text = "Error playing",
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 9.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
 
@@ -421,13 +395,10 @@ fun MiniPlayer(
 
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(44.dp)
                                 .clip(CircleShape)
-                                .background(primaryButtonColor),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IconButton(
-                                onClick = {
+                                .background(MaterialTheme.colorScheme.primary)
+                                .clickable {
                                     if (playbackState == Player.STATE_ENDED) {
                                         playerConnection.player.seekTo(0, 0)
                                         playerConnection.player.playWhenReady = true
@@ -435,42 +406,35 @@ fun MiniPlayer(
                                         playerConnection.player.togglePlayPause()
                                     }
                                 },
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
-                                        Icons.Rounded.Pause
-                                    } else {
-                                        Icons.Rounded.PlayArrow
-                                    },
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    if (isPlaying) R.drawable.pause else R.drawable.play
+                                ),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(30.dp)
                                 .clip(CircleShape)
-                                .background(secondaryButtonColor),
+                                .clickable(enabled = canSkipNext) {
+                                    playerConnection.player.seekToNext()
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            IconButton(
-                                enabled = canSkipNext,
-                                onClick = { playerConnection.player.seekToNext() },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.SkipNext,
-                                    contentDescription = null,
-                                    tint = titleColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Icon(
+                                painter = painterResource(R.drawable.skip_next),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
@@ -487,7 +451,7 @@ fun MiniPlayer(
                             Alignment.CenterEnd
                         }
                     )
-                    .padding(horizontal = 22.dp)
+                    .padding(horizontal = 24.dp)
             ) {
                 Icon(
                     painter = painterResource(
@@ -498,12 +462,12 @@ fun MiniPlayer(
                         }
                     ),
                     contentDescription = null,
-                    tint = progressColor.copy(
+                    tint = MaterialTheme.colorScheme.primary.copy(
                         alpha = (
                             offsetXAnimatable.value.absoluteValue / autoSwipeThreshold
-                        ).coerceIn(0f, 1f)
+                            ).coerceIn(0f, 1f)
                     ),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -526,7 +490,7 @@ fun MiniMediaInfo(
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp)),
+                    .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 
             androidx.compose.animation.AnimatedVisibility(
@@ -539,7 +503,7 @@ fun MiniMediaInfo(
                         .size(48.dp)
                         .background(
                             color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(ThumbnailCornerRadius),
                         ),
                 ) {
                     Icon(
