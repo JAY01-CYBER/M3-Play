@@ -281,19 +281,20 @@ fun MiniPlayer(
     Box(
     modifier = Modifier
         .fillMaxWidth()
-        .height(4.dp)
-        .clip(RoundedCornerShape(99.dp))
-        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
+        .height(2.dp)
+        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 ) {
     Box(
-    modifier = Modifier
-        .fillMaxWidth(if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
-        )
-        .fillMaxHeight()
-        .clip(RoundedCornerShape(99.dp))
-        .background(MaterialTheme.colorScheme.primary)
-)
-}
+        modifier = Modifier
+            .fillMaxWidth(
+                if (duration > 0)
+                    (position.toFloat() / duration).coerceIn(0f, 1f)
+                else 0f
+            )
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.primary)
+    )
+    }
 
 Spacer(modifier = Modifier.height(8.dp))
 
