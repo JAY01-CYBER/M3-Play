@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,7 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Pause
@@ -172,11 +170,6 @@ fun MiniPlayer(
     }
     val progressColor = MaterialTheme.colorScheme.primary
     val progressTrackColor = MaterialTheme.colorScheme.surfaceVariant
-    val cardShadowColor = if (useDarkTheme) {
-        Color.Black.copy(alpha = 0.24f)
-    } else {
-        MaterialTheme.colorScheme.shadow.copy(alpha = 0.12f)
-    }
 
     Box(
         modifier = modifier
@@ -200,9 +193,7 @@ fun MiniPlayer(
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
                     elevation = 12.dp,
-                    shape = RoundedCornerShape(28.dp),
-                    ambientColor = cardShadowColor,
-                    spotColor = cardShadowColor
+                    shape = RoundedCornerShape(28.dp)
                 ),
             shape = RoundedCornerShape(28.dp),
             color = containerColor,
@@ -299,7 +290,7 @@ fun MiniPlayer(
                         ) {
                             if (mediaMetadata?.thumbnailUrl != null) {
                                 AsyncImage(
-                                    model = mediaMetadata?.thumbnailUrl,
+                                    model = mediaMetadata.thumbnailUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
