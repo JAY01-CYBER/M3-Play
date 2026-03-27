@@ -341,7 +341,7 @@ Spacer(modifier = Modifier.height(8.dp))
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
-                                        color = Color.Black.copy(alpha = overlayAlpha),
+                                        color = Color.Black.copy(alpha = overlayAlpha * 0.8f),
                                         shape = RoundedCornerShape(12.dp)
                                     )
                             )
