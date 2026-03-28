@@ -47,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -435,7 +434,7 @@ fun HomeScreen(
                     }
                 }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
                     item {
                         val quickPicksTitle = stringResource(R.string.quick_picks)
                         NavigationTitle(
@@ -445,7 +444,7 @@ fun HomeScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = quickPicksTitle,
-                                        items = quickPicks.distinctBy { it.id }.map { it.toMediaItem() }
+                                        items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
                                     )
                                 )
                             }
@@ -466,12 +465,11 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = quickPicks.distinctBy { it.id },
+                                items = quickPicksList.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = quickPicks.indexOf(originalSong)
+                                val index = quickPicksList.indexOf(originalSong)
                                 
-                                // Staggered entrance animation
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -553,7 +551,7 @@ fun HomeScreen(
                     }
                 }
 
-                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
+                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.keep_listening),
@@ -562,7 +560,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        val rows = if (keepListening.size > 6) 2 else 1
+                        val rows = if (keepListeningList.size > 6) 2 else 1
                         LazyHorizontalGrid(
                             state = rememberLazyGridState(),
                             rows = GridCells.Fixed(rows),
@@ -574,14 +572,14 @@ fun HomeScreen(
                                 }) * rows)
                                 .animateItem()
                         ) {
-                            items(keepListening) {
+                            items(keepListeningList) {
                                 localGridItem(it)
                             }
                         }
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
+                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
                     item {
                         NavigationTitle(
                             label = stringResource(R.string.your_ytb_playlists),
@@ -618,7 +616,6 @@ fun HomeScreen(
                         )
                     }
 
-
                     item {
                         LazyRow(
                             contentPadding = WindowInsets.systemBars
@@ -627,7 +624,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = accountPlaylists.distinctBy { it.id },
+                                items = accountPlaylistsList.distinctBy { it.id },
                                 key = { it.id },
                             ) { item ->
                                 ytGridItem(item)
@@ -636,15 +633,15 @@ fun HomeScreen(
                     }
                 }
 
-                similarRecommendations?.forEach {
+                similarRecommendations?.forEach { section ->
                     item {
                         NavigationTitle(
                             label = stringResource(R.string.similar_to),
-                            title = it.title.title,
-                            thumbnail = it.title.thumbnailUrl?.let { thumbnailUrl ->
+                            title = section.title.title,
+                            thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.title is Artist) CircleShape else RoundedCornerShape(
+                                        if (section.title is Artist) CircleShape else RoundedCornerShape(
                                             ThumbnailCornerRadius
                                         )
                                     AsyncImage(
@@ -657,10 +654,10 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
-                                when (it.title) {
-                                    is Song -> navController.navigate("album/${it.title.album!!.id}")
-                                    is Album -> navController.navigate("album/${it.title.id}")
-                                    is Artist -> navController.navigate("artist/${it.title.id}")
+                                when (section.title) {
+                                    is Song -> navController.navigate("album/${section.title.album!!.id}")
+                                    is Album -> navController.navigate("album/${section.title.id}")
+                                    is Artist -> navController.navigate("artist/${section.title.id}")
                                     is Playlist -> {}
                                 }
                             },
@@ -675,22 +672,22 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(it.items) { item ->
+                            items(section.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                homePage?.sections?.forEach {
+                homePage?.sections?.forEach { section ->
                     item {
                         NavigationTitle(
-                            title = it.title,
-                            label = it.label,
-                            thumbnail = it.thumbnail?.let { thumbnailUrl ->
+                            title = section.title,
+                            label = section.label,
+                            thumbnail = section.thumbnail?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
+                                        if (section.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
                                             ThumbnailCornerRadius
                                         )
                                     AsyncImage(
@@ -713,14 +710,14 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(it.items) { item ->
+                            items(section.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
+                explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.new_release_albums),
@@ -739,7 +736,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = newReleaseAlbums,
+                                items = newReleaseAlbumsList,
                                 key = { it.id }
                             ) { album ->
                                 var isPressed by remember { mutableStateOf(false) }
@@ -802,7 +799,7 @@ fun HomeScreen(
                     }
                 }
 
-                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
+                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
                     item {
                         val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
                         NavigationTitle(
@@ -812,7 +809,7 @@ fun HomeScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = forgottenFavoritesTitle,
-                                        items = forgottenFavorites.distinctBy { it.id }.map { it.toMediaItem() }
+                                        items = forgottenFavoritesList.distinctBy { it.id }.map { it.toMediaItem() }
                                     )
                                 )
                             }
@@ -820,7 +817,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        val rows = min(4, forgottenFavorites.size)
+                        val rows = min(4, forgottenFavoritesList.size)
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
                             rows = GridCells.Fixed(rows),
@@ -836,12 +833,11 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = forgottenFavorites.distinctBy { it.id },
+                                items = forgottenFavoritesList.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = forgottenFavorites.indexOf(originalSong)
+                                val index = forgottenFavoritesList.indexOf(originalSong)
                                 
-                                // Staggered entrance animation for forgotten favorites
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -967,7 +963,6 @@ fun HomeScreen(
                 }
             )
             
-            // Scroll to Top Button - New Animation
             val isScrolled by remember {
                 derivedStateOf { lazylistState.firstVisibleItemIndex > 0 }
             }
