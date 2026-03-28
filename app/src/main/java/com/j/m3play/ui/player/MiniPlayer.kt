@@ -1,6 +1,5 @@
 package com.j.m3play.ui.player
 
-import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -33,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,7 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -134,11 +133,7 @@ fun MiniPlayer(
     }
 
     val currentThumbnailShape = remember(isPlaying, miniPlayerThumbnailShape) {
-        if (isPlaying) {
-            miniPlayerThumbnailShape
-        } else {
-            MaterialShapes.Square
-        }
+        if (isPlaying) miniPlayerThumbnailShape else MaterialShapes.Square
     }.toShape()
 
     val miniPlayerBackgroundColor = when {
@@ -178,9 +173,10 @@ fun MiniPlayer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(88.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(bottom = 10.dp)
             .background(Color.Transparent)
     ) {
         Surface(
@@ -197,7 +193,7 @@ fun MiniPlayer(
                 .height(64.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 8.dp,
+                    elevation = 14.dp,
                     shape = RoundedCornerShape(32.dp),
                     clip = false
                 ),
@@ -209,6 +205,9 @@ fun MiniPlayer(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(miniPlayerBackgroundColor)
+                    .clickable {
+                        // full player open karna ho to yaha action laga
+                    }
                     .pointerInput(canSkipNext, canSkipPrevious, layoutDirection) {
                         detectHorizontalDragGestures(
                             onDragStart = {
@@ -354,18 +353,26 @@ fun MiniPlayer(
                                 enter = fadeIn(),
                                 exit = fadeOut()
                             ) {
-                                Icon(
-                                    painter = painterResource(
-                                        if (playbackState == Player.STATE_ENDED) {
-                                            R.drawable.replay
-                                        } else {
-                                            R.drawable.play
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(
+                                            if (playbackState == Player.STATE_ENDED) {
+                                                R.drawable.replay
+                                            } else {
+                                                R.drawable.play
+                                            }
+                                        ),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -436,11 +443,7 @@ fun MiniPlayer(
                                     R.drawable.favorite_border
                                 }
                             ),
-                            contentDescription = if (currentSong?.song?.liked == true) {
-                                "Unlike"
-                            } else {
-                                "Like"
-                            },
+                            contentDescription = if (currentSong?.song?.liked == true) "Unlike" else "Like",
                             tint = if (currentSong?.song?.liked == true) {
                                 MaterialTheme.colorScheme.error
                             } else {
@@ -475,11 +478,7 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .align(
-                        if (offsetXAnimatable.value > 0) {
-                            Alignment.CenterStart
-                        } else {
-                            Alignment.CenterEnd
-                        }
+                        if (offsetXAnimatable.value > 0) Alignment.CenterStart else Alignment.CenterEnd
                     )
                     .padding(horizontal = 24.dp)
             ) {
@@ -493,9 +492,8 @@ fun MiniPlayer(
                     ),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(
-                        alpha = (
-                            offsetXAnimatable.value.absoluteValue / autoSwipeThreshold
-                        ).coerceIn(0f, 1f)
+                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold)
+                            .coerceIn(0f, 1f)
                     ),
                     modifier = Modifier.size(24.dp)
                 )
