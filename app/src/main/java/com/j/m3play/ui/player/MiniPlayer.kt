@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -96,8 +95,8 @@ import kotlin.math.roundToInt
 fun MiniPlayer(
     position: Long,
     duration: Long,
-    onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPlayer: () -> Unit = {},
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -148,9 +147,9 @@ fun MiniPlayer(
     )
 
     val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.02f else 0.22f,
+        targetValue = if (isPlaying) 0.02f else 0.20f,
         animationSpec = springSpec,
-        label = "art_overlay"
+        label = "mini_overlay"
     )
 
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
@@ -159,26 +158,35 @@ fun MiniPlayer(
 
     val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
-    val titleText = mediaMetadata?.title ?: "Unknown"
+    val titleText = mediaMetadata?.title ?: "Unknown title"
     val subtitleText = when {
         error != null -> "Error playing"
-        !mediaMetadata?.artist.isNullOrBlank() -> mediaMetadata?.artist ?: ""
+        mediaMetadata?.artists?.any { it.name.isNotBlank() } == true ->
+            mediaMetadata?.artists?.joinToString { it.name }
         else -> "Unknown artist"
-    }
+    } ?: "Unknown artist"
 
-    val cardTop = when {
+    val containerTop = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
-    val cardBottom = when {
+    val containerBottom = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainer
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (error != null) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+    }
+
     val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+    val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
 
     Box(
         modifier = modifier
@@ -216,13 +224,8 @@ fun MiniPlayer(
                     .clip(RoundedCornerShape(36.dp))
                     .background(
                         Brush.verticalGradient(
-                            listOf(cardTop, cardBottom)
+                            colors = listOf(containerTop, containerBottom)
                         )
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = outlineColor,
-                        shape = RoundedCornerShape(36.dp)
                     )
                     .clickable {
                         Haptics.click(haptic = haptic, context = context)
@@ -321,7 +324,7 @@ fun MiniPlayer(
                             modifier = Modifier.size(50.dp),
                             color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 3.dp,
-                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
+                            trackColor = progressTrackColor
                         )
 
                         Box(
@@ -344,10 +347,11 @@ fun MiniPlayer(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            val artwork = mediaMetadata?.artworkUri
-                            if (artwork != null) {
+                            val thumbnailUrl = mediaMetadata?.thumbnailUrl
+
+                            if (thumbnailUrl != null) {
                                 AsyncImage(
-                                    model = artwork,
+                                    model = thumbnailUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
@@ -365,10 +369,7 @@ fun MiniPlayer(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        Color.Black.copy(alpha = overlayAlpha),
-                                        CircleShape
-                                    )
+                                    .background(Color.Black.copy(alpha = overlayAlpha), CircleShape)
                             )
                         }
                     }
@@ -386,7 +387,7 @@ fun MiniPlayer(
                         ) { title ->
                             Text(
                                 text = title,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = titleColor,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
@@ -401,9 +402,9 @@ fun MiniPlayer(
                             targetState = subtitleText,
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                             label = "mini_subtitle"
-                        ) { sub ->
+                        ) { subtitle ->
                             Text(
-                                text = sub,
+                                text = subtitle,
                                 color = subtitleColor,
                                 fontSize = 11.sp,
                                 maxLines = 1,
@@ -449,28 +450,6 @@ fun MiniPlayer(
                 }
             }
         }
-
-        if (offsetXAnimatable.value.absoluteValue > 50f) {
-            Box(
-                modifier = Modifier
-                    .align(
-                        if (offsetXAnimatable.value > 0) Alignment.CenterStart else Alignment.CenterEnd
-                    )
-                    .padding(horizontal = 24.dp)
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (offsetXAnimatable.value > 0) R.drawable.skip_previous else R.drawable.skip_next
-                    ),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(
-                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold)
-                            .coerceIn(0f, 1f)
-                    ),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
     }
 }
 
@@ -486,7 +465,7 @@ fun MiniMediaInfo(
     ) {
         Box(modifier = Modifier.padding(6.dp)) {
             AsyncImage(
-                model = mediaMetadata.artworkUri,
+                model = mediaMetadata.thumbnailUrl,
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
