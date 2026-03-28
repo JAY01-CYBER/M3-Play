@@ -179,12 +179,6 @@ import me.saket.squiggles.SquigglySlider
 import kotlin.math.roundToInt
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.j.m3play.utils.Haptics
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.ui.unit.IntOffset
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -202,7 +196,6 @@ fun BottomSheetPlayer(
     val clipboardManager = LocalClipboardManager.current
 
     var showFullscreenLyrics by remember { mutableStateOf(false) }
-    var showFullPlayer by remember { mutableStateOf(false) }
     val playerConnection = LocalPlayerConnection.current ?: return
 
     val playerTextAlignment by rememberEnumPreference(
@@ -853,15 +846,11 @@ fun BottomSheetPlayer(
             playerConnection.player.clearMediaItems()
         },
         collapsedContent = {
-    MiniPlayer(
-        position = position,
-        duration = duration,
-        onOpenPlayer = {
-            if (hapticsEnabled) Haptics.click(haptic, context)
-            showFullPlayer = true
-        }
-    )
-},
+            MiniPlayer(
+                position = position,
+                duration = duration,
+            )
+        },
     ) {
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             // Título con marquesina y click largo para copiar
@@ -1535,228 +1524,17 @@ fun BottomSheetPlayer(
         }
 
         Queue(
-    state = queueSheetState,
-    playerBottomSheetState = state,
-    navController = navController,
-    backgroundColor =
-        if (useBlackBackground) {
-            Color.Black
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-    onBackgroundColor = onBackgroundColor,
-    textBackgroundColor = TextBackgroundColor,
-)
-}
-
-PlayerOverlayHost(
-    visible = showFullPlayer,
-    onDismiss = {
-        if (hapticsEnabled) Haptics.click(haptic, context)
-        showFullPlayer = false
-    }
-)
-}
-
-@Composable
-fun PlayerOverlayHost(
-    visible: Boolean,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val playerConnection = LocalPlayerConnection.current ?: return
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val playbackState by playerConnection.playbackState.collectAsState()
-
-    val animatedOffsetY by animateFloatAsState(
-        targetValue = if (visible) 0f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "full_player_offset"
-    )
-
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "full_player_alpha"
-    )
-
-    if (!visible && animatedAlpha <= 0.01f) return
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.38f * animatedAlpha))
-            .clickable { onDismiss() }
-    ) {
-        AppleLikeFullPlayer(
-            modifier = Modifier
-                .fillMaxSize()
-                .offset {
-                    IntOffset(0, (1000f * animatedOffsetY).roundToInt())
-                },
-            title = mediaMetadata?.title ?: "Unknown title",
-            artist = mediaMetadata?.artists?.joinToString { it.name }
-                ?.takeIf { it.isNotBlank() } ?: "Unknown artist",
-            artworkUrl = mediaMetadata?.thumbnailUrl,
-            isPlaying = isPlaying,
-            isEnded = playbackState == Player.STATE_ENDED,
-            onDismiss = onDismiss,
-            onPlayPause = {
-                if (playbackState == Player.STATE_ENDED) {
-                    playerConnection.player.seekTo(0, 0)
-                    playerConnection.player.playWhenReady = true
+            state = queueSheetState,
+            playerBottomSheetState = state,
+            navController = navController,
+            backgroundColor =
+                if (useBlackBackground) {
+                    Color.Black
                 } else {
-                    playerConnection.player.togglePlayPause()
-                }
-            },
-            onNext = {
-                playerConnection.player.seekToNext()
-            },
-            onPrevious = {
-                playerConnection.player.seekToPreviousMediaItem()
-            }
+                    MaterialTheme.colorScheme.surfaceContainer
+                },
+            onBackgroundColor = onBackgroundColor,
+            textBackgroundColor = TextBackgroundColor,
         )
-    }
-}
-
-@Composable
-fun AppleLikeFullPlayer(
-    title: String,
-    artist: String,
-    artworkUrl: Any?,
-    isPlaying: Boolean,
-    isEnded: Boolean,
-    onDismiss: () -> Unit,
-    onPlayPause: () -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(enabled = false) {}
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(48.dp)
-                    .height(5.dp)
-                    .clip(RoundedCornerShape(100.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f))
-                    .clickable { onDismiss() }
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = artworkUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(28.dp))
-                )
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = artist,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onPrevious,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_previous),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(82.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    IconButton(
-                        onClick = onPlayPause,
-                        modifier = Modifier.size(82.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying && !isEnded) {
-                                Icons.Rounded.Pause
-                            } else {
-                                Icons.Rounded.PlayArrow
-                            },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(38.dp)
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onNext,
-                    modifier = Modifier.size(56.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_next),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-        }
     }
 }
