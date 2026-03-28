@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,7 +35,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -57,8 +57,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -91,8 +93,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -138,11 +138,28 @@ fun MiniPlayer(
         if (isPlaying) miniPlayerThumbnailShape else MaterialShapes.Square
     }.toShape()
 
-    val miniPlayerBackgroundColor = when {
+    val containerTop = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
+
+    val containerBottom = when {
+        useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface
+        useDarkTheme -> MaterialTheme.colorScheme.surfaceContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+
+    val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+    val titleColor = MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (error != null) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+    }
+
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
 
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
@@ -162,8 +179,20 @@ fun MiniPlayer(
     )
 
     val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.0f else 0.34f,
+        targetValue = if (isPlaying) 0.0f else 0.28f,
         label = "overlay_alpha",
+        animationSpec = animationSpec
+    )
+
+    val progressValue = if (duration > 0L) {
+        (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressValue,
+        label = "progress_value",
         animationSpec = animationSpec
     )
 
@@ -193,7 +222,7 @@ fun MiniPlayer(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(68.dp)
+                .height(70.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
                     elevation = 10.dp,
@@ -208,10 +237,14 @@ fun MiniPlayer(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(32.dp))
-                    .background(miniPlayerBackgroundColor)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(containerTop, containerBottom)
+                        )
+                    )
                     .border(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                        color = outlineColor,
                         shape = RoundedCornerShape(32.dp)
                     )
                     .clickable {
@@ -237,6 +270,7 @@ fun MiniPlayer(
                             onHorizontalDrag = { _, dragAmount ->
                                 val adjustedDragAmount =
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
+
                                 val allowLeft = adjustedDragAmount < 0 && canSkipNext
                                 val allowRight = adjustedDragAmount > 0 && canSkipPrevious
 
@@ -295,6 +329,20 @@ fun MiniPlayer(
                         )
                     }
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(progressTrackColor)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(animatedProgress)
+                            .fillMaxHeight()
+                            .background(progressColor)
+                    )
+                }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -303,22 +351,23 @@ fun MiniPlayer(
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(46.dp)
                     ) {
-                        if (duration > 0) {
-                            CircularProgressIndicator(
-                                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                                modifier = Modifier.size(48.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 2.dp,
-                                trackColor = Color.Transparent
-                            )
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                        )
 
                         Box(
-                            contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(40.dp)
+                                .shadow(
+                                    elevation = 6.dp,
+                                    shape = currentThumbnailShape,
+                                    clip = false
+                                )
                                 .clip(currentThumbnailShape)
                                 .border(
                                     width = 1.dp,
@@ -333,7 +382,8 @@ fun MiniPlayer(
                                     } else {
                                         playerConnection.player.togglePlayPause()
                                     }
-                                }
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
                             val thumbnailUrl = mediaMetadata?.thumbnailUrl
 
@@ -364,7 +414,7 @@ fun MiniPlayer(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(34.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.primary),
                                     contentAlignment = Alignment.Center
@@ -386,7 +436,7 @@ fun MiniPlayer(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(18.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
                     Column(
                         modifier = Modifier.weight(1f),
@@ -399,9 +449,9 @@ fun MiniPlayer(
                         ) { title ->
                             Text(
                                 text = title,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = titleColor,
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.basicMarquee(),
@@ -422,11 +472,7 @@ fun MiniPlayer(
                         ) { artists ->
                             Text(
                                 text = artists,
-                                color = if (error != null) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                },
+                                color = subtitleColor,
                                 fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -466,7 +512,7 @@ fun MiniPlayer(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
