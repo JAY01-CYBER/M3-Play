@@ -5,7 +5,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -46,10 +45,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -182,49 +179,35 @@ fun HomeScreen(
 
     val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
-            is Song -> {
-                var isPressed by remember { mutableStateOf(false) }
-                SongGridItem(
-                    song = it,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .scale(if (isPressed) 0.97f else 1f)
-                        .animateContentSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    if (hapticsEnabled) {
-                                        isPressed = true
-                                        tryAwaitRelease()
-                                        isPressed = false
-                                    }
-                                },
-                                onTap = {
-                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                    if (it.id == mediaMetadata?.id) {
-                                        playerConnection.player.togglePlayPause()
-                                    } else {
-                                        playerConnection.playQueue(
-                                            YouTubeQueue.radio(it.toMediaMetadata()),
-                                        )
-                                    }
-                                },
-                                onLongPress = {
-                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                    menuState.show {
-                                        SongMenu(
-                                            originalSong = it,
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                }
-                            )
+            is Song -> SongGridItem(
+                song = it,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
+                            if (it.id == mediaMetadata?.id) {
+                                playerConnection.player.togglePlayPause()
+                            } else {
+                                playerConnection.playQueue(
+                                    YouTubeQueue.radio(it.toMediaMetadata()),
+                                )
+                            }
                         },
-                    isActive = it.id == mediaMetadata?.id,
-                    isPlaying = isPlaying,
-                )
-            }
+                        onLongClick = {
+                            if (hapticsEnabled) Haptics.longPress(haptic, context)
+                            menuState.show {
+                                SongMenu(
+                                    originalSong = it,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss,
+                                )
+                            }
+                        },
+                    ),
+                isActive = it.id == mediaMetadata?.id,
+                isPlaying = isPlaying,
+            )
 
             is Album -> AlbumGridItem(
                 album = it,
@@ -278,7 +261,6 @@ fun HomeScreen(
     }
 
     val ytGridItem: @Composable (YTItem) -> Unit = { item ->
-        var isPressed by remember { mutableStateOf(false) }
         YouTubeGridItem(
             item = item,
             isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
@@ -286,64 +268,53 @@ fun HomeScreen(
             coroutineScope = scope,
             thumbnailRatio = 1f,
             modifier = Modifier
-                .scale(if (isPressed) 0.97f else 1f)
-                .animateContentSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            if (hapticsEnabled) {
-                                isPressed = true
-                                tryAwaitRelease()
-                                isPressed = false
-                            }
-                        },
-                        onTap = {
-                            if (hapticsEnabled) Haptics.click(haptic, context)
+                .combinedClickable(
+                    onClick = {
+                        if (hapticsEnabled) Haptics.click(haptic, context)
+                        when (item) {
+                            is SongItem -> playerConnection.playQueue(
+                                YouTubeQueue(
+                                    item.endpoint ?: WatchEndpoint(
+                                        videoId = item.id
+                                    ), item.toMediaMetadata()
+                                )
+                            )
+
+                            is AlbumItem -> navController.navigate("album/${item.id}")
+                            is ArtistItem -> navController.navigate("artist/${item.id}")
+                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                        }
+                    },
+                    onLongClick = {
+                        if (hapticsEnabled) Haptics.longPress(haptic, context)
+                        menuState.show {
                             when (item) {
-                                is SongItem -> playerConnection.playQueue(
-                                    YouTubeQueue(
-                                        item.endpoint ?: WatchEndpoint(
-                                            videoId = item.id
-                                        ), item.toMediaMetadata()
-                                    )
+                                is SongItem -> YouTubeSongMenu(
+                                    song = item,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
                                 )
 
-                                is AlbumItem -> navController.navigate("album/${item.id}")
-                                is ArtistItem -> navController.navigate("artist/${item.id}")
-                                is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                            }
-                        },
-                        onLongPress = {
-                            if (hapticsEnabled) Haptics.longPress(haptic, context)
-                            menuState.show {
-                                when (item) {
-                                    is SongItem -> YouTubeSongMenu(
-                                        song = item,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss
-                                    )
+                                is AlbumItem -> YouTubeAlbumMenu(
+                                    albumItem = item,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
 
-                                    is AlbumItem -> YouTubeAlbumMenu(
-                                        albumItem = item,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss
-                                    )
+                                is ArtistItem -> YouTubeArtistMenu(
+                                    artist = item,
+                                    onDismiss = menuState::dismiss
+                                )
 
-                                    is ArtistItem -> YouTubeArtistMenu(
-                                        artist = item,
-                                        onDismiss = menuState::dismiss
-                                    )
-
-                                    is PlaylistItem -> YouTubePlaylistMenu(
-                                        playlist = item,
-                                        coroutineScope = scope,
-                                        onDismiss = menuState::dismiss
-                                    )
-                                }
+                                is PlaylistItem -> YouTubePlaylistMenu(
+                                    playlist = item,
+                                    coroutineScope = scope,
+                                    onDismiss = menuState::dismiss
+                                )
                             }
                         }
-                    )
-                }
+                    }
+                )
         )
     }
 
@@ -368,8 +339,6 @@ fun HomeScreen(
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
                     .graphicsLayer {
                         rotationZ = if (isRefreshing) 360f else 0f
-                        scaleX = 1f + (pullRefreshState.progress * 0.3f)
-                        scaleY = 1f + (pullRefreshState.progress * 0.3f)
                     }
             )
         }
@@ -482,8 +451,6 @@ fun HomeScreen(
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
-                                var isPressed by remember { mutableStateOf(false) }
-                                
                                 SongListItem(
                                     song = song!!,
                                     showInLibraryIcon = true,
@@ -514,37 +481,26 @@ fun HomeScreen(
                                             alpha = animatedAlpha.value
                                             translationY = animatedOffset.value
                                         }
-                                        .scale(if (isPressed) 0.97f else 1f)
-                                        .animateContentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onPress = {
-                                                    if (hapticsEnabled) {
-                                                        isPressed = true
-                                                        tryAwaitRelease()
-                                                        isPressed = false
-                                                    }
-                                                },
-                                                onTap = {
-                                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                                    if (song!!.id == mediaMetadata?.id) {
-                                                        playerConnection.player.togglePlayPause()
-                                                    } else {
-                                                        playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
-                                                    }
-                                                },
-                                                onLongPress = {
-                                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                                    menuState.show {
-                                                        SongMenu(
-                                                            originalSong = song!!,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                    }
+                                        .combinedClickable(
+                                            onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                                if (song!!.id == mediaMetadata?.id) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
                                                 }
-                                            )
-                                        }
+                                            },
+                                            onLongClick = {
+                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = song!!,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
+                                                }
+                                            }
+                                        )
                                 )
                             }
                         }
@@ -739,39 +695,27 @@ fun HomeScreen(
                                 items = newReleaseAlbumsList,
                                 key = { it.id }
                             ) { album ->
-                                var isPressed by remember { mutableStateOf(false) }
                                 YouTubeGridItem(
                                     item = album,
                                     isActive = mediaMetadata?.album?.id == album.id,
                                     isPlaying = isPlaying,
                                     coroutineScope = scope,
                                     modifier = Modifier
-                                        .scale(if (isPressed) 0.97f else 1f)
-                                        .animateContentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onPress = {
-                                                    if (hapticsEnabled) {
-                                                        isPressed = true
-                                                        tryAwaitRelease()
-                                                        isPressed = false
-                                                    }
-                                                },
-                                                onTap = {
-                                                    navController.navigate("album/${album.id}")
-                                                },
-                                                onLongPress = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                    menuState.show {
-                                                        YouTubeAlbumMenu(
-                                                            albumItem = album,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                    }
+                                        .combinedClickable(
+                                            onClick = {
+                                                navController.navigate("album/${album.id}")
+                                            },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                menuState.show {
+                                                    YouTubeAlbumMenu(
+                                                        albumItem = album,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
                                                 }
-                                            )
-                                        }
+                                            }
+                                        )
                                         .animateItem()
                                 )
                             }
@@ -850,8 +794,6 @@ fun HomeScreen(
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
-                                var isPressed by remember { mutableStateOf(false) }
-                                
                                 SongListItem(
                                     song = song!!,
                                     showInLibraryIcon = true,
@@ -882,37 +824,26 @@ fun HomeScreen(
                                             alpha = animatedAlpha.value
                                             translationY = animatedOffset.value
                                         }
-                                        .scale(if (isPressed) 0.97f else 1f)
-                                        .animateContentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onPress = {
-                                                    if (hapticsEnabled) {
-                                                        isPressed = true
-                                                        tryAwaitRelease()
-                                                        isPressed = false
-                                                    }
-                                                },
-                                                onTap = {
-                                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                                    if (song!!.id == mediaMetadata?.id) {
-                                                        playerConnection.player.togglePlayPause()
-                                                    } else {
-                                                        playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
-                                                    }
-                                                },
-                                                onLongPress = {
-                                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                                    menuState.show {
-                                                        SongMenu(
-                                                            originalSong = song!!,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                    }
+                                        .combinedClickable(
+                                            onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                                if (song!!.id == mediaMetadata?.id) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
                                                 }
-                                            )
-                                        }
+                                            },
+                                            onLongClick = {
+                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = song!!,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
+                                                }
+                                            }
+                                        )
                                 )
                             }
                         }
