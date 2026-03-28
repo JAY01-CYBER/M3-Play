@@ -58,7 +58,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -166,32 +165,32 @@ fun MiniPlayer(
         else -> "Unknown artist"
     } ?: "Unknown artist"
 
-    val containerTop = when {
+    val cardTop = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
-    val containerBottom = when {
+    val cardBottom = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainer
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
 
+    val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
+    val progressColor = MaterialTheme.colorScheme.primary
+    val progressTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     val titleColor = MaterialTheme.colorScheme.onSurface
     val subtitleColor = if (error != null) {
         MaterialTheme.colorScheme.error
     } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
-
-    val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
-    val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(96.dp)
+            .height(92.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .padding(bottom = 12.dp)
@@ -207,10 +206,10 @@ fun MiniPlayer(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(72.dp)
+                .height(68.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 12.dp,
+                    elevation = 16.dp,
                     shape = RoundedCornerShape(36.dp),
                     clip = false
                 ),
@@ -223,8 +222,8 @@ fun MiniPlayer(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(36.dp))
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(containerTop, containerBottom)
+                        brush = Brush.verticalGradient(
+                            colors = listOf(cardTop, cardBottom)
                         )
                     )
                     .clickable {
@@ -312,7 +311,7 @@ fun MiniPlayer(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .padding(horizontal = 14.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -322,8 +321,8 @@ fun MiniPlayer(
                         CircularProgressIndicator(
                             progress = { animatedProgress },
                             modifier = Modifier.size(50.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 3.dp,
+                            color = progressColor,
+                            strokeWidth = 2.5.dp,
                             trackColor = progressTrackColor
                         )
 
@@ -331,7 +330,7 @@ fun MiniPlayer(
                             modifier = Modifier
                                 .size(40.dp)
                                 .shadow(
-                                    elevation = 6.dp,
+                                    elevation = 7.dp,
                                     shape = CircleShape,
                                     clip = false
                                 )
@@ -374,7 +373,7 @@ fun MiniPlayer(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(18.dp))
 
                     Column(
                         modifier = Modifier.weight(1f),
@@ -388,8 +387,8 @@ fun MiniPlayer(
                             Text(
                                 text = title,
                                 color = titleColor,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.basicMarquee()
@@ -418,9 +417,16 @@ fun MiniPlayer(
 
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(44.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
@@ -433,7 +439,7 @@ fun MiniPlayer(
                                     playerConnection.player.togglePlayPause()
                                 }
                             },
-                            modifier = Modifier.size(42.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
                                 imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
@@ -443,7 +449,7 @@ fun MiniPlayer(
                                 },
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
