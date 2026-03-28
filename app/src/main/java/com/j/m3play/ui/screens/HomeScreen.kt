@@ -1,8 +1,11 @@
 package com.j.m3play.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -28,23 +31,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -89,6 +95,7 @@ import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
 import com.j.m3play.ui.component.ArtistGridItem
+import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
@@ -111,32 +118,12 @@ import com.j.m3play.constants.HapticsEnabledKey
 import com.j.m3play.utils.Haptics
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
-import com.j.m3play.ui.component.TimeGreetingCard
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.Text
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.text.font.FontWeight
-import com.j.m3play.ui.component.M3PlayHeroCarousel
-import com.j.m3play.ui.component.M3PlayHeroItem
-import androidx.compose.foundation.border
-import com.j.m3play.ui.component.M3PlayQuickPickCard
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -161,30 +148,13 @@ fun HomeScreen(
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
-        val heroItems = remember(explorePage,isRefreshing) {
-        buildList {
-            explorePage?.newReleaseAlbums
-                ?.shuffled()
-                ?.take(5)
-                ?.forEach { album ->
-                    add(
-                        M3PlayHeroItem(
-                            id = album.id,
-                            title = album.title,
-                            subtitle = "New Release",
-                            imageUrl = album.thumbnail
-                        )
-                    )
-                }
-        }
-        }
-        
+
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
     val quickPicksLazyGridState = rememberLazyGridState()
@@ -213,35 +183,49 @@ fun HomeScreen(
 
     val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
-            is Song -> SongGridItem(
-                song = it,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(
-                        onClick = {
-                            if (hapticsEnabled) Haptics.click(haptic, context)
-                            if (it.id == mediaMetadata?.id) {
-                                playerConnection.player.togglePlayPause()
-                            } else {
-                                playerConnection.playQueue(
-                                    YouTubeQueue.radio(it.toMediaMetadata()),
-                                )
-                            }
+            is Song -> {
+                var isPressed by remember { mutableStateOf(false) }
+                SongGridItem(
+                    song = it,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .scale(if (isPressed) 0.97f else 1f)
+                        .animateContentSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    if (hapticsEnabled) {
+                                        isPressed = true
+                                        tryAwaitRelease()
+                                        isPressed = false
+                                    }
+                                },
+                                onTap = {
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    if (it.id == mediaMetadata?.id) {
+                                        playerConnection.player.togglePlayPause()
+                                    } else {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue.radio(it.toMediaMetadata()),
+                                        )
+                                    }
+                                },
+                                onLongPress = {
+                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = it,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                }
+                            )
                         },
-                        onLongClick = {
-                            if (hapticsEnabled) Haptics.longPress(haptic, context)
-                            menuState.show {
-                                SongMenu(
-                                    originalSong = it,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss,
-                                )
-                            }
-                        },
-                    ),
-                isActive = it.id == mediaMetadata?.id,
-                isPlaying = isPlaying,
-            )
+                    isActive = it.id == mediaMetadata?.id,
+                    isPlaying = isPlaying,
+                )
+            }
 
             is Album -> AlbumGridItem(
                 album = it,
@@ -295,6 +279,7 @@ fun HomeScreen(
     }
 
     val ytGridItem: @Composable (YTItem) -> Unit = { item ->
+        var isPressed by remember { mutableStateOf(false) }
         YouTubeGridItem(
             item = item,
             isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
@@ -302,53 +287,64 @@ fun HomeScreen(
             coroutineScope = scope,
             thumbnailRatio = 1f,
             modifier = Modifier
-                .combinedClickable(
-                    onClick = {
-                        if (hapticsEnabled) Haptics.click(haptic, context)
-                        when (item) {
-                            is SongItem -> playerConnection.playQueue(
-                                YouTubeQueue(
-                                    item.endpoint ?: WatchEndpoint(
-                                        videoId = item.id
-                                    ), item.toMediaMetadata()
-                                )
-                            )
-
-                            is AlbumItem -> navController.navigate("album/${item.id}")
-                            is ArtistItem -> navController.navigate("artist/${item.id}")
-                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                        }
-                    },
-                    onLongClick = {
-                        if (hapticsEnabled) Haptics.longPress(haptic, context)
-                        menuState.show {
+                .scale(if (isPressed) 0.97f else 1f)
+                .animateContentSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            if (hapticsEnabled) {
+                                isPressed = true
+                                tryAwaitRelease()
+                                isPressed = false
+                            }
+                        },
+                        onTap = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             when (item) {
-                                is SongItem -> YouTubeSongMenu(
-                                    song = item,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss
+                                is SongItem -> playerConnection.playQueue(
+                                    YouTubeQueue(
+                                        item.endpoint ?: WatchEndpoint(
+                                            videoId = item.id
+                                        ), item.toMediaMetadata()
+                                    )
                                 )
 
-                                is AlbumItem -> YouTubeAlbumMenu(
-                                    albumItem = item,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss
-                                )
+                                is AlbumItem -> navController.navigate("album/${item.id}")
+                                is ArtistItem -> navController.navigate("artist/${item.id}")
+                                is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                            }
+                        },
+                        onLongPress = {
+                            if (hapticsEnabled) Haptics.longPress(haptic, context)
+                            menuState.show {
+                                when (item) {
+                                    is SongItem -> YouTubeSongMenu(
+                                        song = item,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
 
-                                is ArtistItem -> YouTubeArtistMenu(
-                                    artist = item,
-                                    onDismiss = menuState::dismiss
-                                )
+                                    is AlbumItem -> YouTubeAlbumMenu(
+                                        albumItem = item,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
 
-                                is PlaylistItem -> YouTubePlaylistMenu(
-                                    playlist = item,
-                                    coroutineScope = scope,
-                                    onDismiss = menuState::dismiss
-                                )
+                                    is ArtistItem -> YouTubeArtistMenu(
+                                        artist = item,
+                                        onDismiss = menuState::dismiss
+                                    )
+
+                                    is PlaylistItem -> YouTubePlaylistMenu(
+                                        playlist = item,
+                                        coroutineScope = scope,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
         )
     }
 
@@ -360,7 +356,6 @@ fun HomeScreen(
         forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
-    // MEJORA 1: Usar PullToRefreshBox en lugar de modifier
     PullToRefreshBox(
         state = pullRefreshState,
         isRefreshing = isRefreshing,
@@ -371,7 +366,12 @@ fun HomeScreen(
                 state = pullRefreshState,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                    .graphicsLayer {
+                        rotationZ = if (isRefreshing) 360f else 0f
+                        scaleX = 1f + (pullRefreshState.progress * 0.3f)
+                        scaleY = 1f + (pullRefreshState.progress * 0.3f)
+                    }
             )
         }
     ) {
@@ -403,203 +403,156 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
-                 TimeGreetingCard(
-                  onSearchClick = {
-                   navController.navigate("explore")
-                     },
-             modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .animateItem()
-    )
+                    Row(
+                        modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .fillMaxWidth()
+                            .animateItem()
+                    ) {
+                        ChipsRow(
+                            chips = listOfNotNull(
+                                Pair("history", stringResource(R.string.history)),
+                                Pair("stats", stringResource(R.string.stats)),
+                                Pair("liked", stringResource(R.string.liked)),
+                                Pair("downloads", stringResource(R.string.offline)),
+                                if (isLoggedIn) Pair(
+                                    "account",
+                                    stringResource(R.string.account)
+                                ) else null
+                            ),
+                            currentValue = "",
+                            onValueUpdate = { value ->
+                                when (value) {
+                                    "history" -> navController.navigate("history")
+                                    "stats" -> navController.navigate("stats")
+                                    "liked" -> navController.navigate("auto_playlist/liked")
+                                    "downloads" -> navController.navigate("auto_playlist/downloaded")
+                                    "account" -> if (isLoggedIn) navController.navigate("account")
+                                }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        )
+                    }
                 }
-                item {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .animateItem(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ActionCard(
-            title = "Liked",
-            icon = R.drawable.favorite,
-            onClick = {
-                navController.navigate("auto_playlist/liked")
-            },
-                modifier = Modifier.weight(1f)
-        )
 
-        ActionCard(
-            title = "Downloads",
-            icon = R.drawable.download,
-            onClick = {
-                navController.navigate("auto_playlist/downloaded")
-            },
-                modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-item {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .animateItem(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-
-        ActionCard(
-            title = "History",
-            icon = R.drawable.history,
-            onClick = {
-                navController.navigate("history")
-            },
-            modifier = Modifier.weight(1f)
-        )
-
-        ActionCard(
-            title = if (isLoggedIn) "Account" else "Library",
-            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
-            onClick = {
-                if (isLoggedIn) {
-                    navController.navigate("account")
-                } else {
-                    navController.navigate("library")
-                }
-            },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-               item {
-    Spacer(modifier = Modifier.height(10.dp))
-}
-
-item {
-    M3PlayHeroCarousel(
-        items = heroItems,
-        onItemClick = { item ->
-            navController.navigate("album/${item.id}")
-        },
-        modifier = Modifier.animateItem()
-    )
-}
-
-item {
-    Spacer(modifier = Modifier.height(6.dp))
-}
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     item {
-                        // MEJORA 2: Añadir botón Play All
                         val quickPicksTitle = stringResource(R.string.quick_picks)
-
-Row(
-    modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 6.dp)
-        .animateItem(),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.SpaceBetween
-) {
-    Text(
-        text = quickPicksTitle,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary
-    )
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(999.dp)
-            )
-            .clickable {
-                playerConnection.playQueue(
-                    ListQueue(
-                        title = quickPicksTitle,
-                        items = quickPicks.distinctBy { it.id }.map { it.toMediaItem() }
-                    )
-                )
-            }
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Play all",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
+                        NavigationTitle(
+                            title = quickPicksTitle,
+                            modifier = Modifier.animateItem(),
+                            onPlayAllClick = {
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = quickPicksTitle,
+                                        items = quickPicks.distinctBy { it.id }.map { it.toMediaItem() }
+                                    )
+                                )
+                            }
+                        )
                     }
 
                     item {
-    LazyHorizontalGrid(
-    state = quickPicksLazyGridState,
-    rows = GridCells.Fixed(4),
+                        LazyHorizontalGrid(
+                            state = quickPicksLazyGridState,
+                            rows = GridCells.Fixed(4),
+                            flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
+                            contentPadding = WindowInsets.systemBars
+                                .only(WindowInsetsSides.Horizontal)
+                                .asPaddingValues(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(ListItemHeight * 4)
+                                .animateItem()
+                        ) {
+                            items(
+                                items = quickPicks.distinctBy { it.id },
+                                key = { it.id }
+                            ) { originalSong ->
+                                val index = quickPicks.indexOf(originalSong)
+                                
+                                // Staggered entrance animation
+                                val animatedAlpha = remember { Animatable(0f) }
+                                val animatedOffset = remember { Animatable(50f) }
+                                
+                                LaunchedEffect(Unit) {
+                                    delay(index * 50L)
+                                    animatedAlpha.animateTo(1f, animationSpec = tween(300))
+                                    animatedOffset.animateTo(0f, animationSpec = tween(300))
+                                }
+                                
+                                val song by database.song(originalSong.id)
+                                    .collectAsState(initial = originalSong)
 
-    // ✅ ADD THIS
-    verticalArrangement = Arrangement.spacedBy(8.dp),
-    horizontalArrangement = Arrangement.spacedBy(10.dp),
-
-    flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
-
-    // ❌ REMOVE WindowInsets wala
-    // ✅ ADD THIS
-    contentPadding = PaddingValues(horizontal = 16.dp),
-
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(300.dp) // 👈 380 → 300
-        .animateItem()
-    ) {
-        items(
-            items = quickPicks.distinctBy { it.id },
-            key = { it.id }
-        ) { originalSong ->
-            val song by database.song(originalSong.id)
-                .collectAsState(initial = originalSong)
-
-            val subtitleText = song!!.artists.joinToString { it.name }
-
-            M3PlayQuickPickCard(
-                song = song!!,
-                subtitle = subtitleText,
-                onClick = {
-                    if (hapticsEnabled) Haptics.click(haptic, context)
-                    if (song!!.id == mediaMetadata?.id) {
-                        playerConnection.player.togglePlayPause()
-                    } else {
-                        playerConnection.playQueue(
-                            YouTubeQueue.radio(song!!.toMediaMetadata())
-                        )
-                    }
-                },
-                onMenuClick = {
-                    if (hapticsEnabled) Haptics.click(haptic, context)
-                    menuState.show {
-                        SongMenu(
-                            originalSong = song!!,
-                            navController = navController,
-                            onDismiss = menuState::dismiss
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .width(horizontalLazyGridItemWidth)
-                    .padding(vertical = 3.dp)
-            )
-        }
-    }
+                                var isPressed by remember { mutableStateOf(false) }
+                                
+                                SongListItem(
+                                    song = song!!,
+                                    showInLibraryIcon = true,
+                                    isActive = song!!.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = song!!,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.more_vert),
+                                                contentDescription = null
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .width(horizontalLazyGridItemWidth)
+                                        .graphicsLayer {
+                                            alpha = animatedAlpha.value
+                                            translationY = animatedOffset.value
+                                        }
+                                        .scale(if (isPressed) 0.97f else 1f)
+                                        .animateContentSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    if (hapticsEnabled) {
+                                                        isPressed = true
+                                                        tryAwaitRelease()
+                                                        isPressed = false
+                                                    }
+                                                },
+                                                onTap = {
+                                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                                    if (song!!.id == mediaMetadata?.id) {
+                                                        playerConnection.player.togglePlayPause()
+                                                    } else {
+                                                        playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = song!!,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
+                                                }
+                                            )
+                                        }
+                                )
+                            }
+                        }
                     }
                 }
-                    
+
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
                     item {
                         NavigationTitle(
@@ -640,7 +593,7 @@ Row(
                                             .data(url)
                                             .diskCachePolicy(CachePolicy.ENABLED)
                                             .diskCacheKey(url)
-                                            .crossfade(false) // MEJORA 6: Sin crossfade para avatares
+                                            .crossfade(false)
                                             .build(),
                                         placeholder = painterResource(id = R.drawable.person),
                                         error = painterResource(id = R.drawable.person),
@@ -674,7 +627,6 @@ Row(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                // MEJORA 4: Prevenir duplicados
                                 items = accountPlaylists.distinctBy { it.id },
                                 key = { it.id },
                             ) { item ->
@@ -790,27 +742,39 @@ Row(
                                 items = newReleaseAlbums,
                                 key = { it.id }
                             ) { album ->
+                                var isPressed by remember { mutableStateOf(false) }
                                 YouTubeGridItem(
                                     item = album,
                                     isActive = mediaMetadata?.album?.id == album.id,
                                     isPlaying = isPlaying,
                                     coroutineScope = scope,
                                     modifier = Modifier
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("album/${album.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    YouTubeAlbumMenu(
-                                                        albumItem = album,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
+                                        .scale(if (isPressed) 0.97f else 1f)
+                                        .animateContentSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    if (hapticsEnabled) {
+                                                        isPressed = true
+                                                        tryAwaitRelease()
+                                                        isPressed = false
+                                                    }
+                                                },
+                                                onTap = {
+                                                    navController.navigate("album/${album.id}")
+                                                },
+                                                onLongPress = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        YouTubeAlbumMenu(
+                                                            albumItem = album,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
                                                 }
-                                            }
-                                        )
+                                            )
+                                        }
                                         .animateItem()
                                 )
                             }
@@ -818,7 +782,6 @@ Row(
                     }
                 }
 
-                // MEJORA 5: Shimmer solo durante carga inicial
                 if (isLoading && homePage?.sections.isNullOrEmpty()) {
                     item(key = "loading_shimmer") {
                         ShimmerHost(
@@ -841,7 +804,6 @@ Row(
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
                     item {
-                        // MEJORA 2: Añadir botón Play All
                         val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
@@ -858,7 +820,6 @@ Row(
                     }
 
                     item {
-                        // take min in case list size is less than 4
                         val rows = min(4, forgottenFavorites.size)
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
@@ -875,19 +836,32 @@ Row(
                                 .animateItem()
                         ) {
                             items(
-                                // MEJORA 4: Prevenir duplicados
                                 items = forgottenFavorites.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
+                                val index = forgottenFavorites.indexOf(originalSong)
+                                
+                                // Staggered entrance animation for forgotten favorites
+                                val animatedAlpha = remember { Animatable(0f) }
+                                val animatedOffset = remember { Animatable(50f) }
+                                
+                                LaunchedEffect(Unit) {
+                                    delay(index * 50L)
+                                    animatedAlpha.animateTo(1f, animationSpec = tween(300))
+                                    animatedOffset.animateTo(0f, animationSpec = tween(300))
+                                }
+                                
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
+                                var isPressed by remember { mutableStateOf(false) }
+                                
                                 SongListItem(
                                     song = song!!,
                                     showInLibraryIcon = true,
                                     isActive = song!!.id == mediaMetadata?.id,
                                     isPlaying = isPlaying,
-                                    trailingContent = { // MEJORA 3: Botón de menú explícito
+                                    trailingContent = {
                                         IconButton(
                                             onClick = {
                                                 if (hapticsEnabled) Haptics.click(haptic, context)
@@ -908,26 +882,41 @@ Row(
                                     },
                                     modifier = Modifier
                                         .width(horizontalLazyGridItemWidth)
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                                if (song!!.id == mediaMetadata?.id) {
-                                                    playerConnection.player.togglePlayPause()
-                                                } else {
-                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                        .graphicsLayer {
+                                            alpha = animatedAlpha.value
+                                            translationY = animatedOffset.value
+                                        }
+                                        .scale(if (isPressed) 0.97f else 1f)
+                                        .animateContentSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(
+                                                onPress = {
+                                                    if (hapticsEnabled) {
+                                                        isPressed = true
+                                                        tryAwaitRelease()
+                                                        isPressed = false
+                                                    }
+                                                },
+                                                onTap = {
+                                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                                    if (song!!.id == mediaMetadata?.id) {
+                                                        playerConnection.player.togglePlayPause()
+                                                    } else {
+                                                        playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                    }
+                                                },
+                                                onLongPress = {
+                                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = song!!,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
                                                 }
-                                            },
-                                            onLongClick = {
-                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = song!!,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        )
+                                            )
+                                        }
                                 )
                             }
                         }
@@ -977,49 +966,38 @@ Row(
                     }
                 }
             )
-        }
-    }
-}
-
-@Composable
-fun ActionCard(
-    title: String,
-    icon: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
+            
+            // Scroll to Top Button - New Animation
+            val isScrolled by remember {
+                derivedStateOf { lazylistState.firstVisibleItemIndex > 0 }
+            }
+            
+            AnimatedVisibility(
+                visible = isScrolled,
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(0.dp, 0.dp, 16.dp, 80.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            lazylistState.animateScrollToItem(0)
+                            if (hapticsEnabled) Haptics.click(haptic, context)
+                        }
+                    },
+                    modifier = Modifier.size(48.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to top",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
