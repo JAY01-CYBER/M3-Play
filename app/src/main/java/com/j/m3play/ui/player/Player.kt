@@ -847,11 +847,15 @@ fun BottomSheetPlayer(
             playerConnection.player.clearMediaItems()
         },
         collapsedContent = {
-            MiniPlayer(
-                position = position,
-                duration = duration,
-            )
-        },
+    MiniPlayer(
+        position = position,
+        duration = duration,
+        onOpenPlayer = {
+            if (hapticsEnabled) Haptics.click(haptic, context)
+            showFullPlayer = true
+        }
+    )
+},
     ) {
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             // Título con marquesina y click largo para copiar
