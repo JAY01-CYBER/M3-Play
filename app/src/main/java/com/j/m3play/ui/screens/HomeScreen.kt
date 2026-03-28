@@ -469,6 +469,7 @@ fun HomeScreen(
                 
                 // Quick Picks Section with Staggered Entrance
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
+                    // ✅ FIX: stringResource OUTSIDE item
                     val quickPicksTitle = stringResource(R.string.quick_picks)
                     
                     item {
@@ -830,6 +831,7 @@ fun HomeScreen(
 
                 // Forgotten Favorites with Staggered Entrance
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
+                    // ✅ FIX: stringResource OUTSIDE item
                     val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
                     
                     item {
