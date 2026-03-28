@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -67,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -120,8 +122,10 @@ fun MiniPlayer(
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val view = LocalView.current
+    val density = LocalDensity.current
+    val liftedOffsetY = with(density) { (-10).dp.roundToPx() }
 
-    val offsetXAnimatable = remember { androidx.compose.animation.core.Animatable(0f) }
+    val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableLongStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
     var swipeThresholdTriggered by remember { mutableStateOf(false) }
@@ -159,7 +163,7 @@ fun MiniPlayer(
 
     val containerColor by animateColorAsState(
         targetValue = if (useDarkTheme && pureBlack) {
-            MaterialTheme.colorScheme.surface
+            MaterialTheme.colorScheme.surfaceContainer
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
         },
@@ -189,9 +193,9 @@ fun MiniPlayer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(92.dp)
+            .height(108.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 0.dp)
     ) {
         Surface(
             modifier = Modifier
@@ -204,10 +208,15 @@ fun MiniPlayer(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(80.dp)
-                .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
+                .height(78.dp)
+                .offset {
+                    IntOffset(
+                        offsetXAnimatable.value.roundToInt(),
+                        liftedOffsetY
+                    )
+                }
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = 12.dp,
                     shape = RoundedCornerShape(24.dp)
                 ),
             shape = RoundedCornerShape(24.dp),
@@ -300,7 +309,7 @@ fun MiniPlayer(
                         )
                     }
                     .clickable {
-                        // Full player open action yaha laga sakta hai
+                        // Full player open action yaha laga
                     }
             ) {
                 Column(
@@ -324,7 +333,7 @@ fun MiniPlayer(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(46.dp)
+                                .size(44.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(artworkBgColor),
                             contentAlignment = Alignment.Center
@@ -444,7 +453,7 @@ fun MiniPlayer(
 
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .background(nextButtonColor),
                             contentAlignment = Alignment.Center
@@ -455,7 +464,7 @@ fun MiniPlayer(
                                     playerConnection.player.seekToNext()
                                 },
                                 enabled = canSkipNext,
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier.size(34.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.SkipNext,
@@ -465,7 +474,7 @@ fun MiniPlayer(
                                     } else {
                                         nextIconColor.copy(alpha = 0.4f)
                                     },
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(17.dp)
                                 )
                             }
                         }
