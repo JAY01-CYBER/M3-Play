@@ -1009,6 +1009,7 @@ fun HomeScreen(
     }
 }
 
+// ActionCard function - properly placed at file level with correct imports
 @Composable
 fun ActionCard(
     title: String,
