@@ -31,7 +31,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -1103,19 +1102,94 @@ class MainActivity : ComponentActivity() {
                                     val shouldShowBottomNav = true
 
                                     if (shouldShowBottomNav) {
-                                        Box(
-                                            modifier = Modifier
-                                                .align(Alignment.BottomCenter)
-                                                .offset {
-                                                    if (navigationBarHeight == 0.dp) {
-                                                        IntOffset(
-                                                            x = 0,
-                                                            y = (bottomInset + NavigationBarHeight).roundToPx(),
-                                                        )
-                                                    } else {
+                                        
+NavigationBar(
+    containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+    contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+) {
+    var lastTapTime by remember { mutableLongStateOf(0L) }
+    var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
+    var navigateToExplore by remember { mutableStateOf(false) }
+
+    navigationItems.fastForEach { screen ->
+        val isSelected =
+            navBackStackEntry?.destination?.hierarchy?.any {
+                it.route == screen.route
+            } == true
+
+        NavigationBarItem(
+            selected = isSelected,
+
+            icon = {
+                Icon(
+                    painter = painterResource(
+                        id = if (isSelected)
+                            screen.iconIdActive
+                        else
+                            screen.iconIdInactive
+                    ),
+                    contentDescription = stringResource(screen.titleId)
+                )
+            },
+
+            label = {
+                Text(
+                    text = stringResource(screen.titleId),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+
+            alwaysShowLabel = false,
+
+            onClick = {
+                val currentTapTime = System.currentTimeMillis()
+                val timeSinceLastTap = currentTapTime - lastTapTime
+                val isDoubleTap =
+                    screen.titleId == R.string.explore &&
+                            lastTappedIcon == R.string.explore &&
+                            timeSinceLastTap < 300L
+
+                lastTapTime = currentTapTime
+                lastTappedIcon = screen.titleId
+
+                if (screen.titleId == R.string.explore) {
+                    if (isDoubleTap) {
+                        onActiveChange(true)
+                        navigateToExplore = false
+                    } else {
+                        navigateToExplore = true
+                        coroutineScope.launch {
+                            delay(300L)
+                            if (navigateToExplore) {
+                                navigateToScreen(navController, screen)
+                            }
+                        }
+                    }
+                } else {
+                    if (isSelected) {
+                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                            "scrollToTop",
+                            true
+                        )
+                        coroutineScope.launch {
+                            searchBarScrollBehavior.state.resetHeightOffset()
+                        }
+                    } else {
+                        navigateToScreen(navController, screen)
+                    }
+                }
+            }
+        )
+    }
+}
+else {
                                                         val slideOffset =
                                                             (bottomInset + NavigationBarHeight) *
-                                                                    playerBottomSheetState.progress.coerceIn(0f, 1f)
+                                                                    playerBottomSheetState.progress.coerceIn(
+                                                                        0f,
+                                                                        1f
+                                                                    )
                                                         val hideOffset =
                                                             (bottomInset + NavigationBarHeight) *
                                                                     (1 - navigationBarHeight / NavigationBarHeight)
@@ -1124,141 +1198,114 @@ class MainActivity : ComponentActivity() {
                                                             y = (slideOffset + hideOffset).roundToPx(),
                                                         )
                                                     }
-                                                }
-                                                .padding(horizontal = 18.dp, vertical = 10.dp)
-                                        ) {
-                                            Surface(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                shape = RoundedCornerShape(24.dp),
-                                                color = if (pureBlack) {
-                                                    Color.Black.copy(alpha = 0.94f)
-                                                } else {
-                                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
                                                 },
-                                                tonalElevation = 6.dp,
-                                                shadowElevation = 8.dp
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                                    horizontalArrangement = Arrangement.SpaceEvenly,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    var lastTapTime by remember { mutableLongStateOf(0L) }
-                                                    var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
-                                                    var navigateToExplore by remember { mutableStateOf(false) }
+                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                            contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ) {
+                                            var lastTapTime by remember { mutableLongStateOf(0L) }
+                                            var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
+                                            var navigateToExplore by remember { mutableStateOf(false) }
 
-                                                    navigationItems.fastForEach { screen ->
-                                                        val isSelected =
-                                                            navBackStackEntry?.destination?.hierarchy?.any {
-                                                                it.route == screen.route
-                                                            } == true
+                                            navigationItems.fastForEach { screen ->
+                                                val isSelected =
+                                                    navBackStackEntry?.destination?.hierarchy?.any {
+                                                        it.route == screen.route
+                                                    } == true
 
-                                                        val itemScale by animateFloatAsState(
-                                                            targetValue = if (isSelected) 1.02f else 1f,
-                                                            animationSpec = tween(180),
-                                                            label = "nav_item_scale"
+                                                NavigationBarItem(
+                                                    selected = isSelected,
+                                                    icon = {
+                                                        Icon(
+                                                            painter = painterResource(
+                                                                id = if (isSelected) {
+                                                                    screen.iconIdActive
+                                                                } else {
+                                                                    screen.iconIdInactive
+                                                                }
+                                                            ),
+                                                            contentDescription = stringResource(screen.titleId),
                                                         )
+                                                    },
+                                                    label = {
+                                                        if (!slimNav) {
+                                                            Text(
+                                                                text = stringResource(screen.titleId),
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        val currentTapTime = System.currentTimeMillis()
+                                                        val timeSinceLastTap =
+                                                            currentTapTime - lastTapTime
+                                                        val isDoubleTap =
+                                                            screen.titleId == R.string.explore &&
+                                                                    lastTappedIcon == R.string.explore &&
+                                                                    timeSinceLastTap < 300L
 
-                                                        val itemContainerColor =
-                                                            if (isSelected) {
-                                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                        lastTapTime = currentTapTime
+                                                        lastTappedIcon = screen.titleId
+
+                                                        if (screen.titleId == R.string.explore) {
+                                                            if (isDoubleTap) {
+                                                                onActiveChange(true)
+                                                                navigateToExplore = false
                                                             } else {
-                                                                Color.Transparent
-                                                            }
-
-                                                        val itemContentColor =
-                                                            if (isSelected) {
-                                                                MaterialTheme.colorScheme.primary
-                                                            } else {
-                                                                if (pureBlack) Color.White.copy(alpha = 0.72f)
-                                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                                            }
-
-                                                        Row(
-                                                            modifier = Modifier
-                                                                .scale(itemScale)
-                                                                .clip(RoundedCornerShape(18.dp))
-                                                                .background(itemContainerColor)
-                                                                .clickable {
-                                                                    val currentTapTime = System.currentTimeMillis()
-                                                                    val timeSinceLastTap = currentTapTime - lastTapTime
-                                                                    val isDoubleTap =
-                                                                        screen.titleId == R.string.explore &&
-                                                                                lastTappedIcon == R.string.explore &&
-                                                                                timeSinceLastTap < 300L
-
-                                                                    lastTapTime = currentTapTime
-                                                                    lastTappedIcon = screen.titleId
-
-                                                                    if (screen.titleId == R.string.explore) {
-                                                                        if (isDoubleTap) {
-                                                                            onActiveChange(true)
-                                                                            navigateToExplore = false
-                                                                        } else {
-                                                                            navigateToExplore = true
-                                                                            coroutineScope.launch {
-                                                                                delay(300L)
-                                                                                if (navigateToExplore) {
-                                                                                    try {
-                                                                                        navigateToScreen(navController, screen)
-                                                                                    } catch (e: Exception) {
-                                                                                        Log.e("Navigation", "Error navigating to screen", e)
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    } else {
-                                                                        if (isSelected) {
-                                                                            navController.currentBackStackEntry?.savedStateHandle?.set(
-                                                                                "scrollToTop",
-                                                                                true
+                                                                navigateToExplore = true
+                                                                coroutineScope.launch {
+                                                                    delay(300L)
+                                                                    if (navigateToExplore) {
+                                                                        try {
+                                                                            navigateToScreen(
+                                                                                navController,
+                                                                                screen
                                                                             )
-                                                                            coroutineScope.launch {
-                                                                                try {
-                                                                                    searchBarScrollBehavior.state.resetHeightOffset()
-                                                                                } catch (e: Exception) {
-                                                                                    Log.e("ScrollBehavior", "Error resetting scroll", e)
-                                                                                }
-                                                                            }
-                                                                        } else {
-                                                                            try {
-                                                                                navigateToScreen(navController, screen)
-                                                                            } catch (e: Exception) {
-                                                                                Log.e("Navigation", "Error navigating to screen", e)
-                                                                            }
+                                                                        } catch (e: Exception) {
+                                                                            Log.e(
+                                                                                "Navigation",
+                                                                                "Error navigating to screen",
+                                                                                e
+                                                                            )
                                                                         }
                                                                     }
                                                                 }
-                                                                .padding(
-                                                                    horizontal = if (isSelected) 14.dp else 12.dp,
-                                                                    vertical = 10.dp
-                                                                ),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.Center
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(
-                                                                    id = if (isSelected) screen.iconIdActive else screen.iconIdInactive
-                                                                ),
-                                                                contentDescription = stringResource(screen.titleId),
-                                                                tint = itemContentColor
-                                                            )
-
-                                                            if (!slimNav && isSelected) {
-                                                                Spacer(modifier = Modifier.width(6.dp))
-                                                                Text(
-                                                                    text = stringResource(screen.titleId),
-                                                                    color = itemContentColor,
-                                                                    style = MaterialTheme.typography.labelMedium,
-                                                                    fontWeight = FontWeight.Medium,
-                                                                    maxLines = 1
+                                                            }
+                                                        } else {
+                                                            if (isSelected) {
+                                                                // Scroll to top en la pantalla actual
+                                                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                                    "scrollToTop",
+                                                                    true
                                                                 )
+                                                                coroutineScope.launch {
+                                                                    try {
+                                                                        searchBarScrollBehavior.state.resetHeightOffset()
+                                                                    } catch (e: Exception) {
+                                                                        Log.e(
+                                                                            "ScrollBehavior",
+                                                                            "Error resetting scroll",
+                                                                            e
+                                                                        )
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                try {
+                                                                    navigateToScreen(
+                                                                        navController,
+                                                                        screen
+                                                                    )
+                                                                } catch (e: Exception) {
+                                                                    Log.e(
+                                                                        "Navigation",
+                                                                        "Error navigating to screen",
+                                                                        e
+                                                                    )
+                                                                }
                                                             }
                                                         }
-                                                    }
-                                                }
+                                                    },
+                                                )
                                             }
                                         }
 
