@@ -91,6 +91,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
