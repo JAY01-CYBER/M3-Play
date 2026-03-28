@@ -196,6 +196,7 @@ fun BottomSheetPlayer(
     val clipboardManager = LocalClipboardManager.current
 
     var showFullscreenLyrics by remember { mutableStateOf(false) }
+    var showFullPlayer by remember { mutableStateOf(false) }
     val playerConnection = LocalPlayerConnection.current ?: return
 
     val playerTextAlignment by rememberEnumPreference(
