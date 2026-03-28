@@ -1016,15 +1016,16 @@ fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier
             .height(48.dp)
-            .clip(RoundedCornerShape(999.dp))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 4.dp),
         shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f),
-        contentColor = MaterialTheme.colorScheme.onSurface
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
