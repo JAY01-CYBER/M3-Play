@@ -81,6 +81,7 @@ import com.j.m3play.constants.DarkModeKey
 import com.j.m3play.constants.PureBlackKey
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.utils.Haptics
 import com.j.m3play.utils.rememberEnumPreference
@@ -89,7 +90,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
-import com.j.m3play.models.MediaMetadata
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,15 +130,9 @@ fun MiniPlayer(
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
     var thresholdTriggered by remember { mutableStateOf(false) }
 
-    val animationSpec = spring<Float>(
+    val springSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessLow
-    )
-
-    val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.02f else 0.22f,
-        label = "art_overlay",
-        animationSpec = animationSpec
     )
 
     val progressValue = if (duration > 0L) {
@@ -149,8 +143,14 @@ fun MiniPlayer(
 
     val animatedProgress by animateFloatAsState(
         targetValue = progressValue,
-        animationSpec = animationSpec,
+        animationSpec = springSpec,
         label = "mini_progress"
+    )
+
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.02f else 0.22f,
+        animationSpec = springSpec,
+        label = "art_overlay"
     )
 
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
@@ -159,41 +159,31 @@ fun MiniPlayer(
 
     val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
-    val containerTop = when {
+    val titleText = mediaMetadata?.title ?: "Unknown"
+    val subtitleText = when {
+        error != null -> "Error playing"
+        !mediaMetadata?.artist.isNullOrBlank() -> mediaMetadata?.artist ?: ""
+        else -> "Unknown artist"
+    }
+
+    val cardTop = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainerHigh
         else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
-    val containerBottom = when {
+    val cardBottom = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surface
         useDarkTheme -> MaterialTheme.colorScheme.surfaceContainer
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f)
-    val titleColor = MaterialTheme.colorScheme.onSurface
-    val subtitleColor = if (error != null) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-    }
-
-    val arcColor = MaterialTheme.colorScheme.primary
-    val arcTrack = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
-
-    val titleText = mediaMetadata?.title?.takeIf { it.isNotBlank() } ?: "Unknown title"
-    val subtitleText = when {
-        error != null -> "Error playing"
-        mediaMetadata?.artists?.any { it.name.isNotBlank() } == true ->
-            mediaMetadata?.artists?.joinToString { it.name }.orEmpty()
-        else -> "Unknown artist"
-    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(94.dp)
+            .height(96.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .padding(bottom = 12.dp)
@@ -225,8 +215,8 @@ fun MiniPlayer(
                     .fillMaxSize()
                     .clip(RoundedCornerShape(36.dp))
                     .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(containerTop, containerBottom)
+                        Brush.verticalGradient(
+                            listOf(cardTop, cardBottom)
                         )
                     )
                     .border(
@@ -251,7 +241,7 @@ fun MiniPlayer(
                                 coroutineScope.launch {
                                     offsetXAnimatable.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = animationSpec
+                                        animationSpec = springSpec
                                     )
                                 }
                             },
@@ -309,7 +299,7 @@ fun MiniPlayer(
                                 coroutineScope.launch {
                                     offsetXAnimatable.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = animationSpec
+                                        animationSpec = springSpec
                                     )
                                 }
                             }
@@ -329,9 +319,9 @@ fun MiniPlayer(
                         CircularProgressIndicator(
                             progress = { animatedProgress },
                             modifier = Modifier.size(50.dp),
-                            color = arcColor,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 3.dp,
-                            trackColor = arcTrack
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
                         )
 
                         Box(
@@ -354,10 +344,10 @@ fun MiniPlayer(
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            val thumbnailUrl = mediaMetadata?.thumbnailUrl
-                            if (thumbnailUrl != null) {
+                            val artwork = mediaMetadata?.artworkUri
+                            if (artwork != null) {
                                 AsyncImage(
-                                    model = thumbnailUrl,
+                                    model = artwork,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
@@ -368,14 +358,17 @@ fun MiniPlayer(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = overlayAlpha), CircleShape)
+                                    .background(
+                                        Color.Black.copy(alpha = overlayAlpha),
+                                        CircleShape
+                                    )
                             )
                         }
                     }
@@ -393,7 +386,7 @@ fun MiniPlayer(
                         ) { title ->
                             Text(
                                 text = title,
-                                color = titleColor,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
@@ -493,7 +486,7 @@ fun MiniMediaInfo(
     ) {
         Box(modifier = Modifier.padding(6.dp)) {
             AsyncImage(
-                model = mediaMetadata.thumbnailUrl,
+                model = mediaMetadata.artworkUri,
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
