@@ -1529,17 +1529,25 @@ fun BottomSheetPlayer(
         }
 
         Queue(
-            state = queueSheetState,
-            playerBottomSheetState = state,
-            navController = navController,
-            backgroundColor =
-                if (useBlackBackground) {
-                    Color.Black
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                },
-            onBackgroundColor = onBackgroundColor,
-            textBackgroundColor = TextBackgroundColor,
-        )
+    state = queueSheetState,
+    playerBottomSheetState = state,
+    navController = navController,
+    backgroundColor =
+        if (useBlackBackground) {
+            Color.Black
+        } else {
+            MaterialTheme.colorScheme.surfaceContainer
+        },
+    onBackgroundColor = onBackgroundColor,
+    textBackgroundColor = TextBackgroundColor,
+)
+}
+
+PlayerOverlayHost(
+    visible = showFullPlayer,
+    onDismiss = {
+        if (hapticsEnabled) Haptics.click(haptic, context)
+        showFullPlayer = false
     }
+)
 }
