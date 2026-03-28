@@ -1,15 +1,41 @@
 package com.j.m3play.ui.screens
 
 import android.annotation.SuppressLint
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -20,17 +46,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -59,6 +96,7 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.AccountNameKey
 import com.j.m3play.constants.GridThumbnailHeight
+import com.j.m3play.constants.HapticsEnabledKey
 import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
@@ -68,22 +106,38 @@ import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.LocalItem
 import com.j.m3play.db.entities.Playlist
 import com.j.m3play.db.entities.Song
-import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.extensions.toMediaItem
+import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.LocalAlbumRadio
 import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.*
+import com.j.m3play.ui.component.AlbumGridItem
+import com.j.m3play.ui.component.ArtistGridItem
+import com.j.m3play.ui.component.HideOnScrollFAB
+import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.M3PlayHeroCarousel
+import com.j.m3play.ui.component.M3PlayHeroItem
+import com.j.m3play.ui.component.M3PlayQuickPickCard
+import com.j.m3play.ui.component.NavigationTitle
+import com.j.m3play.ui.component.SongGridItem
+import com.j.m3play.ui.component.SongListItem
+import com.j.m3play.ui.component.TimeGreetingCard
+import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
-import com.j.m3play.ui.menu.*
+import com.j.m3play.ui.menu.AlbumMenu
+import com.j.m3play.ui.menu.ArtistMenu
+import com.j.m3play.ui.menu.SongMenu
+import com.j.m3play.ui.menu.YouTubeAlbumMenu
+import com.j.m3play.ui.menu.YouTubeArtistMenu
+import com.j.m3play.ui.menu.YouTubePlaylistMenu
+import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.utils.SnapLayoutInfoProvider
-import com.j.m3play.utils.rememberPreference
-import com.j.m3play.constants.HapticsEnabledKey
 import com.j.m3play.utils.Haptics
+import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -118,7 +172,7 @@ fun HomeScreen(
     val homePage by viewModel.homePage.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
-    
+
     val heroItems = remember(explorePage, isRefreshing) {
         buildList {
             explorePage?.newReleaseAlbums
@@ -136,7 +190,7 @@ fun HomeScreen(
                 }
         }
     }
-    
+
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
 
@@ -321,6 +375,12 @@ fun HomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
         indicator = {
+            val indicatorRotation by animateFloatAsState(
+                targetValue = if (isRefreshing) 180f else 0f,
+                animationSpec = tween(300),
+                label = "refresh_rotation"
+            )
+
             Indicator(
                 isRefreshing = isRefreshing,
                 state = pullRefreshState,
@@ -328,8 +388,8 @@ fun HomeScreen(
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
                     .graphicsLayer {
-                        rotationZ = if (isRefreshing) 360f else 0f
-                    }
+                        rotationZ = indicatorRotation
+                    },
             )
         }
     ) {
@@ -337,8 +397,10 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart
         ) {
-            val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+            val horizontalLazyGridItemWidthFactor =
+                if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
+
             val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = quickPicksLazyGridState,
@@ -363,6 +425,7 @@ fun HomeScreen(
                 item {
                     TimeGreetingCard(
                         onSearchClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             navController.navigate("explore")
                         },
                         modifier = Modifier
@@ -370,7 +433,7 @@ fun HomeScreen(
                             .animateItem()
                     )
                 }
-                
+
                 item {
                     Row(
                         modifier = Modifier
@@ -437,16 +500,17 @@ fun HomeScreen(
 
                 item {
                     val carouselAlpha = remember { Animatable(0f) }
-                    val carouselOffset = remember { Animatable(50f) }
-                    
+                    val carouselOffset = remember { Animatable(40f) }
+
                     LaunchedEffect(Unit) {
-                        carouselAlpha.animateTo(1f, animationSpec = tween(500))
-                        carouselOffset.animateTo(0f, animationSpec = tween(500))
+                        carouselAlpha.animateTo(1f, animationSpec = tween(450))
+                        carouselOffset.animateTo(0f, animationSpec = tween(450))
                     }
-                    
+
                     M3PlayHeroCarousel(
                         items = heroItems,
                         onItemClick = { item ->
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             navController.navigate("album/${item.id}")
                         },
                         modifier = Modifier
@@ -461,10 +525,10 @@ fun HomeScreen(
                 item {
                     Spacer(modifier = Modifier.height(6.dp))
                 }
-                
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
+
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
                     val quickPicksTitle = stringResource(R.string.quick_picks)
-                    
+
                     item {
                         Row(
                             modifier = Modifier
@@ -490,10 +554,12 @@ fun HomeScreen(
                                         shape = RoundedCornerShape(999.dp)
                                     )
                                     .clickable {
+                                        if (hapticsEnabled) Haptics.tick(haptic, context)
                                         playerConnection.playQueue(
                                             ListQueue(
                                                 title = quickPicksTitle,
-                                                items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
+                                                items = quickPicks.distinctBy { it.id }
+                                                    .map { it.toMediaItem() }
                                             )
                                         )
                                     }
@@ -524,19 +590,20 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = quickPicksList.distinctBy { it.id },
+                                items = quickPicks.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = quickPicksList.indexOf(originalSong)
+                                val index = quickPicks.indexOf(originalSong)
+
                                 val animatedAlpha = remember { Animatable(0f) }
-                                val animatedOffset = remember { Animatable(50f) }
-                                
+                                val animatedOffset = remember { Animatable(24f) }
+
                                 LaunchedEffect(Unit) {
-                                    delay(index * 50L)
-                                    animatedAlpha.animateTo(1f, animationSpec = tween(300))
-                                    animatedOffset.animateTo(0f, animationSpec = tween(300))
+                                    delay(index * 35L)
+                                    animatedAlpha.animateTo(1f, animationSpec = tween(260))
+                                    animatedOffset.animateTo(0f, animationSpec = tween(260))
                                 }
-                                
+
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
@@ -577,41 +644,41 @@ fun HomeScreen(
                         }
                     }
                 }
-                    
-                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
-                    val keepListeningTitle = stringResource(R.string.keep_listening)
+
+                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
                     item {
                         NavigationTitle(
-                            title = keepListeningTitle,
+                            title = stringResource(R.string.keep_listening),
                             modifier = Modifier.animateItem()
                         )
                     }
 
                     item {
-                        val rows = if (keepListeningList.size > 6) 2 else 1
+                        val rows = if (keepListening.size > 6) 2 else 1
                         LazyHorizontalGrid(
                             state = rememberLazyGridState(),
                             rows = GridCells.Fixed(rows),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height((GridThumbnailHeight + with(LocalDensity.current) {
-                                    MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
-                                            MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
-                                }) * rows)
+                                .height(
+                                    (GridThumbnailHeight + with(LocalDensity.current) {
+                                        MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
+                                                MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
+                                    }) * rows
+                                )
                                 .animateItem()
                         ) {
-                            items(keepListeningList) {
+                            items(keepListening) {
                                 localGridItem(it)
                             }
                         }
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
-                    val yourYtbTitle = stringResource(R.string.your_ytb_playlists)
+                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
                     item {
                         NavigationTitle(
-                            label = yourYtbTitle,
+                            label = stringResource(R.string.your_ytb_playlists),
                             title = accountName,
                             thumbnail = {
                                 if (url != null) {
@@ -639,6 +706,7 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("account")
                             },
                             modifier = Modifier.animateItem()
@@ -653,7 +721,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = accountPlaylistsList.distinctBy { it.id },
+                                items = accountPlaylists.distinctBy { it.id },
                                 key = { it.id },
                             ) { item ->
                                 ytGridItem(item)
@@ -662,15 +730,19 @@ fun HomeScreen(
                     }
                 }
 
-                similarRecommendations?.forEach { section ->
-                    val similarToTitle = stringResource(R.string.similar_to)
+                similarRecommendations?.forEach {
                     item {
                         NavigationTitle(
-                            label = similarToTitle,
-                            title = section.title.title,
-                            thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
+                            label = stringResource(R.string.similar_to),
+                            title = it.title.title,
+                            thumbnail = it.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
-                                    val shape = if (section.title is Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
+                                    val shape =
+                                        if (it.title is Artist) {
+                                            CircleShape
+                                        } else {
+                                            RoundedCornerShape(ThumbnailCornerRadius)
+                                        }
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -681,10 +753,11 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
-                                when (section.title) {
-                                    is Song -> navController.navigate("album/${section.title.album!!.id}")
-                                    is Album -> navController.navigate("album/${section.title.id}")
-                                    is Artist -> navController.navigate("artist/${section.title.id}")
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                when (it.title) {
+                                    is Song -> navController.navigate("album/${it.title.album!!.id}")
+                                    is Album -> navController.navigate("album/${it.title.id}")
+                                    is Artist -> navController.navigate("artist/${it.title.id}")
                                     is Playlist -> {}
                                 }
                             },
@@ -699,21 +772,26 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(section.items) { item ->
+                            items(it.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                homePage?.sections?.forEach { section ->
+                homePage?.sections?.forEach {
                     item {
                         NavigationTitle(
-                            title = section.title,
-                            label = section.label,
-                            thumbnail = section.thumbnail?.let { thumbnailUrl ->
+                            title = it.title,
+                            label = it.label,
+                            thumbnail = it.thumbnail?.let { thumbnailUrl ->
                                 {
-                                    val shape = if (section.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
+                                    val shape =
+                                        if (it.endpoint?.isArtistEndpoint == true) {
+                                            CircleShape
+                                        } else {
+                                            RoundedCornerShape(ThumbnailCornerRadius)
+                                        }
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -734,19 +812,19 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(section.items) { item ->
+                            items(it.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
-                    val newReleaseTitle = stringResource(R.string.new_release_albums)
+                explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
                     item {
                         NavigationTitle(
-                            title = newReleaseTitle,
+                            title = stringResource(R.string.new_release_albums),
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("new_release")
                             },
                             modifier = Modifier.animateItem()
@@ -761,7 +839,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = newReleaseAlbumsList,
+                                items = newReleaseAlbums,
                                 key = { it.id }
                             ) { album ->
                                 YouTubeGridItem(
@@ -772,10 +850,11 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .combinedClickable(
                                             onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
                                                 navController.navigate("album/${album.id}")
                                             },
                                             onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
                                                 menuState.show {
                                                     YouTubeAlbumMenu(
                                                         albumItem = album,
@@ -812,17 +891,20 @@ fun HomeScreen(
                     }
                 }
 
-                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
+                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
                     val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+
                     item {
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
                             modifier = Modifier.animateItem(),
                             onPlayAllClick = {
+                                if (hapticsEnabled) Haptics.tick(haptic, context)
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = forgottenFavoritesTitle,
-                                        items = forgottenFavoritesList.distinctBy { it.id }.map { it.toMediaItem() }
+                                        items = forgottenFavorites.distinctBy { it.id }
+                                            .map { it.toMediaItem() }
                                     )
                                 )
                             }
@@ -830,7 +912,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        val rows = min(4, forgottenFavoritesList.size)
+                        val rows = min(4, forgottenFavorites.size)
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
                             rows = GridCells.Fixed(rows),
@@ -846,19 +928,20 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = forgottenFavoritesList.distinctBy { it.id },
+                                items = forgottenFavorites.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = forgottenFavoritesList.indexOf(originalSong)
+                                val index = forgottenFavorites.indexOf(originalSong)
+
                                 val animatedAlpha = remember { Animatable(0f) }
-                                val animatedOffset = remember { Animatable(50f) }
-                                
+                                val animatedOffset = remember { Animatable(20f) }
+
                                 LaunchedEffect(Unit) {
-                                    delay(index * 50L)
-                                    animatedAlpha.animateTo(1f, animationSpec = tween(300))
-                                    animatedOffset.animateTo(0f, animationSpec = tween(300))
+                                    delay(index * 30L)
+                                    animatedAlpha.animateTo(1f, animationSpec = tween(240))
+                                    animatedOffset.animateTo(0f, animationSpec = tween(240))
                                 }
-                                
+
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
@@ -898,7 +981,9 @@ fun HomeScreen(
                                                 if (song!!.id == mediaMetadata?.id) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
-                                                    playerConnection.playQueue(YouTubeQueue.radio(song!!.toMediaMetadata()))
+                                                    playerConnection.playQueue(
+                                                        YouTubeQueue.radio(song!!.toMediaMetadata())
+                                                    )
                                                 }
                                             },
                                             onLongClick = {
@@ -924,6 +1009,8 @@ fun HomeScreen(
                 lazyListState = lazylistState,
                 icon = R.drawable.shuffle,
                 onClick = {
+                    if (hapticsEnabled) Haptics.success(context)
+
                     val local = when {
                         allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
                         allLocalItems.isNotEmpty() -> true
@@ -941,6 +1028,7 @@ fun HomeScreen(
                                         playerConnection.playQueue(LocalAlbumRadio(it))
                                     }
                                 }
+
                                 is Artist -> {}
                                 is Playlist -> {}
                             }
@@ -951,6 +1039,7 @@ fun HomeScreen(
                                 is ArtistItem -> luckyItem.radioEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
+
                                 is PlaylistItem -> luckyItem.playEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
@@ -959,37 +1048,6 @@ fun HomeScreen(
                     }
                 }
             )
-            
-            val isScrolled by remember {
-                derivedStateOf { lazylistState.firstVisibleItemIndex > 0 }
-            }
-            
-            AnimatedVisibility(
-                visible = isScrolled,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(0.dp, 0.dp, 16.dp, 80.dp)
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            lazylistState.animateScrollToItem(0)
-                            if (hapticsEnabled) Haptics.click(haptic, context)
-                        }
-                    },
-                    modifier = Modifier.size(48.dp),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = "Scroll to top",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
         }
     }
 }
@@ -1001,14 +1059,47 @@ fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val hapticsEnabled by rememberPreference(HapticsEnabledKey, defaultValue = true)
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.965f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "action_card_scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "action_card_alpha"
+    )
+
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
             .height(48.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(
                 MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
             )
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                if (hapticsEnabled) Haptics.click(haptic, context)
+                onClick()
+            }
             .padding(horizontal = 12.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
