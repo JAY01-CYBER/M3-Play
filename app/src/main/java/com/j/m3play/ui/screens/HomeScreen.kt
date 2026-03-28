@@ -371,7 +371,6 @@ fun HomeScreen(
                     )
                 }
                 
-                // Action Cards Row 1
                 item {
                     Row(
                         modifier = Modifier
@@ -400,7 +399,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Action Cards Row 2
                 item {
                     Row(
                         modifier = Modifier
@@ -433,12 +431,10 @@ fun HomeScreen(
                     }
                 }
 
-                // Spacer
                 item {
                     Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                // Hero Carousel with Entrance Animation
                 item {
                     val carouselAlpha = remember { Animatable(0f) }
                     val carouselOffset = remember { Animatable(50f) }
@@ -462,14 +458,11 @@ fun HomeScreen(
                     )
                 }
 
-                // Spacer
                 item {
                     Spacer(modifier = Modifier.height(6.dp))
                 }
                 
-                // Quick Picks Section with Staggered Entrance
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
-                    // ✅ FIX: stringResource OUTSIDE item
                     val quickPicksTitle = stringResource(R.string.quick_picks)
                     
                     item {
@@ -535,8 +528,6 @@ fun HomeScreen(
                                 key = { it.id }
                             ) { originalSong ->
                                 val index = quickPicksList.indexOf(originalSong)
-                                
-                                // Staggered entrance animation
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -587,11 +578,11 @@ fun HomeScreen(
                     }
                 }
                     
-                // Keep Listening Section
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
+                    val keepListeningTitle = stringResource(R.string.keep_listening)
                     item {
                         NavigationTitle(
-                            title = stringResource(R.string.keep_listening),
+                            title = keepListeningTitle,
                             modifier = Modifier.animateItem()
                         )
                     }
@@ -616,11 +607,11 @@ fun HomeScreen(
                     }
                 }
 
-                // Account Playlists Section
                 accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
+                    val yourYtbTitle = stringResource(R.string.your_ytb_playlists)
                     item {
                         NavigationTitle(
-                            label = stringResource(R.string.your_ytb_playlists),
+                            label = yourYtbTitle,
                             title = accountName,
                             thumbnail = {
                                 if (url != null) {
@@ -671,18 +662,15 @@ fun HomeScreen(
                     }
                 }
 
-                // Similar Recommendations
                 similarRecommendations?.forEach { section ->
+                    val similarToTitle = stringResource(R.string.similar_to)
                     item {
                         NavigationTitle(
-                            label = stringResource(R.string.similar_to),
+                            label = similarToTitle,
                             title = section.title.title,
                             thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
-                                    val shape =
-                                        if (section.title is Artist) CircleShape else RoundedCornerShape(
-                                            ThumbnailCornerRadius
-                                        )
+                                    val shape = if (section.title is Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -718,7 +706,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Home Page Sections
                 homePage?.sections?.forEach { section ->
                     item {
                         NavigationTitle(
@@ -726,10 +713,7 @@ fun HomeScreen(
                             label = section.label,
                             thumbnail = section.thumbnail?.let { thumbnailUrl ->
                                 {
-                                    val shape =
-                                        if (section.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
-                                            ThumbnailCornerRadius
-                                        )
+                                    val shape = if (section.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -757,11 +741,11 @@ fun HomeScreen(
                     }
                 }
 
-                // New Release Albums
                 explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
+                    val newReleaseTitle = stringResource(R.string.new_release_albums)
                     item {
                         NavigationTitle(
-                            title = stringResource(R.string.new_release_albums),
+                            title = newReleaseTitle,
                             onClick = {
                                 navController.navigate("new_release")
                             },
@@ -808,7 +792,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Shimmer Loader
                 if (isLoading && homePage?.sections.isNullOrEmpty()) {
                     item(key = "loading_shimmer") {
                         ShimmerHost(
@@ -829,11 +812,8 @@ fun HomeScreen(
                     }
                 }
 
-                // Forgotten Favorites with Staggered Entrance
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
-                    // ✅ FIX: stringResource OUTSIDE item
                     val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
-                    
                     item {
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
@@ -870,8 +850,6 @@ fun HomeScreen(
                                 key = { it.id }
                             ) { originalSong ->
                                 val index = forgottenFavoritesList.indexOf(originalSong)
-                                
-                                // Staggered entrance animation
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -963,7 +941,6 @@ fun HomeScreen(
                                         playerConnection.playQueue(LocalAlbumRadio(it))
                                     }
                                 }
-
                                 is Artist -> {}
                                 is Playlist -> {}
                             }
@@ -974,7 +951,6 @@ fun HomeScreen(
                                 is ArtistItem -> luckyItem.radioEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
-
                                 is PlaylistItem -> luckyItem.playEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
@@ -984,7 +960,6 @@ fun HomeScreen(
                 }
             )
             
-            // Scroll to Top Button
             val isScrolled by remember {
                 derivedStateOf { lazylistState.firstVisibleItemIndex > 0 }
             }
