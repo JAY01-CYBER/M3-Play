@@ -365,7 +365,7 @@ fun HomeScreen(
                     )
                 }
                 
-                // Action Cards Row 1
+                // Action Cards Row 1 - Inline implementation
                 item {
                     Row(
                         modifier = Modifier
@@ -374,27 +374,75 @@ fun HomeScreen(
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ActionCard(
-                            title = "Liked",
-                            icon = R.drawable.favorite,
-                            onClick = {
-                                navController.navigate("auto_playlist/liked")
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ActionCard(
-                            title = "Downloads",
-                            icon = R.drawable.download,
-                            onClick = {
-                                navController.navigate("auto_playlist/downloaded")
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                        // Liked Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f))
+                                .clickable {
+                                    navController.navigate("auto_playlist/liked")
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.favorite),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Liked",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        
+                        // Downloads Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f))
+                                .clickable {
+                                    navController.navigate("auto_playlist/downloaded")
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Downloads",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Action Cards Row 2
+                // Action Cards Row 2 - Inline implementation
                 item {
                     Row(
                         modifier = Modifier
@@ -403,27 +451,75 @@ fun HomeScreen(
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ActionCard(
-                            title = "History",
-                            icon = R.drawable.history,
-                            onClick = {
-                                navController.navigate("history")
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ActionCard(
-                            title = if (isLoggedIn) "Account" else "Library",
-                            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
-                            onClick = {
-                                if (isLoggedIn) {
-                                    navController.navigate("account")
-                                } else {
-                                    navController.navigate("library")
+                        // History Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f))
+                                .clickable {
+                                    navController.navigate("history")
                                 }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.history),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "History",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        
+                        // Account/Library Card
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f))
+                                .clickable {
+                                    if (isLoggedIn) {
+                                        navController.navigate("account")
+                                    } else {
+                                        navController.navigate("library")
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(if (isLoggedIn) R.drawable.person else R.drawable.library_music),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isLoggedIn) "Account" else "Library",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -434,7 +530,6 @@ fun HomeScreen(
 
                 // Hero Carousel with Entrance Animation
                 item {
-                    // Carousel entrance animation
                     val carouselAlpha = remember { Animatable(0f) }
                     val carouselOffset = remember { Animatable(50f) }
                     
@@ -464,6 +559,9 @@ fun HomeScreen(
                 
                 // Quick Picks Section with Staggered Entrance
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
+                    // ✅ FIX: stringResource outside clickable lambda
+                    val quickPicksTitle = stringResource(R.string.quick_picks)
+                    
                     item {
                         Row(
                             modifier = Modifier
@@ -474,7 +572,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = stringResource(R.string.quick_picks),
+                                text = quickPicksTitle,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -491,7 +589,7 @@ fun HomeScreen(
                                     .clickable {
                                         playerConnection.playQueue(
                                             ListQueue(
-                                                title = stringResource(R.string.quick_picks),
+                                                title = quickPicksTitle,
                                                 items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
                                             )
                                         )
@@ -528,7 +626,6 @@ fun HomeScreen(
                             ) { originalSong ->
                                 val index = quickPicksList.indexOf(originalSong)
                                 
-                                // Staggered entrance animation
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -823,8 +920,10 @@ fun HomeScreen(
 
                 // Forgotten Favorites with Staggered Entrance
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
+                    // ✅ FIX: stringResource outside clickable lambda
+                    val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+                    
                     item {
-                        val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
                             modifier = Modifier.animateItem(),
@@ -861,7 +960,6 @@ fun HomeScreen(
                             ) { originalSong ->
                                 val index = forgottenFavoritesList.indexOf(originalSong)
                                 
-                                // Staggered entrance animation
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(50f) }
                                 
@@ -1005,45 +1103,6 @@ fun HomeScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-// ActionCard function - properly placed at file level with correct imports
-@Composable
-fun ActionCard(
-    title: String,
-    icon: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .height(48.dp)
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f),
-        contentColor = MaterialTheme.colorScheme.onSurface
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
         }
     }
 }
