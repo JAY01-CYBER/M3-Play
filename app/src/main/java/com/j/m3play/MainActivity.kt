@@ -31,8 +31,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -1125,23 +1125,23 @@ class MainActivity : ComponentActivity() {
                                                         )
                                                     }
                                                 }
-                                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                                .padding(horizontal = 18.dp, vertical = 10.dp)
                                         ) {
                                             Surface(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                shape = RoundedCornerShape(30.dp),
+                                                shape = RoundedCornerShape(24.dp),
                                                 color = if (pureBlack) {
-                                                    Color.Black.copy(alpha = 0.96f)
+                                                    Color.Black.copy(alpha = 0.94f)
                                                 } else {
-                                                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)
+                                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
                                                 },
-                                                tonalElevation = 8.dp,
-                                                shadowElevation = 14.dp
+                                                tonalElevation = 6.dp,
+                                                shadowElevation = 8.dp
                                             ) {
                                                 Row(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .padding(horizontal = 10.dp, vertical = 10.dp),
+                                                        .padding(horizontal = 12.dp, vertical = 8.dp),
                                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
@@ -1156,14 +1156,14 @@ class MainActivity : ComponentActivity() {
                                                             } == true
 
                                                         val itemScale by animateFloatAsState(
-                                                            targetValue = if (isSelected) 1.04f else 1f,
-                                                            animationSpec = tween(220),
+                                                            targetValue = if (isSelected) 1.02f else 1f,
+                                                            animationSpec = tween(180),
                                                             label = "nav_item_scale"
                                                         )
 
                                                         val itemContainerColor =
                                                             if (isSelected) {
-                                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                                             } else {
                                                                 Color.Transparent
                                                             }
@@ -1179,7 +1179,7 @@ class MainActivity : ComponentActivity() {
                                                         Row(
                                                             modifier = Modifier
                                                                 .scale(itemScale)
-                                                                .clip(RoundedCornerShape(22.dp))
+                                                                .clip(RoundedCornerShape(18.dp))
                                                                 .background(itemContainerColor)
                                                                 .clickable {
                                                                     val currentTapTime = System.currentTimeMillis()
@@ -1232,8 +1232,8 @@ class MainActivity : ComponentActivity() {
                                                                     }
                                                                 }
                                                                 .padding(
-                                                                    horizontal = if (isSelected) 18.dp else 14.dp,
-                                                                    vertical = 12.dp
+                                                                    horizontal = if (isSelected) 14.dp else 12.dp,
+                                                                    vertical = 10.dp
                                                                 ),
                                                             verticalAlignment = Alignment.CenterVertically,
                                                             horizontalArrangement = Arrangement.Center
@@ -1247,12 +1247,12 @@ class MainActivity : ComponentActivity() {
                                                             )
 
                                                             if (!slimNav && isSelected) {
-                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                Spacer(modifier = Modifier.width(6.dp))
                                                                 Text(
                                                                     text = stringResource(screen.titleId),
                                                                     color = itemContentColor,
-                                                                    style = MaterialTheme.typography.labelLarge,
-                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    style = MaterialTheme.typography.labelMedium,
+                                                                    fontWeight = FontWeight.Medium,
                                                                     maxLines = 1
                                                                 )
                                                             }
