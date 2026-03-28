@@ -91,8 +91,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -139,8 +137,9 @@ fun MiniPlayer(
     }.toShape()
 
     val miniPlayerBackgroundColor = when {
-        useDarkTheme && pureBlack -> Color.Black.copy(alpha = 0.95f)
-        else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
+        useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
+        useDarkTheme -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
     val layoutDirection = LocalLayoutDirection.current
@@ -175,7 +174,7 @@ fun MiniPlayer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(92.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .padding(bottom = 10.dp)
@@ -192,10 +191,10 @@ fun MiniPlayer(
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(64.dp)
+                .height(68.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 14.dp,
+                    elevation = 10.dp,
                     shape = RoundedCornerShape(32.dp),
                     clip = false
                 ),
@@ -206,11 +205,17 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .clip(RoundedCornerShape(32.dp))
                     .background(miniPlayerBackgroundColor)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                        shape = RoundedCornerShape(32.dp)
+                    )
                     .clickable {
                         // full player open karna ho to yaha action laga
                     }
-                    .pointerInput(canSkipNext, canSkipPrevious, layoutDirection) {
+                    .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragStart = {
                                 dragStartTime = System.currentTimeMillis()
@@ -292,7 +297,7 @@ fun MiniPlayer(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -303,8 +308,8 @@ fun MiniPlayer(
                                 progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
                                 modifier = Modifier.size(48.dp),
                                 color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 3.dp,
-                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                strokeWidth = 2.dp,
+                                trackColor = Color.Transparent
                             )
                         }
 
@@ -315,7 +320,7 @@ fun MiniPlayer(
                                 .clip(currentThumbnailShape)
                                 .border(
                                     width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
                                     shape = currentThumbnailShape
                                 )
                                 .clickable {
@@ -379,7 +384,7 @@ fun MiniPlayer(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(18.dp))
 
                     Column(
                         modifier = Modifier.weight(1f),
@@ -393,7 +398,7 @@ fun MiniPlayer(
                             Text(
                                 text = title,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 14.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -420,7 +425,7 @@ fun MiniPlayer(
                                 } else {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                 },
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.basicMarquee(),
@@ -449,28 +454,36 @@ fun MiniPlayer(
                             tint = if (currentSong?.song?.liked == true) {
                                 MaterialTheme.colorScheme.error
                             } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                             },
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    IconButton(
-                        enabled = canSkipNext,
-                        onClick = {
-                            Haptics.click(haptic = haptic, context = context)
-                            playerConnection.player.seekToNext()
-                        },
-                        modifier = Modifier.size(36.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_next),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = if (canSkipNext) 0.7f else 0.35f
-                            ),
-                            modifier = Modifier.size(17.dp)
-                        )
+                        IconButton(
+                            enabled = canSkipNext,
+                            onClick = {
+                                Haptics.click(haptic = haptic, context = context)
+                                playerConnection.player.seekToNext()
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.skip_next),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(
+                                    alpha = if (canSkipNext) 0.82f else 0.35f
+                                ),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
