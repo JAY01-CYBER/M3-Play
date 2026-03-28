@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,15 +34,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,15 +78,11 @@ import coil.compose.AsyncImage
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
-import com.j.m3play.constants.DefaultMiniPlayerThumbnailShape
-import com.j.m3play.constants.MiniPlayerThumbnailShapeKey
 import com.j.m3play.constants.PureBlackKey
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.utils.Haptics
-import com.j.m3play.utils.getMiniPlayerThumbnailShape
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlinx.coroutines.launch
@@ -94,11 +90,12 @@ import kotlin.math.absoluteValue
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiniPlayer(
     position: Long,
     duration: Long,
+    onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -108,7 +105,6 @@ fun MiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
 
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -121,22 +117,46 @@ fun MiniPlayer(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val miniPlayerThumbnailShapeState = rememberPreference(
-        key = MiniPlayerThumbnailShapeKey,
-        defaultValue = DefaultMiniPlayerThumbnailShape
+    val configuration = LocalConfiguration.current
+    val isTabletLandscape = configuration.screenWidthDp >= 600 &&
+        configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val offsetXAnimatable = remember { Animatable(0f) }
+    var dragStartTime by remember { mutableLongStateOf(0L) }
+    var totalDragDistance by remember { mutableFloatStateOf(0f) }
+    var thresholdTriggered by remember { mutableStateOf(false) }
+
+    val animationSpec = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
     )
 
-    val miniPlayerThumbnailShape = remember(miniPlayerThumbnailShapeState.value, isPlaying) {
-        if (isPlaying) {
-            getMiniPlayerThumbnailShape(miniPlayerThumbnailShapeState.value)
-        } else {
-            MaterialShapes.Circle
-        }
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.02f else 0.22f,
+        label = "art_overlay",
+        animationSpec = animationSpec
+    )
+
+    val progressValue = if (duration > 0L) {
+        (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
     }
 
-    val currentThumbnailShape = remember(isPlaying, miniPlayerThumbnailShape) {
-        if (isPlaying) miniPlayerThumbnailShape else MaterialShapes.Square
-    }.toShape()
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressValue,
+        animationSpec = animationSpec,
+        label = "mini_progress"
+    )
+
+    fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
+        return (600 / (1f + exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
+    }
+
+    val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
     val containerTop = when {
         useDarkTheme && pureBlack -> MaterialTheme.colorScheme.surfaceContainer
@@ -158,85 +178,51 @@ fun MiniPlayer(
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
     }
 
-    val progressColor = MaterialTheme.colorScheme.primary
-    val progressTrackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+    val arcColor = MaterialTheme.colorScheme.primary
+    val arcTrack = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
 
-    val layoutDirection = LocalLayoutDirection.current
-    val coroutineScope = rememberCoroutineScope()
-
-    val configuration = LocalConfiguration.current
-    val isTabletLandscape = configuration.screenWidthDp >= 600 &&
-        configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    val offsetXAnimatable = remember { Animatable(0f) }
-    var dragStartTime by remember { mutableLongStateOf(0L) }
-    var totalDragDistance by remember { mutableFloatStateOf(0f) }
-    var thresholdTriggered by remember { mutableStateOf(false) }
-
-    val animationSpec = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-
-    val overlayAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.0f else 0.28f,
-        label = "overlay_alpha",
-        animationSpec = animationSpec
-    )
-
-    val progressValue = if (duration > 0L) {
-        (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
+    val titleText = mediaMetadata?.title?.takeIf { it.isNotBlank() } ?: "Unknown title"
+    val subtitleText = when {
+        error != null -> "Error playing"
+        mediaMetadata?.artists?.any { it.name.isNotBlank() } == true ->
+            mediaMetadata?.artists?.joinToString { it.name }.orEmpty()
+        else -> "Unknown artist"
     }
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = progressValue,
-        label = "progress_value",
-        animationSpec = animationSpec
-    )
-
-    fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
-        return (600 / (1f + exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
-    }
-
-    val autoSwipeThreshold = calculateAutoSwipeThreshold(0.73f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(92.dp)
+            .height(94.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .padding(bottom = 10.dp)
-            .background(Color.Transparent)
+            .padding(bottom = 12.dp)
     ) {
         Surface(
             modifier = Modifier
                 .then(
                     if (isTabletLandscape) {
                         Modifier
-                            .width(480.dp)
+                            .width(500.dp)
                             .align(Alignment.CenterEnd)
                     } else {
                         Modifier.fillMaxWidth()
                     }
                 )
-                .height(70.dp)
+                .height(72.dp)
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .shadow(
-                    elevation = 10.dp,
-                    shape = RoundedCornerShape(32.dp),
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(36.dp),
                     clip = false
                 ),
-            tonalElevation = 2.dp,
-            shape = RoundedCornerShape(32.dp),
-            color = Color.Transparent
+            shape = RoundedCornerShape(36.dp),
+            color = Color.Transparent,
+            tonalElevation = 0.dp
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(32.dp))
+                    .clip(RoundedCornerShape(36.dp))
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(containerTop, containerBottom)
@@ -245,10 +231,11 @@ fun MiniPlayer(
                     .border(
                         width = 1.dp,
                         color = outlineColor,
-                        shape = RoundedCornerShape(32.dp)
+                        shape = RoundedCornerShape(36.dp)
                     )
                     .clickable {
-                        // full player open karna ho to yaha action laga
+                        Haptics.click(haptic = haptic, context = context)
+                        onOpenPlayer()
                     }
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
@@ -307,7 +294,6 @@ fun MiniPlayer(
 
                                 if (shouldChangeSong) {
                                     val isRightSwipe = currentOffset > 0
-
                                     if (isRightSwipe && canSkipPrevious) {
                                         Haptics.success(context)
                                         playerConnection.player.seekToPreviousMediaItem()
@@ -329,35 +315,22 @@ fun MiniPlayer(
                         )
                     }
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(progressTrackColor)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(animatedProgress)
-                            .fillMaxHeight()
-                            .background(progressColor)
-                    )
-                }
-
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(46.dp)
+                        modifier = Modifier.size(50.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f))
+                        CircularProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier.size(50.dp),
+                            color = arcColor,
+                            strokeWidth = 3.dp,
+                            trackColor = arcTrack
                         )
 
                         Box(
@@ -365,15 +338,10 @@ fun MiniPlayer(
                                 .size(40.dp)
                                 .shadow(
                                     elevation = 6.dp,
-                                    shape = currentThumbnailShape,
+                                    shape = CircleShape,
                                     clip = false
                                 )
-                                .clip(currentThumbnailShape)
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
-                                    shape = currentThumbnailShape
-                                )
+                                .clip(CircleShape)
                                 .clickable {
                                     Haptics.click(haptic = haptic, context = context)
                                     if (playbackState == Player.STATE_ENDED) {
@@ -386,7 +354,6 @@ fun MiniPlayer(
                             contentAlignment = Alignment.Center
                         ) {
                             val thumbnailUrl = mediaMetadata?.thumbnailUrl
-
                             if (thumbnailUrl != null) {
                                 AsyncImage(
                                     model = thumbnailUrl,
@@ -394,45 +361,21 @@ fun MiniPlayer(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .clip(currentThumbnailShape)
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        color = Color.Black.copy(alpha = overlayAlpha),
-                                        shape = currentThumbnailShape
-                                    )
+                                    .background(Color.Black.copy(alpha = overlayAlpha), CircleShape)
                             )
-
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = playbackState == Player.STATE_ENDED || !isPlaying,
-                                enter = fadeIn(),
-                                exit = fadeOut()
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(
-                                            if (playbackState == Player.STATE_ENDED) {
-                                                R.drawable.replay
-                                            } else {
-                                                R.drawable.play
-                                            }
-                                        ),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
                         }
                     }
 
@@ -443,9 +386,9 @@ fun MiniPlayer(
                         verticalArrangement = Arrangement.Center
                     ) {
                         AnimatedContent(
-                            targetState = mediaMetadata?.title ?: "Unknown title",
+                            targetState = titleText,
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "mini_title",
+                            label = "mini_title"
                         ) { title ->
                             Text(
                                 text = title,
@@ -454,82 +397,58 @@ fun MiniPlayer(
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
+                                modifier = Modifier.basicMarquee()
                             )
                         }
 
-                        val subtitle = when {
-                            error != null -> "Error playing"
-                            mediaMetadata?.artists?.any { it.name.isNotBlank() } == true ->
-                                mediaMetadata?.artists?.joinToString { it.name }.orEmpty()
-                            else -> "Unknown artist"
-                        }
+                        Spacer(modifier = Modifier.height(2.dp))
 
                         AnimatedContent(
-                            targetState = subtitle,
+                            targetState = subtitleText,
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "mini_artist",
-                        ) { artists ->
+                            label = "mini_subtitle"
+                        ) { sub ->
                             Text(
-                                text = artists,
+                                text = sub,
                                 color = subtitleColor,
                                 fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
+                                modifier = Modifier.basicMarquee()
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = {
-                            Haptics.click(haptic = haptic, context = context)
-                            playerConnection.toggleLike()
-                        },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                if (currentSong?.song?.liked == true) {
-                                    R.drawable.favorite
-                                } else {
-                                    R.drawable.favorite_border
-                                }
-                            ),
-                            contentDescription = if (currentSong?.song?.liked == true) "Unlike" else "Like",
-                            tint = if (currentSong?.song?.liked == true) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                            },
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(10.dp))
 
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(42.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                            .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(
-                            enabled = canSkipNext,
                             onClick = {
                                 Haptics.click(haptic = haptic, context = context)
-                                playerConnection.player.seekToNext()
+                                if (playbackState == Player.STATE_ENDED) {
+                                    playerConnection.player.seekTo(0, 0)
+                                    playerConnection.player.playWhenReady = true
+                                } else {
+                                    playerConnection.player.togglePlayPause()
+                                }
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(42.dp)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.skip_next),
+                                imageVector = if (isPlaying && playbackState != Player.STATE_ENDED) {
+                                    Icons.Rounded.Pause
+                                } else {
+                                    Icons.Rounded.PlayArrow
+                                },
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(
-                                    alpha = if (canSkipNext) 0.82f else 0.35f
-                                ),
-                                modifier = Modifier.size(16.dp)
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -547,11 +466,7 @@ fun MiniPlayer(
             ) {
                 Icon(
                     painter = painterResource(
-                        if (offsetXAnimatable.value > 0) {
-                            R.drawable.skip_previous
-                        } else {
-                            R.drawable.skip_next
-                        }
+                        if (offsetXAnimatable.value > 0) R.drawable.skip_previous else R.drawable.skip_next
                     ),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(
