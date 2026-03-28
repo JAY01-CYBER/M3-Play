@@ -181,6 +181,7 @@ import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AvatarPreferenceManager
 import com.j.m3play.ui.component.AvatarSelection
 import com.j.m3play.ui.component.BottomSheetMenu
+import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.LocaleManager
 import com.j.m3play.ui.component.Lyrics
@@ -399,10 +400,10 @@ class MainActivity : ComponentActivity() {
 
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    var previousTab by rememberSaveable { mutableStateOf("home") }
+                    val (previousTab) = rememberSaveable { mutableStateOf("home") }
 
                     val navigationItems = remember { Screens.MainScreens }
-                    val slimNav by rememberPreference(SlimNavBarKey, defaultValue = false)
+                    val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
                     val defaultOpenTab =
                         remember {
                             dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
@@ -1101,88 +1102,17 @@ class MainActivity : ComponentActivity() {
                                     val shouldShowBottomNav = true
 
                                     if (shouldShowBottomNav) {
-                                        
-NavigationBar(
-    containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-    contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-) {
-    var lastTapTime by remember { mutableLongStateOf(0L) }
-    var lastTappedIcon by remember { mutableStateOf<Int?>(null) }
-    var navigateToExplore by remember { mutableStateOf(false) }
-
-    navigationItems.fastForEach { screen ->
-        val isSelected =
-            navBackStackEntry?.destination?.hierarchy?.any {
-                it.route == screen.route
-            } == true
-
-        NavigationBarItem(
-            selected = isSelected,
-
-            icon = {
-                Icon(
-                    painter = painterResource(
-                        id = if (isSelected)
-                            screen.iconIdActive
-                        else
-                            screen.iconIdInactive
-                    ),
-                    contentDescription = stringResource(screen.titleId)
-                )
-            },
-
-            label = {
-                Text(
-                    text = stringResource(screen.titleId),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-
-            alwaysShowLabel = false,
-
-            onClick = {
-                val currentTapTime = System.currentTimeMillis()
-                val timeSinceLastTap = currentTapTime - lastTapTime
-                val isDoubleTap =
-                    screen.titleId == R.string.explore &&
-                            lastTappedIcon == R.string.explore &&
-                            timeSinceLastTap < 300L
-
-                lastTapTime = currentTapTime
-                lastTappedIcon = screen.titleId
-
-                if (screen.titleId == R.string.explore) {
-                    if (isDoubleTap) {
-                        onActiveChange(true)
-                        navigateToExplore = false
-                    } else {
-                        navigateToExplore = true
-                        coroutineScope.launch {
-                            delay(300L)
-                            if (navigateToExplore) {
-                                navigateToScreen(navController, screen)
-                            }
-                        }
-                    }
-                } else {
-                    if (isSelected) {
-                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                            "scrollToTop",
-                            true
-                        )
-                        coroutineScope.launch {
-                            searchBarScrollBehavior.state.resetHeightOffset()
-                        }
-                    } else {
-                        navigateToScreen(navController, screen)
-                    }
-                }
-            }
-        )
-    }
-}
-else {
+                                        NavigationBar(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(15.dp))
+                                                .align(Alignment.BottomCenter)
+                                                .offset {
+                                                    if (navigationBarHeight == 0.dp) {
+                                                        IntOffset(
+                                                            x = 0,
+                                                            y = (bottomInset + NavigationBarHeight).roundToPx(),
+                                                        )
+                                                    } else {
                                                         val slideOffset =
                                                             (bottomInset + NavigationBarHeight) *
                                                                     playerBottomSheetState.progress.coerceIn(
