@@ -373,14 +373,37 @@ fun HomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
         indicator = {
+            val visible = isRefreshing || pullRefreshState.distanceFraction > 0f
+
             val rotation by animateFloatAsState(
-                targetValue = if (isRefreshing) 360f else 0f,
-                animationSpec = tween(900),
+                targetValue = if (isRefreshing) 1080f else pullRefreshState.distanceFraction * 180f,
+                animationSpec = tween(
+                    durationMillis = if (isRefreshing) 1200 else 220
+                ),
                 label = "refresh_rotation"
             )
 
+            val scale by animateFloatAsState(
+                targetValue = if (visible) {
+                    0.82f + (pullRefreshState.distanceFraction.coerceIn(0f, 1f) * 0.18f)
+                } else {
+                    0.72f
+                },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "refresh_scale"
+            )
+
+            val alpha by animateFloatAsState(
+                targetValue = if (visible) 1f else 0f,
+                animationSpec = tween(180),
+                label = "refresh_alpha"
+            )
+
             AnimatedVisibility(
-                visible = isRefreshing || pullRefreshState.distanceFraction > 0f,
+                visible = visible,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
@@ -389,7 +412,12 @@ fun HomeScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(50.dp)
+                        .graphicsLayer {
+                            this.alpha = alpha
+                            scaleX = scale
+                            scaleY = scale
+                        }
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     contentAlignment = Alignment.Center
@@ -439,22 +467,46 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
-                    TimeGreetingCard(
-                        onSearchClick = {
-                            if (hapticsEnabled) Haptics.click(haptic, context)
-                            navController.navigate("explore")
-                        },
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                            .animateItem()
-                    )
+                    AnimatedSection(
+                        modifier = Modifier.animateItem()
+                    ) {
+                        TimeGreetingCard(
+                            onSearchClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("explore")
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
                 item {
+                    val cardsAlpha = remember { Animatable(0f) }
+                    val cardsOffset = remember { Animatable(24f) }
+
+                    LaunchedEffect(Unit) {
+                        launch {
+                            cardsAlpha.animateTo(1f, animationSpec = tween(320))
+                        }
+                        launch {
+                            cardsOffset.animateTo(
+                                0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                        }
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
+                            .graphicsLayer {
+                                alpha = cardsAlpha.value
+                                translationY = cardsOffset.value
+                            }
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -475,10 +527,33 @@ fun HomeScreen(
                 }
 
                 item {
+                    val cardsAlpha = remember { Animatable(0f) }
+                    val cardsOffset = remember { Animatable(30f) }
+
+                    LaunchedEffect(Unit) {
+                        delay(70)
+                        launch {
+                            cardsAlpha.animateTo(1f, animationSpec = tween(320))
+                        }
+                        launch {
+                            cardsOffset.animateTo(
+                                0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                        }
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .graphicsLayer {
+                                alpha = cardsAlpha.value
+                                translationY = cardsOffset.value
+                            }
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -505,11 +580,25 @@ fun HomeScreen(
 
                 item {
                     val carouselAlpha = remember { Animatable(0f) }
-                    val carouselOffset = remember { Animatable(40f) }
+                    val carouselOffset = remember { Animatable(60f) }
+                    val carouselScale = remember { Animatable(0.96f) }
 
                     LaunchedEffect(Unit) {
-                        carouselAlpha.animateTo(1f, animationSpec = tween(450))
-                        carouselOffset.animateTo(0f, animationSpec = tween(450))
+                        launch {
+                            carouselAlpha.animateTo(1f, animationSpec = tween(500))
+                        }
+                        launch {
+                            carouselOffset.animateTo(
+                                0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                        }
+                        launch {
+                            carouselScale.animateTo(1f, animationSpec = tween(420))
+                        }
                     }
 
                     M3PlayHeroCarousel(
@@ -522,6 +611,8 @@ fun HomeScreen(
                             .graphicsLayer {
                                 alpha = carouselAlpha.value
                                 translationY = carouselOffset.value
+                                scaleX = carouselScale.value
+                                scaleY = carouselScale.value
                             }
                             .animateItem()
                     )
@@ -531,49 +622,52 @@ fun HomeScreen(
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
                     item {
-                        val quickPicksTitle = stringResource(R.string.quick_picks)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .animateItem(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        AnimatedSection(
+                            modifier = Modifier.animateItem()
                         ) {
-                            Text(
-                                text = quickPicksTitle,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            val quickPicksTitle = stringResource(R.string.quick_picks)
 
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                        shape = RoundedCornerShape(999.dp)
-                                    )
-                                    .clickable {
-                                        if (hapticsEnabled) Haptics.tick(haptic, context)
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = quickPicksTitle,
-                                                items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
-                                            )
-                                        )
-                                    }
-                                    .padding(horizontal = 18.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Play all",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
+                                    text = quickPicksTitle,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
+
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                            shape = RoundedCornerShape(999.dp)
+                                        )
+                                        .clickable {
+                                            if (hapticsEnabled) Haptics.tick(haptic, context)
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = quickPicksTitle,
+                                                    items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
+                                                )
+                                            )
+                                        }
+                                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Play all",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
                     }
@@ -639,6 +733,8 @@ fun HomeScreen(
                                         .graphicsLayer {
                                             alpha = animatedAlpha.value
                                             translationY = animatedOffset.value
+                                            scaleX = 0.96f + (animatedAlpha.value * 0.04f)
+                                            scaleY = 0.96f + (animatedAlpha.value * 0.04f)
                                         }
                                 )
                             }
@@ -648,10 +744,14 @@ fun HomeScreen(
 
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
                     item {
-                        NavigationTitle(
-                            title = stringResource(R.string.keep_listening),
+                        AnimatedSection(
                             modifier = Modifier.animateItem()
-                        )
+                        ) {
+                            NavigationTitle(
+                                title = stringResource(R.string.keep_listening),
+                                modifier = Modifier
+                            )
+                        }
                     }
 
                     item {
@@ -678,40 +778,44 @@ fun HomeScreen(
 
                 accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
                     item {
-                        NavigationTitle(
-                            label = stringResource(R.string.your_ytb_playlists),
-                            title = accountName,
-                            thumbnail = {
-                                if (url != null) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(LocalContext.current)
-                                            .data(url)
-                                            .diskCachePolicy(CachePolicy.ENABLED)
-                                            .diskCacheKey(url)
-                                            .crossfade(false)
-                                            .build(),
-                                        placeholder = painterResource(id = R.drawable.person),
-                                        error = painterResource(id = R.drawable.person),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(ListThumbnailSize)
-                                            .clip(CircleShape)
-                                    )
-                                } else {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.person),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(ListThumbnailSize)
-                                    )
-                                }
-                            },
-                            onClick = {
-                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                navController.navigate("account")
-                            },
+                        AnimatedSection(
                             modifier = Modifier.animateItem()
-                        )
+                        ) {
+                            NavigationTitle(
+                                label = stringResource(R.string.your_ytb_playlists),
+                                title = accountName,
+                                thumbnail = {
+                                    if (url != null) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(url)
+                                                .diskCachePolicy(CachePolicy.ENABLED)
+                                                .diskCacheKey(url)
+                                                .crossfade(false)
+                                                .build(),
+                                            placeholder = painterResource(id = R.drawable.person),
+                                            error = painterResource(id = R.drawable.person),
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(ListThumbnailSize)
+                                                .clip(CircleShape)
+                                        )
+                                    } else {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.person),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(ListThumbnailSize)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    navController.navigate("account")
+                                },
+                                modifier = Modifier
+                            )
+                        }
                     }
 
                     item {
@@ -733,35 +837,39 @@ fun HomeScreen(
 
                 similarRecommendations?.forEach { section ->
                     item {
-                        NavigationTitle(
-                            label = stringResource(R.string.similar_to),
-                            title = section.title.title,
-                            thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
-                                {
-                                    val shape =
-                                        if (section.title is Artist) CircleShape
-                                        else RoundedCornerShape(ThumbnailCornerRadius)
-
-                                    AsyncImage(
-                                        model = thumbnailUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(ListThumbnailSize)
-                                            .clip(shape)
-                                    )
-                                }
-                            },
-                            onClick = {
-                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                when (section.title) {
-                                    is Song -> navController.navigate("album/${section.title.album!!.id}")
-                                    is Album -> navController.navigate("album/${section.title.id}")
-                                    is Artist -> navController.navigate("artist/${section.title.id}")
-                                    is Playlist -> {}
-                                }
-                            },
+                        AnimatedSection(
                             modifier = Modifier.animateItem()
-                        )
+                        ) {
+                            NavigationTitle(
+                                label = stringResource(R.string.similar_to),
+                                title = section.title.title,
+                                thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
+                                    {
+                                        val shape =
+                                            if (section.title is Artist) CircleShape
+                                            else RoundedCornerShape(ThumbnailCornerRadius)
+
+                                        AsyncImage(
+                                            model = thumbnailUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(ListThumbnailSize)
+                                                .clip(shape)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    when (section.title) {
+                                        is Song -> navController.navigate("album/${section.title.album!!.id}")
+                                        is Album -> navController.navigate("album/${section.title.id}")
+                                        is Artist -> navController.navigate("artist/${section.title.id}")
+                                        is Playlist -> {}
+                                    }
+                                },
+                                modifier = Modifier
+                            )
+                        }
                     }
 
                     item {
@@ -780,26 +888,30 @@ fun HomeScreen(
 
                 homePage?.sections?.forEach { section ->
                     item {
-                        NavigationTitle(
-                            title = section.title,
-                            label = section.label,
-                            thumbnail = section.thumbnail?.let { thumbnailUrl ->
-                                {
-                                    val shape =
-                                        if (section.endpoint?.isArtistEndpoint == true) CircleShape
-                                        else RoundedCornerShape(ThumbnailCornerRadius)
-
-                                    AsyncImage(
-                                        model = thumbnailUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(ListThumbnailSize)
-                                            .clip(shape)
-                                    )
-                                }
-                            },
+                        AnimatedSection(
                             modifier = Modifier.animateItem()
-                        )
+                        ) {
+                            NavigationTitle(
+                                title = section.title,
+                                label = section.label,
+                                thumbnail = section.thumbnail?.let { thumbnailUrl ->
+                                    {
+                                        val shape =
+                                            if (section.endpoint?.isArtistEndpoint == true) CircleShape
+                                            else RoundedCornerShape(ThumbnailCornerRadius)
+
+                                        AsyncImage(
+                                            model = thumbnailUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(ListThumbnailSize)
+                                                .clip(shape)
+                                        )
+                                    }
+                                },
+                                modifier = Modifier
+                            )
+                        }
                     }
 
                     item {
@@ -818,14 +930,18 @@ fun HomeScreen(
 
                 explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
                     item {
-                        NavigationTitle(
-                            title = stringResource(R.string.new_release_albums),
-                            onClick = {
-                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                navController.navigate("new_release")
-                            },
+                        AnimatedSection(
                             modifier = Modifier.animateItem()
-                        )
+                        ) {
+                            NavigationTitle(
+                                title = stringResource(R.string.new_release_albums),
+                                onClick = {
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    navController.navigate("new_release")
+                                },
+                                modifier = Modifier
+                            )
+                        }
                     }
 
                     item {
@@ -890,22 +1006,26 @@ fun HomeScreen(
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
                     item {
-                        val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+                        AnimatedSection(
+                            modifier = Modifier.animateItem()
+                        ) {
+                            val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
 
-                        NavigationTitle(
-                            title = forgottenFavoritesTitle,
-                            modifier = Modifier.animateItem(),
-                            onPlayAllClick = {
-                                if (hapticsEnabled) Haptics.tick(haptic, context)
-                                playerConnection.playQueue(
-                                    ListQueue(
-                                        title = forgottenFavoritesTitle,
-                                        items = forgottenFavoritesList.distinctBy { it.id }
-                                            .map { it.toMediaItem() }
+                            NavigationTitle(
+                                title = forgottenFavoritesTitle,
+                                modifier = Modifier,
+                                onPlayAllClick = {
+                                    if (hapticsEnabled) Haptics.tick(haptic, context)
+                                    playerConnection.playQueue(
+                                        ListQueue(
+                                            title = forgottenFavoritesTitle,
+                                            items = forgottenFavoritesList.distinctBy { it.id }
+                                                .map { it.toMediaItem() }
+                                        )
                                     )
-                                )
-                            }
-                        )
+                                }
+                            )
+                        }
                     }
 
                     item {
@@ -968,6 +1088,8 @@ fun HomeScreen(
                                         .graphicsLayer {
                                             alpha = animatedAlpha.value
                                             translationY = animatedOffset.value
+                                            scaleX = 0.97f + (animatedAlpha.value * 0.03f)
+                                            scaleY = 0.97f + (animatedAlpha.value * 0.03f)
                                         }
                                         .combinedClickable(
                                             onClick = {
@@ -1077,6 +1199,26 @@ fun HomeScreen(
 }
 
 @Composable
+fun AnimatedSection(
+    visible: Boolean = true,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = fadeIn(animationSpec = tween(300)) +
+                slideInVertically(
+                    initialOffsetY = { it / 6 },
+                    animationSpec = tween(300)
+                ),
+        exit = fadeOut(animationSpec = tween(180))
+    ) {
+        content()
+    }
+}
+
+@Composable
 fun ActionCard(
     title: String,
     icon: Int,
@@ -1091,7 +1233,7 @@ fun ActionCard(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.965f else 1f,
+        targetValue = if (isPressed) 0.94f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -1100,7 +1242,7 @@ fun ActionCard(
     )
 
     val alpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1f,
+        targetValue = if (isPressed) 0.9f else 1f,
         animationSpec = tween(durationMillis = 120),
         label = "action_card_alpha"
     )
