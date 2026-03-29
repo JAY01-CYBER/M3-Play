@@ -6,16 +6,11 @@
 package com.j.m3play.ui.screens
 
 import android.annotation.SuppressLint
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,8 +47,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +57,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -121,6 +113,7 @@ import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
 import com.j.m3play.ui.component.ArtistGridItem
+import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.M3PlayHeroCarousel
@@ -234,6 +227,17 @@ fun HomeScreen(
     val sectionTopSpacing = 10.dp
     val sectionBottomSpacing = 6.dp
     val sidePadding = 16.dp
+
+    val homeChips = remember {
+        listOf(
+            "all" to "All",
+            "quick" to "Quick Picks",
+            "listen" to "Keep Listening",
+            "new" to "New Releases",
+            "playlist" to "Playlists"
+        )
+    }
+    var selectedChip by remember { mutableStateOf("all") }
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
@@ -432,6 +436,15 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
+                    ChipsRow(
+                        chips = homeChips,
+                        currentValue = selectedChip,
+                        onValueUpdate = { selectedChip = it },
+                        modifier = Modifier.animateItem()
+                    )
+                }
+
+                item {
                     val greetingAlpha = remember { Animatable(0f) }
                     val greetingOffset = remember { Animatable(24f) }
 
@@ -564,7 +577,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(sectionBottomSpacing))
                 }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
+                quickPicks?.takeIf {
+                    it.isNotEmpty() && (selectedChip == "all" || selectedChip == "quick")
+                }?.let { quickPicks ->
                     item {
                         val quickPicksTitle = stringResource(R.string.quick_picks)
 
@@ -681,7 +696,9 @@ fun HomeScreen(
                     }
                 }
 
-                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
+                keepListening?.takeIf {
+                    it.isNotEmpty() && (selectedChip == "all" || selectedChip == "listen")
+                }?.let { keepListening ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.keep_listening),
@@ -709,7 +726,9 @@ fun HomeScreen(
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
+                accountPlaylists?.takeIf {
+                    it.isNotEmpty() && (selectedChip == "all" || selectedChip == "playlist")
+                }?.let { accountPlaylists ->
                     item {
                         NavigationTitle(
                             label = stringResource(R.string.your_ytb_playlists),
@@ -849,7 +868,9 @@ fun HomeScreen(
                     }
                 }
 
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
+                explorePage?.newReleaseAlbums?.takeIf {
+                    selectedChip == "all" || selectedChip == "new"
+                }?.let { newReleaseAlbums ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.new_release_albums),
