@@ -121,11 +121,14 @@ import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
 import com.j.m3play.ui.component.ArtistGridItem
 import com.j.m3play.ui.component.HideOnScrollFAB
+import com.j.m3play.ui.component.HomeAlbumsSection
+import com.j.m3play.ui.component.HomePlaylistsSection
+import com.j.m3play.ui.component.KeepListeningSection
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.M3PlayHeroCarousel
 import com.j.m3play.ui.component.M3PlayHeroItem
-import com.j.m3play.ui.component.M3PlayQuickPickCard
 import com.j.m3play.ui.component.NavigationTitle
+import com.j.m3play.ui.component.QuickPicksSection
 import com.j.m3play.ui.component.SongGridItem
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.TimeGreetingCard
@@ -375,69 +378,6 @@ fun HomeScreen(
         onRefresh = {
             if (hapticsEnabled) Haptics.tick(haptic, context)
             viewModel.refresh()
-        },
-        indicator = {
-            val visible = isRefreshing || pullRefreshState.distanceFraction > 0f
-
-            val rotation by animateFloatAsState(
-                targetValue = if (isRefreshing) 1080f else pullRefreshState.distanceFraction * 180f,
-                animationSpec = tween(
-                    durationMillis = if (isRefreshing) 1200 else 220
-                ),
-                label = "refresh_rotation"
-            )
-
-            val scale by animateFloatAsState(
-                targetValue = if (visible) {
-                    0.82f + (pullRefreshState.distanceFraction.coerceIn(0f, 1f) * 0.18f)
-                } else {
-                    0.72f
-                },
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "refresh_scale"
-            )
-
-            val alpha by animateFloatAsState(
-                targetValue = if (visible) 1f else 0f,
-                animationSpec = tween(180),
-                label = "refresh_alpha"
-            )
-
-            AnimatedVisibility(
-                visible = visible,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .graphicsLayer {
-                            this.alpha = alpha
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.schedule),
-                        contentDescription = "Refresh",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .graphicsLayer {
-                                rotationZ = rotation
-                            }
-                    )
-                }
-            }
         }
     ) {
         BoxWithConstraints(
@@ -471,46 +411,22 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
-                    AnimatedSection(
-                        modifier = Modifier.animateItem()
-                    ) {
-                        TimeGreetingCard(
-                            onSearchClick = {
-                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                navController.navigate("explore")
-                            },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    }
+                    TimeGreetingCard(
+                        onSearchClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
+                            navController.navigate("explore")
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .animateItem()
+                    )
                 }
 
                 item {
-                    val cardsAlpha = remember { Animatable(0f) }
-                    val cardsOffset = remember { Animatable(24f) }
-
-                    LaunchedEffect(Unit) {
-                        launch {
-                            cardsAlpha.animateTo(1f, animationSpec = tween(320))
-                        }
-                        launch {
-                            cardsOffset.animateTo(
-                                0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            )
-                        }
-                    }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
-                            .graphicsLayer {
-                                alpha = cardsAlpha.value
-                                translationY = cardsOffset.value
-                            }
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -531,33 +447,10 @@ fun HomeScreen(
                 }
 
                 item {
-                    val cardsAlpha = remember { Animatable(0f) }
-                    val cardsOffset = remember { Animatable(30f) }
-
-                    LaunchedEffect(Unit) {
-                        delay(70)
-                        launch {
-                            cardsAlpha.animateTo(1f, animationSpec = tween(320))
-                        }
-                        launch {
-                            cardsOffset.animateTo(
-                                0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            )
-                        }
-                    }
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .graphicsLayer {
-                                alpha = cardsAlpha.value
-                                translationY = cardsOffset.value
-                            }
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -584,25 +477,11 @@ fun HomeScreen(
 
                 item {
                     val carouselAlpha = remember { Animatable(0f) }
-                    val carouselOffset = remember { Animatable(60f) }
-                    val carouselScale = remember { Animatable(0.96f) }
+                    val carouselOffset = remember { Animatable(40f) }
 
                     LaunchedEffect(Unit) {
-                        launch {
-                            carouselAlpha.animateTo(1f, animationSpec = tween(500))
-                        }
-                        launch {
-                            carouselOffset.animateTo(
-                                0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            )
-                        }
-                        launch {
-                            carouselScale.animateTo(1f, animationSpec = tween(420))
-                        }
+                        carouselAlpha.animateTo(1f, animationSpec = tween(450))
+                        carouselOffset.animateTo(0f, animationSpec = tween(450))
                     }
 
                     M3PlayHeroCarousel(
@@ -615,8 +494,6 @@ fun HomeScreen(
                             .graphicsLayer {
                                 alpha = carouselAlpha.value
                                 translationY = carouselOffset.value
-                                scaleX = carouselScale.value
-                                scaleY = carouselScale.value
                             }
                             .animateItem()
                     )
@@ -624,256 +501,134 @@ fun HomeScreen(
 
                 item { Spacer(modifier = Modifier.height(6.dp)) }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
-                    item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            val quickPicksTitle = stringResource(R.string.quick_picks)
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = quickPicksTitle,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                            shape = RoundedCornerShape(999.dp)
+                explorePage?.newReleaseAlbums
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { newReleaseAlbums ->
+                        item {
+                            HomeAlbumsSection(
+                                title = "New releases",
+                                albums = newReleaseAlbums,
+                                onAlbumClick = { album ->
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    navController.navigate("album/${album.id}")
+                                },
+                                onAlbumLongClick = { album ->
+                                    if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                    menuState.show {
+                                        YouTubeAlbumMenu(
+                                            albumItem = album,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss
                                         )
-                                        .clickable {
-                                            if (hapticsEnabled) Haptics.tick(haptic, context)
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = quickPicksTitle,
-                                                    items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
-                                                )
-                                            )
-                                        }
-                                        .padding(horizontal = 18.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Play all",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
+                                    }
+                                },
+                                onMoreClick = {
+                                    if (hapticsEnabled) Haptics.click(haptic, context)
+                                    navController.navigate("new_release")
+                                },
+                                modifier = Modifier.animateItem()
+                            )
                         }
                     }
 
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
                     item {
-                        LazyHorizontalGrid(
-                            state = quickPicksLazyGridState,
-                            rows = GridCells.Fixed(4),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .animateItem()
-                        ) {
-                            items(
-                                items = quickPicksList.distinctBy { it.id },
-                                key = { it.id }
-                            ) { originalSong ->
-                                val index = quickPicksList.indexOf(originalSong)
-                                val animatedAlpha = remember { Animatable(0f) }
-                                val animatedOffset = remember { Animatable(24f) }
-
-                                LaunchedEffect(Unit) {
-                                    delay(index * 35L)
-                                    animatedAlpha.animateTo(1f, animationSpec = tween(260))
-                                    animatedOffset.animateTo(0f, animationSpec = tween(260))
+                        QuickPicksSection(
+                            songs = quickPicksList.distinctBy { it.id },
+                            onSongClick = { song ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                if (song.id == mediaMetadata?.id) {
+                                    playerConnection.player.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue.radio(song.toMediaMetadata())
+                                    )
                                 }
-
-                                val song by database.song(originalSong.id)
-                                    .collectAsState(initial = originalSong)
-
-                                val subtitleText = song!!.artists.joinToString { it.name }
-
-                                M3PlayQuickPickCard(
-                                    song = song!!,
-                                    subtitle = subtitleText,
-                                    onClick = {
-                                        if (hapticsEnabled) Haptics.click(haptic, context)
-                                        if (song!!.id == mediaMetadata?.id) {
-                                            playerConnection.player.togglePlayPause()
-                                        } else {
-                                            playerConnection.playQueue(
-                                                YouTubeQueue.radio(song!!.toMediaMetadata())
-                                            )
-                                        }
-                                    },
-                                    onMenuClick = {
-                                        if (hapticsEnabled) Haptics.click(haptic, context)
-                                        menuState.show {
-                                            SongMenu(
-                                                originalSong = song!!,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .width(horizontalLazyGridItemWidth)
-                                        .padding(vertical = 3.dp)
-                                        .graphicsLayer {
-                                            alpha = animatedAlpha.value
-                                            translationY = animatedOffset.value
-                                            scaleX = 0.96f + (animatedAlpha.value * 0.04f)
-                                            scaleY = 0.96f + (animatedAlpha.value * 0.04f)
-                                        }
+                            },
+                            onSongMenuClick = { song ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                menuState.show {
+                                    SongMenu(
+                                        originalSong = song,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            onPlayAllClick = {
+                                if (hapticsEnabled) Haptics.tick(haptic, context)
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = "Quick picks",
+                                        items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
+                                    )
                                 )
-                            }
-                        }
+                            },
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
                 keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
                     item {
-                        AnimatedSection(
+                        KeepListeningSection(
+                            items = keepListeningList,
+                            itemHeight = GridThumbnailHeight + with(LocalDensity.current) {
+                                MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
+                                        MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
+                            },
+                            itemContent = { localItem ->
+                                localGridItem(localItem)
+                            },
                             modifier = Modifier.animateItem()
-                        ) {
-                            NavigationTitle(
-                                title = stringResource(R.string.keep_listening),
-                                modifier = Modifier
-                            )
-                        }
-                    }
-
-                    item {
-                        val rows = if (keepListeningList.size > 6) 2 else 1
-                        LazyHorizontalGrid(
-                            state = rememberLazyGridState(),
-                            rows = GridCells.Fixed(rows),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(
-                                    (GridThumbnailHeight + with(LocalDensity.current) {
-                                        MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
-                                                MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
-                                    }) * rows
-                                )
-                                .animateItem()
-                        ) {
-                            items(keepListeningList) {
-                                localGridItem(it)
-                            }
-                        }
+                        )
                     }
                 }
 
                 accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
                     item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            NavigationTitle(
-                                label = stringResource(R.string.your_ytb_playlists),
-                                title = accountName,
-                                thumbnail = {
-                                    if (url != null) {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(url)
-                                                .diskCachePolicy(CachePolicy.ENABLED)
-                                                .diskCacheKey(url)
-                                                .crossfade(false)
-                                                .build(),
-                                            placeholder = painterResource(id = R.drawable.person),
-                                            error = painterResource(id = R.drawable.person),
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(ListThumbnailSize)
-                                                .clip(CircleShape)
-                                        )
-                                    } else {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.person),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(ListThumbnailSize)
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                    navController.navigate("account")
-                                },
-                                modifier = Modifier
-                            )
-                        }
-                    }
-
-                    item {
-                        LazyRow(
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier.animateItem()
-                        ) {
-                            items(
-                                items = accountPlaylistsList.distinctBy { it.id },
-                                key = { it.id },
-                            ) { item ->
+                        HomePlaylistsSection(
+                            title = accountName.ifBlank { "Your playlists" },
+                            items = accountPlaylistsList.distinctBy { it.id },
+                            itemContent = { item ->
                                 ytGridItem(item)
-                            }
-                        }
+                            },
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
                 similarRecommendations?.forEach { section ->
                     item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            NavigationTitle(
-                                label = stringResource(R.string.similar_to),
-                                title = section.title.title,
-                                thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
-                                    {
-                                        val shape =
-                                            if (section.title is Artist) CircleShape
-                                            else RoundedCornerShape(ThumbnailCornerRadius)
+                        NavigationTitle(
+                            label = stringResource(R.string.similar_to),
+                            title = section.title.title,
+                            thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
+                                {
+                                    val shape =
+                                        if (section.title is Artist) CircleShape
+                                        else RoundedCornerShape(ThumbnailCornerRadius)
 
-                                        AsyncImage(
-                                            model = thumbnailUrl,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(ListThumbnailSize)
-                                                .clip(shape)
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                    when (section.title) {
-                                        is Song -> navController.navigate("album/${section.title.album!!.id}")
-                                        is Album -> navController.navigate("album/${section.title.id}")
-                                        is Artist -> navController.navigate("artist/${section.title.id}")
-                                        is Playlist -> {}
-                                    }
-                                },
-                                modifier = Modifier
-                            )
-                        }
+                                    AsyncImage(
+                                        model = thumbnailUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(ListThumbnailSize)
+                                            .clip(shape)
+                                    )
+                                }
+                            },
+                            onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                when (section.title) {
+                                    is Song -> navController.navigate("album/${section.title.album!!.id}")
+                                    is Album -> navController.navigate("album/${section.title.id}")
+                                    is Artist -> navController.navigate("artist/${section.title.id}")
+                                    is Playlist -> {}
+                                }
+                            },
+                            modifier = Modifier.animateItem()
+                        )
                     }
 
                     item {
@@ -892,30 +647,26 @@ fun HomeScreen(
 
                 homePage?.sections?.forEach { section ->
                     item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            NavigationTitle(
-                                title = section.title,
-                                label = section.label,
-                                thumbnail = section.thumbnail?.let { thumbnailUrl ->
-                                    {
-                                        val shape =
-                                            if (section.endpoint?.isArtistEndpoint == true) CircleShape
-                                            else RoundedCornerShape(ThumbnailCornerRadius)
+                        NavigationTitle(
+                            title = section.title,
+                            label = section.label,
+                            thumbnail = section.thumbnail?.let { thumbnailUrl ->
+                                {
+                                    val shape =
+                                        if (section.endpoint?.isArtistEndpoint == true) CircleShape
+                                        else RoundedCornerShape(ThumbnailCornerRadius)
 
-                                        AsyncImage(
-                                            model = thumbnailUrl,
-                                            contentDescription = null,
-                                            modifier = Modifier
-                                                .size(ListThumbnailSize)
-                                                .clip(shape)
-                                        )
-                                    }
-                                },
-                                modifier = Modifier
-                            )
-                        }
+                                    AsyncImage(
+                                        model = thumbnailUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(ListThumbnailSize)
+                                            .clip(shape)
+                                    )
+                                }
+                            },
+                            modifier = Modifier.animateItem()
+                        )
                     }
 
                     item {
@@ -927,62 +678,6 @@ fun HomeScreen(
                         ) {
                             items(section.items) { item ->
                                 ytGridItem(item)
-                            }
-                        }
-                    }
-                }
-
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
-                    item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            NavigationTitle(
-                                title = stringResource(R.string.new_release_albums),
-                                onClick = {
-                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                    navController.navigate("new_release")
-                                },
-                                modifier = Modifier
-                            )
-                        }
-                    }
-
-                    item {
-                        LazyRow(
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
-                            modifier = Modifier.animateItem()
-                        ) {
-                            items(
-                                items = newReleaseAlbumsList,
-                                key = { it.id }
-                            ) { album ->
-                                YouTubeGridItem(
-                                    item = album,
-                                    isActive = mediaMetadata?.album?.id == album.id,
-                                    isPlaying = isPlaying,
-                                    coroutineScope = scope,
-                                    modifier = Modifier
-                                        .combinedClickable(
-                                            onClick = {
-                                                if (hapticsEnabled) Haptics.click(haptic, context)
-                                                navController.navigate("album/${album.id}")
-                                            },
-                                            onLongClick = {
-                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
-                                                menuState.show {
-                                                    YouTubeAlbumMenu(
-                                                        albumItem = album,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        .animateItem()
-                                )
                             }
                         }
                     }
@@ -1010,26 +705,22 @@ fun HomeScreen(
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
                     item {
-                        AnimatedSection(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+                        val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
 
-                            NavigationTitle(
-                                title = forgottenFavoritesTitle,
-                                modifier = Modifier,
-                                onPlayAllClick = {
-                                    if (hapticsEnabled) Haptics.tick(haptic, context)
-                                    playerConnection.playQueue(
-                                        ListQueue(
-                                            title = forgottenFavoritesTitle,
-                                            items = forgottenFavoritesList.distinctBy { it.id }
-                                                .map { it.toMediaItem() }
-                                        )
+                        NavigationTitle(
+                            title = forgottenFavoritesTitle,
+                            modifier = Modifier.animateItem(),
+                            onPlayAllClick = {
+                                if (hapticsEnabled) Haptics.tick(haptic, context)
+                                playerConnection.playQueue(
+                                    ListQueue(
+                                        title = forgottenFavoritesTitle,
+                                        items = forgottenFavoritesList.distinctBy { it.id }
+                                            .map { it.toMediaItem() }
                                     )
-                                }
-                            )
-                        }
+                                )
+                            }
+                        )
                     }
 
                     item {
@@ -1092,8 +783,6 @@ fun HomeScreen(
                                         .graphicsLayer {
                                             alpha = animatedAlpha.value
                                             translationY = animatedOffset.value
-                                            scaleX = 0.97f + (animatedAlpha.value * 0.03f)
-                                            scaleY = 0.97f + (animatedAlpha.value * 0.03f)
                                         }
                                         .combinedClickable(
                                             onClick = {
@@ -1203,26 +892,6 @@ fun HomeScreen(
 }
 
 @Composable
-fun AnimatedSection(
-    visible: Boolean = true,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    AnimatedVisibility(
-        visible = visible,
-        modifier = modifier,
-        enter = fadeIn(animationSpec = tween(300)) +
-                slideInVertically(
-                    initialOffsetY = { it / 6 },
-                    animationSpec = tween(300)
-                ),
-        exit = fadeOut(animationSpec = tween(180))
-    ) {
-        content()
-    }
-}
-
-@Composable
 fun ActionCard(
     title: String,
     icon: Int,
@@ -1237,7 +906,7 @@ fun ActionCard(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
+        targetValue = if (isPressed) 0.965f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -1246,7 +915,7 @@ fun ActionCard(
     )
 
     val alpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
+        targetValue = if (isPressed) 0.88f else 1f,
         animationSpec = tween(durationMillis = 120),
         label = "action_card_alpha"
     )
