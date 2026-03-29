@@ -371,7 +371,42 @@ fun HomeScreen(
     PullToRefreshBox(
         state = pullRefreshState,
         isRefreshing = isRefreshing,
-        onRefresh = viewModel::refresh
+        onRefresh = viewModel::refresh,
+        indicator = {
+            val rotation by animateFloatAsState(
+                targetValue = if (isRefreshing) 360f else 0f,
+                animationSpec = tween(900),
+                label = "refresh_rotation"
+            )
+
+            AnimatedVisibility(
+                visible = isRefreshing || pullRefreshState.distanceFraction > 0f,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.schedule),
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .graphicsLayer {
+                                rotationZ = rotation
+                            }
+                    )
+                }
+            }
+        }
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
