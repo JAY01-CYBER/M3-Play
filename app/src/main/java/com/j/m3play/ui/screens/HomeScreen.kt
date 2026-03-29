@@ -1,6 +1,6 @@
 @file:OptIn(
-    ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.material3.ExperimentalMaterial3Api::class
 )
 
 package com.j.m3play.ui.screens
@@ -153,6 +153,10 @@ import kotlin.math.min
 import kotlin.random.Random
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3Api::class
+)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -174,7 +178,7 @@ fun HomeScreen(
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isRefreshing: Boolean by viewModel.isRefreshing.collectAsState()
     val explorePage by viewModel.explorePage.collectAsState()
 
     val heroItems = remember(explorePage, isRefreshing) {
@@ -326,7 +330,6 @@ fun HomeScreen(
                                     item.toMediaMetadata()
                                 )
                             )
-
                             is AlbumItem -> navController.navigate("album/${item.id}")
                             is ArtistItem -> navController.navigate("artist/${item.id}")
                             is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
@@ -341,18 +344,15 @@ fun HomeScreen(
                                     navController = navController,
                                     onDismiss = menuState::dismiss
                                 )
-
                                 is AlbumItem -> YouTubeAlbumMenu(
                                     albumItem = item,
                                     navController = navController,
                                     onDismiss = menuState::dismiss
                                 )
-
                                 is ArtistItem -> YouTubeArtistMenu(
                                     artist = item,
                                     onDismiss = menuState::dismiss
                                 )
-
                                 is PlaylistItem -> YouTubePlaylistMenu(
                                     playlist = item,
                                     coroutineScope = scope,
@@ -480,9 +480,7 @@ fun HomeScreen(
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
+                item { Spacer(modifier = Modifier.height(10.dp)) }
 
                 item {
                     val carouselAlpha = remember { Animatable(0f) }
@@ -508,9 +506,7 @@ fun HomeScreen(
                     )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
+                item { Spacer(modifier = Modifier.height(6.dp)) }
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
                     item {
@@ -579,7 +575,6 @@ fun HomeScreen(
                                 key = { it.id }
                             ) { originalSong ->
                                 val index = quickPicksList.indexOf(originalSong)
-
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(24f) }
 
@@ -911,7 +906,6 @@ fun HomeScreen(
                                 key = { it.id }
                             ) { originalSong ->
                                 val index = forgottenFavoritesList.indexOf(originalSong)
-
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(20f) }
 
@@ -1008,7 +1002,6 @@ fun HomeScreen(
                                         playerConnection.playQueue(LocalAlbumRadio(it))
                                     }
                                 }
-
                                 is Artist -> {}
                                 is Playlist -> {}
                             }
@@ -1019,7 +1012,6 @@ fun HomeScreen(
                                 is ArtistItem -> luckyItem.radioEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
-
                                 is PlaylistItem -> luckyItem.playEndpoint?.let {
                                     playerConnection.playQueue(YouTubeQueue(it))
                                 }
@@ -1101,9 +1093,7 @@ fun ActionCard(
             }
             .height(48.dp)
             .clip(RoundedCornerShape(999.dp))
-            .background(
-                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
-            )
+            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -1125,9 +1115,7 @@ fun ActionCard(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)
             )
-
             Spacer(modifier = Modifier.width(6.dp))
-
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
