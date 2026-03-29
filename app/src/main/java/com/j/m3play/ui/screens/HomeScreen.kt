@@ -49,7 +49,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -376,8 +376,10 @@ fun HomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
         indicator = {
+            val visible = isRefreshing || pullRefreshState.distanceFraction > 0f
+
             val scale by animateFloatAsState(
-                targetValue = if (isRefreshing) 1f else pullRefreshState.distanceFraction.coerceIn(0.85f, 1f),
+                targetValue = if (visible) 1f else 0.75f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessLow
@@ -385,47 +387,47 @@ fun HomeScreen(
                 label = "refresh_scale"
             )
 
+            val alpha by animateFloatAsState(
+                targetValue = if (visible) 1f else 0f,
+                animationSpec = tween(180),
+                label = "refresh_alpha"
+            )
+
             val rotation by animateFloatAsState(
-                targetValue = if (isRefreshing) 360f else 0f,
-                animationSpec = tween(800),
+                targetValue = if (isRefreshing) 360f else pullRefreshState.distanceFraction * 180f,
+                animationSpec = tween(700),
                 label = "refresh_rotation"
             )
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
-                    .padding(top = 12.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    },
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp
-            ) {
-                Box(
-                    modifier = Modifier.size(56.dp),
-                    contentAlignment = Alignment.Center
+            if (visible) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                        .padding(top = 72.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        },
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp
                 ) {
-                    if (isRefreshing) {
+                    Box(
+                        modifier = Modifier.size(52.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            painter = painterResource(R.drawable.ic_refresh_premium),
+                            imageVector = Icons.Rounded.Refresh,
                             contentDescription = "Refresh",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .size(22.dp)
+                                .size(24.dp)
                                 .graphicsLayer {
                                     rotationZ = rotation
                                 }
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_refresh_premium),
-                            contentDescription = "Refresh",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
