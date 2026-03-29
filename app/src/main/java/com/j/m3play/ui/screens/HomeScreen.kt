@@ -152,6 +152,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
+import androidx.compose.foundation.layout.Column
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
