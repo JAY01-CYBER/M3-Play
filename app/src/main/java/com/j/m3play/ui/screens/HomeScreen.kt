@@ -6,6 +6,16 @@
 package com.j.m3play.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -42,6 +52,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,9 +64,12 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -131,7 +146,9 @@ import com.j.m3play.utils.Haptics
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
@@ -180,6 +197,17 @@ fun HomeScreen(
         }
     }
 
+    var currentHeroIndex by remember { mutableStateOf(0) }
+
+    LaunchedEffect(heroItems) {
+        if (heroItems.size > 1) {
+            while (isActive) {
+                delay(3200)
+                currentHeroIndex = (currentHeroIndex + 1) % heroItems.size
+            }
+        }
+    }
+
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
 
@@ -202,6 +230,10 @@ fun HomeScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
+
+    val sectionTopSpacing = 10.dp
+    val sectionBottomSpacing = 6.dp
+    val sidePadding = 16.dp
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
@@ -357,7 +389,10 @@ fun HomeScreen(
     PullToRefreshBox(
         state = pullRefreshState,
         isRefreshing = isRefreshing,
-        onRefresh = viewModel::refresh,
+        onRefresh = {
+            if (hapticsEnabled) Haptics.tick(haptic, context)
+            viewModel.refresh()
+        },
         indicator = {
             Indicator(
                 isRefreshing = isRefreshing,
@@ -375,7 +410,6 @@ fun HomeScreen(
             val horizontalLazyGridItemWidthFactor =
                 if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
-
             val quickPicksSnapLayoutInfoProvider = remember(quickPicksLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = quickPicksLazyGridState,
@@ -384,7 +418,6 @@ fun HomeScreen(
                     }
                 )
             }
-
             val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = forgottenFavoritesLazyGridState,
@@ -399,12 +432,25 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 item {
+                    val greetingAlpha = remember { Animatable(0f) }
+                    val greetingOffset = remember { Animatable(24f) }
+
+                    LaunchedEffect(Unit) {
+                        launch { greetingAlpha.animateTo(1f, animationSpec = tween(320)) }
+                        launch { greetingOffset.animateTo(0f, animationSpec = tween(320)) }
+                    }
+
                     TimeGreetingCard(
                         onSearchClick = {
+                            if (hapticsEnabled) Haptics.click(haptic, context)
                             navController.navigate("explore")
                         },
                         modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .padding(horizontal = sidePadding, vertical = 6.dp)
+                            .graphicsLayer {
+                                alpha = greetingAlpha.value
+                                translationY = greetingOffset.value
+                            }
                             .animateItem()
                     )
                 }
@@ -413,7 +459,7 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = sidePadding)
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -421,6 +467,7 @@ fun HomeScreen(
                             title = "Liked",
                             icon = R.drawable.favorite,
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("auto_playlist/liked")
                             },
                             modifier = Modifier.weight(1f)
@@ -430,6 +477,7 @@ fun HomeScreen(
                             title = "Downloads",
                             icon = R.drawable.download,
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("auto_playlist/downloaded")
                             },
                             modifier = Modifier.weight(1f)
@@ -441,7 +489,7 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = sidePadding, vertical = 8.dp)
                             .animateItem(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -449,6 +497,7 @@ fun HomeScreen(
                             title = "History",
                             icon = R.drawable.history,
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("history")
                             },
                             modifier = Modifier.weight(1f)
@@ -458,6 +507,7 @@ fun HomeScreen(
                             title = if (isLoggedIn) "Account" else "Library",
                             icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 if (isLoggedIn) {
                                     navController.navigate("account")
                                 } else {
@@ -470,21 +520,48 @@ fun HomeScreen(
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(sectionTopSpacing))
                 }
 
                 item {
-                    M3PlayHeroCarousel(
-                        items = heroItems,
-                        onItemClick = { item ->
-                            navController.navigate("album/${item.id}")
-                        },
-                        modifier = Modifier.animateItem()
-                    )
+                    val heroAlpha = remember { Animatable(0f) }
+                    val heroOffset = remember { Animatable(36f) }
+
+                    LaunchedEffect(Unit) {
+                        launch { heroAlpha.animateTo(1f, animationSpec = tween(420)) }
+                        launch { heroOffset.animateTo(0f, animationSpec = tween(420)) }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = sidePadding, vertical = sectionTopSpacing)
+                            .graphicsLayer {
+                                alpha = heroAlpha.value
+                                translationY = heroOffset.value
+                            }
+                            .animateItem()
+                    ) {
+                        M3PlayHeroCarousel(
+                            items = if (heroItems.isNotEmpty()) {
+                                if (heroItems.size == 1) heroItems
+                                else buildList {
+                                    repeat(heroItems.size) { i ->
+                                        add(heroItems[(currentHeroIndex + i) % heroItems.size])
+                                    }
+                                }
+                            } else {
+                                emptyList()
+                            },
+                            onItemClick = { item ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("album/${item.id}")
+                            }
+                        )
+                    }
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(sectionBottomSpacing))
                 }
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
@@ -494,7 +571,7 @@ fun HomeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .padding(horizontal = sidePadding, vertical = 8.dp)
                                 .animateItem(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -515,6 +592,7 @@ fun HomeScreen(
                                         shape = RoundedCornerShape(999.dp)
                                     )
                                     .clickable {
+                                        if (hapticsEnabled) Haptics.tick(haptic, context)
                                         playerConnection.playQueue(
                                             ListQueue(
                                                 title = quickPicksTitle,
@@ -542,7 +620,7 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             flingBehavior = rememberSnapFlingBehavior(quickPicksSnapLayoutInfoProvider),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            contentPadding = PaddingValues(horizontal = sidePadding),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(300.dp)
@@ -552,6 +630,16 @@ fun HomeScreen(
                                 items = quickPicks.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
+                                val index = quickPicks.indexOf(originalSong)
+                                val alpha = remember { Animatable(0f) }
+                                val offset = remember { Animatable(24f) }
+
+                                LaunchedEffect(Unit) {
+                                    delay(index * 35L)
+                                    launch { alpha.animateTo(1f, animationSpec = tween(250)) }
+                                    launch { offset.animateTo(0f, animationSpec = tween(250)) }
+                                }
+
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
@@ -583,6 +671,10 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .width(horizontalLazyGridItemWidth)
                                         .padding(vertical = 3.dp)
+                                        .graphicsLayer {
+                                            this.alpha = alpha.value
+                                            translationY = offset.value
+                                        }
                                 )
                             }
                         }
@@ -604,12 +696,10 @@ fun HomeScreen(
                             rows = GridCells.Fixed(rows),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(
-                                    (GridThumbnailHeight + with(LocalDensity.current) {
-                                        MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
-                                            MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
-                                    }) * rows
-                                )
+                                .height((GridThumbnailHeight + with(LocalDensity.current) {
+                                    MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
+                                        MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
+                                }) * rows)
                                 .animateItem()
                         ) {
                             items(keepListening) {
@@ -650,6 +740,7 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("account")
                             },
                             modifier = Modifier.animateItem()
@@ -681,9 +772,9 @@ fun HomeScreen(
                             thumbnail = it.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.title is Artist) CircleShape
-                                        else RoundedCornerShape(ThumbnailCornerRadius)
-
+                                        if (it.title is Artist) CircleShape else RoundedCornerShape(
+                                            ThumbnailCornerRadius
+                                        )
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -694,6 +785,7 @@ fun HomeScreen(
                                 }
                             },
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 when (it.title) {
                                     is Song -> navController.navigate("album/${it.title.album!!.id}")
                                     is Album -> navController.navigate("album/${it.title.id}")
@@ -727,9 +819,9 @@ fun HomeScreen(
                             thumbnail = it.thumbnail?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.endpoint?.isArtistEndpoint == true) CircleShape
-                                        else RoundedCornerShape(ThumbnailCornerRadius)
-
+                                        if (it.endpoint?.isArtistEndpoint == true) CircleShape else RoundedCornerShape(
+                                            ThumbnailCornerRadius
+                                        )
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -762,6 +854,7 @@ fun HomeScreen(
                         NavigationTitle(
                             title = stringResource(R.string.new_release_albums),
                             onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
                                 navController.navigate("new_release")
                             },
                             modifier = Modifier.animateItem()
@@ -787,10 +880,11 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .combinedClickable(
                                             onClick = {
+                                                if (hapticsEnabled) Haptics.click(haptic, context)
                                                 navController.navigate("album/${album.id}")
                                             },
                                             onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                if (hapticsEnabled) Haptics.longPress(haptic, context)
                                                 menuState.show {
                                                     YouTubeAlbumMenu(
                                                         albumItem = album,
@@ -834,6 +928,7 @@ fun HomeScreen(
                             title = forgottenFavoritesTitle,
                             modifier = Modifier.animateItem(),
                             onPlayAllClick = {
+                                if (hapticsEnabled) Haptics.tick(haptic, context)
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = forgottenFavoritesTitle,
@@ -864,6 +959,16 @@ fun HomeScreen(
                                 items = forgottenFavorites.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
+                                val index = forgottenFavorites.indexOf(originalSong)
+                                val alpha = remember { Animatable(0f) }
+                                val offset = remember { Animatable(18f) }
+
+                                LaunchedEffect(Unit) {
+                                    delay(index * 28L)
+                                    launch { alpha.animateTo(1f, animationSpec = tween(230)) }
+                                    launch { offset.animateTo(0f, animationSpec = tween(230)) }
+                                }
+
                                 val song by database.song(originalSong.id)
                                     .collectAsState(initial = originalSong)
 
@@ -893,6 +998,10 @@ fun HomeScreen(
                                     },
                                     modifier = Modifier
                                         .width(horizontalLazyGridItemWidth)
+                                        .graphicsLayer {
+                                            this.alpha = alpha.value
+                                            translationY = offset.value
+                                        }
                                         .combinedClickable(
                                             onClick = {
                                                 if (hapticsEnabled) Haptics.click(haptic, context)
@@ -925,6 +1034,8 @@ fun HomeScreen(
                 lazyListState = lazylistState,
                 icon = R.drawable.shuffle,
                 onClick = {
+                    if (hapticsEnabled) Haptics.success(context)
+
                     val local = when {
                         allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5
                         allLocalItems.isNotEmpty() -> true
@@ -973,14 +1084,45 @@ fun ActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "action_card_scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "action_card_alpha"
+    )
+
     Box(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
             .height(48.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(
-                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
+                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
             )
-            .clickable { onClick() }
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(999.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
             .padding(horizontal = 12.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
