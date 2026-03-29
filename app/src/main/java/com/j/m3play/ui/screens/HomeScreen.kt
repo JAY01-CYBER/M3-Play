@@ -27,6 +27,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -73,10 +74,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -192,6 +194,38 @@ fun HomeScreen(
                     )
                 }
         }
+    }
+
+    val speedDialItems = remember(
+        quickPicks,
+        explorePage,
+        accountPlaylists
+    ) {
+        buildList<Any> {
+            quickPicks
+                ?.distinctBy { it.id }
+                ?.take(4)
+                ?.forEach { add(it) }
+
+            explorePage?.newReleaseAlbums
+                ?.distinctBy { it.id }
+                ?.take(4)
+                ?.forEach { add(it) }
+
+            accountPlaylists
+                ?.distinctBy { it.id }
+                ?.take(2)
+                ?.forEach { add(it) }
+        }.distinctBy {
+            when (it) {
+                is Song -> "song_${it.id}"
+                is SongItem -> "song_${it.id}"
+                is AlbumItem -> "album_${it.id}"
+                is PlaylistItem -> "playlist_${it.id}"
+                is ArtistItem -> "artist_${it.id}"
+                else -> it.hashCode().toString()
+            }
+        }.take(8)
     }
 
     val allLocalItems by viewModel.allLocalItems.collectAsState()
@@ -477,6 +511,92 @@ fun HomeScreen(
                             },
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
+                    }
+                }
+
+                if (speedDialItems.isNotEmpty()) {
+                    item {
+                        AnimatedSection(
+                            modifier = Modifier.animateItem()
+                        ) {
+                            NavigationTitle(
+                                title = "Speed Dial",
+                                modifier = Modifier
+                            )
+                        }
+                    }
+
+                    item {
+                        SpeedDialSection(
+                            items = speedDialItems,
+                            navController = navController,
+                            onSongClick = { song ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                if (song.id == mediaMetadata?.id) {
+                                    playerConnection.player.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue.radio(song.toMediaMetadata())
+                                    )
+                                }
+                            },
+                            onAlbumClick = { albumId ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("album/$albumId")
+                            },
+                            onPlaylistClick = { playlistId ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("online_playlist/$playlistId")
+                            },
+                            onArtistClick = { artistId ->
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("artist/$artistId")
+                            },
+                            onSongLongClick = { song ->
+                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                menuState.show {
+                                    SongMenu(
+                                        originalSong = song,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            onAlbumLongClick = { album ->
+                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                menuState.show {
+                                    YouTubeAlbumMenu(
+                                        albumItem = album,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            onPlaylistLongClick = { playlist ->
+                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                menuState.show {
+                                    YouTubePlaylistMenu(
+                                        playlist = playlist,
+                                        coroutineScope = scope,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            onArtistLongClick = { artist ->
+                                if (hapticsEnabled) Haptics.longPress(haptic, context)
+                                menuState.show {
+                                    YouTubeArtistMenu(
+                                        artist = artist,
+                                        onDismiss = menuState::dismiss
+                                    )
+                                }
+                            },
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
 
@@ -1215,6 +1335,160 @@ fun AnimatedSection(
         exit = fadeOut(animationSpec = tween(180))
     ) {
         content()
+    }
+}
+
+@Composable
+fun SpeedDialSection(
+    items: List<Any>,
+    navController: NavController,
+    onSongClick: (Song) -> Unit,
+    onAlbumClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
+    onArtistClick: (String) -> Unit,
+    onSongLongClick: (Song) -> Unit,
+    onAlbumLongClick: (AlbumItem) -> Unit,
+    onPlaylistLongClick: (PlaylistItem) -> Unit,
+    onArtistLongClick: (ArtistItem) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyHorizontalGrid(
+        rows = GridCells.Fixed(2),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(220.dp)
+    ) {
+        items(items) { item ->
+            when (item) {
+                is Song -> SpeedDialCard(
+                    title = item.title,
+                    subtitle = item.artists.joinToString { it.name },
+                    imageUrl = item.thumbnailUrl,
+                    onClick = { onSongClick(item) },
+                    onLongClick = { onSongLongClick(item) }
+                )
+
+                is AlbumItem -> SpeedDialCard(
+                    title = item.title,
+                    subtitle = "Album",
+                    imageUrl = item.thumbnail,
+                    onClick = { onAlbumClick(item.id) },
+                    onLongClick = { onAlbumLongClick(item) }
+                )
+
+                is PlaylistItem -> SpeedDialCard(
+                    title = item.title,
+                    subtitle = item.author?.name ?: "Playlist",
+                    imageUrl = item.thumbnail,
+                    onClick = { onPlaylistClick(item.id) },
+                    onLongClick = { onPlaylistLongClick(item) }
+                )
+
+                is ArtistItem -> SpeedDialCard(
+                    title = item.title,
+                    subtitle = "Artist",
+                    imageUrl = item.thumbnail,
+                    onClick = { onArtistClick(item.id) },
+                    onLongClick = { onArtistLongClick(item) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SpeedDialCard(
+    title: String,
+    subtitle: String,
+    imageUrl: String?,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "speed_dial_scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = tween(120),
+        label = "speed_dial_alpha"
+    )
+
+    val enterAlpha = remember { Animatable(0f) }
+    val enterOffset = remember { Animatable(20f) }
+
+    LaunchedEffect(Unit) {
+        launch {
+            enterAlpha.animateTo(1f, animationSpec = tween(260))
+        }
+        launch {
+            enterOffset.animateTo(0f, animationSpec = tween(260))
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(180.dp)
+            .graphicsLayer {
+                this.alpha = alpha * enterAlpha.value
+                scaleX = scale
+                scaleY = scale
+                translationY = enterOffset.value
+            }
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
+            )
+            .padding(10.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+            )
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 
