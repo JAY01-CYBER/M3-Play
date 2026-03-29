@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -38,9 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -133,12 +130,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.font.FontWeight
 import com.j.m3play.ui.component.M3PlayHeroCarousel
 import com.j.m3play.ui.component.M3PlayHeroItem
@@ -369,46 +362,19 @@ fun HomeScreen(
 
     // MEJORA 1: Usar PullToRefreshBox en lugar de modifier
     PullToRefreshBox(
-    state = pullRefreshState,
-    isRefreshing = isRefreshing,
-    onRefresh = viewModel::refresh,
-    indicator = {
-        val rotation by animateFloatAsState(
-            targetValue = if (isRefreshing) 360f else 0f,
-            animationSpec = tween(900),
-            label = "refresh_rotation"
-        )
-
-        AnimatedVisibility(
-            visible = isRefreshing || pullRefreshState.distanceFraction > 0f,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Box(
+        state = pullRefreshState,
+        isRefreshing = isRefreshing,
+        onRefresh = viewModel::refresh,
+        indicator = {
+            Indicator(
+                isRefreshing = isRefreshing,
+                state = pullRefreshState,
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.schedule),
-                    contentDescription = "Refresh",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .graphicsLayer {
-                            rotationZ = rotation
-                        }
-                )
-            }
+                    .align(Alignment.TopCenter)
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+            )
         }
-    }
-) {
-
+    ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.TopStart
