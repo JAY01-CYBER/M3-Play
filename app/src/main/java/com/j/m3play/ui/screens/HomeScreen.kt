@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -48,15 +49,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,7 +71,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -319,9 +320,7 @@ fun HomeScreen(
                         when (item) {
                             is SongItem -> playerConnection.playQueue(
                                 YouTubeQueue(
-                                    item.endpoint ?: WatchEndpoint(
-                                        videoId = item.id
-                                    ),
+                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
                                     item.toMediaMetadata()
                                 )
                             )
@@ -377,22 +376,49 @@ fun HomeScreen(
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
         indicator = {
-            val indicatorRotation by animateFloatAsState(
-                targetValue = if (isRefreshing) 180f else 0f,
-                animationSpec = tween(300),
-                label = "refresh_rotation"
+            val scale by animateFloatAsState(
+                targetValue = if (isRefreshing) 1f else pullRefreshState.distanceFraction.coerceIn(0.85f, 1f),
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "refresh_scale"
             )
 
-            Indicator(
-                isRefreshing = isRefreshing,
-                state = pullRefreshState,
+            Surface(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                    .padding(top = 12.dp)
                     .graphicsLayer {
-                        rotationZ = indicatorRotation
+                        scaleX = scale
+                        scaleY = scale
                     },
-            )
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp
+            ) {
+                Box(
+                    modifier = Modifier.size(56.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.6.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.refresh),
+                            contentDescription = "Refresh",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
         }
     ) {
         BoxWithConstraints(
@@ -411,6 +437,7 @@ fun HomeScreen(
                     }
                 )
             }
+
             val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
                 SnapLayoutInfoProvider(
                     lazyGridState = forgottenFavoritesLazyGridState,
@@ -447,18 +474,14 @@ fun HomeScreen(
                         ActionCard(
                             title = "Liked",
                             icon = R.drawable.favorite,
-                            onClick = {
-                                navController.navigate("auto_playlist/liked")
-                            },
+                            onClick = { navController.navigate("auto_playlist/liked") },
                             modifier = Modifier.weight(1f)
                         )
 
                         ActionCard(
                             title = "Downloads",
                             icon = R.drawable.download,
-                            onClick = {
-                                navController.navigate("auto_playlist/downloaded")
-                            },
+                            onClick = { navController.navigate("auto_playlist/downloaded") },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -475,9 +498,7 @@ fun HomeScreen(
                         ActionCard(
                             title = "History",
                             icon = R.drawable.history,
-                            onClick = {
-                                navController.navigate("history")
-                            },
+                            onClick = { navController.navigate("history") },
                             modifier = Modifier.weight(1f)
                         )
 
@@ -485,11 +506,8 @@ fun HomeScreen(
                             title = if (isLoggedIn) "Account" else "Library",
                             icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
                             onClick = {
-                                if (isLoggedIn) {
-                                    navController.navigate("account")
-                                } else {
-                                    navController.navigate("library")
-                                }
+                                if (isLoggedIn) navController.navigate("account")
+                                else navController.navigate("library")
                             },
                             modifier = Modifier.weight(1f)
                         )
@@ -560,8 +578,7 @@ fun HomeScreen(
                                         playerConnection.playQueue(
                                             ListQueue(
                                                 title = quickPicksTitle,
-                                                items = quickPicksList.distinctBy { it.id }
-                                                    .map { it.toMediaItem() }
+                                                items = quickPicksList.distinctBy { it.id }.map { it.toMediaItem() }
                                             )
                                         )
                                     }
@@ -740,11 +757,9 @@ fun HomeScreen(
                             thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (section.title is Artist) {
-                                            CircleShape
-                                        } else {
-                                            RoundedCornerShape(ThumbnailCornerRadius)
-                                        }
+                                        if (section.title is Artist) CircleShape
+                                        else RoundedCornerShape(ThumbnailCornerRadius)
+
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -789,11 +804,9 @@ fun HomeScreen(
                             thumbnail = section.thumbnail?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (section.endpoint?.isArtistEndpoint == true) {
-                                            CircleShape
-                                        } else {
-                                            RoundedCornerShape(ThumbnailCornerRadius)
-                                        }
+                                        if (section.endpoint?.isArtistEndpoint == true) CircleShape
+                                        else RoundedCornerShape(ThumbnailCornerRadius)
+
                                     AsyncImage(
                                         model = thumbnailUrl,
                                         contentDescription = null,
@@ -918,9 +931,7 @@ fun HomeScreen(
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
                             rows = GridCells.Fixed(rows),
-                            flingBehavior = rememberSnapFlingBehavior(
-                                forgottenFavoritesSnapLayoutInfoProvider
-                            ),
+                            flingBehavior = rememberSnapFlingBehavior(forgottenFavoritesSnapLayoutInfoProvider),
                             contentPadding = WindowInsets.systemBars
                                 .only(WindowInsetsSides.Horizontal)
                                 .asPaddingValues(),
@@ -1018,6 +1029,7 @@ fun HomeScreen(
                         allLocalItems.isNotEmpty() -> true
                         else -> false
                     }
+
                     scope.launch(Dispatchers.Main) {
                         if (local) {
                             when (val luckyItem = allLocalItems.random()) {
