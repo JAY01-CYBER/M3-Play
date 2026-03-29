@@ -46,7 +46,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,13 +65,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -320,7 +321,8 @@ fun HomeScreen(
                                 YouTubeQueue(
                                     item.endpoint ?: WatchEndpoint(
                                         videoId = item.id
-                                    ), item.toMediaMetadata()
+                                    ),
+                                    item.toMediaMetadata()
                                 )
                             )
 
@@ -526,10 +528,10 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                 }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicks ->
-                    val quickPicksTitle = stringResource(R.string.quick_picks)
-
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { quickPicksList ->
                     item {
+                        val quickPicksTitle = stringResource(R.string.quick_picks)
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -558,7 +560,7 @@ fun HomeScreen(
                                         playerConnection.playQueue(
                                             ListQueue(
                                                 title = quickPicksTitle,
-                                                items = quickPicks.distinctBy { it.id }
+                                                items = quickPicksList.distinctBy { it.id }
                                                     .map { it.toMediaItem() }
                                             )
                                         )
@@ -590,10 +592,10 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = quickPicks.distinctBy { it.id },
+                                items = quickPicksList.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = quickPicks.indexOf(originalSong)
+                                val index = quickPicksList.indexOf(originalSong)
 
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(24f) }
@@ -645,7 +647,7 @@ fun HomeScreen(
                     }
                 }
 
-                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListening ->
+                keepListening?.takeIf { it.isNotEmpty() }?.let { keepListeningList ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.keep_listening),
@@ -654,7 +656,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        val rows = if (keepListening.size > 6) 2 else 1
+                        val rows = if (keepListeningList.size > 6) 2 else 1
                         LazyHorizontalGrid(
                             state = rememberLazyGridState(),
                             rows = GridCells.Fixed(rows),
@@ -668,14 +670,14 @@ fun HomeScreen(
                                 )
                                 .animateItem()
                         ) {
-                            items(keepListening) {
+                            items(keepListeningList) {
                                 localGridItem(it)
                             }
                         }
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylists ->
+                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
                     item {
                         NavigationTitle(
                             label = stringResource(R.string.your_ytb_playlists),
@@ -721,7 +723,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = accountPlaylists.distinctBy { it.id },
+                                items = accountPlaylistsList.distinctBy { it.id },
                                 key = { it.id },
                             ) { item ->
                                 ytGridItem(item)
@@ -730,15 +732,15 @@ fun HomeScreen(
                     }
                 }
 
-                similarRecommendations?.forEach {
+                similarRecommendations?.forEach { section ->
                     item {
                         NavigationTitle(
                             label = stringResource(R.string.similar_to),
-                            title = it.title.title,
-                            thumbnail = it.title.thumbnailUrl?.let { thumbnailUrl ->
+                            title = section.title.title,
+                            thumbnail = section.title.thumbnailUrl?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.title is Artist) {
+                                        if (section.title is Artist) {
                                             CircleShape
                                         } else {
                                             RoundedCornerShape(ThumbnailCornerRadius)
@@ -754,10 +756,10 @@ fun HomeScreen(
                             },
                             onClick = {
                                 if (hapticsEnabled) Haptics.click(haptic, context)
-                                when (it.title) {
-                                    is Song -> navController.navigate("album/${it.title.album!!.id}")
-                                    is Album -> navController.navigate("album/${it.title.id}")
-                                    is Artist -> navController.navigate("artist/${it.title.id}")
+                                when (section.title) {
+                                    is Song -> navController.navigate("album/${section.title.album!!.id}")
+                                    is Album -> navController.navigate("album/${section.title.id}")
+                                    is Artist -> navController.navigate("artist/${section.title.id}")
                                     is Playlist -> {}
                                 }
                             },
@@ -772,22 +774,22 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(it.items) { item ->
+                            items(section.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                homePage?.sections?.forEach {
+                homePage?.sections?.forEach { section ->
                     item {
                         NavigationTitle(
-                            title = it.title,
-                            label = it.label,
-                            thumbnail = it.thumbnail?.let { thumbnailUrl ->
+                            title = section.title,
+                            label = section.label,
+                            thumbnail = section.thumbnail?.let { thumbnailUrl ->
                                 {
                                     val shape =
-                                        if (it.endpoint?.isArtistEndpoint == true) {
+                                        if (section.endpoint?.isArtistEndpoint == true) {
                                             CircleShape
                                         } else {
                                             RoundedCornerShape(ThumbnailCornerRadius)
@@ -812,14 +814,14 @@ fun HomeScreen(
                                 .asPaddingValues(),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(it.items) { item ->
+                            items(section.items) { item ->
                                 ytGridItem(item)
                             }
                         }
                     }
                 }
 
-                explorePage?.newReleaseAlbums?.let { newReleaseAlbums ->
+                explorePage?.newReleaseAlbums?.let { newReleaseAlbumsList ->
                     item {
                         NavigationTitle(
                             title = stringResource(R.string.new_release_albums),
@@ -839,7 +841,7 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = newReleaseAlbums,
+                                items = newReleaseAlbumsList,
                                 key = { it.id }
                             ) { album ->
                                 YouTubeGridItem(
@@ -891,10 +893,10 @@ fun HomeScreen(
                     }
                 }
 
-                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavorites ->
-                    val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
-
+                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
                     item {
+                        val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
                             modifier = Modifier.animateItem(),
@@ -903,7 +905,7 @@ fun HomeScreen(
                                 playerConnection.playQueue(
                                     ListQueue(
                                         title = forgottenFavoritesTitle,
-                                        items = forgottenFavorites.distinctBy { it.id }
+                                        items = forgottenFavoritesList.distinctBy { it.id }
                                             .map { it.toMediaItem() }
                                     )
                                 )
@@ -912,7 +914,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        val rows = min(4, forgottenFavorites.size)
+                        val rows = min(4, forgottenFavoritesList.size)
                         LazyHorizontalGrid(
                             state = forgottenFavoritesLazyGridState,
                             rows = GridCells.Fixed(rows),
@@ -928,10 +930,10 @@ fun HomeScreen(
                                 .animateItem()
                         ) {
                             items(
-                                items = forgottenFavorites.distinctBy { it.id },
+                                items = forgottenFavoritesList.distinctBy { it.id },
                                 key = { it.id }
                             ) { originalSong ->
-                                val index = forgottenFavorites.indexOf(originalSong)
+                                val index = forgottenFavoritesList.indexOf(originalSong)
 
                                 val animatedAlpha = remember { Animatable(0f) }
                                 val animatedOffset = remember { Animatable(20f) }
@@ -1048,6 +1050,37 @@ fun HomeScreen(
                     }
                 }
             )
+
+            val isScrolled by remember {
+                derivedStateOf { lazylistState.firstVisibleItemIndex > 0 }
+            }
+
+            AnimatedVisibility(
+                visible = isScrolled,
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(0.dp, 0.dp, 16.dp, 80.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            lazylistState.animateScrollToItem(0)
+                            if (hapticsEnabled) Haptics.click(haptic, context)
+                        }
+                    },
+                    modifier = Modifier.size(48.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    elevation = FloatingActionButtonDefaults.elevation(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to top",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
