@@ -385,6 +385,12 @@ fun HomeScreen(
                 label = "refresh_scale"
             )
 
+            val rotation by animateFloatAsState(
+                targetValue = if (isRefreshing) 360f else 0f,
+                animationSpec = tween(800),
+                label = "refresh_rotation"
+            )
+
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -404,14 +410,19 @@ fun HomeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.6.dp,
-                            color = MaterialTheme.colorScheme.primary
+                        Icon(
+                            painter = painterResource(R.drawable.ic_refresh_premium),
+                            contentDescription = "Refresh",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(22.dp)
+                                .graphicsLayer {
+                                    rotationZ = rotation
+                                }
                         )
                     } else {
                         Icon(
-                            painter = painterResource(R.drawable.refresh),
+                            painter = painterResource(R.drawable.ic_refresh_premium),
                             contentDescription = "Refresh",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
