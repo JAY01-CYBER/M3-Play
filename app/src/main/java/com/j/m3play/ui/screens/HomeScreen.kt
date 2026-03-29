@@ -1,6 +1,6 @@
 @file:OptIn(
-    androidx.compose.foundation.ExperimentalFoundationApi::class,
-    androidx.compose.material3.ExperimentalMaterial3Api::class
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3Api::class
 )
 
 package com.j.m3play.ui.screens
@@ -61,7 +61,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -153,10 +152,6 @@ import kotlin.math.min
 import kotlin.random.Random
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
-@OptIn(
-    ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class
-)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -376,16 +371,7 @@ fun HomeScreen(
     PullToRefreshBox(
         state = pullRefreshState,
         isRefreshing = isRefreshing,
-        onRefresh = viewModel::refresh,
-        indicator = {
-            PullToRefreshDefaults.LoadingIndicator(
-                state = pullRefreshState,
-                isRefreshing = isRefreshing,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-            )
-        }
+        onRefresh = viewModel::refresh
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
