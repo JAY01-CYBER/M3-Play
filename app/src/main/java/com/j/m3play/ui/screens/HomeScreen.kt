@@ -18,6 +18,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -61,7 +62,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,7 +74,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -152,7 +151,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
-import androidx.compose.foundation.layout.Column
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -176,24 +174,8 @@ fun HomeScreen(
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
     val accountPlaylists by viewModel.accountPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
-    val explorePage by viewModel.explorePage.collectAsState()
-    val allLocalItems by viewModel.allLocalItems.collectAsState()
-    val allYtItems by viewModel.allYtItems.collectAsState()
-
-    val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isRefreshing: Boolean by viewModel.isRefreshing.collectAsState()
-    val pullRefreshState = rememberPullToRefreshState()
-
-    val quickPicksLazyGridState = rememberLazyGridState()
-    val forgottenFavoritesLazyGridState = rememberLazyGridState()
-
-    val accountName by rememberPreference(AccountNameKey, "")
-    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
-    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val isLoggedIn = remember(innerTubeCookie) {
-        "SAPISID" in parseCookieString(innerTubeCookie)
-    }
-    val url = if (isLoggedIn) accountImageUrl else null
+    val explorePage by viewModel.explorePage.collectAsState()
 
     val heroItems = remember(explorePage, isRefreshing) {
         buildList {
@@ -213,6 +195,23 @@ fun HomeScreen(
         }
     }
 
+    val allLocalItems by viewModel.allLocalItems.collectAsState()
+    val allYtItems by viewModel.allYtItems.collectAsState()
+
+    val isLoading: Boolean by viewModel.isLoading.collectAsState()
+    val pullRefreshState = rememberPullToRefreshState()
+
+    val quickPicksLazyGridState = rememberLazyGridState()
+    val forgottenFavoritesLazyGridState = rememberLazyGridState()
+
+    val accountName by rememberPreference(AccountNameKey, "")
+    val accountImageUrl by viewModel.accountImageUrl.collectAsState()
+    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in parseCookieString(innerTubeCookie)
+    }
+    val url = if (isLoggedIn) accountImageUrl else null
+
     val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -226,47 +225,41 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(quickPicks) {
-        quickPicksLazyGridState.scrollToItem(0)
-    }
-
-    LaunchedEffect(forgottenFavorites) {
-        forgottenFavoritesLazyGridState.scrollToItem(0)
-    }
-
-    val localGridItem: @Composable (LocalItem) -> Unit = { item ->
-        when (item) {
+    val localGridItem: @Composable (LocalItem) -> Unit = {
+        when (it) {
             is Song -> SongGridItem(
-                song = item,
+                song = it,
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = {
                             if (hapticsEnabled) Haptics.click(haptic, context)
-                            if (item.id == mediaMetadata?.id) {
+                            if (it.id == mediaMetadata?.id) {
                                 playerConnection.player.togglePlayPause()
                             } else {
-                                playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
+                                playerConnection.playQueue(
+                                    YouTubeQueue.radio(it.toMediaMetadata()),
+                                )
                             }
                         },
                         onLongClick = {
                             if (hapticsEnabled) Haptics.longPress(haptic, context)
                             menuState.show {
                                 SongMenu(
-                                    originalSong = item,
+                                    originalSong = it,
                                     navController = navController,
-                                    onDismiss = menuState::dismiss
+                                    onDismiss = menuState::dismiss,
                                 )
                             }
-                        }
+                        },
                     ),
-                isActive = item.id == mediaMetadata?.id,
-                isPlaying = isPlaying
+                isActive = it.id == mediaMetadata?.id,
+                isPlaying = isPlaying,
             )
 
             is Album -> AlbumGridItem(
-                album = item,
-                isActive = item.id == mediaMetadata?.album?.id,
+                album = it,
+                isActive = it.id == mediaMetadata?.album?.id,
                 isPlaying = isPlaying,
                 coroutineScope = scope,
                 modifier = Modifier
@@ -274,13 +267,13 @@ fun HomeScreen(
                     .combinedClickable(
                         onClick = {
                             if (hapticsEnabled) Haptics.click(haptic, context)
-                            navController.navigate("album/${item.id}")
+                            navController.navigate("album/${it.id}")
                         },
                         onLongClick = {
                             if (hapticsEnabled) Haptics.longPress(haptic, context)
                             menuState.show {
                                 AlbumMenu(
-                                    originalAlbum = item,
+                                    originalAlbum = it,
                                     navController = navController,
                                     onDismiss = menuState::dismiss
                                 )
@@ -290,25 +283,25 @@ fun HomeScreen(
             )
 
             is Artist -> ArtistGridItem(
-                artist = item,
+                artist = it,
                 modifier = Modifier
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = {
                             if (hapticsEnabled) Haptics.click(haptic, context)
-                            navController.navigate("artist/${item.id}")
+                            navController.navigate("artist/${it.id}")
                         },
                         onLongClick = {
                             if (hapticsEnabled) Haptics.longPress(haptic, context)
                             menuState.show {
                                 ArtistMenu(
-                                    originalArtist = item,
+                                    originalArtist = it,
                                     coroutineScope = scope,
-                                    onDismiss = menuState::dismiss
+                                    onDismiss = menuState::dismiss,
                                 )
                             }
-                        }
-                    )
+                        },
+                    ),
             )
 
             is Playlist -> {}
@@ -322,49 +315,58 @@ fun HomeScreen(
             isPlaying = isPlaying,
             coroutineScope = scope,
             thumbnailRatio = 1f,
-            modifier = Modifier.combinedClickable(
-                onClick = {
-                    if (hapticsEnabled) Haptics.click(haptic, context)
-                    when (item) {
-                        is SongItem -> playerConnection.playQueue(
-                            YouTubeQueue(
-                                item.endpoint ?: WatchEndpoint(videoId = item.id),
-                                item.toMediaMetadata()
-                            )
-                        )
-                        is AlbumItem -> navController.navigate("album/${item.id}")
-                        is ArtistItem -> navController.navigate("artist/${item.id}")
-                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                    }
-                },
-                onLongClick = {
-                    if (hapticsEnabled) Haptics.longPress(haptic, context)
-                    menuState.show {
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = {
+                        if (hapticsEnabled) Haptics.click(haptic, context)
                         when (item) {
-                            is SongItem -> YouTubeSongMenu(
-                                song = item,
-                                navController = navController,
-                                onDismiss = menuState::dismiss
+                            is SongItem -> playerConnection.playQueue(
+                                YouTubeQueue(
+                                    item.endpoint ?: WatchEndpoint(videoId = item.id),
+                                    item.toMediaMetadata()
+                                )
                             )
-                            is AlbumItem -> YouTubeAlbumMenu(
-                                albumItem = item,
-                                navController = navController,
-                                onDismiss = menuState::dismiss
-                            )
-                            is ArtistItem -> YouTubeArtistMenu(
-                                artist = item,
-                                onDismiss = menuState::dismiss
-                            )
-                            is PlaylistItem -> YouTubePlaylistMenu(
-                                playlist = item,
-                                coroutineScope = scope,
-                                onDismiss = menuState::dismiss
-                            )
+                            is AlbumItem -> navController.navigate("album/${item.id}")
+                            is ArtistItem -> navController.navigate("artist/${item.id}")
+                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                        }
+                    },
+                    onLongClick = {
+                        if (hapticsEnabled) Haptics.longPress(haptic, context)
+                        menuState.show {
+                            when (item) {
+                                is SongItem -> YouTubeSongMenu(
+                                    song = item,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
+                                is AlbumItem -> YouTubeAlbumMenu(
+                                    albumItem = item,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
+                                is ArtistItem -> YouTubeArtistMenu(
+                                    artist = item,
+                                    onDismiss = menuState::dismiss
+                                )
+                                is PlaylistItem -> YouTubePlaylistMenu(
+                                    playlist = item,
+                                    coroutineScope = scope,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
                         }
                     }
-                }
-            )
+                )
         )
+    }
+
+    LaunchedEffect(quickPicks) {
+        quickPicksLazyGridState.scrollToItem(0)
+    }
+
+    LaunchedEffect(forgottenFavorites) {
+        forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
     PullToRefreshBox(
@@ -373,15 +375,6 @@ fun HomeScreen(
         onRefresh = {
             if (hapticsEnabled) Haptics.tick(haptic, context)
             viewModel.refresh()
-        },
-        indicator = {
-            PullToRefreshDefaults.LoadingIndicator(
-                state = pullRefreshState,
-                isRefreshing = isRefreshing,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
-            )
         }
     ) {
         BoxWithConstraints(
@@ -440,6 +433,7 @@ fun HomeScreen(
                             onClick = { navController.navigate("auto_playlist/liked") },
                             modifier = Modifier.weight(1f)
                         )
+
                         ActionCard(
                             title = "Downloads",
                             icon = R.drawable.download,
@@ -463,6 +457,7 @@ fun HomeScreen(
                             onClick = { navController.navigate("history") },
                             modifier = Modifier.weight(1f)
                         )
+
                         ActionCard(
                             title = if (isLoggedIn) "Account" else "Library",
                             icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
@@ -505,31 +500,16 @@ fun HomeScreen(
                     item { Spacer(modifier = Modifier.height(8.dp)) }
                 }
 
-                explorePage?.newReleaseAlbums?.takeIf { it.isNotEmpty() }?.let { albums ->
+                explorePage?.newReleaseAlbums?.takeIf { it.isNotEmpty() }?.let { newReleaseAlbums ->
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .animateItem(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "New releases",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "More",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.clickable {
-                                    if (hapticsEnabled) Haptics.click(haptic, context)
-                                    navController.navigate("new_release")
-                                }
-                            )
-                        }
+                        NavigationTitle(
+                            title = "New releases",
+                            onClick = {
+                                if (hapticsEnabled) Haptics.click(haptic, context)
+                                navController.navigate("new_release")
+                            },
+                            modifier = Modifier.animateItem()
+                        )
                     }
 
                     item {
@@ -538,7 +518,10 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.animateItem()
                         ) {
-                            items(albums, key = { it.id }) { album ->
+                            items(
+                                items = newReleaseAlbums,
+                                key = { it.id }
+                            ) { album ->
                                 Column(
                                     modifier = Modifier
                                         .width(154.dp)
@@ -568,13 +551,16 @@ fun HomeScreen(
                                             .height(154.dp)
                                             .clip(RoundedCornerShape(18.dp))
                                     )
+
                                     Spacer(modifier = Modifier.height(8.dp))
+
                                     Text(
                                         text = album.title,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.SemiBold,
                                         maxLines = 1
                                     )
+
                                     Text(
                                         text = "Album",
                                         style = MaterialTheme.typography.bodySmall,
@@ -602,6 +588,7 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold
                             )
+
                             Text(
                                 text = "Play all",
                                 color = MaterialTheme.colorScheme.primary,
@@ -646,11 +633,14 @@ fun HomeScreen(
                                     animatedOffset.animateTo(0f, animationSpec = tween(260))
                                 }
 
-                                val song by database.song(originalSong.id).collectAsState(initial = originalSong)
+                                val song by database.song(originalSong.id)
+                                    .collectAsState(initial = originalSong)
+
+                                val subtitleText = song!!.artists.joinToString { it.name }
 
                                 M3PlayQuickPickCard(
                                     song = song!!,
-                                    subtitle = song!!.artists.joinToString { it.name },
+                                    subtitle = subtitleText,
                                     onClick = {
                                         if (hapticsEnabled) Haptics.click(haptic, context)
                                         if (song!!.id == mediaMetadata?.id) {
@@ -697,27 +687,24 @@ fun HomeScreen(
                         LazyHorizontalGrid(
                             state = rememberLazyGridState(),
                             rows = GridCells.Fixed(rows),
-                            contentPadding = WindowInsets.systemBars
-                                .only(WindowInsetsSides.Horizontal)
-                                .asPaddingValues(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(
                                     (GridThumbnailHeight + with(LocalDensity.current) {
                                         MaterialTheme.typography.bodyLarge.lineHeight.toDp() * 2 +
-                                            MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
+                                                MaterialTheme.typography.bodyMedium.lineHeight.toDp() * 2
                                     }) * rows
                                 )
                                 .animateItem()
                         ) {
-                            items(keepListeningList) { localItem ->
-                                localGridItem(localItem)
+                            items(keepListeningList) {
+                                localGridItem(it)
                             }
                         }
                     }
                 }
 
-                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                accountPlaylists?.takeIf { it.isNotEmpty() }?.let { accountPlaylistsList ->
                     item {
                         NavigationTitle(
                             label = "Your playlists",
@@ -763,8 +750,8 @@ fun HomeScreen(
                             modifier = Modifier.animateItem()
                         ) {
                             items(
-                                items = playlists.distinctBy { it.id },
-                                key = { it.id }
+                                items = accountPlaylistsList.distinctBy { it.id },
+                                key = { it.id },
                             ) { item ->
                                 ytGridItem(item)
                             }
@@ -859,7 +846,9 @@ fun HomeScreen(
 
                 if (isLoading && homePage?.sections.isNullOrEmpty()) {
                     item(key = "loading_shimmer") {
-                        ShimmerHost(modifier = Modifier.animateItem()) {
+                        ShimmerHost(
+                            modifier = Modifier.animateItem()
+                        ) {
                             TextPlaceholder(
                                 height = 36.dp,
                                 modifier = Modifier
@@ -878,6 +867,7 @@ fun HomeScreen(
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { forgottenFavoritesList ->
                     item {
                         val forgottenFavoritesTitle = stringResource(R.string.forgotten_favorites)
+
                         NavigationTitle(
                             title = forgottenFavoritesTitle,
                             modifier = Modifier.animateItem(),
@@ -912,7 +902,8 @@ fun HomeScreen(
                                 items = forgottenFavoritesList.distinctBy { it.id },
                                 key = { _, it -> it.id }
                             ) { _, originalSong ->
-                                val song by database.song(originalSong.id).collectAsState(initial = originalSong)
+                                val song by database.song(originalSong.id)
+                                    .collectAsState(initial = originalSong)
 
                                 SongListItem(
                                     song = song!!,
@@ -968,7 +959,9 @@ fun HomeScreen(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(96.dp)) }
+                item {
+                    Spacer(modifier = Modifier.height(96.dp))
+                }
             }
 
             HideOnScrollFAB(
