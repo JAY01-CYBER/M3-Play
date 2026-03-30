@@ -66,7 +66,7 @@ import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChoiceChipsRow
+import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalAlbumsGrid
@@ -110,12 +110,11 @@ fun StatsScreen(
     val lazyListState = rememberLazyListState()
     val selectedOption by viewModel.selectedOption.collectAsState()
 
-    // BottomSheet para Insight
     var showInsightBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val weeklyDates =
-        if (currentDate != null && firstEvent != null) {
+        if (firstEvent != null) {
             generateSequence(currentDate) { it.minusWeeks(1) }
                 .takeWhile { it.isAfter(firstEvent?.event?.timestamp?.minusWeeks(1)) }
                 .mapIndexed { index, date ->
@@ -136,24 +135,19 @@ fun StatsScreen(
                             startMonth != endMonth -> "$startDateFormatted - $endDateFormatted"
                             else -> "${date.dayOfMonth} - $endDateFormatted"
                         }
-                    Pair(index, text)
+                    index to text
                 }.toList()
         } else {
             emptyList()
         }
 
     val monthlyDates =
-        if (currentDate != null && firstEvent != null) {
+        if (firstEvent != null) {
             generateSequence(
                 currentDate.plusMonths(1).withDayOfMonth(1).minusDays(1)
             ) { it.minusMonths(1) }
                 .takeWhile {
-                    it.isAfter(
-                        firstEvent
-                            ?.event
-                            ?.timestamp
-                            ?.withDayOfMonth(1),
-                    )
+                    it.isAfter(firstEvent?.event?.timestamp?.withDayOfMonth(1))
                 }.mapIndexed { index, date ->
                     val formatter = DateTimeFormatter.ofPattern("MMM")
                     val formattedDate = formatter.format(date)
@@ -163,31 +157,48 @@ fun StatsScreen(
                         } else {
                             formattedDate
                         }
-                    Pair(index, text)
+                    index to text
                 }.toList()
         } else {
             emptyList()
         }
 
     val yearlyDates =
-        if (currentDate != null && firstEvent != null) {
+        if (firstEvent != null) {
             generateSequence(
-                currentDate
-                    .plusYears(1)
-                    .withDayOfYear(1)
-                    .minusDays(1),
+                currentDate.plusYears(1).withDayOfYear(1).minusDays(1),
             ) { it.minusYears(1) }
                 .takeWhile {
-                    it.isAfter(
-                        firstEvent
-                            ?.event
-                            ?.timestamp,
-                    )
+                    it.isAfter(firstEvent?.event?.timestamp)
                 }.mapIndexed { index, date ->
-                    Pair(index, "${date.year}")
+                    index to "${date.year}"
                 }.toList()
         } else {
             emptyList()
+        }
+
+    val optionChips = listOf(
+        OptionStats.CONTINUOUS to stringResource(id = R.string.continuous),
+        OptionStats.WEEKS to stringResource(R.string.weeks),
+        OptionStats.MONTHS to stringResource(R.string.months),
+        OptionStats.YEARS to stringResource(R.string.years),
+    )
+
+    val periodChips =
+        when (selectedOption) {
+            OptionStats.WEEKS -> weeklyDates
+            OptionStats.MONTHS -> monthlyDates
+            OptionStats.YEARS -> yearlyDates
+            OptionStats.CONTINUOUS -> {
+                listOf(
+                    StatPeriod.WEEK_1.ordinal to pluralStringResource(R.plurals.n_week, 1, 1),
+                    StatPeriod.MONTH_1.ordinal to pluralStringResource(R.plurals.n_month, 1, 1),
+                    StatPeriod.MONTH_3.ordinal to pluralStringResource(R.plurals.n_month, 3, 3),
+                    StatPeriod.MONTH_6.ordinal to pluralStringResource(R.plurals.n_month, 6, 6),
+                    StatPeriod.YEAR_1.ordinal to pluralStringResource(R.plurals.n_year, 1, 1),
+                    StatPeriod.ALL.ordinal to stringResource(R.string.filter_all),
+                )
+            }
         }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -201,58 +212,28 @@ fun StatsScreen(
             )
         ) {
             item {
-                ChoiceChipsRow(
-                    chips =
-                        when (selectedOption) {
-                            OptionStats.WEEKS -> weeklyDates
-                            OptionStats.MONTHS -> monthlyDates
-                            OptionStats.YEARS -> yearlyDates
-                            OptionStats.CONTINUOUS -> {
-                                listOf(
-                                    StatPeriod.WEEK_1.ordinal to pluralStringResource(
-                                        R.plurals.n_week,
-                                        1,
-                                        1
-                                    ),
-                                    StatPeriod.MONTH_1.ordinal to pluralStringResource(
-                                        R.plurals.n_month,
-                                        1,
-                                        1
-                                    ),
-                                    StatPeriod.MONTH_3.ordinal to pluralStringResource(
-                                        R.plurals.n_month,
-                                        3,
-                                        3
-                                    ),
-                                    StatPeriod.MONTH_6.ordinal to pluralStringResource(
-                                        R.plurals.n_month,
-                                        6,
-                                        6
-                                    ),
-                                    StatPeriod.YEAR_1.ordinal to pluralStringResource(
-                                        R.plurals.n_year,
-                                        1,
-                                        1
-                                    ),
-                                    StatPeriod.ALL.ordinal to stringResource(R.string.filter_all),
-                                )
-                            }
-                        },
-                    options =
-                        listOf(
-                            OptionStats.CONTINUOUS to stringResource(id = R.string.continuous),
-                            OptionStats.WEEKS to stringResource(R.string.weeks),
-                            OptionStats.MONTHS to stringResource(R.string.months),
-                            OptionStats.YEARS to stringResource(R.string.years),
-                        ),
-                    selectedOption = selectedOption,
-                    onSelectionChange = {
-                        viewModel.selectedOption.value = it
-                        viewModel.indexChips.value = 0
-                    },
-                    currentValue = indexChips,
-                    onValueUpdate = { viewModel.indexChips.value = it },
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ChipsRow(
+                        chips = optionChips,
+                        currentValue = selectedOption,
+                        onValueUpdate = { value ->
+                            viewModel.selectedOption.value = value
+                            viewModel.indexChips.value = 0
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    ChipsRow(
+                        chips = periodChips,
+                        currentValue = indexChips,
+                        onValueUpdate = { value ->
+                            viewModel.indexChips.value = value
+                        }
+                    )
+                }
             }
 
             item(key = "mostPlayedSongs") {
@@ -270,46 +251,44 @@ fun StatsScreen(
                     ) { index, song ->
                         LocalSongsGrid(
                             title = "${index + 1}. ${song.title}",
-                            subtitle =
-                                joinByBullet(
-                                    pluralStringResource(
-                                        R.plurals.n_time,
-                                        song.songCountListened,
-                                        song.songCountListened,
-                                    ),
-                                    makeTimeString(song.timeListened),
+                            subtitle = joinByBullet(
+                                pluralStringResource(
+                                    R.plurals.n_time,
+                                    song.songCountListened,
+                                    song.songCountListened,
                                 ),
+                                makeTimeString(song.timeListened),
+                            ),
                             thumbnailUrl = song.thumbnailUrl,
                             isActive = song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (song.id == mediaMetadata?.id) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.playQueue(
-                                                    YouTubeQueue(
-                                                        endpoint = WatchEndpoint(song.id),
-                                                        preloadItem = mostPlayedSongs[index].toMediaMetadata(),
-                                                    ),
-                                                )
-                                            }
-                                        },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            menuState.show {
-                                                SongMenu(
-                                                    originalSong = mostPlayedSongs[index],
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss,
-                                                )
-                                            }
-                                        },
-                                    )
-                                    .animateItem(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {
+                                        if (song.id == mediaMetadata?.id) {
+                                            playerConnection.player.togglePlayPause()
+                                        } else {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue(
+                                                    endpoint = WatchEndpoint(song.id),
+                                                    preloadItem = mostPlayedSongs[index].toMediaMetadata(),
+                                                ),
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        menuState.show {
+                                            SongMenu(
+                                                originalSong = mostPlayedSongs[index],
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    },
+                                )
+                                .animateItem(),
                         )
                     }
                 }
@@ -330,34 +309,32 @@ fun StatsScreen(
                     ) { index, artist ->
                         LocalArtistsGrid(
                             title = "${index + 1}. ${artist.artist.name}",
-                            subtitle =
-                                joinByBullet(
-                                    pluralStringResource(
-                                        R.plurals.n_time,
-                                        artist.songCount,
-                                        artist.songCount
-                                    ),
-                                    makeTimeString(artist.timeListened?.toLong()),
+                            subtitle = joinByBullet(
+                                pluralStringResource(
+                                    R.plurals.n_time,
+                                    artist.songCount,
+                                    artist.songCount
                                 ),
+                                makeTimeString(artist.timeListened?.toLong()),
+                            ),
                             thumbnailUrl = artist.artist.thumbnailUrl,
-                            modifier =
-                                Modifier
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("artist/${artist.id}")
-                                        },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            menuState.show {
-                                                ArtistMenu(
-                                                    originalArtist = artist,
-                                                    coroutineScope = coroutineScope,
-                                                    onDismiss = menuState::dismiss,
-                                                )
-                                            }
-                                        },
-                                    )
-                                    .animateItem(),
+                            modifier = Modifier
+                                .combinedClickable(
+                                    onClick = {
+                                        navController.navigate("artist/${artist.id}")
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        menuState.show {
+                                            ArtistMenu(
+                                                originalArtist = artist,
+                                                coroutineScope = coroutineScope,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    },
+                                )
+                                .animateItem(),
                         )
                     }
                 }
@@ -379,37 +356,35 @@ fun StatsScreen(
                         ) { index, album ->
                             LocalAlbumsGrid(
                                 title = "${index + 1}. ${album.album.title}",
-                                subtitle =
-                                    joinByBullet(
-                                        pluralStringResource(
-                                            R.plurals.n_time,
-                                            album.songCountListened!!,
-                                            album.songCountListened
-                                        ),
-                                        makeTimeString(album.timeListened?.toLong()),
+                                subtitle = joinByBullet(
+                                    pluralStringResource(
+                                        R.plurals.n_time,
+                                        album.songCountListened!!,
+                                        album.songCountListened
                                     ),
+                                    makeTimeString(album.timeListened?.toLong()),
+                                ),
                                 thumbnailUrl = album.album.thumbnailUrl,
                                 isActive = album.id == mediaMetadata?.album?.id,
                                 isPlaying = isPlaying,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("album/${album.id}")
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    AlbumMenu(
-                                                        originalAlbum = album,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
-                                            },
-                                        )
-                                        .animateItem(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            navController.navigate("album/${album.id}")
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                AlbumMenu(
+                                                    originalAlbum = album,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    .animateItem(),
                             )
                         }
                     }
@@ -417,7 +392,6 @@ fun StatsScreen(
             }
         }
 
-        // FAB to shuffle most played songs
         if (mostPlayedSongs.isNotEmpty()) {
             HideOnScrollFAB(
                 visible = true,
@@ -443,30 +417,14 @@ fun StatsScreen(
                     onLongClick = navController::backToMain,
                 ) {
                     Icon(
-                        painterResource(R.drawable.arrow_back),
+                        painter = painterResource(R.drawable.arrow_back),
                         contentDescription = null,
                     )
                 }
             },
-//            actions = {
-//                IconButton(
-//                    onClick = { showInsightBottomSheet = true },
-//                    modifier = Modifier.size(48.dp),
-//                    enabled = true,
-//                    onLongClick = {}
-//                ) {
-//                    Icon(
-//                        painter = painterResource(R.drawable.auto_awesome),
-//                        contentDescription = "OpenTune Insight",
-//                        tint = Color(0xFF1DB954)
-//                    )
-//                }
-//            }
-
         )
     }
 
-//    // BottomSheet de Insight
 //    if (showInsightBottomSheet) {
 //        ModalBottomSheet(
 //            onDismissRequest = { showInsightBottomSheet = false },
@@ -508,7 +466,6 @@ fun InsightBottomSheetContent(
             .fillMaxWidth()
             .padding(bottom = 32.dp, start = 16.dp, end = 16.dp, top = 8.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -516,7 +473,7 @@ fun InsightBottomSheetContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                painter = painterResource(R.drawable.auto_awesome), // o bar_chart
+                painter = painterResource(R.drawable.auto_awesome),
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
                 tint = Color(0xFF1DB954)
@@ -536,7 +493,6 @@ fun InsightBottomSheetContent(
             }
         }
 
-        // Card principal
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -584,7 +540,6 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Características
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -609,7 +564,6 @@ fun InsightBottomSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón para ver completo
         Button(
             onClick = onNavigateToFullInsight,
             modifier = Modifier.fillMaxWidth(),
