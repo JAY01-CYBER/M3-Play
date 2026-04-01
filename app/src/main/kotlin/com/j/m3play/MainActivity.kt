@@ -1214,7 +1214,7 @@ class MainActivity : ComponentActivity() {
                                                             painter = painterResource(R.drawable.ic_app_logo),
                                                             contentDescription = null,
                                                             modifier = Modifier
-                                                                .size(35.dp)
+                                                                .size(28.dp)
                                                                 .padding(end = 3.dp)
                                                         )
 
