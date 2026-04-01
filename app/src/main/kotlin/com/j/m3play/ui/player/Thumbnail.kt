@@ -633,7 +633,7 @@ fun Thumbnail(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
-                                                painter = painterResource(R.drawable.about_splash),
+                                                painter = painterResource(R.drawable.ic_app_logo),
                                                 contentDescription = stringResource(R.string.hide_player_thumbnail),
                                                 tint = textBackgroundColor.copy(alpha = 0.7f),
                                                 modifier = Modifier.size(120.dp)
