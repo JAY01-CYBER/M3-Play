@@ -370,7 +370,7 @@ fun AboutScreen(
             )
 
             Image(
-                painter = painterResource(R.drawable.about_splash),
+                painter = painterResource(R.drawable.ic_app_logo),
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
                 modifier = Modifier
