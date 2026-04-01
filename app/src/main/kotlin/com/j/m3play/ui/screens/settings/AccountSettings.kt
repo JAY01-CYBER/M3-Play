@@ -354,7 +354,7 @@ private fun AccountSettingsHeader(onClose: () -> Unit) {
                     painter = painterResource(R.drawable.ic_app_logo),
                     contentDescription = null,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(30.dp)
                 )
 
                 Text(
