@@ -100,7 +100,7 @@ fun SettingsProfileHeader(modifier: Modifier = Modifier) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.small_icon),
+                        painter = painterResource(R.drawable.ic_app_logo),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(SettingsDimensions.HeroIconInnerSize),
