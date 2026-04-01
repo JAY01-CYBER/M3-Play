@@ -20,7 +20,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-    applicationId = "com.j.m3play"
+        applicationId = "com.j.m3play"
         minSdk = 26
         targetSdk = 36
         versionCode = 127
@@ -193,7 +193,6 @@ dependencies {
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
-    implementation(project(":canvas"))
     implementation(project(":shazamkit"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
@@ -211,7 +210,6 @@ dependencies {
 
     implementation(libs.timber)
     testImplementation(libs.junit)
-    // Ensure ProcessLifecycleOwner is available for the presence manager and CI unit tests
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
@@ -225,7 +223,6 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
             "-opt-in=kotlin.RequiresOptIn",
             "-Xcontext-parameters"
         )
-        // Suppress warnings
         suppressWarnings.set(true)
     }
 }
