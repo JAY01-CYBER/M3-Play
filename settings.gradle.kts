@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { setUrl("https://jitpack.io") }
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
@@ -24,29 +24,22 @@ dependencyResolutionManagement {
 // }
 
 rootProject.name = "M3-Play"
+
 include(":app")
 include(":innertube")
 include(":kugou")
 include(":lrclib")
 include(":lastfm")
-include("simpmusic")
+include(":simpmusic")
 include(":betterlyrics")
 include(":kizzy")
-include(":canvas")
+// ❌ canvas removed (was causing build error)
 include(":shazamkit")
 
-// Use a local copy of NewPipe Extractor by uncommenting the lines below.
-// We assume, that M3 Play and NewPipe Extractor have the same parent directory.
-// If this is not the case, please change the path in includeBuild().
-//
-// For this to work you also need to change the implementation in innertube/build.gradle.kts
-// to one which does not specify a version.
-// From:
-//      implementation(libs.newpipe.extractor)
-// To:
-//      implementation("com.github.teamnewpipe:NewPipeExtractor")
-//includeBuild("../NewPipeExtractor") {
-//    dependencySubstitution {
-//        substitute(module("com.github.teamnewpipe:NewPipeExtractor")).using(project(":extractor"))
-//    }
-//}
+// Optional: Local NewPipe Extractor (keep commented)
+// includeBuild("../NewPipeExtractor") {
+//     dependencySubstitution {
+//         substitute(module("com.github.teamnewpipe:NewPipeExtractor"))
+//             .using(project(":extractor"))
+//     }
+// }
