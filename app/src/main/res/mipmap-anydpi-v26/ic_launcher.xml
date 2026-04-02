@@ -1,5 +1,11 @@
+/*
+ * M3Play Project (2026)
+ * Jay Chaudhary (github.com/JAY01-CYBER)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+    <foreground android:drawable="@drawable/ic_app_logo"/>
 </adaptive-icon>
