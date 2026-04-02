@@ -1,3 +1,10 @@
+/*
+ * M3Play Project (2026)
+ * Jay Chaudhary (github.com/JAY01-CYBER)
+ * Licensed Under GPL-3.0 | see git history for contributors
+ */
+
+
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
@@ -14,7 +21,9 @@
                 android:endX="18"
                 android:endY="3"
                 android:type="linear">
-                <item android:offset="0" android:color="#FFFFA444" /> <item android:offset="1" android:color="#FFFF3D68" /> </gradient>
+                <item android:offset="0" android:color="#FFFFA444" />
+                <item android:offset="1" android:color="#FFFF3D68" />
+            </gradient>
         </aapt:attr>
     </path>
 </vector>
