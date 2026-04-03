@@ -4,13 +4,11 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
-
 package com.j.m3play.utils
 
 import androidx.datastore.preferences.core.edit
-import com.j.m3play.BuildConfig
 import com.j.m3play.App
+import com.j.m3play.BuildConfig
 import com.j.m3play.constants.GitHubReleasesEtagKey
 import com.j.m3play.constants.GitHubReleasesFingerprintKey
 import com.j.m3play.constants.GitHubReleasesJsonKey
@@ -22,7 +20,6 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import org.json.JSONArray
-import org.json.JSONObject
 
 data class GitCommit(
     val sha: String,
@@ -48,7 +45,10 @@ private data class ReleasesNetworkResult(
 
 object Updater {
     private val client = HttpClient()
-    private const val ReleaseCacheCheckIntervalMs: Long = 6 * 60 * 60 * 1000L
+
+    // Testing ke liye cache off rakha hai
+    private const val ReleaseCacheCheckIntervalMs: Long = 0L
+
     var lastCheckTime = -1L
         private set
 
@@ -61,8 +61,10 @@ object Updater {
         override fun compareTo(other: SemVer): Int {
             val majorCompare = major.compareTo(other.major)
             if (majorCompare != 0) return majorCompare
+
             val minorCompare = minor.compareTo(other.minor)
             if (minorCompare != 0) return minorCompare
+
             val patchCompare = patch.compareTo(other.patch)
             if (patchCompare != 0) return patchCompare
 
@@ -120,6 +122,7 @@ object Updater {
         val major = match.groupValues.getOrNull(1)?.toIntOrNull() ?: return null
         val minor = match.groupValues.getOrNull(2)?.toIntOrNull() ?: return null
         val patch = match.groupValues.getOrNull(3)?.toIntOrNull() ?: return null
+
         val preReleaseText = match.groupValues.getOrNull(4)?.takeIf { it.isNotBlank() }
         val preRelease =
             preReleaseText
@@ -133,6 +136,7 @@ object Updater {
                     }
                 }
                 ?: emptyList()
+
         return SemVer(
             major = major,
             minor = minor,
@@ -153,43 +157,58 @@ object Updater {
                 aSemVer.patch == bSemVer.patch &&
                 aSemVer.preRelease == bSemVer.preRelease
         } else {
-            a.trim() == b.trim()
+            a.trim().removePrefix("v") == b.trim().removePrefix("v")
         }
     }
 
     internal fun findLatestRelease(releases: List<ReleaseInfo>): ReleaseInfo? {
         if (releases.isEmpty()) return null
+
+        val validReleases = releases.filter {
+            it.tagName.isNotBlank() || it.name.isNotBlank()
+        }
+
+        if (validReleases.isEmpty()) return null
+
         val parsed =
-            releases.mapNotNull { release ->
+            validReleases.mapNotNull { release ->
                 parseReleaseSemVerOrNull(release)?.let { version -> version to release }
             }
 
-        if (parsed.isEmpty()) return releases.firstOrNull()
+        if (parsed.isEmpty()) {
+            return validReleases.firstOrNull()
+        }
 
         val stable = parsed.filter { it.first.preRelease.isEmpty() }
         val candidates = stable.ifEmpty { parsed }
+
         return candidates.maxWithOrNull(compareBy({ it.first }, { it.second.publishedAt }))?.second
     }
 
     private fun preferredReleaseVersionNameOrNull(release: ReleaseInfo): String? =
         parseReleaseSemVerOrNull(release)?.normalizedName()
 
-    private fun parseReleasesJson(
-        json: String,
-    ): List<ReleaseInfo> {
+    private fun parseReleasesJson(json: String): List<ReleaseInfo> {
         val jsonArray = JSONArray(json)
         val releases = ArrayList<ReleaseInfo>(jsonArray.length())
+
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.getJSONObject(i)
-            releases.add(
-                ReleaseInfo(
-                    tagName = item.optString("tag_name", ""),
-                    name = item.optString("name", ""),
-                    body = if (item.has("body")) item.optString("body") else null,
-                    publishedAt = item.optString("published_at", ""),
-                    htmlUrl = item.optString("html_url", "")
+
+            val isDraft = item.optBoolean("draft", false)
+            val isPreRelease = item.optBoolean("prerelease", false)
+
+            if (!isDraft && !isPreRelease) {
+                releases.add(
+                    ReleaseInfo(
+                        tagName = item.optString("tag_name", ""),
+                        name = item.optString("name", ""),
+                        body = if (item.has("body")) item.optString("body") else null,
+                        publishedAt = item.optString("published_at", ""),
+                        htmlUrl = item.optString("html_url", "")
+                    )
                 )
-            )
+            }
         }
         return releases
     }
@@ -219,7 +238,9 @@ object Updater {
                     }
                 }
             }
+
         val etag = response.headers["ETag"]
+
         return when (response.status) {
             HttpStatusCode.NotModified ->
                 ReleasesNetworkResult(
@@ -255,24 +276,30 @@ object Updater {
 
     suspend fun getLatestReleaseInfo(): Result<ReleaseInfo> =
         runCatching {
-            val releases = getAllReleases().getOrThrow()
+            val releases = getAllReleases(forceRefresh = true).getOrThrow()
             val latest = findLatestRelease(releases)
                 ?: throw IllegalStateException("No releases found")
             lastCheckTime = System.currentTimeMillis()
             latest
         }
 
-    suspend fun getCommitHistory(count: Int = 20, branch: String = "dev"): Result<List<GitCommit>> =
+    suspend fun getCommitHistory(
+        count: Int = 20,
+        branch: String = "main",
+    ): Result<List<GitCommit>> =
         runCatching {
             val response =
                 client.get("https://api.github.com/repos/JAY01-CYBER/M3-Play/commits?sha=$branch&per_page=$count")
                     .bodyAsText()
+
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()
+
             for (i in 0 until jsonArray.length()) {
                 val commitObj = jsonArray.getJSONObject(i)
                 val commit = commitObj.getJSONObject("commit")
                 val authorObj = commit.optJSONObject("author")
+
                 commits.add(
                     GitCommit(
                         sha = commitObj.optString("sha", "").take(7),
@@ -283,14 +310,16 @@ object Updater {
                     )
                 )
             }
+
             commits
         }
 
     fun getLatestDownloadUrl(): String {
         val baseUrl = "https://github.com/JAY01-CYBER/M3-Play/releases/latest/download/"
-        val architecture = BuildConfig.ARCHITECTURE
+        val architecture = BuildConfig.ARCHITECTURE.lowercase()
+
         return if (architecture == "universal") {
-            baseUrl + "M3Play.apk"
+            baseUrl + "app-universal-release.apk"
         } else {
             baseUrl + "app-${architecture}-release.apk"
         }
@@ -342,11 +371,13 @@ object Updater {
                         settings[GitHubReleasesLastCheckedAtKey] = now
                         networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
                     }
+
                     val fallback = cachedReleases
                     if (fallback != null) {
                         lastCheckTime = now
                         return@runCatching fallback
                     }
+
                     throw IllegalStateException("Release cache is empty")
                 }
 
@@ -360,11 +391,13 @@ object Updater {
                     App.instance.dataStore.edit { settings ->
                         settings[GitHubReleasesLastCheckedAtKey] = now
                         networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+
                         if (hasPayloadChanged || hasTopReleaseChanged || cachedJson.isNullOrBlank()) {
                             settings[GitHubReleasesJsonKey] = networkBody
                             settings[GitHubReleasesFingerprintKey] = newFingerprint
                         }
                     }
+
                     lastCheckTime = now
                     releases
                 }
