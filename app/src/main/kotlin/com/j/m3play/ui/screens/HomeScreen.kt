@@ -4,8 +4,6 @@
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
-
-
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
@@ -20,8 +18,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,26 +39,26 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.compose.material3.MaterialTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.DisableBlurKey
+import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
+import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.ui.component.ChipsRow
+import com.j.m3play.ui.component.HomeQuickAccessCards
 import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
+import com.j.m3play.ui.component.TimeGreetingCard
 import com.j.m3play.ui.utils.SnapLayoutInfoProvider
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
-
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -124,7 +123,6 @@ fun HomeScreen(
 
     if (selectedChip != null) {
         BackHandler {
-            // if a chip is selected, go back to the normal homepage first
             viewModel.toggleChip(selectedChip)
         }
     }
@@ -139,31 +137,27 @@ fun HomeScreen(
         forgottenFavoritesLazyGridState.scrollToItem(0)
     }
 
-    // Capture M3 Expressive colors from theme outside drawBehind
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
     val color4 = MaterialTheme.colorScheme.primaryContainer
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
-    
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // M3E Mesh gradient background layer at the top
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .fillMaxSize(0.7f)
                     .align(Alignment.TopCenter)
-                    .zIndex(-1f) // Place behind all content
+                    .zIndex(-1f)
                     .drawWithCache {
                         val width = this.size.width
                         val height = this.size.height
 
-                        // Create mesh gradient with 5 color blobs for more variation
-                        // First color blob - top left
                         val brush1 = Brush.radialGradient(
                             colors = listOf(
                                 color1.copy(alpha = 0.38f),
@@ -176,7 +170,6 @@ fun HomeScreen(
                             radius = width * 0.55f
                         )
 
-                        // Second color blob - top right
                         val brush2 = Brush.radialGradient(
                             colors = listOf(
                                 color2.copy(alpha = 0.34f),
@@ -189,7 +182,6 @@ fun HomeScreen(
                             radius = width * 0.65f
                         )
 
-                        // Third color blob - middle left
                         val brush3 = Brush.radialGradient(
                             colors = listOf(
                                 color3.copy(alpha = 0.3f),
@@ -202,7 +194,6 @@ fun HomeScreen(
                             radius = width * 0.6f
                         )
 
-                        // Fourth color blob - middle right
                         val brush4 = Brush.radialGradient(
                             colors = listOf(
                                 color4.copy(alpha = 0.26f),
@@ -215,7 +206,6 @@ fun HomeScreen(
                             radius = width * 0.7f
                         )
 
-                        // Fifth color blob - bottom center (helps with smooth fade)
                         val brush5 = Brush.radialGradient(
                             colors = listOf(
                                 color5.copy(alpha = 0.22f),
@@ -228,7 +218,6 @@ fun HomeScreen(
                             radius = width * 0.8f
                         )
 
-                        // Add a final vertical gradient overlay to ensure smooth bottom fade
                         val overlayBrush = Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
@@ -252,7 +241,7 @@ fun HomeScreen(
                     }
             ) {}
         }
-        
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -262,16 +251,18 @@ fun HomeScreen(
                     onRefresh = viewModel::refresh
                 )
         ) {
-            val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+            val horizontalLazyGridItemWidthFactor =
+                if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
-            val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
-                SnapLayoutInfoProvider(
-                    lazyGridState = forgottenFavoritesLazyGridState,
-                    positionInLayout = { layoutSize, itemSize ->
-                        (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
-                    }
-                )
-            }
+            val forgottenFavoritesSnapLayoutInfoProvider =
+                remember(forgottenFavoritesLazyGridState) {
+                    SnapLayoutInfoProvider(
+                        lazyGridState = forgottenFavoritesLazyGridState,
+                        positionInLayout = { layoutSize, itemSize ->
+                            (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f)
+                        }
+                    )
+                }
 
             LazyColumn(
                 state = lazylistState,
@@ -289,148 +280,173 @@ fun HomeScreen(
                     }
                 }
 
+                item {
+                    TimeGreetingCard(
+                        onSearchClick = {
+                            runCatching { navController.navigate("search") }
+                        }
+                    )
+                }
+
+                item {
+                    HomeQuickAccessCards(
+                        onLikedClick = {
+                            runCatching { navController.navigate("liked") }
+                        },
+                        onDownloadsClick = {
+                            runCatching { navController.navigate("downloads") }
+                        },
+                        onHistoryClick = {
+                            runCatching { navController.navigate("history") }
+                        },
+                        onLibraryClick = {
+                            runCatching { navController.navigate("library") }
+                        }
+                    )
+                }
+
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-            /*
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.quick_picks),
-                        modifier = Modifier.animateItem()
-                    )
-                }
-            */
+                    /*
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.quick_picks),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+                    */
 
-                item {
-                    QuickPicksSection(
-                        quickPicks = picks,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic
-                    )
-                }
-            }
-
-            speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.speed_dial),
-                        modifier = Modifier.animateItem()
-                    )
+                    item {
+                        QuickPicksSection(
+                            quickPicks = picks,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
                 }
 
-                item {
-                    SpeedDialSection(
-                        speedDialSongs = songs,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic
-                    )
-                }
-            }
+                speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.speed_dial),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
 
-            keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.keep_listening),
-                        modifier = Modifier.animateItem()
-                    )
-                }
-
-                item {
-                    KeepListeningSection(
-                        keepListening = items,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic,
-                        scope = scope
-                    )
-                }
-            }
-
-            AccountPlaylistsContainer(
-                viewModel = viewModel,
-                accountName = accountName,
-                accountImageUrl = url,
-                mediaMetadata = mediaMetadata,
-                isPlaying = isPlaying,
-                navController = navController,
-                playerConnection = playerConnection,
-                menuState = menuState,
-                haptic = haptic,
-                scope = scope
-            )
-
-            forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
-                item {
-                    NavigationTitle(
-                        title = stringResource(R.string.forgotten_favorites),
-                        modifier = Modifier.animateItem()
-                    )
+                    item {
+                        SpeedDialSection(
+                            speedDialSongs = songs,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
                 }
 
-                item {
-                    ForgottenFavoritesSection(
-                        forgottenFavorites = favorites,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        horizontalLazyGridItemWidth = horizontalLazyGridItemWidth,
-                        lazyGridState = forgottenFavoritesLazyGridState,
-                        snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic
-                    )
-                }
-            }
+                keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.keep_listening),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
 
-            SimilarRecommendationsContainer(
-                viewModel = viewModel,
-                mediaMetadata = mediaMetadata,
-                isPlaying = isPlaying,
-                navController = navController,
-                playerConnection = playerConnection,
-                menuState = menuState,
-                haptic = haptic,
-                scope = scope
-            )
-
-            homePage?.sections?.forEach { section ->
-                item {
-                    HomePageSectionTitle(
-                        section = section,
-                        navController = navController,
-                        modifier = Modifier.animateItem()
-                    )
+                    item {
+                        KeepListeningSection(
+                            keepListening = items,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic,
+                            scope = scope
+                        )
+                    }
                 }
 
-                item {
-                    HomePageSectionContent(
-                        section = section,
-                        mediaMetadata = mediaMetadata,
-                        isPlaying = isPlaying,
-                        navController = navController,
-                        playerConnection = playerConnection,
-                        menuState = menuState,
-                        haptic = haptic,
-                        scope = scope
-                    )
-                }
-            }
+                AccountPlaylistsContainer(
+                    viewModel = viewModel,
+                    accountName = accountName,
+                    accountImageUrl = url,
+                    mediaMetadata = mediaMetadata,
+                    isPlaying = isPlaying,
+                    navController = navController,
+                    playerConnection = playerConnection,
+                    menuState = menuState,
+                    haptic = haptic,
+                    scope = scope
+                )
 
-            if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
-                item {
-                    HomeLoadingShimmer(modifier = Modifier.animateItem())
+                forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.forgotten_favorites),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        ForgottenFavoritesSection(
+                            forgottenFavorites = favorites,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            horizontalLazyGridItemWidth = horizontalLazyGridItemWidth,
+                            lazyGridState = forgottenFavoritesLazyGridState,
+                            snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
                 }
-            }
+
+                SimilarRecommendationsContainer(
+                    viewModel = viewModel,
+                    mediaMetadata = mediaMetadata,
+                    isPlaying = isPlaying,
+                    navController = navController,
+                    playerConnection = playerConnection,
+                    menuState = menuState,
+                    haptic = haptic,
+                    scope = scope
+                )
+
+                homePage?.sections?.forEach { section ->
+                    item {
+                        HomePageSectionTitle(
+                            section = section,
+                            navController = navController,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        HomePageSectionContent(
+                            section = section,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic,
+                            scope = scope
+                        )
+                    }
+                }
+
+                if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
+                    item {
+                        HomeLoadingShimmer(modifier = Modifier.animateItem())
+                    }
+                }
             }
 
             Indicator(
