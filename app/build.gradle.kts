@@ -179,6 +179,7 @@ dependencies {
     implementation(libs.viewmodel.compose)
 
     implementation(libs.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.palette)
     implementation(libs.multiplatform.markdown)
 
