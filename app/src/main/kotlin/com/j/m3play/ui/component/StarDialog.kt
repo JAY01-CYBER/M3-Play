@@ -46,68 +46,119 @@ fun StarDialog(
     onLater: () -> Unit,
 ) {
     val context = LocalContext.current
+
     AlertDialog(
         onDismissRequest = onDismissRequest,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp,
         title = {
-            Text(text = "Support development", style = MaterialTheme.typography.titleLarge)
+            Column {
+                Text(
+                    text = "Support M3Play ❤️",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Help keep M3Play smooth, clean and growing.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         text = {
             Column {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .size(72.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_app_logo),
+                            contentDescription = null,
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(38.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Hey there! I\'m Koiverse, the developer of M3Play. I have been putting a lot of love into making this app better every day. \n\nIf you enjoy using M3Play, you can support its development by giving the project a star — it really helps and keeps me motivated to keep improving it!\n\nThanks a bunch for your support and for being part of this journey!",
+                    text = "Hey! I'm Jay 😎, developer of M3Play.\n\nI've put a lot of effort into making this app feel smooth, modern and premium.\n\nIf you enjoy using M3Play, you can support the project by starring it on GitHub or joining the Telegram channel 🚀",
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Start,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         },
         confirmButton = {
-            FilledTonalButton(
-                onClick = {
-                    try {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://t.me/M3PlayGC")
-                        )
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                },
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.telegram),
-                    contentDescription = "Telegram",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Telegram")
-            }
-            FilledTonalButton(
-                onClick = {
-                    try {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/JAY01-CYBER/M3-Play")
-                        )
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                    onStar()
-                },
-                colors = ButtonDefaults.buttonColors(),
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.star),
-                    contentDescription = "Star",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(text = "Star")
+                FilledTonalButton(
+                    onClick = {
+                        try {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://t.me/M3Play_updates")
+                            )
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.telegram),
+                        contentDescription = "Telegram",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = "Join Channel 🚀")
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://github.com/JAY01-CYBER/M3-Play")
+                            )
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        onStar()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.star),
+                        contentDescription = "Star",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = "Star on GitHub ⭐")
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onLater) {
-                Text(text = "Later")
+            TextButton(
+                onClick = onLater,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Maybe later 🙂")
             }
         }
     )
