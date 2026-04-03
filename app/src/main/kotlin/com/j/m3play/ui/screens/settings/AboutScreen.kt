@@ -1,6 +1,6 @@
 /*
  * M3Play Project (2026)
- * Jay Chaudhary (github.com/JAY01-CYBER)
+ * Kòi Natsuko (github.com/JAY01-CYBER)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -64,7 +65,7 @@ import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.utils.backToMain
 
 @Composable
-fun OutlinedIconChip(
+private fun OutlinedIconChip(
     iconRes: Int,
     text: String,
     onClick: () -> Unit,
@@ -72,7 +73,7 @@ fun OutlinedIconChip(
     OutlinedButton(
         onClick = onClick,
         shape = CircleShape,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+        contentPadding = PaddingValues(
             horizontal = 12.dp,
             vertical = 6.dp,
         ),
@@ -85,7 +86,7 @@ fun OutlinedIconChip(
             contentDescription = text,
             modifier = Modifier.size(18.dp),
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
@@ -108,7 +109,7 @@ private fun SectionHeader(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         HorizontalDivider(
             modifier = Modifier.weight(1f),
             color = MaterialTheme.colorScheme.outlineVariant,
@@ -150,7 +151,7 @@ private fun DeveloperCard() {
                     .background(MaterialTheme.colorScheme.surfaceVariant),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Jay Chaudhary ⚡",
@@ -159,7 +160,7 @@ private fun DeveloperCard() {
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Creator of M3Play • Android Developer",
@@ -167,7 +168,7 @@ private fun DeveloperCard() {
                 color = MaterialTheme.colorScheme.secondary,
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = "Crafting smooth & premium music experiences 🎧",
@@ -175,7 +176,7 @@ private fun DeveloperCard() {
                 color = MaterialTheme.colorScheme.secondary,
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -200,7 +201,7 @@ private fun DeveloperCard() {
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedIconChip(
                 iconRes = R.drawable.website,
@@ -259,15 +260,17 @@ fun AboutScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(
-                Modifier
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+                modifier = Modifier
+                    .windowInsetsPadding(
+                        WindowInsets.systemBars.only(WindowInsetsSides.Top),
+                    )
                     .heightIn(max = 16.dp),
             )
 
             Icon(
                 painter = painterResource(R.drawable.ic_app_logo),
                 contentDescription = null,
-                tint = Color.Unspecified,
+                tint = androidx.compose.ui.graphics.Color.Unspecified,
                 modifier = Modifier
                     .size(110.dp)
                     .scale(scale)
@@ -276,7 +279,7 @@ fun AboutScreen(
                     .clickable { },
             )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = "M3Play",
@@ -284,7 +287,7 @@ fun AboutScreen(
                 fontWeight = FontWeight.Bold,
             )
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = "v3.0.0 🚀",
@@ -299,7 +302,7 @@ fun AboutScreen(
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Jay Chaudhary ⚡",
@@ -308,18 +311,18 @@ fun AboutScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             SectionHeader(
                 title = "Developer",
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             DeveloperCard()
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
