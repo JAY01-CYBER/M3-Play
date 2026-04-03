@@ -179,7 +179,7 @@ dependencies {
     implementation(libs.viewmodel.compose)
 
     implementation(libs.material3)
-    implementation("androidx.compose.material:material-icons-extended:${libs.versions.compose.get()}")
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
     implementation(libs.palette)
     implementation(libs.multiplatform.markdown)
 
