@@ -22,7 +22,7 @@ https://github.com/JAY01-CYBER/M3-Play/releases/latest
 
 ### ✨ Features
 - Redesigned About Screen (Developer Profile)
-- Telegram & Discord integration
+- Discord integration
 - Improved navigation and layout
 
 ### 🎨 UI/UX
