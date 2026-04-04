@@ -66,14 +66,14 @@ fun TimeGreetingCard(
     val subtitle = when (hour) {
         in 5..11 -> "Start your day with music ☀️"
         in 12..16 -> "Boost your mood with beats 🔥"
-        in 17..20 -> "Relax with evening tunes 🌙"
-        else -> "Slow down and enjoy the night 🌌"
+        in 17..20 -> "Relax with soothing melodies 🌅"
+        else -> "Slow down and enjoy the night 🌙"
     }
 
     val emoji = when (hour) {
         in 5..11 -> "🌤️"
         in 12..16 -> "☀️"
-        in 17..20 -> "🌙"
+        in 17..20 -> "🌅"
         else -> "🌌"
     }
 
@@ -84,11 +84,11 @@ fun TimeGreetingCard(
         visible = true
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "greeting_card_anim")
+    val infiniteTransition = rememberInfiniteTransition(label = "card_anim")
 
     val emojiScale by infiniteTransition.animateFloat(
         initialValue = 0.96f,
-        targetValue = 1.06f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(
             animation = tween(1700),
             repeatMode = RepeatMode.Reverse
@@ -122,9 +122,7 @@ fun TimeGreetingCard(
         )
     ) {
         Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface
@@ -135,8 +133,8 @@ fun TimeGreetingCard(
                     .background(
                         brush = Brush.linearGradient(
                             listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.20f)
                             )
                         ),
                         shape = RoundedCornerShape(28.dp)
@@ -144,12 +142,12 @@ fun TimeGreetingCard(
                     .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
                 Text(
-                    text = "✨ ✨",
+                    text = "✨ ✨ ✨",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .alpha(sparkleAlpha * 0.65f),
+                        .alpha(sparkleAlpha * 0.7f),
                     color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyLarge
                 )
 
                 Row(
@@ -163,7 +161,7 @@ fun TimeGreetingCard(
                     ) {
                         Text(
                             text = emoji,
-                            fontSize = 28.sp,
+                            fontSize = 30.sp,
                             modifier = Modifier.scale(emojiScale)
                         )
 
@@ -176,7 +174,7 @@ fun TimeGreetingCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
                                 text = subtitle,
