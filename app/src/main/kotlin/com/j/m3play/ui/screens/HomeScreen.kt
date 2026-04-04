@@ -1,24 +1,40 @@
 /*
  * M3Play Project (2026)
- * Kòi Natsuko (github.com/JAY01-CYBER)
+ * Jay Chaudhary (github.com/JAY01-CYBER)
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -31,12 +47,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -50,7 +70,6 @@ import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
 import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.ui.component.ChipsRow
-import com.j.m3play.ui.component.HomeQuickAccessCards
 import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
@@ -289,20 +308,61 @@ fun HomeScreen(
                 }
 
                 item {
-                    HomeQuickAccessCards(
-                        onLikedClick = {
-                            runCatching { navController.navigate("liked") }
-                        },
-                        onDownloadsClick = {
-                            runCatching { navController.navigate("downloads") }
-                        },
-                        onHistoryClick = {
-                            runCatching { navController.navigate("history") }
-                        },
-                        onLibraryClick = {
-                            runCatching { navController.navigate("library") }
-                        }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionCard(
+                            title = "Liked",
+                            icon = R.drawable.favorite,
+                            onClick = {
+                                runCatching { navController.navigate("auto_playlist/liked") }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        ActionCard(
+                            title = "Downloads",
+                            icon = R.drawable.download,
+                            onClick = {
+                                runCatching { navController.navigate("auto_playlist/downloaded") }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionCard(
+                            title = "History",
+                            icon = R.drawable.history,
+                            onClick = {
+                                runCatching { navController.navigate("history") }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        ActionCard(
+                            title = if (isLoggedIn) "Account" else "Library",
+                            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
+                            onClick = {
+                                if (isLoggedIn) {
+                                    runCatching { navController.navigate("account") }
+                                } else {
+                                    runCatching { navController.navigate("library") }
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
@@ -455,6 +515,80 @@ fun HomeScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
+            )
+        }
+    }
+}
+
+@Composable
+fun ActionCard(
+    title: String,
+    icon: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "action_card_scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "action_card_alpha"
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                this.alpha = alpha
+            }
+            .height(48.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f)
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(999.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
             )
         }
     }
