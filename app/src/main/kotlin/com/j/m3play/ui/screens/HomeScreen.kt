@@ -306,7 +306,8 @@ fun HomeScreen(
                 item {
                     TimeGreetingCard(
                         onSearchClick = {
-                            runCatching { navController.navigate("search") }
+                            runCatching {navController.navigate("search/")
+                            }
                         }
                     )
                 }
