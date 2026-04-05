@@ -1,0 +1,18 @@
+/*
+ * M3Play Data Layer
+ *
+ * Handles data, network & storage
+ * Signature: M3PLAY::DATA::CORE::V1
+ */
+
+package com.j.m3play.innertube.models
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MusicDescriptionShelfRenderer(
+    val header: Runs?,
+    val subheader: Runs?,
+    val description: Runs,
+    val footer: Runs?,
+)
