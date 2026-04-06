@@ -1,24 +1,24 @@
-Aplikasi klien YouTube Music Material 3 terlucu dan ekspresif untuk Android, dirancang untuk performa dan kemampuan perluasan.
+A modern and expressive Material 3 YouTube Music client for Android, designed for performance and extensibility.
 
-Fitur:
+Features:
 
-- Memutar lagu atau video apa pun dari YT Music
-- Pemutaran di latar belakang
-- Pilihan cepat yang dipersonalisasi
-- Manajemen pustaka
-- Mengunduh dan menyimpan lagu untuk pemutaran offline
-- Pencarian lagu, album, artis, video, dan daftar putar
-- Lirik langsung
-- Dukungan login dengan akun YouTube Music
-- Sinkronisasi lagu, artis, album, dan daftar putar dari dan ke akun Anda
-- Melewati keheningan
-- Impor daftar putar
-- Normalisasi audio
-- Menyesuaikan tempo/pitch
-- Manajemen daftar putar lokal
-- Mengatur ulang lagu di daftar putar atau antrean
-- Tema Terang – Gelap – Hitam – Dinamis
-- Timer tidur
-- Material 3
-- Status Discord yang dapat disesuaikan
-- dll.
+- Play any song or video from YouTube Music
+- Background playback
+- Personalized quick picks
+- Library management
+- Download and save songs for offline playback
+- Search songs, albums, artists, videos, and playlists
+- Real-time synced lyrics
+- Login support with YouTube Music account
+- Sync songs, artists, albums, and playlists with your account
+- Skip silence
+- Import playlists
+- Audio normalization
+- Adjust tempo and pitch
+- Local playlist management
+- Reorder songs in playlist or queue
+- Light, Dark, Black, and Dynamic themes
+- Sleep timer
+- Material 3 design
+- Custom Discord Rich Presence
+- And more...
