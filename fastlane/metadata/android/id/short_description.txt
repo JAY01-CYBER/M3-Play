@@ -1,1 +1,1 @@
-Aplikasi klien YouTube Music Material 3 terlucu dan ekspresif untuk Android, dirancang untuk performa dan kemampuan perluasan.
+Material 3 YouTube Music client with streaming, offline & recognition
