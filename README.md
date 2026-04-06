@@ -1,95 +1,107 @@
-# 🎵 M3Play
+<p align="center">
+  <img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/assets/banner.png" width="100%">
+</p>
 
-> A modern, powerful and beautifully designed music player built with Material 3 ✨
-
----
-
-## 🚀 Latest Release
-
-🔥 **M3Play v3.0.1 — Complete Rebuild**
-
-👉 Download APK:  
-https://github.com/JAY01-CYBER/M3-Play/releases/latest
-
----
-
-## ✨ What's New (v3.0.1)
-
-### 🚨 Major Update
-- Fully rebuilt from previous version (v2.0.1)
-- Complete redesign of UI and overall experience
-- New branding and identity
-
-### ✨ Features
-- Redesigned About Screen (Developer Profile)
-- Discord integration
-- Improved navigation and layout
-
-### 🎨 UI/UX
-- Modern Material 3 design
-- Cleaner & premium interface
-- Better animations & transitions
-
-### ⚡ Performance
-- Faster & smoother experience
-- Optimized performance
-
-### 🐛 Fixes
-- Fixed major issues
-- Improved stability
-
----
-
-## 📱 Screenshots
+<h1 align="center">🎧 M3 Play</h1>
 
 <p align="center">
-  <img src="https://via.placeholder.com/300x600" width="250"/>
-  <img src="https://via.placeholder.com/300x600" width="250"/>
-  <img src="https://via.placeholder.com/300x600" width="250"/>
+Powerful • Dynamic • Next-Gen Music Player
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
+  <img src="https://img.shields.io/github/forks/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
+  <img src="https://img.shields.io/github/downloads/JAY01-CYBER/M3-Play/total?style=for-the-badge&color=1DB954"/>
+  <img src="https://img.shields.io/github/v/release/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
 </p>
 
 ---
 
-## 🎧 Features
+## 🚀 About
 
-- 🎵 Local + Online Music Support  
-- 🎨 Dynamic UI (Material You style)  
-- ⚡ Smooth animations  
-- 🎧 Mini Player with haptic feedback  
-- 📂 Playlist & Library management  
-- 🔍 Smart search  
-- 🌐 Integration support (Telegram & Discord)
+M3 Play is a feature-packed Android music player built for speed, customization, and a visually immersive experience.
+
+Inspired by modern streaming platforms — built for power users.
 
 ---
 
-## 📥 Download
+## 🎯 Highlights
 
-👉 Latest APK:  
-https://github.com/JAY01-CYBER/M3-Play/releases/latest
+- 🎨 Dynamic UI based on album art  
+- ⚡ Ultra smooth performance  
+- 🎵 Media3 powered playback  
+- 🎧 Built for real music lovers  
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/assets/ss1.jpg" width="30%" />
+  <img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/assets/ss2.jpg" width="30%" />
+  <img src="https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/assets/ss3.jpg" width="30%" />
+</p>
+
+---
+
+## ⚡ Features
+
+- 🎵 Advanced Player (Media3 / ExoPlayer)  
+- 🌈 Dynamic Colors (Palette Engine)  
+- 🎛️ Custom Player UI styles  
+- 🔁 Smart Queue System  
+- 🎧 Lyrics Support  
+- 💥 Haptic Feedback  
+- 🌙 Dark & Pure Black Mode  
+
+---
+
+## 📦 Download
+
+Get the latest version from Releases
+
+https://github.com/JAY01-CYBER/M3-Play/releases
 
 ---
 
 ## 🌐 Community
 
-- 💬 Telegram: https://t.me/M3Play_updates  
-- 💻 GitHub: https://github.com/JAY01-CYBER/M3-Play  
+💬 Discord  
+https://discord.gg/zdbAuRpVt  
+
+📢 Telegram  
+https://t.me/M3Play_updates  
 
 ---
 
-## 👨‍💻 Developer
+## 🛠️ Tech Stack
 
-**Jay Chaudhary**  
-Made with ❤️ and passion ⚡
-
----
-
-## 📜 License
-
-GPL-3.0 License  
-Feel free to use, modify, and contribute!
+- Kotlin  
+- Jetpack Compose  
+- Material 3  
+- Media3 (ExoPlayer)  
+- Hilt  
+- Coroutines  
 
 ---
 
-⭐ Don’t forget to star the repo if you like the project!
+## 🧑‍💻 Developer
 
-Based on ArchiveTune
+Jay  
+https://github.com/JAY01-CYBER  
+
+---
+
+## ⭐ Support
+
+If you like M3 Play:
+
+- ⭐ Star the repo  
+- 🍴 Fork it  
+- 🔥 Share it  
+
+---
+
+<p align="center">
+Feel the music. Control the experience.
+</p>
