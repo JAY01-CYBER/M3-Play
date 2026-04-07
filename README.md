@@ -38,7 +38,7 @@ Prefer automatic updates? Use Obtainium:
   <img src="https://img.shields.io/github/stars/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
   <img src="https://img.shields.io/github/forks/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
   <img src="https://img.shields.io/github/downloads/JAY01-CYBER/M3-Play/total?style=for-the-badge&color=1DB954"/>
-  <img src="https://img.shields.io/github/v/release/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
+  <img src="https://img.shields.io/github/v/release/JAY01-CYBER/M3-Play?include_prereleases&style=for-the-badge&color=1DB954" />
 </p>
 
 ---
