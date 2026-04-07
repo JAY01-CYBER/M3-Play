@@ -8,6 +8,32 @@
 Powerful • Dynamic • Next-Gen Music Player
 </p>
 
+---
+
+## 🚀 Download & Install
+
+<p align="center">
+  <a href="https://github.com/JAY01-CYBER/M3-Play/releases/latest">
+    <img src="https://img.shields.io/badge/Download-APK-1DB954?style=for-the-badge&logo=android&logoColor=white" />
+  </a>
+  <a href="https://github.com/JAY01-CYBER/M3-Play">
+    <img src="https://img.shields.io/badge/Install-via%20Obtainium-3b82f6?style=for-the-badge" />
+  </a>
+</p>
+
+---
+
+## 🔄 Install via Obtainium (Auto Updates)
+
+Prefer automatic updates? Use Obtainium:
+
+1. Install Obtainium  
+2. Add this repository:  
+   https://github.com/JAY01-CYBER/M3-Play  
+3. Install and enjoy automatic updates  
+
+---
+
 <p align="center">
   <img src="https://img.shields.io/github/stars/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
   <img src="https://img.shields.io/github/forks/JAY01-CYBER/M3-Play?style=for-the-badge&color=1DB954"/>
@@ -56,21 +82,16 @@ Inspired by modern streaming platforms — built for power users.
 
 ---
 
-## 📦 Download
-
-Get the latest version from Releases
-
-https://github.com/JAY01-CYBER/M3-Play/releases
-
----
-
 ## 🌐 Community
 
-💬 Discord  
-https://discord.gg/zdbAuRpVt  
-
-📢 Telegram  
-https://t.me/M3Play_updates  
+<p align="center">
+  <a href="https://discord.gg/zdbAuRpVt">
+    <img src="https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
+  </a>
+  <a href="https://t.me/M3Play_updates">
+    <img src="https://img.shields.io/badge/Telegram-Updates-229ED9?style=for-the-badge&logo=telegram&logoColor=white" />
+  </a>
+</p>
 
 ---
 
