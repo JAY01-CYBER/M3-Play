@@ -125,7 +125,7 @@ If you like M3 Play:
 
 ## 🙏 Credits
 
-This project is based on ArchiveTune.
+This project is based on ArchiveTune
 
 Special thanks to the open-source community and all upstream contributors ❤️
 
