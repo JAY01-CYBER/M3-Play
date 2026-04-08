@@ -119,7 +119,17 @@ If you like M3 Play:
 
 - ⭐ Star the repo  
 - 🍴 Fork it  
-- 🔥 Share it  
+- 🔥 Share it
+
+---
+
+## 🙏 Credits
+
+This project is based on ArchiveTune.
+
+Special thanks to the open-source community and all upstream contributors ❤️
+
+---
 
 ---
 
