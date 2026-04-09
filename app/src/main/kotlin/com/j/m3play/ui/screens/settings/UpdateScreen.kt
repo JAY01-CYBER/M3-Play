@@ -288,7 +288,7 @@ fun UpdateScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Updates shown here are fetched directly from GitHub and may bypass review processes of IzzyOnDroid or other app stores.",
+                            text = "Updates are fetched directly from GitHub and are not verified by app stores.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
