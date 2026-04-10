@@ -56,14 +56,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.ui.component.IconButton
@@ -85,6 +86,14 @@ private fun OutlinedIconChip(
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
+        border = ButtonDefaults.outlinedButtonBorder.copy(
+            brush = Brush.linearGradient(
+                listOf(
+                    MaterialTheme.colorScheme.outlineVariant,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                )
+            )
+        )
     ) {
         Icon(
             painter = painterResource(id = iconRes),
@@ -133,55 +142,50 @@ private fun DeveloperCard() {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(28.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceContainer,
+                            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+                        )
+                    )
+                )
+                .padding(horizontal = 20.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AsyncImage(
-                model = "https://github.com/JAY01-CYBER.png?size=200",
-                contentDescription = "Jay Chaudhary",
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(CircleShape)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = CircleShape,
-                    )
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             Text(
                 text = "Jay Chaudhary ⚡",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "Creator of M3Play • Android Developer",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Crafting smooth & premium music experiences 🎧",
+                text = "Crafting smooth, expressive and premium music experiences 🎧",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -206,7 +210,7 @@ private fun DeveloperCard() {
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedIconChip(
                 iconRes = R.drawable.website,
@@ -378,7 +382,7 @@ fun AboutScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "v3.0.0 🚀",
+                text = "v3.0.4 🚀",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier
