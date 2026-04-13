@@ -11,6 +11,7 @@
 package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -26,9 +27,9 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -43,6 +44,7 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,41 +70,40 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import androidx.media3.common.C
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
-import androidx.compose.material3.Icon
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.canvas.M3PlayCanvas
 import com.j.m3play.canvas.CanvasArtwork
+import com.j.m3play.canvas.M3PlayCanvas
+import com.j.m3play.constants.CropThumbnailToSquareKey
+import com.j.m3play.constants.HidePlayerThumbnailKey
+import com.j.m3play.constants.M3PlayCanvasKey
+import com.j.m3play.constants.MaxCanvasCacheSizeKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.SeekExtraSeconds
 import com.j.m3play.constants.SwipeThumbnailKey
-import com.j.m3play.constants.M3PlayCanvasKey
-import com.j.m3play.constants.MaxCanvasCacheSizeKey
 import com.j.m3play.constants.ThumbnailCornerRadiusKey
-import com.j.m3play.constants.CropThumbnailToSquareKey
-import com.j.m3play.constants.HidePlayerThumbnailKey
 import com.j.m3play.extensions.metadata
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.YouTube
@@ -126,12 +127,6 @@ import java.util.Locale
 import kotlin.math.abs
 import android.content.Context
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.rememberSpatialOffset
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.ui.viewinterop.AndroidView
 
 object CanvasArtworkPlaybackCache {
@@ -267,15 +262,14 @@ fun Thumbnail(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
     isPlayerExpanded: Boolean = true,
-    sharedTransitionScope: SharedTransitionScope? = null, // Added parameter
-    animatedVisibilityScope: AnimatedVisibilityScope? = null, // Added parameter
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
     val currentView = LocalView.current
     val coroutineScope = rememberCoroutineScope()
 
-    // States
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val error by playerConnection.error.collectAsState()
@@ -296,7 +290,6 @@ fun Thumbnail(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     
-    // Player background style for consistent theming
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -317,10 +310,8 @@ fun Thumbnail(
         CanvasArtworkPlaybackCache.setMaxSize(maxCanvasCacheSize)
     }
     
-    // Grid state
     val thumbnailLazyGridState = rememberLazyGridState()
     
-    // Create a playlist using correct shuffle-aware logic
     val timeline = playerConnection.player.currentTimeline
     val currentIndex = playerConnection.player.currentMediaItemIndex
     val shuffleModeEnabled = playerConnection.player.shuffleModeEnabled
@@ -351,11 +342,8 @@ fun Thumbnail(
     } else null
 
     val currentMediaItem = remember(mediaMetadata) {
-        // Fallback to player's current item if mediaMetadata is null, 
-        // but prefer mediaMetadata for immediate updates during crossfade.
         val metadata = mediaMetadata
         if (metadata != null) {
-            // Use extension to convert metadata to a proper MediaItem with all fields (uri, artwork, tag)
             metadata.toMediaItem()
         } else {
             try {
@@ -367,7 +355,6 @@ fun Thumbnail(
     val mediaItems = listOfNotNull(previousMediaMetadata, currentMediaItem, nextMediaMetadata)
     val currentMediaIndex = mediaItems.indexOf(currentMediaItem)
 
-    // OuterTune Snap behavior
     val horizontalLazyGridItemWidthFactor = 1f
     val thumbnailSnapLayoutInfoProvider = remember(thumbnailLazyGridState) {
         SnapLayoutInfoProvider(
@@ -379,11 +366,9 @@ fun Thumbnail(
         )
     }
 
-    // Current item tracking
     val currentItem by remember { derivedStateOf { thumbnailLazyGridState.firstVisibleItemIndex } }
     val itemScrollOffset by remember { derivedStateOf { thumbnailLazyGridState.firstVisibleItemScrollOffset } }
 
-    // Handle swipe to change song
     LaunchedEffect(itemScrollOffset) {
         if (!thumbnailLazyGridState.isScrollInProgress || !swipeThumbnail || itemScrollOffset != 0 || currentMediaIndex < 0) return@LaunchedEffect
 
@@ -400,7 +385,6 @@ fun Thumbnail(
         }
     }
 
-    // Update position when song changes
     LaunchedEffect(mediaMetadata, currentMediaItem?.mediaId, canSkipPrevious, canSkipNext) {
         val index = maxOf(0, currentMediaIndex)
         if (index >= 0 && index < mediaItems.size) {
@@ -419,13 +403,11 @@ fun Thumbnail(
         }
     }
 
-    // Seek on double tap
     var showSeekEffect by remember { mutableStateOf(false) }
     var seekDirection by remember { mutableStateOf("") }
     val layoutDirection = LocalLayoutDirection.current
 
     Box(modifier = modifier) {
-        // Error view
         AnimatedVisibility(
             visible = error != null,
             enter = fadeIn(),
@@ -442,7 +424,6 @@ fun Thumbnail(
             }
         }
 
-        // Main thumbnail view
         AnimatedVisibility(
             visible = error == null,
             enter = fadeIn(),
@@ -455,7 +436,6 @@ fun Thumbnail(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Now Playing header
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp)
@@ -465,7 +445,6 @@ fun Thumbnail(
                         style = MaterialTheme.typography.titleMedium,
                         color = textBackgroundColor
                     )
-                    // Show album title or queue title
                     val playingFrom = queueTitle ?: mediaMetadata?.album?.title
                     if (!playingFrom.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -479,7 +458,6 @@ fun Thumbnail(
                     }
                 }
                 
-                // Thumbnail content
                 BoxWithConstraints(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
@@ -491,13 +469,12 @@ fun Thumbnail(
                         state = thumbnailLazyGridState,
                         rows = GridCells.Fixed(1),
                         flingBehavior = rememberSnapFlingBehavior(thumbnailSnapLayoutInfoProvider),
-                        userScrollEnabled = swipeThumbnail && isPlayerExpanded, // Only allow swipe when player is expanded
+                        userScrollEnabled = swipeThumbnail && isPlayerExpanded,
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(
                             items = mediaItems,
                             key = { item -> 
-                                // Use mediaId with stable fallback to avoid recomposition issues
                                 item.mediaId.ifEmpty { "unknown_${item.hashCode()}" }
                             }
                         ) { item ->
@@ -619,7 +596,6 @@ fun Thumbnail(
                                                     )
                                                     seekDirection = context.getString(R.string.seek_forward_dynamic, skipAmount / 1000)
                                                 }
-                                                // If a user double-tap skip lands on a new media item, restart presence manager to pick up artwork quickly
                                                 if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
                                                     try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
                                                 }
@@ -636,7 +612,6 @@ fun Thumbnail(
                                                 .clip(RoundedCornerShape(thumbnailCornerRadius.dp))
                                             ) {
                                     if (hidePlayerThumbnail) {
-                                        // Show app logo when thumbnail is hidden
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -654,7 +629,6 @@ fun Thumbnail(
                                         val primaryCanvasUrl = canvasArtwork?.animated
                                         val fallbackCanvasUrl = canvasArtwork?.videoUrl
                                         
-                                        // Background blur layer
                                         AsyncImage(
                                             model = item.mediaMetadata.artworkUri?.toString(),
                                             contentDescription = null,
@@ -668,7 +642,6 @@ fun Thumbnail(
                                                 )
                                         )
 
-                                        // Main artwork - Apply Shared Element HERE
                                         val sharedElementModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                                             with(sharedTransitionScope) {
                                                 Modifier.sharedElement(
@@ -687,7 +660,7 @@ fun Thumbnail(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
-                                                .then(sharedElementModifier) // Apply the modifier
+                                                .then(sharedElementModifier)
                                         )
 
                                         if (shouldAnimateCanvas && (!primaryCanvasUrl.isNullOrBlank() || !fallbackCanvasUrl.isNullOrBlank())) {
@@ -707,7 +680,6 @@ fun Thumbnail(
             }
         }
 
-        // Seek effect
         LaunchedEffect(showSeekEffect) {
             if (showSeekEffect) {
                 delay(1000)
@@ -735,8 +707,6 @@ fun Thumbnail(
     }
 }
 
-// ... (Rest of the file: CanvasArtworkPlayer, normalize functions, SnapLayoutInfoProvider) ...
-// (Keep the rest of the file exactly as it was, unchanged)
 @Composable
 private fun CanvasArtworkPlayer(
     primaryUrl: String?,
@@ -956,12 +926,6 @@ private fun normalizeCanvasArtistName(raw: String): String {
     return first.replace(Regex("\\s+"), " ").trim()
 }
 
-/*
- * Copyright (C) OuterTune Project
- * Custom SnapLayoutInfoProvider idea belongs to OuterTune
- */
-
-// SnapLayoutInfoProvider
 @ExperimentalFoundationApi
 fun SnapLayoutInfoProvider(
     lazyGridState: LazyGridState,
@@ -977,7 +941,6 @@ fun SnapLayoutInfoProvider(
     override fun calculateSnapOffset(velocity: Float): Float {
         val bounds = calculateSnappingOffsetBounds()
 
-        // Only snap when velocity exceeds threshold
         if (abs(velocity) < velocityThreshold) {
             if (abs(bounds.start) < abs(bounds.endInclusive))
                 return bounds.start
@@ -999,12 +962,10 @@ fun SnapLayoutInfoProvider(
         layoutInfo.visibleItemsInfo.fastForEach { item ->
             val offset = calculateDistanceToDesiredSnapPosition(layoutInfo, item, positionInLayout)
 
-            // Find item that is closest to the center
             if (offset <= 0 && offset > lowerBoundOffset) {
                 lowerBoundOffset = offset
             }
 
-            // Find item that is closest to center, but after it
             if (offset >= 0 && offset < upperBoundOffset) {
                 upperBoundOffset = offset
             }
