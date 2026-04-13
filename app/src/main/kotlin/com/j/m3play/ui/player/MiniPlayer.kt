@@ -12,26 +12,27 @@ package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -70,6 +71,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -83,25 +85,21 @@ import coil3.compose.AsyncImage
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
+import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.MiniPlayerHeight
 import com.j.m3play.constants.SwipeSensitivityKey
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
-import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.db.entities.ArtistEntity
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.MediaMetadata
+import com.j.m3play.playback.PlayerConnection
+import com.j.m3play.together.TogetherSessionState
 import com.j.m3play.utils.rememberPreference
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import androidx.compose.foundation.clickable
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSpatialOffset
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.ui.unit.LayoutDirection
 
 @Composable
 fun MiniPlayer(
@@ -109,8 +107,8 @@ fun MiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
-    sharedTransitionScope: SharedTransitionScope? = null, // Added parameter
-    animatedVisibilityScope: AnimatedVisibilityScope? = null, // Added parameter
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
 
@@ -163,11 +161,11 @@ private fun NewMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp) // Circular height
+                .height(64.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .clip(RoundedCornerShape(32.dp)) // Clip first for perfect rounded corners
+                .clip(RoundedCornerShape(32.dp))
                 .background(
-                    color = MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 )
         ) {
             NewMiniPlayerContent(
@@ -198,8 +196,6 @@ private fun LegacyMiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
-    
-    // Track loading state when buffering
     val isLoading = playbackState == STATE_BUFFERING
     
     val currentView = LocalView.current
@@ -231,7 +227,7 @@ private fun LegacyMiniPlayer(
                 if (pureBlack) 
                     Color.Black 
                 else 
-                    MaterialTheme.colorScheme.surfaceContainer // Fixed background independent of player background
+                    MaterialTheme.colorScheme.surfaceContainer
             )
             .let { baseModifier ->
                 if (swipeThumbnail) {
@@ -377,7 +373,6 @@ private fun LegacyMiniPlayer(
             }
         }
         
-        // Visual indicator
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
@@ -419,7 +414,6 @@ private fun LegacyMiniMediaInfo(
                 .size(48.dp)
                 .clip(RoundedCornerShape(ThumbnailCornerRadius))
         ) {
-            // Blurred background for thumbnail
             AsyncImage(
                 model = mediaMetadata.thumbnailUrl,
                 contentDescription = null,
@@ -436,7 +430,6 @@ private fun LegacyMiniMediaInfo(
                     )
             )
 
-            // Main thumbnail - Apply Shared Element HERE
             val sharedElementModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                 with(sharedTransitionScope) {
                     Modifier.sharedElement(
@@ -456,10 +449,10 @@ private fun LegacyMiniMediaInfo(
                     .fillMaxSize()
                     .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                     .clip(RoundedCornerShape(ThumbnailCornerRadius))
-                    .then(sharedElementModifier) // Apply the modifier
+                    .then(sharedElementModifier)
             )
 
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
@@ -519,8 +512,6 @@ private fun LegacyMiniMediaInfo(
         }
     }
 }
-
-// ... (Keep the rest of the file: SwipeableMiniPlayerBox, MiniPlayerPlayPauseButton, etc. EXACTLY as they were, unchanged) ...
 
 @Composable
 fun SwipeableMiniPlayerBox(
@@ -640,7 +631,6 @@ fun SwipeableMiniPlayerBox(
     ) {
         content(offsetXAnimatable.value)
 
-        // Visual indicator
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
@@ -675,7 +665,6 @@ fun MiniPlayerPlayPauseButton(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(48.dp)
     ) {
-        // Circular progress indicator around the play button
         if (duration > 0) {
             CircularProgressIndicator(
                 progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
@@ -686,7 +675,6 @@ fun MiniPlayerPlayPauseButton(
             )
         }
 
-        // Play/Pause button with thumbnail background
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -808,7 +796,6 @@ fun NewMiniPlayerContent(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     
-    // Track loading state when buffering
     val isLoading = playbackState == Player.STATE_BUFFERING
     val isLiked = currentSong?.song?.liked == true
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
@@ -820,14 +807,12 @@ fun NewMiniPlayerContent(
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 8.dp),
     ) {
-        // Artwork with Shared Element
         mediaMetadata?.let {
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(RoundedCornerShape(ThumbnailCornerRadius))
             ) {
-                // Blurred background
                 AsyncImage(
                     model = it.thumbnailUrl,
                     contentDescription = null,
@@ -841,7 +826,6 @@ fun NewMiniPlayerContent(
                         )
                 )
 
-                // Main artwork
                 val sharedElementModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
                         Modifier.sharedElement(
@@ -867,7 +851,6 @@ fun NewMiniPlayerContent(
             Spacer(modifier = Modifier.width(12.dp))
         }
 
-        // Play/Pause button (left side)
         MiniPlayerPlayPauseButton(
             position = position,
             duration = duration,
@@ -879,7 +862,6 @@ fun NewMiniPlayerContent(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Title and Artist
         mediaMetadata?.let {
             MiniPlayerInfo(mediaMetadata = it)
         } ?: Spacer(Modifier.weight(1f))
@@ -906,14 +888,12 @@ fun NewMiniPlayerContent(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        // Subscribe button
         mediaMetadata?.let {
             MiniPlayerSubscribeButton(mediaMetadata = it)
         }
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Action Buttons (Like)
         MiniPlayerActionButtons(
             isLiked = isLiked,
             onLikeClick = playerConnection::toggleLike
