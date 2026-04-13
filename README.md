@@ -17,9 +17,7 @@ Powerful • Dynamic • Next-Gen Music Player
     <img src="https://img.shields.io/badge/Download-APK-1DB954?style=for-the-badge&logo=android&logoColor=white" />
   </a>
   
-  <a href="https://apt.izzysoft.de/fdroid/index/apk/com.j.m3play">
-    <img src="https://apt.izzysoft.de/fdroid/badge/com.j.m3play.svg" alt="Get it on IzzyOnDroid" height="80"/>
-  </a>
+  [<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="80" alt="Get it at IzzyOnDroid">](https://apt.izzysoft.de/packages/com.j.m3play)
 
   <a href="https://github.com/JAY01-CYBER/M3-Play">
     <img src="https://img.shields.io/badge/Install-via%20Obtainium-3b82f6?style=for-the-badge" />
