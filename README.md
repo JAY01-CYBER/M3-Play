@@ -16,6 +16,11 @@ Powerful • Dynamic • Next-Gen Music Player
   <a href="https://github.com/JAY01-CYBER/M3-Play/releases/latest">
     <img src="https://img.shields.io/badge/Download-APK-1DB954?style=for-the-badge&logo=android&logoColor=white" />
   </a>
+  
+  <a href="https://apt.izzysoft.de/fdroid/index/apk/com.j.m3play">
+    <img src="https://img.shields.io/badge/Available%20on-IzzyOnDroid-4CAF50?style=for-the-badge" />
+  </a>
+
   <a href="https://github.com/JAY01-CYBER/M3-Play">
     <img src="https://img.shields.io/badge/Install-via%20Obtainium-3b82f6?style=for-the-badge" />
   </a>
@@ -119,7 +124,7 @@ If you like M3 Play:
 
 - ⭐ Star the repo  
 - 🍴 Fork it  
-- 🔥 Share it
+- 🔥 Share it  
 
 ---
 
@@ -128,8 +133,6 @@ If you like M3 Play:
 This project is based on ArchiveTune
 
 Special thanks to the open-source community and all upstream contributors ❤️
-
----
 
 ---
 
