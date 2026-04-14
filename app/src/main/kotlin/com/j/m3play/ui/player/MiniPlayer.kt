@@ -20,11 +20,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.AlignmentLine
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
@@ -36,6 +39,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +65,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,8 +143,12 @@ private fun NewMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(MiniPlayerHeight)
+                .height(64.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .clip(RoundedCornerShape(32.dp))
+                .background(
+                    color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                )
         ) {
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
@@ -167,6 +176,8 @@ private fun LegacyMiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
 
     val isLoading = playbackState == STATE_BUFFERING
+
+    LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
@@ -193,7 +204,11 @@ private fun LegacyMiniPlayer(
             .height(MiniPlayerHeight)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .background(
-                if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                if (pureBlack) {
+                    Color.Black
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                }
             )
             .let { baseModifier ->
                 if (swipeThumbnail) {
@@ -215,10 +230,10 @@ private fun LegacyMiniPlayer(
                                 val adjustedDragAmount =
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
 
-                                val allowLeft =
-                                    adjustedDragAmount < 0 && canSkipNext
-                                val allowRight =
-                                    adjustedDragAmount > 0 && canSkipPrevious
+                                val canGoPrevious = playerConnection.player.previousMediaItemIndex != -1
+                                val canGoNext = playerConnection.player.nextMediaItemIndex != -1
+                                val allowLeft = adjustedDragAmount < 0 && canGoNext
+                                val allowRight = adjustedDragAmount > 0 && canGoPrevious
 
                                 if (allowLeft || allowRight) {
                                     totalDragDistance += kotlin.math.abs(adjustedDragAmount)
@@ -278,7 +293,7 @@ private fun LegacyMiniPlayer(
             }
     ) {
         LinearProgressIndicator(
-            progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
+            progress = { (position.toFloat() / duration.coerceAtLeast(1L).toFloat()).coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(2.dp)
@@ -360,7 +375,11 @@ private fun LegacyMiniPlayer(
             ) {
                 Icon(
                     painter = painterResource(
-                        if (offsetXAnimatable.value > 0) R.drawable.skip_previous else R.drawable.skip_next
+                        if (offsetXAnimatable.value > 0) {
+                            R.drawable.skip_previous
+                        } else {
+                            R.drawable.skip_next
+                        }
                     ),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(
@@ -419,25 +438,28 @@ private fun LegacyMiniMediaInfo(
                     .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 
-            AnimatedVisibility(
-                visible = error != null,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            color = if (pureBlack) Color.Black else Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(ThumbnailCornerRadius),
-                        ),
+            Box(modifier = Modifier.fillMaxSize()) {
+                AnimatedVisibility(
+                    visible = error != null,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.matchParentSize()
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.info),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                color = if (pureBlack) Color.Black else Color.Black.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(ThumbnailCornerRadius),
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.info),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
                 }
             }
         }
@@ -450,7 +472,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.title,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "",
+                label = "mini_title",
             ) { title ->
                 Text(
                     text = title,
@@ -466,7 +488,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.artists.joinToString { it.name },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "",
+                label = "mini_artists",
             ) { artists ->
                 Text(
                     text = artists,
