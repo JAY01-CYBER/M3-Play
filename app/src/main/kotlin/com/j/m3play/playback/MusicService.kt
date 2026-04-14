@@ -1069,8 +1069,8 @@ class MusicService :
                     ?.let { playerState ->
                     delay(1000)
                     withContext(Dispatchers.Main) {
-                        player.repeatMode = playerState.repeatMode
-                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
+                        // Keep repeat/shuffle from DataStore as the source of truth.
+                        // Restoring them from persisted player state can override newer user settings.
                         playerVolume.value = playerState.volume
                         
                         if (player.mediaItemCount > 0) {
