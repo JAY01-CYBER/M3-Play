@@ -450,6 +450,8 @@ class MusicService :
     val maxSafeGainFactor = 1.414f // +3 dB
     @Volatile
     private var hasCalledStartForeground = false
+    @Volatile
+    private var skipPersistentQueueSaveOnDestroy = false
 
     val togetherSessionState = MutableStateFlow<com.j.m3play.together.TogetherSessionState>(
         com.j.m3play.together.TogetherSessionState.Idle,
@@ -1069,8 +1071,8 @@ class MusicService :
                     ?.let { playerState ->
                     delay(1000)
                     withContext(Dispatchers.Main) {
-                        // Keep repeat/shuffle from DataStore as the source of truth.
-                        // Restoring them from persisted player state can override newer user settings.
+                        player.repeatMode = playerState.repeatMode
+                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
                         playerVolume.value = playerState.volume
                         
                         if (player.mediaItemCount > 0) {
@@ -4779,6 +4781,7 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
+        if (player.mediaItemCount <= 0) return
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
@@ -4847,7 +4850,11 @@ class MusicService :
             releaseAudioEffects()
         } catch (_: Exception) {}
         try {
-            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+            if (
+                dataStore.get(PersistentQueueKey, true) &&
+                !skipPersistentQueueSaveOnDestroy &&
+                player.mediaItemCount > 0
+            ) {
                 val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
                 val currentMediaItemIndex = player.currentMediaItemIndex
                 val currentPosition = player.currentPosition
@@ -4972,6 +4979,7 @@ class MusicService :
                     if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
                         runBlocking { saveQueueToDisk() }
                     }
+                    skipPersistentQueueSaveOnDestroy = true
                     runCatching { stopAndClearPlayback() }
                     runCatching {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
