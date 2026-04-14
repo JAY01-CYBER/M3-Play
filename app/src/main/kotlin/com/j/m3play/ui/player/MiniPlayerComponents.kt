@@ -379,69 +379,73 @@ fun NewMiniPlayerContent(
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
-    
-    // Track loading state when buffering
-    val isLoading = playbackState == Player.STATE_BUFFERING
-    val isLiked = currentSong?.song?.liked == true
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val isLiked = currentSong?.song?.liked == true
+
+    Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
+        tonalElevation = 6.dp,
+        shadowElevation = 10.dp
     ) {
-        // Play/Pause button (left side)
-        MiniPlayerPlayPauseButton(
-            position = position,
-            duration = duration,
-            isPlaying = isPlaying,
-            playbackState = playbackState,
-            isLoading = isLoading,
-            playerConnection = playerConnection
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
-        Spacer(modifier = Modifier.width(16.dp))
+            //  PLAY BUTTON
+            MiniPlayerPlayPauseButton(
+                position = position,
+                duration = duration,
+                isPlaying = isPlaying,
+                playbackState = playbackState,
+                isLoading = isLoading,
+                playerConnection = playerConnection
+            )
 
-        // Title and Artist
-        mediaMetadata?.let {
-            MiniPlayerInfo(mediaMetadata = it)
-        } ?: Spacer(Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Spacer(modifier = Modifier.width(12.dp))
+            //  TITLE + ARTIST
+            mediaMetadata?.let {
+                MiniPlayerInfo(mediaMetadata = it)
+            } ?: Spacer(modifier = Modifier.weight(1f))
 
-        if (togetherSessionState !is TogetherSessionState.Idle) {
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.all_inclusive),
-                        contentDescription = stringResource(R.string.music_together),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(14.dp),
-                    )
-                }
-            }
             Spacer(modifier = Modifier.width(8.dp))
+
+            //  TOGETHER BADGE
+            if (togetherSessionState !is TogetherSessionState.Idle) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.all_inclusive),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+
+            // LIKE BUTTON
+            MiniPlayerActionButtons(
+                isLiked = isLiked,
+                onLikeClick = playerConnection::toggleLike
+            )
         }
-
-        // Subscribe button
-        mediaMetadata?.let {
-            MiniPlayerSubscribeButton(mediaMetadata = it)
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Action Buttons (Like)
-        MiniPlayerActionButtons(
-            isLiked = isLiked,
-            onLikeClick = playerConnection::toggleLike
-        )
     }
 }
 
