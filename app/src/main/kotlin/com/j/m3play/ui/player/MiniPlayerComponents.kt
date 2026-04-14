@@ -438,7 +438,7 @@ fun NewMiniPlayerContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(32.dp),
         color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
         tonalElevation = 6.dp,
         shadowElevation = 10.dp
