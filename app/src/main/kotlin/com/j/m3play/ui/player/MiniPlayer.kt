@@ -20,10 +20,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.AlignmentLine
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,9 +58,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -140,12 +138,8 @@ private fun NewMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(MiniPlayerHeight)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .clip(RoundedCornerShape(32.dp))
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainer
-                )
         ) {
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
@@ -173,8 +167,6 @@ private fun LegacyMiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
 
     val isLoading = playbackState == STATE_BUFFERING
-
-    val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
@@ -201,11 +193,7 @@ private fun LegacyMiniPlayer(
             .height(MiniPlayerHeight)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .background(
-                if (pureBlack) {
-                    Color.Black
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                }
+                if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
             )
             .let { baseModifier ->
                 if (swipeThumbnail) {
@@ -228,9 +216,9 @@ private fun LegacyMiniPlayer(
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
 
                                 val allowLeft =
-                                    adjustedDragAmount < 0 && playerConnection.player.nextMediaItemIndex != -1
+                                    adjustedDragAmount < 0 && canSkipNext
                                 val allowRight =
-                                    adjustedDragAmount > 0 && playerConnection.player.previousMediaItemIndex != -1
+                                    adjustedDragAmount > 0 && canSkipPrevious
 
                                 if (allowLeft || allowRight) {
                                     totalDragDistance += kotlin.math.abs(adjustedDragAmount)
@@ -241,16 +229,17 @@ private fun LegacyMiniPlayer(
                             },
                             onDragEnd = {
                                 val dragDuration = System.currentTimeMillis() - dragStartTime
-                                val velocity = if (dragDuration > 0) totalDragDistance / dragDuration else 0f
+                                val velocity =
+                                    if (dragDuration > 0) totalDragDistance / dragDuration else 0f
                                 val currentOffset = offsetXAnimatable.value
 
                                 val minDistanceThreshold = 50f
                                 val velocityThreshold = (swipeSensitivity * -8.25f) + 8.5f
 
-                                val shouldChangeSong = (
-                                    kotlin.math.abs(currentOffset) > minDistanceThreshold &&
-                                        velocity > velocityThreshold
-                                    ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
+                                val shouldChangeSong =
+                                    (kotlin.math.abs(currentOffset) > minDistanceThreshold &&
+                                        velocity > velocityThreshold) ||
+                                        (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
 
                                 if (shouldChangeSong) {
                                     val isRightSwipe = currentOffset > 0
@@ -375,7 +364,8 @@ private fun LegacyMiniPlayer(
                     ),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(
-                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold).coerceIn(0f, 1f)
+                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold)
+                            .coerceIn(0f, 1f)
                     ),
                     modifier = Modifier.size(24.dp)
                 )
@@ -429,13 +419,13 @@ private fun LegacyMiniMediaInfo(
                     .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
                 Box(
-                    modifier = Modifier
+                    Modifier
                         .fillMaxSize()
                         .background(
                             color = if (pureBlack) Color.Black else Color.Black.copy(alpha = 0.6f),
@@ -460,7 +450,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.title,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "legacy_title",
+                label = "",
             ) { title ->
                 Text(
                     text = title,
@@ -476,7 +466,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.artists.joinToString { it.name },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "legacy_artists",
+                label = "",
             ) { artists ->
                 Text(
                     text = artists,
