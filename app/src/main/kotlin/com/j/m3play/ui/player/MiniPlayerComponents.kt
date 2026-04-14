@@ -434,14 +434,20 @@ fun NewMiniPlayerContent(
     val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
     val isLoading = playbackState == Player.STATE_BUFFERING
 
-    Surface(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(32.dp),
-        color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
-        tonalElevation = 6.dp,
-        shadowElevation = 10.dp
+            .padding(horizontal = 8.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .background(
+                if (pureBlack) Color.Black
+                else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(32.dp)
+            )
     ) {
         Row(
             modifier = Modifier
