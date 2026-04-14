@@ -452,6 +452,8 @@ class MusicService :
     private var hasCalledStartForeground = false
     @Volatile
     private var skipPersistentQueueSaveOnDestroy = false
+    @Volatile
+    private var isRestoringPersistentQueue = false
 
     val togetherSessionState = MutableStateFlow<com.j.m3play.together.TogetherSessionState>(
         com.j.m3play.together.TogetherSessionState.Idle,
@@ -1122,53 +1124,59 @@ class MusicService :
     }
 
     private suspend fun restorePersistentQueue(persistedQueue: PersistQueue) {
-        val restoredQueue = persistedQueue.toQueue()
-        val hideExplicit = dataStore.get(HideExplicitKey, false)
-        val hideVideo = dataStore.get(HideVideoKey, false)
-        val initialStatus =
-            restoredQueue
-                .getInitialStatus()
-                .filterExplicit(hideExplicit)
-                .filterVideo(hideVideo)
+        isRestoringPersistentQueue = true
+        try {
+            val restoredQueue = persistedQueue.toQueue()
+            val hideExplicit = dataStore.get(HideExplicitKey, false)
+            val hideVideo = dataStore.get(HideVideoKey, false)
+            val initialStatus =
+                restoredQueue
+                    .getInitialStatus()
+                    .filterExplicit(hideExplicit)
+                    .filterVideo(hideVideo)
 
-        withContext(Dispatchers.Main) {
-            currentQueue = restoredQueue
-            queueTitle = initialStatus.title
+            withContext(Dispatchers.Main) {
+                currentQueue = restoredQueue
+                queueTitle = initialStatus.title
 
-            val items = initialStatus.items
-            if (items.isEmpty()) {
-                return@withContext
-            }
+                val items = initialStatus.items
+                if (items.isEmpty()) {
+                    return@withContext
+                }
 
-            val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
-            val windowStart = (fullIndex - 20).coerceAtLeast(0)
-            val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
+                val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+                val windowStart = (fullIndex - 20).coerceAtLeast(0)
+                val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
 
-            val initialChunk = items.subList(windowStart, windowEnd)
-            val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
+                val initialChunk = items.subList(windowStart, windowEnd)
+                val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
 
-            player.setMediaItems(
-                initialChunk,
-                relativeIndex,
-                initialStatus.position,
-            )
-            player.prepare()
-            player.playWhenReady = false
-            currentMediaMetadata.value = player.currentMetadata
-            updateNotification()
+                player.setMediaItems(
+                    initialChunk,
+                    relativeIndex,
+                    initialStatus.position,
+                )
+                player.prepare()
+                player.playWhenReady = false
+                currentMediaMetadata.value = player.currentMetadata
+                updateNotification()
 
-            if (items.size > initialChunk.size) {
-                scope.launch(SilentHandler) {
-                    delay(2000)
-                    if (!isActive || player.mediaItemCount == 0) return@launch
-                    if (windowStart > 0) {
-                        player.addMediaItems(0, items.subList(0, windowStart))
-                    }
-                    if (windowEnd < items.size) {
-                        player.addMediaItems(items.subList(windowEnd, items.size))
+                if (items.size > initialChunk.size) {
+                    scope.launch(SilentHandler) {
+                        delay(2000)
+                        if (!isActive || player.mediaItemCount == 0) return@launch
+                        if (windowStart > 0) {
+                            player.addMediaItems(0, items.subList(0, windowStart))
+                        }
+                        if (windowEnd < items.size) {
+                            player.addMediaItems(items.subList(windowEnd, items.size))
+                        }
                     }
                 }
             }
+        } finally {
+            delay(2500)
+            isRestoringPersistentQueue = false
         }
     }
 
@@ -4781,8 +4789,12 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
+        if (isRestoringPersistentQueue) return
         if (player.mediaItemCount <= 0) return
-        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+
+        val fullQueueItems = currentQueue.getInitialStatus().items
+        val mediaItemsSnapshot = fullQueueItems.mapNotNull { it.toPersistableMetadata() }
+            .ifEmpty { player.mediaItems.mapNotNull { it.toPersistableMetadata() } }
         if (mediaItemsSnapshot.isEmpty()) return
 
         val currentMediaItemIndex = player.currentMediaItemIndex
@@ -4853,6 +4865,7 @@ class MusicService :
             if (
                 dataStore.get(PersistentQueueKey, true) &&
                 !skipPersistentQueueSaveOnDestroy &&
+                !isRestoringPersistentQueue &&
                 player.mediaItemCount > 0
             ) {
                 val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
