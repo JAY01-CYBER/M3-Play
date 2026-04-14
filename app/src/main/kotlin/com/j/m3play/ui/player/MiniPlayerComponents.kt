@@ -87,7 +87,6 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.db.entities.ArtistEntity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
-import coil.compose.AsyncImage
 
 @Composable
 fun SwipeableMiniPlayerBox(
@@ -370,38 +369,81 @@ fun MiniPlayerActionButtons(
 }
 
 @Composable
-fun NewMiniPlayer(
-modifier: Modifier = Modifier,
-playerConnection: PlayerConnection,
-onExpand: () -> Unit
+fun NewMiniPlayerContent(
+    pureBlack: Boolean,
+    position: Long,
+    duration: Long,
+    playerConnection: PlayerConnection
 ) {
-val coroutineScope = rememberCoroutineScope()
-val layoutDirection = LocalLayoutDirection.current
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    
+    // Track loading state when buffering
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val isLiked = currentSong?.song?.liked == true
+    val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
 
-SwipeableMiniPlayerBox(
-    swipeSensitivity = 0.5f,
-    swipeThumbnail = true,
-    playerConnection = playerConnection,
-    layoutDirection = layoutDirection,
-    coroutineScope = coroutineScope,
-    modifier = modifier
-        .padding(horizontal = 12.dp, vertical = 6.dp)
-        .clip(RoundedCornerShape(20.dp))
-        .background(
-            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+    ) {
+        // Play/Pause button (left side)
+        MiniPlayerPlayPauseButton(
+            position = position,
+            duration = duration,
+            isPlaying = isPlaying,
+            playbackState = playbackState,
+            isLoading = isLoading,
+            playerConnection = playerConnection
         )
-        .clickable { onExpand() }
-) {
-    NewMiniPlayerContent(
-        pureBlack = false,
-        position = playerConnection.player.currentPosition,
-        duration = playerConnection.player.duration,
-        playerConnection = playerConnection
-    )
-}
 
-}
+        Spacer(modifier = Modifier.width(16.dp))
 
+        // Title and Artist
+        mediaMetadata?.let {
+            MiniPlayerInfo(mediaMetadata = it)
+        } ?: Spacer(Modifier.weight(1f))
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        if (togetherSessionState !is TogetherSessionState.Idle) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.music_together),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        // Subscribe button
+        mediaMetadata?.let {
+            MiniPlayerSubscribeButton(mediaMetadata = it)
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Action Buttons (Like)
+        MiniPlayerActionButtons(
+            isLiked = isLiked,
+            onLikeClick = playerConnection::toggleLike
+        )
+    }
+}
 
 @Composable
 fun MiniPlayerSubscribeButton(mediaMetadata: MediaMetadata) {
