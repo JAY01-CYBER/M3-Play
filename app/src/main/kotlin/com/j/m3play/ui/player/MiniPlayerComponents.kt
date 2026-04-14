@@ -79,6 +79,9 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import androidx.compose.ui.offset
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 
 @Composable
 fun SwipeableMiniPlayerBox(
