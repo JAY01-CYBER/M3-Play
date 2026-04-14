@@ -321,6 +321,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        startMusicServiceSafely()
         isMusicServiceBound =
             bindService(
                 Intent(this, MusicService::class.java),
@@ -1737,8 +1738,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startMusicServiceSafely() {
-        runCatching { startService(Intent(this, com.j.m3play.playback.MusicService::class.java)) }
-            .onFailure { reportException(it) }
+        runCatching {
+            val intent = Intent(this, com.j.m3play.playback.MusicService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }.onFailure { reportException(it) }
     }
 
     @SuppressLint("ObsoleteSdkInt")
