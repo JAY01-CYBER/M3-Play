@@ -116,7 +116,7 @@ fun SwipeableMiniPlayerBox(
                         if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
                     )
                 } else {
-                    baseModifier.padding(horizontal = 12.dp)
+                    baseModifier
                 }
             }
             .let { baseModifier ->
@@ -434,70 +434,54 @@ fun NewMiniPlayerContent(
     val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
     val isLoading = playbackState == Player.STATE_BUFFERING
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp)
-            .clip(RoundedCornerShape(32.dp))
-            .background(
-                if (pureBlack) Color.Black
-                else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
-            )
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(32.dp)
-            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MiniPlayerArtwork(
-                mediaMetadata = mediaMetadata,
-                position = position,
-                duration = duration,
-                isLoading = isLoading
-            )
+        MiniPlayerArtwork(
+            mediaMetadata = mediaMetadata,
+            position = position,
+            duration = duration,
+            isLoading = isLoading
+        )
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            mediaMetadata?.let {
-                MiniPlayerInfo(mediaMetadata = it)
-            } ?: Spacer(modifier = Modifier.weight(1f))
+        mediaMetadata?.let {
+            MiniPlayerInfo(mediaMetadata = it)
+        } ?: Spacer(modifier = Modifier.weight(1f))
 
-            if (togetherSessionState !is TogetherSessionState.Idle) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+        if (togetherSessionState !is TogetherSessionState.Idle) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.all_inclusive),
-                            contentDescription = stringResource(R.string.music_together),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.music_together),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            MiniPlayerTransportControls(
-                isPlaying = isPlaying,
-                playbackState = playbackState,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                playerConnection = playerConnection
-            )
         }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        MiniPlayerTransportControls(
+            isPlaying = isPlaying,
+            playbackState = playbackState,
+            canSkipPrevious = canSkipPrevious,
+            canSkipNext = canSkipNext,
+            playerConnection = playerConnection
+        )
     }
 }
 
@@ -516,15 +500,31 @@ fun NewMiniPlayer(
         playerConnection = playerConnection,
         layoutDirection = layoutDirection,
         coroutineScope = coroutineScope,
-        modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clickable { onExpand() }
-    ) {
-        NewMiniPlayerContent(
-            pureBlack = false,
-            position = playerConnection.player.currentPosition,
-            duration = playerConnection.player.duration,
-            playerConnection = playerConnection
-        )
+        modifier = modifier.clickable { onExpand() }
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .offset { androidx.compose.ui.unit.IntOffset(offsetX.roundToInt(), 0) }
+                .clip(RoundedCornerShape(32.dp))
+                .background(
+                    if (false) Color.Black
+                    else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f),
+                    shape = RoundedCornerShape(32.dp)
+                )
+        ) {
+            NewMiniPlayerContent(
+                pureBlack = false,
+                position = playerConnection.player.currentPosition,
+                duration = playerConnection.player.duration,
+                playerConnection = playerConnection
+            )
+        }
     }
 }
