@@ -13,24 +13,25 @@ package com.j.m3play.ui.player
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -79,22 +80,19 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
 import coil3.compose.AsyncImage
-import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
+import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.MiniPlayerHeight
 import com.j.m3play.constants.SwipeSensitivityKey
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
-import com.j.m3play.constants.CropThumbnailToSquareKey
-import com.j.m3play.db.entities.ArtistEntity
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.utils.rememberPreference
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import androidx.compose.foundation.clickable
 
 @Composable
 fun MiniPlayer(
@@ -144,24 +142,13 @@ private fun NewMiniPlayer(
         coroutineScope = coroutineScope,
         pureBlack = pureBlack,
         useLegacyBackground = false
-    ) { offsetX ->
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp) // Circular height
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .clip(RoundedCornerShape(32.dp)) // Clip first for perfect rounded corners
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainer // Same as navigation bar color
-                )
-        ) {
-            NewMiniPlayerContent(
-                pureBlack = pureBlack,
-                position = position,
-                duration = duration,
-                playerConnection = playerConnection
-            )
-        }
+    ) {
+        NewMiniPlayerContent(
+            pureBlack = pureBlack,
+            position = position,
+            duration = duration,
+            playerConnection = playerConnection
+        )
     }
 }
 
@@ -179,16 +166,15 @@ private fun LegacyMiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
-    
-    // Track loading state when buffering
+
     val isLoading = playbackState == STATE_BUFFERING
-    
+
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
-    
+
     val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
@@ -201,6 +187,7 @@ private fun LegacyMiniPlayer(
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
         return (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
+
     val autoSwipeThreshold = calculateAutoSwipeThreshold(swipeSensitivity)
 
     Box(
@@ -209,10 +196,8 @@ private fun LegacyMiniPlayer(
             .height(MiniPlayerHeight)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .background(
-                if (pureBlack) 
-                    Color.Black 
-                else 
-                    MaterialTheme.colorScheme.surfaceContainer // Fixed background independent of player background
+                if (pureBlack) Color.Black
+                else MaterialTheme.colorScheme.surfaceContainer
             )
             .let { baseModifier ->
                 if (swipeThumbnail) {
@@ -248,31 +233,37 @@ private fun LegacyMiniPlayer(
                                 val dragDuration = System.currentTimeMillis() - dragStartTime
                                 val velocity = if (dragDuration > 0) totalDragDistance / dragDuration else 0f
                                 val currentOffset = offsetXAnimatable.value
-                                
+
                                 val minDistanceThreshold = 50f
                                 val velocityThreshold = (swipeSensitivity * -8.25f) + 8.5f
 
                                 val shouldChangeSong = (
                                     kotlin.math.abs(currentOffset) > minDistanceThreshold &&
-                                    velocity > velocityThreshold
-                                ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
-                                
+                                        velocity > velocityThreshold
+                                    ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
+
                                 if (shouldChangeSong) {
                                     val isRightSwipe = currentOffset > 0
-                                    
+
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
                                         if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
-                                            try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                            try {
+                                                com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart()
+                                            } catch (_: Exception) {
+                                            }
                                         }
                                     } else if (!isRightSwipe && canSkipNext) {
                                         playerConnection.player.seekToNext()
                                         if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
-                                            try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                            try {
+                                                com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart()
+                                            } catch (_: Exception) {
+                                            }
                                         }
                                     }
                                 }
-                                
+
                                 coroutineScope.launch {
                                     offsetXAnimatable.animateTo(
                                         targetValue = 0f,
@@ -294,7 +285,7 @@ private fun LegacyMiniPlayer(
                 .height(2.dp)
                 .align(Alignment.BottomCenter),
         )
-        
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -355,8 +346,7 @@ private fun LegacyMiniPlayer(
                 )
             }
         }
-        
-        // Visual indicator
+
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
@@ -386,6 +376,7 @@ private fun LegacyMiniMediaInfo(
     modifier: Modifier = Modifier,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
@@ -396,7 +387,6 @@ private fun LegacyMiniMediaInfo(
                 .size(48.dp)
                 .clip(RoundedCornerShape(ThumbnailCornerRadius))
         ) {
-            // Blurred background for thumbnail
             AsyncImage(
                 model = mediaMetadata.thumbnailUrl,
                 contentDescription = null,
@@ -413,7 +403,6 @@ private fun LegacyMiniMediaInfo(
                     )
             )
 
-            // Main thumbnail
             AsyncImage(
                 model = mediaMetadata.thumbnailUrl,
                 contentDescription = null,
@@ -424,7 +413,7 @@ private fun LegacyMiniMediaInfo(
                     .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
