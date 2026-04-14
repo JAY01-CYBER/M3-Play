@@ -1,34 +1,21 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
@@ -40,16 +27,13 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -142,13 +126,20 @@ private fun NewMiniPlayer(
         coroutineScope = coroutineScope,
         pureBlack = pureBlack,
         useLegacyBackground = false
-    ) {
-        NewMiniPlayerContent(
-            pureBlack = pureBlack,
-            position = position,
-            duration = duration,
-            playerConnection = playerConnection
-        )
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+        ) {
+            NewMiniPlayerContent(
+                pureBlack = pureBlack,
+                position = position,
+                duration = duration,
+                playerConnection = playerConnection
+            )
+        }
     }
 }
 
@@ -168,8 +159,6 @@ private fun LegacyMiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
 
     val isLoading = playbackState == STATE_BUFFERING
-
-    val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
@@ -218,10 +207,9 @@ private fun LegacyMiniPlayer(
                             onHorizontalDrag = { _, dragAmount ->
                                 val adjustedDragAmount =
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
-                                val canSkipPrevious = playerConnection.player.previousMediaItemIndex != -1
-                                val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
                                 val allowLeft = adjustedDragAmount < 0 && canSkipNext
                                 val allowRight = adjustedDragAmount > 0 && canSkipPrevious
+
                                 if (allowLeft || allowRight) {
                                     totalDragDistance += kotlin.math.abs(adjustedDragAmount)
                                     coroutineScope.launch {
@@ -233,7 +221,6 @@ private fun LegacyMiniPlayer(
                                 val dragDuration = System.currentTimeMillis() - dragStartTime
                                 val velocity = if (dragDuration > 0) totalDragDistance / dragDuration else 0f
                                 val currentOffset = offsetXAnimatable.value
-
                                 val minDistanceThreshold = 50f
                                 val velocityThreshold = (swipeSensitivity * -8.25f) + 8.5f
 
@@ -329,7 +316,7 @@ private fun LegacyMiniPlayer(
                                 R.drawable.pause
                             } else {
                                 R.drawable.play
-                            },
+                            }
                         ),
                         contentDescription = null,
                     )
@@ -376,6 +363,7 @@ private fun LegacyMiniMediaInfo(
     modifier: Modifier = Modifier,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
+    val currentView = LocalView.current
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
