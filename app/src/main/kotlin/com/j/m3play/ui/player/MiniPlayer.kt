@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedContent
@@ -10,6 +20,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +60,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
@@ -132,6 +142,10 @@ private fun NewMiniPlayer(
                 .fillMaxWidth()
                 .height(64.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .clip(RoundedCornerShape(32.dp))
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                )
         ) {
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
@@ -159,6 +173,8 @@ private fun LegacyMiniPlayer(
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
 
     val isLoading = playbackState == STATE_BUFFERING
+
+    val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
@@ -185,8 +201,11 @@ private fun LegacyMiniPlayer(
             .height(MiniPlayerHeight)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
             .background(
-                if (pureBlack) Color.Black
-                else MaterialTheme.colorScheme.surfaceContainer
+                if (pureBlack) {
+                    Color.Black
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer
+                }
             )
             .let { baseModifier ->
                 if (swipeThumbnail) {
@@ -207,8 +226,11 @@ private fun LegacyMiniPlayer(
                             onHorizontalDrag = { _, dragAmount ->
                                 val adjustedDragAmount =
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
-                                val allowLeft = adjustedDragAmount < 0 && canSkipNext
-                                val allowRight = adjustedDragAmount > 0 && canSkipPrevious
+
+                                val allowLeft =
+                                    adjustedDragAmount < 0 && playerConnection.player.nextMediaItemIndex != -1
+                                val allowRight =
+                                    adjustedDragAmount > 0 && playerConnection.player.previousMediaItemIndex != -1
 
                                 if (allowLeft || allowRight) {
                                     totalDragDistance += kotlin.math.abs(adjustedDragAmount)
@@ -221,6 +243,7 @@ private fun LegacyMiniPlayer(
                                 val dragDuration = System.currentTimeMillis() - dragStartTime
                                 val velocity = if (dragDuration > 0) totalDragDistance / dragDuration else 0f
                                 val currentOffset = offsetXAnimatable.value
+
                                 val minDistanceThreshold = 50f
                                 val velocityThreshold = (swipeSensitivity * -8.25f) + 8.5f
 
@@ -337,7 +360,13 @@ private fun LegacyMiniPlayer(
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
-                    .align(if (offsetXAnimatable.value > 0) Alignment.CenterStart else Alignment.CenterEnd)
+                    .align(
+                        if (offsetXAnimatable.value > 0) {
+                            Alignment.CenterStart
+                        } else {
+                            Alignment.CenterEnd
+                        }
+                    )
                     .padding(horizontal = 16.dp)
             ) {
                 Icon(
@@ -363,7 +392,6 @@ private fun LegacyMiniMediaInfo(
     modifier: Modifier = Modifier,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
-    val currentView = LocalView.current
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -401,13 +429,13 @@ private fun LegacyMiniMediaInfo(
                     .clip(RoundedCornerShape(ThumbnailCornerRadius)),
             )
 
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = error != null,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
                 Box(
-                    Modifier
+                    modifier = Modifier
                         .fillMaxSize()
                         .background(
                             color = if (pureBlack) Color.Black else Color.Black.copy(alpha = 0.6f),
@@ -432,7 +460,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.title,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "",
+                label = "legacy_title",
             ) { title ->
                 Text(
                     text = title,
@@ -448,7 +476,7 @@ private fun LegacyMiniMediaInfo(
             AnimatedContent(
                 targetState = mediaMetadata.artists.joinToString { it.name },
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "",
+                label = "legacy_artists",
             ) { artists ->
                 Text(
                     text = artists,
