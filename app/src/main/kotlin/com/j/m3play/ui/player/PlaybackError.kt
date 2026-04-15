@@ -1,15 +1,15 @@
 /*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
+ * M3Play Project Original (2026)
+ * Jay Chaudhary 
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.j.m3play.ui.player
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -36,13 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.PlaybackException
-import androidx.media3.datasource.HttpDataSource
 import android.widget.Toast
+import com.j.m3play.MainActivity
 import com.j.m3play.R
 
 @Composable
 fun PlaybackError(
     error: PlaybackException,
+    mediaId: String?,
     retry: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
@@ -54,20 +56,25 @@ fun PlaybackError(
     val retryText = stringResource(R.string.retry)
     val copyText = stringResource(R.string.copy)
     val copiedText = stringResource(R.string.copied)
-    val httpCode = error.httpStatusCodeOrNull()
+    val openYouTubeMusicText = stringResource(R.string.open_youtube_music)
+    val errorInfo = remember(error, mediaId) { error.toPlaybackErrorInfo(mediaId) }
+    val httpCode = errorInfo.httpCode
+    val title =
+        when (errorInfo.kind) {
+            PlaybackErrorKind.LoginRefreshRequired -> stringResource(R.string.playback_login_refresh_required)
+            PlaybackErrorKind.ConfirmationRequired -> stringResource(R.string.playback_confirmation_required)
+            else -> fallbackUnknown
+        }
     val reason =
-        when {
-            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> fallbackNoInternet
-            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> fallbackTimeout
-            httpCode in setOf(403, 404, 410, 416) -> fallbackNoStream
-            error.errorCode in setOf(
-                PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
-                PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
-                PlaybackException.ERROR_CODE_DECODING_FAILED,
-                PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
-            ) -> "$fallbackUnknown (code ${error.errorCode})"
-            httpCode != null -> "$fallbackUnknown (HTTP $httpCode)"
-            else -> error.cause?.message?.takeIf { it.isNotBlank() }
+        when (errorInfo.kind) {
+            PlaybackErrorKind.LoginRefreshRequired -> stringResource(R.string.playback_requires_youtube_music_login_refresh)
+            PlaybackErrorKind.ConfirmationRequired -> stringResource(R.string.playback_requires_youtube_music_confirmation)
+            PlaybackErrorKind.NoInternet -> fallbackNoInternet
+            PlaybackErrorKind.Timeout -> fallbackTimeout
+            PlaybackErrorKind.NoStream -> fallbackNoStream
+            PlaybackErrorKind.Decoder -> "$fallbackUnknown (code ${error.errorCode})"
+            PlaybackErrorKind.Http -> "$fallbackUnknown (HTTP $httpCode)"
+            PlaybackErrorKind.Unknown -> error.cause?.message?.takeIf { it.isNotBlank() }
                 ?: error.message?.takeIf { it.isNotBlank() }
                 ?: fallbackUnknown
         }
@@ -124,19 +131,11 @@ fun PlaybackError(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = fallbackUnknown,
+                        text = title,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                    )
-
-                    Text(
-                        text = reason,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        maxLines = 6,
-                        overflow = TextOverflow.Clip,
                     )
                 }
             }
@@ -156,6 +155,36 @@ fun PlaybackError(
                 )
             }
 
+            errorInfo.loginRecoveryUrl?.let { targetUrl ->
+                Button(
+                    onClick = {
+                        val deepLink = Uri.parse("m3play://login?url=${Uri.encode(targetUrl)}")
+                        val loginIntent =
+                            Intent(Intent.ACTION_VIEW, deepLink, context, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            }
+                        val fallbackIntent =
+                            Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+
+                        runCatching { context.startActivity(loginIntent) }
+                            .recoverCatching { context.startActivity(fallbackIntent) }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onErrorContainer,
+                            contentColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(text = openYouTubeMusicText)
+                }
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
@@ -167,6 +196,7 @@ fun PlaybackError(
                         ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(text = retryText)
                 }
@@ -178,9 +208,10 @@ fun PlaybackError(
                     },
                     colors =
                         ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.onErrorContainer,
-                            contentColor = MaterialTheme.colorScheme.errorContainer,
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.select_all),
@@ -192,13 +223,4 @@ fun PlaybackError(
             }
         }
     }
-}
-
-private fun PlaybackException.httpStatusCodeOrNull(): Int? {
-    var t: Throwable? = cause
-    while (t != null) {
-        if (t is HttpDataSource.InvalidResponseCodeException) return t.responseCode
-        t = t.cause
-    }
-    return null
 }
