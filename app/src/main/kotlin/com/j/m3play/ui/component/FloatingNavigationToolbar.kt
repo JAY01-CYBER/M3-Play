@@ -1,6 +1,9 @@
 package com.j.m3play.ui.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -43,8 +46,8 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-    val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
+    val containerColor = if (pureBlack) Color.Black.copy(alpha = 0.92f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
+    val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f)
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
     val libraryScreen = items.firstOrNull { it.route == Screens.Library.route }
@@ -62,17 +65,19 @@ fun FloatingNavigationToolbar(
             color = containerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = RoundedCornerShape(30.dp),
-            border = BorderStroke(1.dp, borderColor),
-            shadowElevation = 10.dp,
-            modifier = Modifier.widthIn(max = if (slim) 248.dp else 270.dp),
+            border = BorderStroke(0.6.dp, borderColor),
+            shadowElevation = 18.dp,
+            modifier = Modifier
+                .widthIn(max = if (slim) 250.dp else 276.dp)
+                .shadow(18.dp, RoundedCornerShape(30.dp), clip = false),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 primaryScreens.forEach { screen ->
-                    CompactNavItem(
+                    AppleNavItem(
                         screen = screen,
                         selected = isSelected(screen),
                         onClick = { onItemClick(screen, isSelected(screen)) },
@@ -114,18 +119,23 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun CompactNavItem(
+private fun AppleNavItem(
     screen: Screens,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
-        label = "nav_item_container",
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+        label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "nav_item_content",
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
+        label = "apple_nav_item_content",
+    )
+    val horizontalPadding by animateDpAsState(
+        targetValue = if (selected) 14.dp else 11.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "apple_nav_item_padding",
     )
 
     Surface(
@@ -133,10 +143,10 @@ private fun CompactNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(22.dp),
-        modifier = Modifier.defaultMinSize(minHeight = 50.dp),
+        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = if (selected) 14.dp else 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -149,7 +159,7 @@ private fun CompactNavItem(
                 Text(
                     text = stringResource(screen.titleId),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                 )
             }
@@ -167,14 +177,14 @@ private fun DetachedCircleButton(
 ) {
     val containerColor by animateColorAsState(
         targetValue = when {
-            pureBlack -> Color.White.copy(alpha = 0.08f)
-            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            pureBlack -> Color.White.copy(alpha = 0.10f)
+            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
         label = "detached_button_content",
     )
 
@@ -184,20 +194,20 @@ private fun DetachedCircleButton(
         contentColor = contentColor,
         shape = CircleShape,
         border = BorderStroke(
-            1.dp,
-            if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f),
+            0.6.dp,
+            if (pureBlack) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f),
         ),
-        shadowElevation = 10.dp,
+        shadowElevation = 14.dp,
         modifier = Modifier
-            .size(56.dp)
+            .size(52.dp)
             .clip(CircleShape)
-            .shadow(10.dp, CircleShape, clip = false),
+            .shadow(14.dp, CircleShape, clip = false),
     ) {
         IconButton(onClick = onClick) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(19.dp),
             )
         }
     }
