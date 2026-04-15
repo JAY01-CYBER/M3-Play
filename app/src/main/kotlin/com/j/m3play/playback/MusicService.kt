@@ -4771,19 +4771,11 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
-        val fullItems = currentQueue.getInitialStatus().items
-        val mediaItemsSnapshot =
-            fullItems.mapNotNull { it.toPersistableMetadata() }
-                .ifEmpty { player.mediaItems.mapNotNull { it.toPersistableMetadata() } }
+        if (!queueRestoreCompleted.value) return
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
-        val currentMediaId = player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
-        val resolvedMediaItemIndex =
-            currentMediaId?.let { id ->
-                fullItems.indexOfFirst { item -> item.mediaMetadata.id == id }
-                    .takeIf { it != null && it >= 0 }
-            } ?: player.currentMediaItemIndex.coerceAtLeast(0)
-
+        val currentMediaItemIndex = player.currentMediaItemIndex
         val currentPosition = player.currentPosition
         val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
         val playWhenReady = player.playWhenReady
@@ -4793,13 +4785,14 @@ class MusicService :
         val playbackState = player.playbackState
 
         withContext(Dispatchers.IO) {
+            // Save current queue with proper type information
             val persistQueue = currentQueue.toPersistQueue(
                 title = queueTitle,
                 items = mediaItemsSnapshot,
-                mediaItemIndex = resolvedMediaItemIndex,
+                mediaItemIndex = currentMediaItemIndex,
                 position = currentPosition
             )
-
+            
             val persistAutomix =
                 PersistQueue(
                     title = "automix",
@@ -4807,17 +4800,18 @@ class MusicService :
                     mediaItemIndex = 0,
                     position = 0,
                 )
-
+                
+            // Save player state
             val persistPlayerState = PersistPlayerState(
                 playWhenReady = playWhenReady,
                 repeatMode = repeatMode,
                 shuffleModeEnabled = shuffleModeEnabled,
                 volume = volume,
                 currentPosition = currentPosition,
-                currentMediaItemIndex = resolvedMediaItemIndex,
+                currentMediaItemIndex = currentMediaItemIndex, // Redundant but part of data class
                 playbackState = playbackState
             )
-
+            
             writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
             writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
             writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
@@ -4846,17 +4840,13 @@ class MusicService :
             releaseAudioEffects()
         } catch (_: Exception) {}
         try {
-            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                val fullItems = currentQueue.getInitialStatus().items
-                val mediaItemsSnapshot =
-                    fullItems.mapNotNull { it.toPersistableMetadata() }
-                        .ifEmpty { player.mediaItems.mapNotNull { it.toPersistableMetadata() } }
-                val currentMediaId = player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
-                val currentMediaItemIndex =
-                    currentMediaId?.let { id ->
-                        fullItems.indexOfFirst { item -> item.mediaMetadata.id == id }
-                            .takeIf { it != null && it >= 0 }
-                    } ?: player.currentMediaItemIndex.coerceAtLeast(0)
+            if (
+                dataStore.get(PersistentQueueKey, true) &&
+                queueRestoreCompleted.value &&
+                player.mediaItemCount > 0
+            ) {
+                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+                val currentMediaItemIndex = player.currentMediaItemIndex
                 val currentPosition = player.currentPosition
                 val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
                 val repeatMode = player.repeatMode
