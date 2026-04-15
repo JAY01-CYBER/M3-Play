@@ -16,6 +16,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -338,7 +339,7 @@ private fun WavyCircularProgress(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(
+            animation = tween<Float>(
                 durationMillis = if (isPlaying) 2200 else 5200,
                 easing = LinearEasing,
             ),
@@ -350,7 +351,7 @@ private fun WavyCircularProgress(
         initialValue = 0f,
         targetValue = (Math.PI * 2).toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(
+            animation = tween<Float>(
                 durationMillis = if (isPlaying) 1200 else 2200,
                 easing = LinearEasing,
             ),
@@ -362,7 +363,7 @@ private fun WavyCircularProgress(
         initialValue = 0.85f,
         targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
-            animation = tween(
+            animation = tween<Float>(
                 durationMillis = if (isPlaying) 900 else 1600,
                 easing = LinearEasing,
             ),
