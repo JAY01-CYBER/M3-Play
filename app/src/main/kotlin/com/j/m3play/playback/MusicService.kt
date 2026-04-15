@@ -1,12 +1,10 @@
 /*
- * ╭────────────────────────────────────────────╮
- * │            M3Play Core Engine              │
- * │--------------------------------------------│
- * │  Handles playback, audio pipeline & logic  │
- * │                                            │
- * │  Signature: M3PLAY::CORE::ENGINE::V1       │
- * ╰────────────────────────────────────────────╯
+ * M3Play Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
+
+
 
 @file:Suppress("DEPRECATION")
 
@@ -23,6 +21,8 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothClass
 import android.content.pm.PackageManager
 import android.database.SQLException
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.AudioFocusRequest
 import android.media.AudioAttributes as LegacyAudioAttributes
@@ -145,6 +145,7 @@ import com.j.m3play.db.entities.ArtistEntity
 import com.j.m3play.db.entities.AlbumEntity
 import com.j.m3play.di.DownloadCache
 import com.j.m3play.di.PlayerCache
+import com.j.m3play.innertube.PlaybackAuthState
 import com.j.m3play.extensions.SilentHandler
 import com.j.m3play.extensions.collect
 import com.j.m3play.extensions.collectLatest
@@ -172,9 +173,11 @@ import com.j.m3play.playback.queues.filterVideo
 import com.j.m3play.utils.CoilBitmapLoader
 import com.j.m3play.utils.DiscordRPC
 import com.j.m3play.ui.screens.settings.DiscordPresenceManager
+import com.j.m3play.utils.AuthScopedCacheValue
 import com.j.m3play.utils.SyncUtils
 import com.j.m3play.utils.YTPlayerUtils
 import com.j.m3play.utils.StreamClientUtils
+import com.j.m3play.utils.clearPlaybackLoginContext
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.enumPreference
 import com.j.m3play.utils.get
@@ -265,10 +268,22 @@ class MusicService :
     private var pauseOnDeviceMuteEnabled = false
     private var wasAutoPausedByDeviceMute = false
     private var hasAudioFocus = false
+    private var duckingRecoveryJob: Job? = null
     private var autoStartOnBluetoothEnabled = false
     private var bluetoothReceiverRegistered = false
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakelockEnabled = false
+    private var audioDeviceCallbackRegistered = false
+
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<AudioDeviceInfo>) {
+            if (addedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<AudioDeviceInfo>) {
+            if (removedDevices.any { it.isSink }) onAudioOutputDeviceChanged()
+        }
+    }
 
     private var scopeJob = Job()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
@@ -292,12 +307,16 @@ class MusicService :
         PlayerStreamClientKey,
         PlayerStreamClient.ANDROID_VR
     )
-    private val playbackUrlCache = ConcurrentHashMap<String, Pair<String, Long>>()
+    private val playbackUrlCache = ConcurrentHashMap<String, AuthScopedCacheValue>()
     private val streamRecoveryState = ConcurrentHashMap<String, Pair<Int, Long>>()
     @Volatile
     private var pendingStreamRefreshValidationMediaId: String? = null
     @Volatile
     private var refreshValidatedPlayingMediaId: String? = null
+    @Volatile
+    private var lastObservedPlaybackAuthFingerprint: String? = null
+    @Volatile
+    private var skipNextAuthChangeStreamRefresh = false
     private val avoidStreamCodecs: Set<String> by lazy {
         if (deviceSupportsMimeType("audio/opus")) emptySet() else setOf("opus")
     }
@@ -396,6 +415,35 @@ class MusicService :
         }
     }
 
+    private fun recoverInvalidPlaybackLoginContext(mediaId: String, targetUrl: String) {
+        val currentAuthState = YouTube.currentPlaybackAuthState()
+        if (!currentAuthState.hasPlaybackLoginContext) {
+            promptLoginRecovery(mediaId, targetUrl)
+            return
+        }
+
+        val updatedAuthState = currentAuthState.copy(dataSyncId = null)
+        if (currentAuthState.fingerprint != updatedAuthState.normalized().fingerprint) {
+            playbackUrlCache.clear()
+            YTPlayerUtils.clearPlaybackAuthCaches()
+            clearStreamRefreshGuards()
+            skipNextAuthChangeStreamRefresh = true
+        }
+        YouTube.authState = updatedAuthState
+
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                dataStore.edit { settings ->
+                    settings.clearPlaybackLoginContext()
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to clear invalid playback login context for %s", mediaId)
+            }
+        }
+
+        promptLoginRecovery(mediaId, targetUrl)
+    }
+
     lateinit var sleepTimer: SleepTimer
 
     @Inject
@@ -437,11 +485,6 @@ class MusicService :
 
     private var scrobbleManager: com.j.m3play.utils.ScrobbleManager? = null
 
-    val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
-    val automixLoading = MutableStateFlow(false)
-    val automixError = MutableStateFlow<String?>(null)
-    private var automixJob: Job? = null
-    private var automixSeedMediaId: String? = null
 
     val autoAddedMediaIds: MutableSet<String> = java.util.Collections.synchronizedSet(mutableSetOf())
 
@@ -647,11 +690,7 @@ class MusicService :
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setAudioAttributes(
-                    AudioAttributes
-                        .Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
+                    playbackAudioAttributes(),
                     false,
                 ).setSeekBackIncrementMs(5000)
                 .setSeekForwardIncrementMs(5000)
@@ -666,10 +705,15 @@ class MusicService :
                 }
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            audioManager.setAllowedCapturePolicy(android.media.AudioAttributes.ALLOW_CAPTURE_BY_ALL)
+        }
         wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "M3Play:Playback")
             .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
+        audioManager.registerAudioDeviceCallback(audioDeviceCallback, android.os.Handler(mainLooper))
+        audioDeviceCallbackRegistered = true
 
         mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
@@ -734,6 +778,25 @@ class MusicService :
                 }
             }
         }
+
+        YouTube.authStateFlow
+            .map { it.fingerprint }
+            .distinctUntilChanged()
+            .collect(scope) { fingerprint ->
+                val previousFingerprint = lastObservedPlaybackAuthFingerprint
+                lastObservedPlaybackAuthFingerprint = fingerprint
+                if (previousFingerprint != null && previousFingerprint != fingerprint) {
+                    playbackUrlCache.clear()
+                    clearStreamRefreshGuards()
+                    if (skipNextAuthChangeStreamRefresh) {
+                        skipNextAuthChangeStreamRefresh = false
+                        return@collect
+                    }
+                    if (shouldRefreshCurrentTrackForAuthChange()) {
+                        retryCurrentFromFreshStream()
+                    }
+                }
+            }
 
         combine(playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor) { playerVolume, normalizeFactor, audioFocusVolumeFactor, playbackFadeFactor ->
             playerVolume * normalizeFactor * audioFocusVolumeFactor * playbackFadeFactor
@@ -859,11 +922,7 @@ class MusicService :
                         .setHandleAudioBecomingNoisy(false)
                         .setWakeMode(C.WAKE_MODE_NETWORK)
                         .setAudioAttributes(
-                            AudioAttributes
-                                .Builder()
-                                .setUsage(C.USAGE_MEDIA)
-                                .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                                .build(),
+                            playbackAudioAttributes(),
                             false,
                         ).setSeekBackIncrementMs(5000)
                         .setSeekForwardIncrementMs(5000)
@@ -1056,15 +1115,6 @@ class MusicService :
                     ?.let { persistedQueue ->
                     restorePersistentQueue(persistedQueue)
                 }
-                readPersistentObject<PersistQueue>(PERSISTENT_AUTOMIX_FILE)
-                    ?.let { persistedAutomix ->
-                    val items = persistedAutomix.items.map { it.toMediaItem() }
-                    withContext(Dispatchers.Main) {
-                        automixItems.value = items
-                        automixSeedMediaId = player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
-                    }
-                }
-                
                 readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
                     ?.let { playerState ->
                     delay(1000)
@@ -1079,9 +1129,17 @@ class MusicService :
                                     playerState.currentMediaItemIndex
                                 } else {
                                     player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
-                                }
+                            }
                             player.seekTo(index, playerState.currentPosition)
                         }
+
+                        val shouldResumePlayback =
+                            playerState.playWhenReady && player.mediaItemCount > 0
+                        if (shouldResumePlayback) {
+                            promoteToStartedService()
+                            ensureStartedAsForeground()
+                        }
+                        player.playWhenReady = shouldResumePlayback
                         
                         currentMediaMetadata.value = player.currentMetadata
                         updateNotification()
@@ -1090,6 +1148,22 @@ class MusicService :
             }
             withContext(Dispatchers.Main) {
                 queueRestoreCompleted.value = true
+            }
+
+            val shouldCheckBluetooth = withContext(Dispatchers.Main) {
+                player.mediaItemCount > 0 && !player.playWhenReady
+            }
+            if (shouldCheckBluetooth) {
+                val btAutoStart = withContext(Dispatchers.IO) {
+                    dataStore.get(AutoStartOnBluetoothKey, false)
+                }
+                if (btAutoStart) {
+                    withContext(Dispatchers.Main) {
+                        if (isBluetoothAudioConnected()) {
+                            handleBluetoothAutoStart()
+                        }
+                    }
+                }
             }
         }
 
@@ -1176,7 +1250,7 @@ class MusicService :
         // Launch in scope to avoid blocking
         scope.launch {
             // Don't start if Discord RPC is disabled in settings
-            if (!dataStore.get(EnableDiscordRPCKey, false)) {
+            if (!dataStore.get(EnableDiscordRPCKey, true)) {
                 if (DiscordPresenceManager.isRunning()) {
                     Timber.tag("MusicService").d("Discord RPC disabled → stopping presence manager")
                     try { DiscordPresenceManager.stop() } catch (_: Exception) {}
@@ -1249,7 +1323,28 @@ class MusicService :
             .build()
     }
 
+    private fun onAudioOutputDeviceChanged() {
+        if (!::player.isInitialized) return
+        player.setAudioAttributes(playbackAudioAttributes(), false)
+        val sessionId = player.audioSessionId
+        if (sessionId > 0 && isAudioEffectSessionOpened) {
+            releaseAudioEffects()
+            ensureAudioEffects(sessionId)
+        }
+    }
+
+    private fun playbackAudioAttributes(): AudioAttributes =
+        AudioAttributes
+            .Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .setAllowedCapturePolicy(C.ALLOW_CAPTURE_BY_ALL)
+            .build()
+
     private fun handleAudioFocusChange(focusChange: Int) {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
+
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
                 hasAudioFocus = true
@@ -1298,6 +1393,14 @@ class MusicService :
                 audioFocusVolumeFactor.value = 0.2f
 
                 lastAudioFocusState = focusChange
+
+                duckingRecoveryJob = scope.launch {
+                    delay(8000L)
+                    if (audioFocusVolumeFactor.value < 1f && player.isPlaying) {
+                        audioFocusVolumeFactor.value = 1f
+                        hasAudioFocus = true
+                    }
+                }
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
@@ -1323,17 +1426,27 @@ class MusicService :
     }
 
     private fun requestAudioFocus(): Boolean {
-        if (hasAudioFocus) return true
+        if (hasAudioFocus) {
+            if (audioFocusVolumeFactor.value != 1f) audioFocusVolumeFactor.value = 1f
+            return true
+        }
     
         audioFocusRequest?.let { request ->
             val result = audioManager.requestAudioFocus(request)
             hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (hasAudioFocus) {
+                audioFocusVolumeFactor.value = 1f
+                duckingRecoveryJob?.cancel()
+                duckingRecoveryJob = null
+            }
             return hasAudioFocus
         }
         return false
     }
 
     private fun abandonAudioFocus() {
+        duckingRecoveryJob?.cancel()
+        duckingRecoveryJob = null
         if (hasAudioFocus) {
             audioFocusRequest?.let { request ->
                 audioManager.abandonAudioFocusRequest(request)
@@ -1452,6 +1565,17 @@ class MusicService :
             unregisterReceiver(bluetoothReceiver)
         } catch (_: Exception) {}
         bluetoothReceiverRegistered = false
+    }
+
+    private fun isBluetoothAudioConnected(): Boolean {
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        return devices.any {
+            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    (it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER))
+        }
     }
 
     private fun waitOnNetworkError() {
@@ -1663,7 +1787,6 @@ class MusicService :
         }
         
         clearAutomix()
-        automixSeedMediaId = null
         autoAddedMediaIds.clear()
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
@@ -1697,51 +1820,11 @@ class MusicService :
                 val items = initialStatus.items
                 val index = initialStatus.mediaItemIndex
                 
-                // Chunk Loading: Only load a window around the current item initially
-                // to prevent blocking the Main Thread for seconds with large queues.
-                val windowStart = (index - 20).coerceAtLeast(0)
-                val windowEnd = (index + 50).coerceAtMost(items.size)
-                
-                val initialChunk = items.subList(windowStart, windowEnd)
-                val relativeIndex = index - windowStart
-                
-                player.setMediaItems(
-                    initialChunk,
-                    if (relativeIndex > 0) relativeIndex else 0,
-                    initialStatus.position,
-                )
+                player.setMediaItems(items, index, initialStatus.position)
                 player.prepare()
                 player.playWhenReady = playWhenReady
                 if (player.shuffleModeEnabled) {
                     applyCurrentFirstShuffleOrder()
-                }
-                
-                // Defer loading the rest of the queue
-                if (items.size > initialChunk.size) {
-                    scope.launch(SilentHandler) {
-                        try {
-                            delay(2000) // Allow UI to settle
-                            if (!isActive) return@launch
-                            
-                            // Add preceding items
-                            if (windowStart > 0) {
-                                val startChunk = items.subList(0, windowStart)
-                                player.addMediaItems(0, startChunk)
-                            }
-                            
-                            // Add succeeding items
-                            if (windowEnd < items.size) {
-                                val endChunk = items.subList(windowEnd, items.size)
-                                player.addMediaItems(endChunk)
-                            }
-
-                            if (player.shuffleModeEnabled) {
-                                applyCurrentFirstShuffleOrder()
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to load deferred queue items")
-                        }
-                    }
                 }
             }
         }
@@ -1807,206 +1890,14 @@ class MusicService :
         }
     }
 
-    fun getAutomixAlbum(albumId: String) {
-        scope.launch(Dispatchers.IO + SilentHandler) {
-            YouTube
-                .album(albumId)
-                .onSuccess {
-                    getAutomix(it.album.playlistId)
-                }
-        }
-    }
-
-    fun getAutomix(playlistId: String) {
-        if (dataStore.get(AutoLoadMoreKey, true) && 
-            player.repeatMode == REPEAT_MODE_OFF) {
-            scope.launch(Dispatchers.IO + SilentHandler) {
-                val seedAtRequest =
-                    withContext(Dispatchers.Main) {
-                        player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
-                    }
-                YouTube
-                    .next(WatchEndpoint(playlistId = playlistId))
-                    .onSuccess {
-                        YouTube
-                            .next(WatchEndpoint(playlistId = it.endpoint.playlistId))
-                            .onSuccess {
-                                val mediaItems = it.items.map { song -> song.toMediaItem() }
-                                withContext(Dispatchers.Main) {
-                                    val currentSeed =
-                                        player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
-                                    if (seedAtRequest != null && currentSeed != seedAtRequest) return@withContext
-                                    automixItems.value = mediaItems
-                                    automixSeedMediaId = currentSeed
-                                }
-                            }
-                    }
-            }
-        }
-    }
-
-    fun addToQueueAutomix(
-        item: MediaItem,
-        position: Int,
-    ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
-        addToQueue(listOf(item))
-    }
-
-    fun playNextAutomix(
-        item: MediaItem,
-        position: Int,
-    ) {
-        automixItems.value =
-            automixItems.value.toMutableList().apply {
-                removeAt(position)
-            }
-        playNext(listOf(item))
-    }
-
     fun clearAutomix() {
-        automixJob?.cancel()
-        automixJob = null
-        automixItems.value = emptyList()
-        automixLoading.value = false
-        automixError.value = null
-        automixSeedMediaId = null
-    }
-
-    private fun refreshAutomixForCurrentMedia(force: Boolean) {
-        if (!dataStore.get(AutoLoadMoreKey, true)) return
-        if (player.repeatMode != REPEAT_MODE_OFF) return
-        if (suppressAutoPlayback) return
-        if (player.mediaItemCount == 0) return
-
-        val currentMeta = player.currentMetadata ?: return
-        val seedMediaId = currentMeta.id.trim().ifBlank { return }
-
-        if (!force && automixSeedMediaId == seedMediaId && automixItems.value.isNotEmpty() && automixJob?.isActive == true) return
-
-        automixJob?.cancel()
-        automixJob = null
-        automixItems.value = emptyList()
-        automixLoading.value = true
-        automixError.value = null
-        automixSeedMediaId = seedMediaId
-
-        val hideExplicit = dataStore.get(HideExplicitKey, false)
-        val hideVideo = dataStore.get(HideVideoKey, false)
-
-        automixJob = scope.launch {
-            try {
-                val nextResult = withContext(Dispatchers.IO) {
-                    YouTube.next(WatchEndpoint(videoId = seedMediaId))
-                }
-
-                nextResult
-                    .onSuccess { result ->
-                        if (automixSeedMediaId != seedMediaId) {
-                            automixLoading.value = false
-                            return@onSuccess
-                        }
-
-                        val queueIds =
-                            (0 until player.mediaItemCount)
-                                .map { player.getMediaItemAt(it).mediaId }
-                                .toSet()
-
-                        val fromNext =
-                            result.items
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId !in queueIds }
-                                .filterExplicit(hideExplicit)
-                                .filterVideo(hideVideo)
-
-                        val relatedCandidates =
-                            result.relatedEndpoint
-                                ?.let { endpoint ->
-                                    withContext(Dispatchers.IO) { YouTube.related(endpoint) }
-                                        .getOrNull()
-                                        ?.songs
-                                        .orEmpty()
-                                }
-                                .orEmpty()
-
-                        val related =
-                            relatedCandidates
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId !in queueIds }
-                                .filterExplicit(hideExplicit)
-                                .filterVideo(hideVideo)
-
-                        val poolBase =
-                            (fromNext + related)
-                                .asSequence()
-                                .distinctBy { it.mediaId }
-                                .take(50)
-                                .toList()
-
-                        val pool =
-                            if (poolBase.size >= 25 || result.endpoint.playlistId.isNullOrBlank()) {
-                                poolBase
-                            } else {
-                                val playlistId = result.endpoint.playlistId
-                                val extra =
-                                    withContext(Dispatchers.IO) {
-                                        YouTube.next(WatchEndpoint(playlistId = playlistId))
-                                    }.getOrNull()
-                                        ?.items
-                                        .orEmpty()
-                                        .map { it.toMediaItem() }
-                                        .filter { it.mediaId !in queueIds }
-                                        .filterExplicit(hideExplicit)
-                                        .filterVideo(hideVideo)
-
-                                (poolBase + extra)
-                                    .asSequence()
-                                    .distinctBy { it.mediaId }
-                                    .take(75)
-                                    .toList()
-                            }
-
-                        if (automixSeedMediaId != seedMediaId) {
-                            automixLoading.value = false
-                            return@onSuccess
-                        }
-
-                        automixItems.value = pool
-                        if (pool.isEmpty()) {
-                            automixError.value = getString(R.string.error_no_similar_songs)
-                        }
-                        automixLoading.value = false
-                    }
-                    .onFailure { throwable ->
-                        if (automixSeedMediaId == seedMediaId) {
-                            automixLoading.value = false
-                            automixError.value =
-                                throwable.localizedMessage ?: getString(R.string.error_automix_failed)
-                        }
-                    }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (automixSeedMediaId == seedMediaId) {
-                    automixLoading.value = false
-                    automixError.value = e.localizedMessage ?: getString(R.string.error_automix_failed)
-                }
-            }
-        }
+        autoAddedMediaIds.clear()
     }
 
     fun onInfiniteQueueDisabled() {
-        automixJob?.cancel()
-        automixJob = null
-        automixLoading.value = false
-        automixError.value = null
         val currentIndex = player.currentMediaItemIndex
         val idsToRemove = synchronized(autoAddedMediaIds) { autoAddedMediaIds.toSet() }
         if (idsToRemove.isEmpty()) {
-            clearAutomix()
             return
         }
         for (i in player.mediaItemCount - 1 downTo 0) {
@@ -2017,119 +1908,33 @@ class MusicService :
             }
         }
         autoAddedMediaIds.clear()
-        clearAutomix()
+        currentQueue = EmptyQueue
     }
 
     fun onInfiniteQueueEnabled() {
-        val currentMeta = player.currentMetadata
-        if (currentMeta == null) {
-            automixError.value = getString(R.string.error_no_song_playing)
-            return
-        }
+        val currentMeta = player.currentMetadata ?: return
 
-        automixJob?.cancel()
-        automixLoading.value = true
-        automixError.value = null
-        automixItems.value = emptyList()
-        automixSeedMediaId = currentMeta.id.trim().ifBlank { null }
-
-        val hideExplicit = dataStore.get(HideExplicitKey, false)
-        val hideVideo = dataStore.get(HideVideoKey, false)
-
-        automixJob = scope.launch {
+        scope.launch(SilentHandler) {
             try {
-                val nextResult = withContext(Dispatchers.IO) {
-                    YouTube.next(WatchEndpoint(videoId = currentMeta.id))
+                val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMeta.id), followAutomixPreview = true)
+                val status = withContext(Dispatchers.IO) { radioQueue.getInitialStatus() }
+                
+                val existingIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                val newItems = status.items.filter { it.mediaId !in existingIds }
+                
+                if (newItems.isNotEmpty()) {
+                    player.addMediaItems(newItems)
+                    newItems.forEach { autoAddedMediaIds.add(it.mediaId) }
                 }
-
-                nextResult
-                    .onSuccess { result ->
-                        if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) {
-                            automixLoading.value = false
-                            return@onSuccess
-                        }
-                        val initialQueueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
-                        val filteredFromNext =
-                            result.items
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId !in initialQueueIds }
-                                .filterExplicit(hideExplicit)
-                                .filterVideo(hideVideo)
-
-                        val addedNow = ArrayList<MediaItem>(32)
-
-                        if (filteredFromNext.isNotEmpty()) {
-                            val toAdd = filteredFromNext.take(25)
-                            player.addMediaItems(toAdd)
-                            toAdd.forEach { autoAddedMediaIds.add(it.mediaId) }
-                            addedNow.addAll(toAdd)
-                        }
-
-                        val queueIdsAfterNext = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
-                        val relatedCandidates =
-                            result.relatedEndpoint?.let { relatedEndpoint ->
-                                withContext(Dispatchers.IO) {
-                                    YouTube.related(relatedEndpoint)
-                                }.getOrNull()?.songs.orEmpty()
-                            }.orEmpty()
-
-                        val filteredRelated =
-                            relatedCandidates
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId !in queueIdsAfterNext }
-                                .filterExplicit(hideExplicit)
-                                .filterVideo(hideVideo)
-
-                        if (addedNow.isEmpty() && filteredRelated.isNotEmpty()) {
-                            val toAdd = filteredRelated.take(25)
-                            player.addMediaItems(toAdd)
-                            toAdd.forEach { autoAddedMediaIds.add(it.mediaId) }
-                            addedNow.addAll(toAdd)
-                        }
-
-                        val queueIdsAfterAdds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
-                        val playlistId = result.endpoint.playlistId
-                        val automixCandidates =
-                            if (playlistId.isNullOrBlank()) {
-                                emptyList()
-                            } else {
-                                withContext(Dispatchers.IO) {
-                                    YouTube.next(WatchEndpoint(playlistId = playlistId))
-                                }.getOrNull()?.items.orEmpty()
-                            }
-
-                        val filteredAutomix =
-                            automixCandidates
-                                .map { it.toMediaItem() }
-                                .filter { it.mediaId !in queueIdsAfterAdds }
-                                .filterExplicit(hideExplicit)
-                                .filterVideo(hideVideo)
-
-                        val addedIds = addedNow.map { it.mediaId }.toSet()
-                        val pool =
-                            (filteredFromNext + filteredRelated + filteredAutomix)
-                                .asSequence()
-                                .distinctBy { it.mediaId }
-                                .filter { it.mediaId !in addedIds }
-                                .take(75)
-                                .toList()
-
-                        automixItems.value = pool
-
-                        if (addedNow.isEmpty() && pool.isEmpty()) {
-                            automixError.value = getString(R.string.error_no_similar_songs)
-                        }
-                        automixLoading.value = false
-                    }
-                    .onFailure { throwable ->
-                        automixLoading.value = false
-                        automixError.value = throwable.localizedMessage ?: getString(R.string.error_automix_failed)
-                    }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
+                
+                currentQueue = radioQueue
+                
+                if (player.playbackState == Player.STATE_ENDED || player.mediaItemCount == player.currentMediaItemIndex + 1) {
+                    player.seekToNext()
+                    player.play()
+                }
             } catch (e: Exception) {
-                automixLoading.value = false
-                automixError.value = e.localizedMessage ?: getString(R.string.error_automix_failed)
+                Timber.e(e, "Failed to bootstrap auto-queue")
             }
         }
     }
@@ -3635,19 +3440,7 @@ class MusicService :
         reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
         player.repeatMode == REPEAT_MODE_OFF
     ) {
-        val isNearEndWithoutPaging =
-            player.mediaItemCount - player.currentMediaItemIndex <= 3 && !currentQueue.hasNextPage()
-
-        if (!isNearEndWithoutPaging) {
-            val force =
-                reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
-                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
-
-            val currentId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
-            if (force || (currentId.isNotBlank() && automixSeedMediaId != currentId)) {
-                refreshAutomixForCurrentMedia(force = force)
-            }
-        }
+        // No redundant seeding update check.
     }
 
     // Auto-load more from queue if available
@@ -3680,31 +3473,24 @@ class MusicService :
     ) {
         scope.launch(SilentHandler) {
             if (suppressAutoPlayback || player.mediaItemCount == 0) return@launch
-            val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
-            val currentMediaMetadata = player.currentMetadata
-            val currentMediaId = currentMediaMetadata?.id?.trim().orEmpty()
-            val existingSeed = automixSeedMediaId?.trim().orEmpty()
-            val existingAutomix =
-                if (currentMediaId.isNotBlank() && existingSeed == currentMediaId) {
-                    automixItems.value
-                } else {
-                    if (automixItems.value.isNotEmpty()) {
-                        clearAutomix()
-                    }
-                    emptyList()
+            
+            val currentMediaMetadata = player.currentMetadata ?: return@launch
+            val currentMediaId = currentMediaMetadata.id.trim().ifBlank { return@launch }
+            
+            try {
+                val radioQueue = YouTubeQueue(WatchEndpoint(videoId = currentMediaId), followAutomixPreview = true)
+                val status = withContext(Dispatchers.IO) { radioQueue.getInitialStatus() }
+                
+                val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                val newItems = status.items.filter { it.mediaId !in queueIds }
+                
+                if (newItems.isNotEmpty()) {
+                    player.addMediaItems(newItems)
+                    newItems.forEach { autoAddedMediaIds.add(it.mediaId) }
                 }
-            if (existingAutomix.isNotEmpty()) {
-                if (player.playbackState == STATE_IDLE) return@launch
-                val filteredAutomix = existingAutomix.filter { it.mediaId !in queueIds }
-                if (filteredAutomix.isNotEmpty()) {
-                    player.addMediaItems(filteredAutomix)
-                    filteredAutomix.forEach { autoAddedMediaIds.add(it.mediaId) }
-                }
-                clearAutomix()
-            } else {
-                if (currentMediaMetadata != null) {
-                    refreshAutomixForCurrentMedia(force = true)
-                }
+                currentQueue = radioQueue
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to inject YouTube replacement queue")
             }
         }
     }
@@ -3752,63 +3538,14 @@ class MusicService :
         scrobbleManager?.onSongStop()
     }
     
-    // Auto-start recommendations when playback ends
+    // Auto-start recommendations when playback ends (handoff finite queues into infinite)
     if (!suppressAutoPlayback &&
         playbackState == Player.STATE_ENDED &&
         dataStore.get(AutoLoadMoreKey, true) &&
         player.repeatMode == REPEAT_MODE_OFF &&
         player.currentMediaItem != null
     ) {
-        scope.launch(SilentHandler) {
-            if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
-            val lastMediaMetadata = player.currentMetadata
-            val existingAutomix = automixItems.value
-            if (existingAutomix.isNotEmpty()) {
-                val filteredAutomix = existingAutomix.filter { it.mediaId != lastMediaMetadata?.id }
-                if (filteredAutomix.isNotEmpty()) {
-                    autoAddedMediaIds.clear()
-                    player.setMediaItems(filteredAutomix, 0, 0)
-                    player.prepare()
-                    player.play()
-                    filteredAutomix.forEach { autoAddedMediaIds.add(it.mediaId) }
-                }
-                clearAutomix()
-            } else {
-                if (lastMediaMetadata != null) {
-                    withContext(Dispatchers.IO) {
-                        YouTube.next(WatchEndpoint(videoId = lastMediaMetadata.id))
-                    }.onSuccess { nextResult ->
-                        if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@onSuccess
-                        val hideExplicit = dataStore.get(HideExplicitKey, false)
-                        val hideVideo = dataStore.get(HideVideoKey, false)
-                        val radioItems = nextResult.items
-                            .map { it.toMediaItem() }
-                            .filter { it.mediaId != lastMediaMetadata.id }
-                            .filterExplicit(hideExplicit)
-                            .filterVideo(hideVideo)
-
-                        if (radioItems.isNotEmpty()) {
-                            autoAddedMediaIds.clear()
-                            player.setMediaItems(radioItems, 0, 0)
-                            player.prepare()
-                            player.play()
-                            radioItems.forEach { autoAddedMediaIds.add(it.mediaId) }
-
-                            withContext(Dispatchers.IO) {
-                                YouTube.next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
-                            }.onSuccess { automixResult ->
-                                if (suppressAutoPlayback || player.playbackState == STATE_IDLE) return@onSuccess
-                                automixItems.value = automixResult.items
-                                    .map { it.toMediaItem() }
-                                    .filter { it.mediaId != lastMediaMetadata.id }
-                                    .filterExplicit(hideExplicit)
-                                    .filterVideo(hideVideo)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        onInfiniteQueueEnabled()
     }
 
     ensurePresenceManager()
@@ -4159,6 +3896,11 @@ class MusicService :
                 player.playWhenReady = true
                 return
             }
+
+            promptLoginRecovery(
+                mediaId = currentMediaId,
+                targetUrl = "https://music.youtube.com/watch?v=$currentMediaId",
+            )
         }
 
         val shouldAttemptStreamRefresh =
@@ -4187,9 +3929,10 @@ class MusicService :
         }
 
         if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
+            val cachedPlaybackUrl = playbackUrlCache[currentMediaId]
             val failingStreamClientKey =
-                playbackUrlCache[currentMediaId]
-                    ?.first
+                cachedPlaybackUrl
+                    ?.url
                     ?.toHttpUrlOrNull()
                     ?.queryParameter("c")
                     ?.trim()
@@ -4197,8 +3940,9 @@ class MusicService :
             Timber.tag("MusicService").w(
                 "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode}, client=${failingStreamClientKey ?: "unknown"})"
             )
-            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode)
-            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode)
+            val authFingerprint = cachedPlaybackUrl?.authFingerprint ?: YouTube.currentPlaybackAuthState().fingerprint
+            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode, authFingerprint)
+            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode, authFingerprint)
             YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
             playbackUrlCache.remove(currentMediaId)
             pendingStreamRefreshValidationMediaId = currentMediaId
@@ -4339,10 +4083,11 @@ class MusicService :
                 }
             }
 
-            playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+            val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+            playbackUrlCache[mediaId]?.takeIf { it.isValidFor(authFingerprint) }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                return@Factory dataSpec.withUri(it.url.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -4355,6 +4100,15 @@ class MusicService :
                 )
             }.getOrElse { throwable ->
                 when (throwable) {
+                    is YTPlayerUtils.InvalidPlaybackLoginContextException -> {
+                        recoverInvalidPlaybackLoginContext(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_login_refresh),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
                     is YTPlayerUtils.LoginRequiredForPlaybackException -> {
                         promptLoginRecovery(mediaId, throwable.targetUrl)
                         throw PlaybackException(
@@ -4424,7 +4178,11 @@ class MusicService :
                 val streamUrl = nonNullPlayback.streamUrl
 
                 playbackUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                    AuthScopedCacheValue(
+                        url = streamUrl,
+                        expiresAtMs = System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L),
+                        authFingerprint = nonNullPlayback.authFingerprint,
+                    )
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
@@ -4439,6 +4197,14 @@ class MusicService :
         pendingStreamRefreshValidationMediaId = mediaId
         player.prepare()
         player.playWhenReady = true
+    }
+
+    private fun shouldRefreshCurrentTrackForAuthChange(): Boolean {
+        val currentMediaItem = player.currentMediaItem ?: return false
+        if (currentMediaItem.mediaId.isBlank()) return false
+        val scheme = currentMediaItem.localConfiguration?.uri?.scheme?.lowercase()
+        if (scheme == "file" || scheme == "content") return false
+        return player.playbackState != Player.STATE_IDLE
     }
 
     private fun PlaybackException.httpStatusCodeOrNull(): Int? {
@@ -4461,8 +4227,9 @@ class MusicService :
 
     private fun shouldSkipRedundantStreamRefresh(mediaId: String): Boolean {
         if (refreshValidatedPlayingMediaId != mediaId) return false
-        val expiresAt = playbackUrlCache[mediaId]?.second ?: return false
-        if (expiresAt <= System.currentTimeMillis()) {
+        val authFingerprint = YouTube.currentPlaybackAuthState().fingerprint
+        val cached = playbackUrlCache[mediaId] ?: return false
+        if (!cached.isValidFor(authFingerprint)) {
             refreshValidatedPlayingMediaId = null
             return false
         }
@@ -4608,13 +4375,14 @@ class MusicService :
     }
 
     private suspend fun registerRemoteListeningHistory(mediaId: String) {
-        if (!isRemoteHistorySyncAllowed()) return
+        val authState = YouTube.currentPlaybackAuthState()
+        if (!isRemoteHistorySyncAllowed(authState)) return
 
         val attemptedUrls = LinkedHashSet<String>()
 
         suspend fun registerTrackingUrl(url: String): Boolean {
             attemptedUrls += url
-            return YouTube.registerPlayback(playbackTracking = url)
+            return YouTube.registerPlayback(playbackTracking = url, authState = authState)
                 .onFailure {
                     reportException(it)
                 }.isSuccess
@@ -4625,7 +4393,7 @@ class MusicService :
         if (cachedSuccess) return
 
         val playbackTracking =
-            YTPlayerUtils.playerResponseForMetadata(mediaId, null)
+            YTPlayerUtils.playerResponseForMetadata(mediaId, null, authState)
                 .getOrNull()
                 ?.playbackTracking
                 ?: return
@@ -4641,10 +4409,9 @@ class MusicService :
         }
     }
 
-    private suspend fun isRemoteHistorySyncAllowed(): Boolean {
+    private suspend fun isRemoteHistorySyncAllowed(authState: PlaybackAuthState): Boolean {
         if (!dataStore.getAsync(YtmSyncKey, true)) return false
-        val cookie = dataStore.getAsync(InnerTubeCookieKey, "")
-        return cookie.isNotBlank() && cookie.contains("SAPISID")
+        return authState.hasLoginCookie
     }
 
     // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
@@ -4784,7 +4551,6 @@ class MusicService :
 
         val currentMediaItemIndex = player.currentMediaItemIndex
         val currentPosition = player.currentPosition
-        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
         val playWhenReady = player.playWhenReady
         val repeatMode = player.repeatMode
         val shuffleModeEnabled = player.shuffleModeEnabled
@@ -4800,14 +4566,6 @@ class MusicService :
                 position = currentPosition
             )
             
-            val persistAutomix =
-                PersistQueue(
-                    title = "automix",
-                    items = automixSnapshot,
-                    mediaItemIndex = 0,
-                    position = 0,
-                )
-                
             // Save player state
             val persistPlayerState = PersistPlayerState(
                 playWhenReady = playWhenReady,
@@ -4820,7 +4578,6 @@ class MusicService :
             )
             
             writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
-            writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
             writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
         }
     }
@@ -4828,6 +4585,10 @@ class MusicService :
 
     override fun onDestroy() {
         super.onDestroy()
+        if (audioDeviceCallbackRegistered) {
+            audioManager.unregisterAudioDeviceCallback(audioDeviceCallback)
+            audioDeviceCallbackRegistered = false
+        }
         unregisterBluetoothReceiver()
         try {
             scope.launch { stopTogetherInternal() }
@@ -4851,7 +4612,6 @@ class MusicService :
                 val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
                 val currentMediaItemIndex = player.currentMediaItemIndex
                 val currentPosition = player.currentPosition
-                val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
                 val repeatMode = player.repeatMode
                 val shuffleModeEnabled = player.shuffleModeEnabled
                 val volume = playerVolume.value
@@ -4864,12 +4624,6 @@ class MusicService :
                         mediaItemIndex = currentMediaItemIndex,
                         position = currentPosition
                     )
-                    val persistAutomix = PersistQueue(
-                        title = "automix",
-                        items = automixSnapshot,
-                        mediaItemIndex = 0,
-                        position = 0,
-                    )
                     val persistPlayerState = PersistPlayerState(
                         playWhenReady = playWhenReady,
                         repeatMode = repeatMode,
@@ -4881,7 +4635,6 @@ class MusicService :
                     )
 
                     writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
-                    writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
                     writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
                 }
             }
@@ -4951,6 +4704,10 @@ class MusicService :
         val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
 
         try {
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                runBlocking { saveQueueToDisk() }
+            }
+
             val state = togetherSessionState.value
             val isHostSessionActive =
                 state is com.j.m3play.together.TogetherSessionState.Hosting ||
@@ -4969,9 +4726,6 @@ class MusicService :
                 }
 
                 if (stopMusicOnTaskClearEnabled) {
-                    if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                        runBlocking { saveQueueToDisk() }
-                    }
                     runCatching { stopAndClearPlayback() }
                     runCatching {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
