@@ -14,6 +14,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -45,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -52,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.j.m3play.R
 import com.j.m3play.ui.screens.Screens
 
@@ -70,8 +73,9 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
+    val toolbarShape = RoundedCornerShape(34.dp)
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-        toolbarContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+        toolbarContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh,
     )
 
     if (onShuffleClick != null && shuffleIconRes != null) {
@@ -179,7 +183,15 @@ fun FloatingNavigationToolbar(
                     }
                 }
             },
-            modifier = modifier.widthIn(max = 480.dp),
+            modifier = modifier
+                .widthIn(max = 500.dp)
+                .shadow(18.dp, toolbarShape, clip = false)
+                .clip(toolbarShape)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    shape = toolbarShape,
+                ),
             colors = toolbarColors,
         ) {
             items.forEach { screen ->
@@ -197,7 +209,15 @@ fun FloatingNavigationToolbar(
     } else {
         HorizontalFloatingToolbar(
             expanded = true,
-            modifier = modifier.widthIn(max = 420.dp),
+            modifier = modifier
+                .widthIn(max = 440.dp)
+                .shadow(18.dp, toolbarShape, clip = false)
+                .clip(toolbarShape)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    shape = toolbarShape,
+                ),
             colors = toolbarColors,
         ) {
             items.forEach { screen ->
@@ -223,12 +243,12 @@ private fun FloatingNavigationToolbarItem(
     pureBlack: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(22.dp)
     val containerColor by animateColorAsState(
         targetValue =
             when {
                 selected && pureBlack -> Color.White.copy(alpha = 0.12f)
-                selected -> MaterialTheme.colorScheme.secondaryContainer
+                selected -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f)
                 else -> Color.Transparent
             },
         label = "",
@@ -239,7 +259,7 @@ private fun FloatingNavigationToolbarItem(
                 selected && pureBlack -> Color.White
                 selected -> MaterialTheme.colorScheme.onSecondaryContainer
                 pureBlack -> Color.White.copy(alpha = 0.82f)
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f)
             },
         label = "",
     )
@@ -262,16 +282,21 @@ private fun FloatingNavigationToolbarItem(
                 .animateContentSize()
                 .clip(shape)
                 .background(color = containerColor, shape = shape)
+                .border(
+                    width = if (selected) 1.dp else 0.dp,
+                    color = if (selected) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f) else Color.Transparent,
+                    shape = shape,
+                )
                 .clickable(
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                     role = Role.Tab,
                     onClick = onClick,
                 )
-                .widthIn(min = 48.dp)
+                .widthIn(min = if (showLabel) 104.dp else 52.dp)
                 .padding(
-                    horizontal = if (showLabel) 16.dp else 12.dp,
-                    vertical = 12.dp,
+                    horizontal = if (showLabel) 18.dp else 13.dp,
+                    vertical = 13.dp,
                 ),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -280,6 +305,7 @@ private fun FloatingNavigationToolbarItem(
             painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
             contentDescription = stringResource(screen.titleId),
             tint = contentColor,
+            modifier = Modifier.size(if (showLabel) 22.dp else 21.dp),
         )
 
         if (showLabel) {
@@ -288,7 +314,7 @@ private fun FloatingNavigationToolbarItem(
             Text(
                 text = stringResource(screen.titleId),
                 color = contentColor,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 0.1.sp),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
