@@ -32,20 +32,24 @@ import com.j.m3play.ui.screens.Screens
 
 @Composable
 fun FloatingNavigationToolbar(
-    screens: List<Screens>,
-    currentScreen: String?,
-    onScreenSelected: (String) -> Unit,
-    onSearchClick: (() -> Unit)? = null,
-    onMenuButtonClick: (() -> Unit)? = null,
+    items: List<Screens>,
+    slim: Boolean,
+    pureBlack: Boolean,
     modifier: Modifier = Modifier,
-    pureBlack: Boolean = false,
-    useSlimCollapsedLayout: Boolean = false,
+    onShuffleClick: (() -> Unit)? = null,
+    shuffleIconRes: Int? = null,
+    shuffleContentDescription: String = "",
+    onMusicRecognitionClick: (() -> Unit)? = null,
+    musicRecognitionContentDescription: String = "",
+    isSelected: (Screens) -> Boolean,
+    onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val toolbarShape = RoundedCornerShape(32.dp)
     val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
     val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
 
-    val primaryScreens = screens.filter { it.route != Screens.Search.route }.take(3)
+    val searchScreen = items.firstOrNull { it.route == Screens.Search.route }
+    val primaryScreens = items.filter { it.route != Screens.Search.route }.take(if (slim) 2 else 3)
 
     Row(
         modifier = modifier,
@@ -58,7 +62,7 @@ fun FloatingNavigationToolbar(
             shape = toolbarShape,
             border = BorderStroke(1.dp, borderColor),
             shadowElevation = 10.dp,
-            modifier = Modifier.weight(1f, fill = false).widthIn(max = if (useSlimCollapsedLayout) 340.dp else 420.dp),
+            modifier = Modifier.weight(1f, fill = false).widthIn(max = if (slim) 330.dp else 430.dp),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
@@ -68,28 +72,38 @@ fun FloatingNavigationToolbar(
                 primaryScreens.forEach { screen ->
                     CherryNavItem(
                         screen = screen,
-                        selected = currentScreen == screen.route,
-                        onClick = { onScreenSelected(screen.route) },
+                        selected = isSelected(screen),
+                        onClick = { onItemClick(screen, isSelected(screen)) },
                         modifier = Modifier.weight(1f, fill = true),
                     )
                 }
             }
         }
 
-        if (onSearchClick != null) {
+        if (searchScreen != null) {
             DetachedCircleButton(
-                iconRes = R.drawable.search,
-                selected = currentScreen == Screens.Search.route,
-                onClick = onSearchClick,
+                iconRes = searchScreen.iconIdActive,
+                contentDescription = stringResource(searchScreen.titleId),
+                selected = isSelected(searchScreen),
+                onClick = { onItemClick(searchScreen, isSelected(searchScreen)) },
                 pureBlack = pureBlack,
             )
         }
 
-        if (onMenuButtonClick != null) {
+        if (onMusicRecognitionClick != null) {
             DetachedCircleButton(
-                iconRes = R.drawable.more_horiz,
+                iconRes = R.drawable.mic,
+                contentDescription = musicRecognitionContentDescription,
                 selected = false,
-                onClick = onMenuButtonClick,
+                onClick = onMusicRecognitionClick,
+                pureBlack = pureBlack,
+            )
+        } else if (onShuffleClick != null && shuffleIconRes != null) {
+            DetachedCircleButton(
+                iconRes = shuffleIconRes,
+                contentDescription = shuffleContentDescription,
+                selected = false,
+                onClick = onShuffleClick,
                 pureBlack = pureBlack,
                 roundedSquare = true,
             )
@@ -147,6 +161,7 @@ private fun CherryNavItem(
 @Composable
 private fun DetachedCircleButton(
     iconRes: Int,
+    contentDescription: String,
     selected: Boolean,
     onClick: () -> Unit,
     pureBlack: Boolean,
@@ -184,7 +199,7 @@ private fun DetachedCircleButton(
         IconButton(onClick = onClick) {
             Icon(
                 painter = painterResource(iconRes),
-                contentDescription = null,
+                contentDescription = contentDescription,
                 modifier = Modifier.size(24.dp),
             )
         }
