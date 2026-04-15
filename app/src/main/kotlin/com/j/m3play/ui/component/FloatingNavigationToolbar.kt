@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -22,8 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -46,8 +43,17 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val containerColor = if (pureBlack) Color.Black.copy(alpha = 0.92f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.82f)
-    val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f)
+    val mainContainerColor = if (pureBlack) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+    }
+
+    val detachedContainerColor = if (pureBlack) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+    }
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
     val libraryScreen = items.firstOrNull { it.route == Screens.Library.route }
@@ -58,18 +64,16 @@ fun FloatingNavigationToolbar(
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            color = containerColor,
+            color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = RoundedCornerShape(30.dp),
-            border = BorderStroke(0.6.dp, borderColor),
-            shadowElevation = 18.dp,
-            modifier = Modifier
-                .widthIn(max = if (slim) 250.dp else 276.dp)
-                .shadow(18.dp, RoundedCornerShape(30.dp), clip = false),
+            shape = RoundedCornerShape(32.dp),
+            tonalElevation = 2.dp,
+            shadowElevation = 10.dp,
+            modifier = Modifier.widthIn(max = if (slim) 252.dp else 282.dp),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
@@ -93,6 +97,7 @@ fun FloatingNavigationToolbar(
                 selected = false,
                 onClick = onMusicRecognitionClick,
                 pureBlack = pureBlack,
+                containerColor = detachedContainerColor,
             )
         }
 
@@ -103,6 +108,7 @@ fun FloatingNavigationToolbar(
                 selected = false,
                 onClick = onShuffleClick,
                 pureBlack = pureBlack,
+                containerColor = detachedContainerColor,
             )
         }
 
@@ -113,6 +119,7 @@ fun FloatingNavigationToolbar(
                 selected = isSelected(moodScreen),
                 onClick = { onItemClick(moodScreen, isSelected(moodScreen)) },
                 pureBlack = pureBlack,
+                containerColor = detachedContainerColor,
             )
         }
     }
@@ -125,15 +132,20 @@ private fun AppleNavItem(
     onClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f) else Color.Transparent,
+        targetValue = if (selected) {
+            if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.Black.copy(alpha = 0.07f)
+            else Color.White.copy(alpha = 0.12f)
+        } else {
+            Color.Transparent
+        },
         label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
+        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "apple_nav_item_content",
     )
     val horizontalPadding by animateDpAsState(
-        targetValue = if (selected) 14.dp else 11.dp,
+        targetValue = if (selected) 15.dp else 12.dp,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "apple_nav_item_padding",
     )
@@ -142,13 +154,14 @@ private fun AppleNavItem(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
-        shape = RoundedCornerShape(22.dp),
-        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = if (selected) 1.dp else 0.dp,
+        modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 9.dp),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
@@ -159,7 +172,7 @@ private fun AppleNavItem(
                 Text(
                     text = stringResource(screen.titleId),
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                 )
             }
@@ -174,41 +187,37 @@ private fun DetachedCircleButton(
     selected: Boolean,
     onClick: () -> Unit,
     pureBlack: Boolean,
+    containerColor: Color,
 ) {
-    val containerColor by animateColorAsState(
-        targetValue = when {
-            pureBlack -> Color.White.copy(alpha = 0.10f)
-            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.84f)
+    val resolvedContainerColor by animateColorAsState(
+        targetValue = if (selected) {
+            if (pureBlack) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.08f)
+        } else {
+            containerColor
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f),
+        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "detached_button_content",
     )
 
     Surface(
         onClick = onClick,
-        color = containerColor,
+        color = resolvedContainerColor,
         contentColor = contentColor,
         shape = CircleShape,
-        border = BorderStroke(
-            0.6.dp,
-            if (pureBlack) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f),
-        ),
-        shadowElevation = 14.dp,
-        modifier = Modifier
-            .size(52.dp)
-            .clip(CircleShape)
-            .shadow(14.dp, CircleShape, clip = false),
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp,
+        modifier = Modifier.size(54.dp),
     ) {
         IconButton(onClick = onClick) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                modifier = Modifier.size(19.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
     }
 }
+
