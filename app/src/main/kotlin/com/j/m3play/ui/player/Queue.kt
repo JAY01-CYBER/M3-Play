@@ -1,17 +1,16 @@
 /*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
+ * M3Play Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
+
+
 
 package com.j.m3play.ui.player
 
 import androidx.activity.compose.BackHandler
 import android.annotation.SuppressLint
+import android.content.Context
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
@@ -415,6 +414,28 @@ fun Queue(
                         onShowLyrics = onShowLyrics
                     )
                 }
+
+                PlayerDesignStyle.V7 -> {
+                    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager }
+                    val activeDevice = remember(audioManager) {
+                        audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                            .firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == android.media.AudioDeviceInfo.TYPE_BLE_HEADSET }
+                            ?.productName?.toString() ?: "Speaker"
+                    }
+                    QueueCollapsedContentV7(
+                        showCodecOnPlayer = showCodecOnPlayer,
+                        currentFormat = currentFormat,
+                        textBackgroundColor = TextBackgroundColor,
+                        onExpandQueue = { state.expandSoft() },
+                        onShowLyrics = onShowLyrics,
+                        onDeviceClick = {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)
+                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        },
+                        deviceName = activeDevice
+                    )
+                }
             }
 
             if (showSleepTimerDialog) {
@@ -435,26 +456,16 @@ fun Queue(
     ) {
         val queueTitle by playerConnection.queueTitle.collectAsState()
         val queueWindows by playerConnection.queueWindows.collectAsState()
-        val automix by playerConnection.service.automixItems.collectAsState()
-        val automixLoading by playerConnection.service.automixLoading.collectAsState()
-        val automixError by playerConnection.service.automixError.collectAsState()
         val mutableQueueWindows = remember { mutableStateListOf<Timeline.Window>() }
         val queueLength by remember {
             derivedStateOf {
-                queueWindows.sumOf { it.mediaItem.metadata!!.duration }
+                queueWindows.sumOf { it.mediaItem.metadata?.duration ?: 0 }
             }
         }
 
         val coroutineScope = rememberCoroutineScope()
 
-        LaunchedEffect(automixError) {
-            val error = automixError ?: return@LaunchedEffect
-            snackbarHostState.showSnackbar(
-                message = error,
-                duration = SnackbarDuration.Short
-            )
-            playerConnection.service.automixError.value = null
-        }
+
 
         val headerItems = 1
         val lazyListState = rememberLazyListState()
@@ -585,7 +596,6 @@ fun Queue(
                     songCount = queueWindows.size,
                     queueDuration = queueLength,
                     infiniteQueueEnabled = infiniteQueueEnabled,
-                    automixLoading = automixLoading,
                     backgroundColor = backgroundColor,
                     onBackgroundColor = onBackgroundColor,
                     onToggleLike = {
@@ -719,9 +729,10 @@ fun Queue(
                                     }
                                 }
 
+                                val trackMetadata = window.mediaItem.metadata ?: return@Row
                                 MediaMetadataListItem(
-                                    mediaMetadata = window.mediaItem.metadata!!,
-                                    isSelected = selection && window.mediaItem.metadata!! in selectedSongs,
+                                    mediaMetadata = trackMetadata,
+                                    isSelected = selection && trackMetadata in selectedSongs,
                                     isActive = isActive,
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
@@ -730,7 +741,7 @@ fun Queue(
                                             onClick = {
                                                 menuState.show {
                                                     PlayerMenu(
-                                                        mediaMetadata = window.mediaItem.metadata!!,
+                                                        mediaMetadata = trackMetadata,
                                                         navController = navController,
                                                         playerBottomSheetState = playerBottomSheetState,
                                                         isQueueTrigger = true,
@@ -775,11 +786,11 @@ fun Queue(
                                         .combinedClickable(
                                             onClick = {
                                                 if (selection) {
-                                                    if (window.mediaItem.metadata!! in selectedSongs) {
-                                                        selectedSongs.remove(window.mediaItem.metadata!!)
+                                                    if (trackMetadata in selectedSongs) {
+                                                        selectedSongs.remove(trackMetadata)
                                                         selectedItems.remove(currentItem)
                                                     } else {
-                                                        selectedSongs.add(window.mediaItem.metadata!!)
+                                                        selectedSongs.add(trackMetadata)
                                                         selectedItems.add(currentItem)
                                                     }
                                                 } else {
@@ -823,7 +834,7 @@ fun Queue(
                                                     selection = true
                                                 }
                                                 selectedSongs.clear() // Clear all selections
-                                                selectedSongs.add(window.mediaItem.metadata!!) // Select current item
+                                                selectedSongs.add(trackMetadata) // Select current item
                                             },
                                         ),
                                 )
@@ -843,84 +854,7 @@ fun Queue(
                     }
                 }
 
-                if (infiniteQueueEnabled && automix.isNotEmpty()) {
-                    item {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
-                        )
 
-                        Text(
-                            text = stringResource(R.string.similar_content),
-                            modifier = Modifier.padding(start = 16.dp),
-                        )
-                    }
-
-                    itemsIndexed(
-                        items = automix,
-                        key = { _, it -> it.mediaId },
-                    ) { index, item ->
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            MediaMetadataListItem(
-                                mediaMetadata = item.metadata!!,
-                                trailingContent = {
-                                    IconButton(
-                                        onClick = {
-                                            playerConnection.service.playNextAutomix(
-                                                item,
-                                                index,
-                                            )
-                                        },
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.playlist_play),
-                                            contentDescription = null,
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = {
-                                            playerConnection.service.addToQueueAutomix(
-                                                item,
-                                                index,
-                                            )
-                                        },
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.queue_music),
-                                            contentDescription = null,
-                                        )
-                                    }
-                                },
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {},
-                                        onLongClick = {
-                                            menuState.show {
-                                                PlayerMenu(
-                                                    mediaMetadata = item.metadata!!,
-                                                    navController = navController,
-                                                    playerBottomSheetState = playerBottomSheetState,
-                                                    isQueueTrigger = true,
-                                                    onShowDetailsDialog = {
-                                                        item.mediaId.let {
-                                                            bottomSheetPageState.show {
-                                                                ShowMediaInfo(it)
-                                                            }
-                                                        }
-                                                    },
-                                                    onDismiss = menuState::dismiss,
-                                                )
-                                            }
-                                        },
-                                    )
-                                    .animateItem(),
-                            )
-                        }
-                    }
-                }
             }
         }
 

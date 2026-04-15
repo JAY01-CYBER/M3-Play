@@ -1,12 +1,10 @@
 /*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
+ * M3Play Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
+
+
 
 package com.j.m3play.ui.player
 
@@ -94,6 +92,8 @@ import com.j.m3play.canvas.M3PlayCanvas
 import com.j.m3play.canvas.CanvasArtwork
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
+import com.j.m3play.constants.PlayerDesignStyle
+import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.SeekExtraSeconds
 import com.j.m3play.constants.SwipeThumbnailKey
@@ -275,6 +275,10 @@ fun Thumbnail(
     val swipeThumbnail by rememberPreference(SwipeThumbnailKey, true)
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val archiveTuneCanvasEnabled by rememberPreference(M3PlayCanvasKey, false)
+    val playerDesignStyle by rememberEnumPreference(
+        key = PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V4,
+    )
     val (maxCanvasCacheSize, _) = rememberPreference(
         key = MaxCanvasCacheSizeKey,
         defaultValue = 256,
@@ -428,6 +432,7 @@ fun Thumbnail(
             error?.let { playbackError ->
                 PlaybackError(
                     error = playbackError,
+                    mediaId = currentMediaItem?.mediaId,
                     retry = playerConnection.service::retryCurrentFromFreshStream,
                 )
             }
@@ -503,6 +508,7 @@ fun Thumbnail(
                                 }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
+                                    playerDesignStyle != PlayerDesignStyle.V7 &&
                                     item.mediaId.isNotBlank() &&
                                     item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
@@ -635,7 +641,7 @@ fun Thumbnail(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
-                                                painter = painterResource(R.drawable.ic_app_logo),
+                                                painter = painterResource(R.drawable.about_splash),
                                                 contentDescription = stringResource(R.string.hide_player_thumbnail),
                                                 tint = textBackgroundColor.copy(alpha = 0.7f),
                                                 modifier = Modifier.size(120.dp)

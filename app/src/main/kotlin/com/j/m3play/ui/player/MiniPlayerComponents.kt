@@ -1,6 +1,7 @@
 /*
- * M3Play Mini Player Components
- * Updated for redesigned new mini player
+ * M3Play Project Original (2026)
+ * Kòi Natsuko (github.com/koiverse)
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
 
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -8,8 +9,10 @@
 package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,17 +23,16 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -62,21 +64,27 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import com.j.m3play.R
 import com.j.m3play.constants.MiniPlayerHeight
 import com.j.m3play.extensions.togglePlayPause
+
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.PlayerConnection
 import com.j.m3play.together.TogetherSessionState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
 
 @Composable
 fun SwipeableMiniPlayerBox(
@@ -102,7 +110,6 @@ fun SwipeableMiniPlayerBox(
     fun calculateAutoSwipeThreshold(swipeSensitivity: Float): Int {
         return (600 / (1f + kotlin.math.exp(-(-11.44748 * swipeSensitivity + 9.04945)))).roundToInt()
     }
-
     val autoSwipeThreshold = calculateAutoSwipeThreshold(swipeSensitivity)
 
     Box(
@@ -113,7 +120,8 @@ fun SwipeableMiniPlayerBox(
             .let { baseModifier ->
                 if (useLegacyBackground) {
                     baseModifier.background(
-                        if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+                        if (pureBlack) Color.Black
+                        else MaterialTheme.colorScheme.surfaceContainer
                     )
                 } else {
                     baseModifier.padding(horizontal = 12.dp)
@@ -138,12 +146,10 @@ fun SwipeableMiniPlayerBox(
                             onHorizontalDrag = { _, dragAmount ->
                                 val adjustedDragAmount =
                                     if (layoutDirection == LayoutDirection.Rtl) -dragAmount else dragAmount
-
                                 val canSkipPrevious = playerConnection.player.previousMediaItemIndex != -1
                                 val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
                                 val allowLeft = adjustedDragAmount < 0 && canSkipNext
                                 val allowRight = adjustedDragAmount > 0 && canSkipPrevious
-
                                 if (allowLeft || allowRight) {
                                     totalDragDistance += kotlin.math.abs(adjustedDragAmount)
                                     coroutineScope.launch {
@@ -161,8 +167,8 @@ fun SwipeableMiniPlayerBox(
 
                                 val shouldChangeSong = (
                                     kotlin.math.abs(currentOffset) > minDistanceThreshold &&
-                                        velocity > velocityThreshold
-                                    ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
+                                    velocity > velocityThreshold
+                                ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
 
                                 if (shouldChangeSong) {
                                     val isRightSwipe = currentOffset > 0
@@ -172,18 +178,12 @@ fun SwipeableMiniPlayerBox(
                                     if (isRightSwipe && canSkipPrevious) {
                                         playerConnection.player.seekToPreviousMediaItem()
                                         if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
-                                            try {
-                                                com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart()
-                                            } catch (_: Exception) {
-                                            }
+                                            try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
                                         }
                                     } else if (!isRightSwipe && canSkipNext) {
                                         playerConnection.player.seekToNext()
                                         if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
-                                            try {
-                                                com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart()
-                                            } catch (_: Exception) {
-                                            }
+                                            try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
                                         }
                                     }
                                 }
@@ -204,6 +204,7 @@ fun SwipeableMiniPlayerBox(
     ) {
         content(offsetXAnimatable.value)
 
+        // Visual indicator
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
@@ -216,8 +217,7 @@ fun SwipeableMiniPlayerBox(
                     ),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(
-                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold)
-                            .coerceIn(0f, 1f)
+                        alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold).coerceIn(0f, 1f)
                     ),
                     modifier = Modifier.size(24.dp)
                 )
@@ -288,13 +288,7 @@ private fun MiniPlayerArtwork(
             )
         } else {
             CircularWavyProgressIndicator(
-                progress = {
-                    if (duration > 0) {
-                        (position.toFloat() / duration).coerceIn(0f, 1f)
-                    } else {
-                        0f
-                    }
-                },
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
@@ -352,15 +346,12 @@ private fun MiniPlayerTransportButton(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier
+        modifier = Modifier
+            .then(modifier)
             .size(if (isPrimary) 40.dp else 36.dp)
             .clip(CircleShape)
             .background(containerColor)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = CircleShape
-            )
+            .border(width = 1.dp, color = borderColor, shape = CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
     ) {
         Icon(
@@ -376,6 +367,7 @@ private fun MiniPlayerTransportButton(
 private fun MiniPlayerTransportControls(
     isPlaying: Boolean,
     playbackState: Int,
+    isLoading: Boolean,
     canSkipPrevious: Boolean,
     canSkipNext: Boolean,
     playerConnection: PlayerConnection
@@ -387,32 +379,41 @@ private fun MiniPlayerTransportControls(
         MiniPlayerTransportButton(
             iconResId = R.drawable.skip_previous,
             contentDescription = null,
-            onClick = { playerConnection.player.seekToPreviousMediaItem() },
+            onClick = playerConnection::seekToPrevious,
             enabled = canSkipPrevious
         )
 
-        MiniPlayerTransportButton(
-            iconResId = when {
-                playbackState == Player.STATE_ENDED -> R.drawable.replay
-                isPlaying -> R.drawable.pause
-                else -> R.drawable.play
-            },
-            contentDescription = null,
-            onClick = {
-                if (playbackState == Player.STATE_ENDED) {
-                    playerConnection.player.seekTo(0, 0)
-                    playerConnection.player.playWhenReady = true
-                } else {
-                    playerConnection.player.togglePlayPause()
-                }
-            },
-            isPrimary = true
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(40.dp)
+        ) {
+            MiniPlayerTransportButton(
+                iconResId = when {
+                    playbackState == Player.STATE_ENDED -> R.drawable.replay
+                    isPlaying -> R.drawable.pause
+                    else -> R.drawable.play
+                },
+                contentDescription = stringResource(
+                    if (playbackState == Player.STATE_ENDED || !isPlaying) R.string.play else R.string.play
+                ).let {
+                    if (isPlaying && playbackState != Player.STATE_ENDED) "Pause" else it
+                },
+                onClick = {
+                    if (playbackState == Player.STATE_ENDED) {
+                        playerConnection.player.seekTo(0, 0)
+                        playerConnection.player.playWhenReady = true
+                    } else {
+                        playerConnection.player.togglePlayPause()
+                    }
+                },
+                isPrimary = true
+            )
+        }
 
         MiniPlayerTransportButton(
             iconResId = R.drawable.skip_next,
             contentDescription = null,
-            onClick = { playerConnection.player.seekToNext() },
+            onClick = playerConnection::seekToNext,
             enabled = canSkipNext
         )
     }
@@ -429,95 +430,58 @@ fun NewMiniPlayerContent(
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
+    val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
+    val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
-    val canSkipPrevious = playerConnection.player.previousMediaItemIndex != -1
-    val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
     val isLoading = playbackState == Player.STATE_BUFFERING
 
-    Surface(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(32.dp),
-        color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f),
-        tonalElevation = 6.dp,
-        shadowElevation = 10.dp
+            .padding(horizontal = 8.dp, vertical = 8.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            MiniPlayerArtwork(
-                mediaMetadata = mediaMetadata,
-                position = position,
-                duration = duration,
-                isLoading = isLoading
-            )
+        MiniPlayerArtwork(
+            mediaMetadata = mediaMetadata,
+            position = position,
+            duration = duration,
+            isLoading = isLoading
+        )
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            mediaMetadata?.let {
-                MiniPlayerInfo(mediaMetadata = it)
-            } ?: Spacer(modifier = Modifier.weight(1f))
+        mediaMetadata?.let {
+            MiniPlayerInfo(mediaMetadata = it)
+        } ?: Spacer(Modifier.weight(1f))
 
-            if (togetherSessionState !is TogetherSessionState.Idle) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+        if (togetherSessionState !is TogetherSessionState.Idle) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.all_inclusive),
-                            contentDescription = stringResource(R.string.music_together),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.music_together),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(14.dp),
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            MiniPlayerTransportControls(
-                isPlaying = isPlaying,
-                playbackState = playbackState,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                playerConnection = playerConnection
-            )
         }
-    }
-}
 
-@Composable
-fun NewMiniPlayer(
-    modifier: Modifier = Modifier,
-    playerConnection: PlayerConnection,
-    onExpand: () -> Unit
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val layoutDirection = LocalLayoutDirection.current
+        Spacer(modifier = Modifier.width(12.dp))
 
-    SwipeableMiniPlayerBox(
-        swipeSensitivity = 0.5f,
-        swipeThumbnail = true,
-        playerConnection = playerConnection,
-        layoutDirection = layoutDirection,
-        coroutineScope = coroutineScope,
-        modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .clickable { onExpand() }
-    ) {
-        NewMiniPlayerContent(
-            pureBlack = false,
-            position = playerConnection.player.currentPosition,
-            duration = playerConnection.player.duration,
+        MiniPlayerTransportControls(
+            isPlaying = isPlaying,
+            playbackState = playbackState,
+            isLoading = isLoading,
+            canSkipPrevious = canSkipPrevious,
+            canSkipNext = canSkipNext,
             playerConnection = playerConnection
         )
     }
