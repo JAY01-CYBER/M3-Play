@@ -1,6 +1,6 @@
 /*
  * M3Play Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Jay Chaudhary 
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -624,7 +624,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.DEFAULT -> {
+        PlayerDesignStyle.V7 -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1589,7 +1589,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.DEFAULT -> {
+        PlayerDesignStyle.V7 -> {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
@@ -1783,8 +1783,8 @@ fun PlayerControlsContent(
         position = position,
         duration = duration,
         textBackgroundColor = textBackgroundColor,
-        showRemainingTime = playerDesignStyle == PlayerDesignStyle.DEFAULT,
-        centerContent = if (playerDesignStyle == PlayerDesignStyle.DEFAULT && currentFormat != null) {
+        showRemainingTime = playerDesignStyle == PlayerDesignStyle.V7,
+        centerContent = if (playerDesignStyle == PlayerDesignStyle.V7 && currentFormat != null) {
             {
                 val codec = currentFormat.mimeType.substringAfter("/").uppercase()
                 val label = when {
