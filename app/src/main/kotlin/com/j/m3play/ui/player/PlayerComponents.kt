@@ -1,10 +1,12 @@
 /*
- * M3Play Project Original (2026)
- * Jay Chaudhary 
- * Licensed Under GPL-3.0 | see git history for contributors
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
  */
-
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.j.m3play.ui.player
 
@@ -43,12 +45,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -57,8 +56,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,7 +95,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerButtonsStyle
 import com.j.m3play.constants.PlayerDesignStyle
-import com.j.m3play.db.entities.FormatEntity
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.SliderStyle
 import com.j.m3play.extensions.togglePlayPause
@@ -623,64 +619,6 @@ fun PlayerTopActions(
                 }
             }
         }
-
-        PlayerDesignStyle.V7 -> {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (currentSongLiked) textBackgroundColor.copy(alpha = 0.2f)
-                            else Color.Transparent
-                        )
-                        .clickable { playerConnection.toggleLike() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            if (currentSongLiked) R.drawable.favorite
-                            else R.drawable.favorite_border
-                        ),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = if (currentSongLiked) 1f else 0.7f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            menuState.show {
-                                PlayerMenu(
-                                    mediaMetadata = mediaMetadata,
-                                    navController = navController,
-                                    playerBottomSheetState = state,
-                                    onShowDetailsDialog = {
-                                        bottomSheetPageState.show {
-                                            ShowMediaInfo(mediaMetadata.id)
-                                        }
-                                    },
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_horiz),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -810,11 +748,11 @@ fun PlayerTimeLabel(
     sliderPosition: Long?,
     position: Long,
     duration: Long,
-    textBackgroundColor: Color,
-    showRemainingTime: Boolean = false,
-    centerContent: @Composable (() -> Unit)? = null,
+    textBackgroundColor: Color
 ) {
-    Box(
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
         modifier =
         Modifier
             .fillMaxWidth()
@@ -826,32 +764,14 @@ fun PlayerTimeLabel(
             color = textBackgroundColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.CenterStart),
         )
 
-        if (centerContent != null) {
-            Box(
-                modifier = Modifier.align(Alignment.Center),
-                contentAlignment = Alignment.Center,
-            ) {
-                centerContent()
-            }
-        }
-
         Text(
-            text = if (duration != C.TIME_UNSET) {
-                if (showRemainingTime) {
-                    val remaining = duration - (sliderPosition ?: position)
-                    "-${makeTimeString(remaining.coerceAtLeast(0))}"
-                } else {
-                    makeTimeString(duration)
-                }
-            } else "",
+            text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "",
             style = MaterialTheme.typography.labelMedium,
             color = textBackgroundColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.CenterEnd),
         )
     }
 }
@@ -930,9 +850,10 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         if (isLoading) {
-                            CircularWavyProgressIndicator(
+                            CircularProgressIndicator(
                                 modifier = Modifier.size(42.dp),
                                 color = iconButtonColor,
+                                strokeWidth = 3.dp
                             )
                         } else {
                             Icon(
@@ -1037,9 +958,10 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
-                            CircularWavyProgressIndicator(
+                            CircularProgressIndicator(
                                 modifier = Modifier.size(32.dp),
                                 color = icBackgroundColor,
+                                strokeWidth = 2.5.dp
                             )
                         } else {
                             Icon(
@@ -1206,9 +1128,10 @@ fun PlayerPlaybackControls(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isLoading) {
-                                CircularWavyProgressIndicator(
+                                CircularProgressIndicator(
                                     modifier = Modifier.size(40.dp),
                                     color = icBackgroundColor,
+                                    strokeWidth = 3.dp
                                 )
                             } else {
                                 Icon(
@@ -1345,11 +1268,12 @@ fun PlayerPlaybackControls(
                         },
                 ) {
                     if (isLoading) {
-                        CircularWavyProgressIndicator(
+                        CircularProgressIndicator(
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .size(36.dp),
                             color = iconButtonColor,
+                            strokeWidth = 3.dp
                         )
                     } else {
                         Image(
@@ -1472,9 +1396,10 @@ fun PlayerPlaybackControls(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isLoading) {
-                                    CircularWavyProgressIndicator(
+                                    CircularProgressIndicator(
                                         modifier = Modifier.size(40.dp),
                                         color = iconButtonColor,
+                                        strokeWidth = 3.dp
                                     )
                                 } else {
                                     Icon(
@@ -1588,99 +1513,6 @@ fun PlayerPlaybackControls(
                 }
             }
         }
-
-        PlayerDesignStyle.V7 -> {
-            Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
-            ) {
-                Surface(
-                    onClick = playerConnection::seekToPrevious,
-                    enabled = canSkipPrevious,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_previous),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipPrevious) 1f else 0.4f
-                            ),
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
-                }
-
-                Surface(
-                    onClick = {
-                        if (playbackState == STATE_ENDED) {
-                            playerConnection.player.seekTo(0, 0)
-                            playerConnection.player.playWhenReady = true
-                        } else {
-                            playerConnection.player.togglePlayPause()
-                        }
-                    },
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isLoading) {
-                            CircularWavyProgressIndicator(
-                                modifier = Modifier.size(44.dp),
-                                color = textBackgroundColor,
-                            )
-                        } else {
-                            Icon(
-                                painter = painterResource(
-                                    when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
-                                    }
-                                ),
-                                contentDescription = null,
-                                tint = textBackgroundColor,
-                                modifier = Modifier.size(52.dp)
-                            )
-                        }
-                    }
-                }
-
-                Surface(
-                    onClick = { playerConnection.seekToNext() },
-                    enabled = canSkipNext,
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.skip_next),
-                            contentDescription = null,
-                            tint = textBackgroundColor.copy(
-                                alpha = if (canSkipNext) 1f else 0.4f
-                            ),
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -1715,8 +1547,7 @@ fun PlayerControlsContent(
     clipboardManager: ClipboardManager,
     context: Context,
     onSliderValueChange: (Long) -> Unit,
-    onSliderValueChangeFinished: () -> Unit,
-    currentFormat: FormatEntity? = null,
+    onSliderValueChangeFinished: () -> Unit
 ) {
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
@@ -1782,43 +1613,7 @@ fun PlayerControlsContent(
         sliderPosition = sliderPosition,
         position = position,
         duration = duration,
-        textBackgroundColor = textBackgroundColor,
-        showRemainingTime = playerDesignStyle == PlayerDesignStyle.V7,
-        centerContent = if (playerDesignStyle == PlayerDesignStyle.V7 && currentFormat != null) {
-            {
-                val codec = currentFormat.mimeType.substringAfter("/").uppercase()
-                val label = when {
-                    codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
-                    codec.contains("OPUS") -> codec
-                    codec.contains("AAC") -> codec
-                    codec.contains("MP4A") -> "AAC"
-                    codec.contains("VORBIS") -> "Vorbis"
-                    else -> codec
-                }
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = textBackgroundColor.copy(alpha = 0.12f),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.graphic_eq),
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = textBackgroundColor.copy(alpha = 0.8f),
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = textBackgroundColor.copy(alpha = 0.8f),
-                        )
-                    }
-                }
-            }
-        } else null,
+        textBackgroundColor = textBackgroundColor
     )
 
     Spacer(Modifier.height(12.dp))
@@ -1846,14 +1641,11 @@ fun PlayerBackground(
     mediaMetadata: MediaMetadata?,
     gradientColors: List<Color>,
     disableBlur: Boolean,
-    blurRadius: Float,
     playerCustomImageUri: String,
     playerCustomBlur: Float,
     playerCustomContrast: Float,
     playerCustomBrightness: Float
 ) {
-    val effectiveBlurRadius = blurRadius.coerceIn(0f, 48f)
-    val shouldApplyBlur = !disableBlur && effectiveBlurRadius > 0f
     Box(modifier = Modifier.fillMaxSize()) {
         when (playerBackground) {
             PlayerBackgroundStyle.BLUR -> {
@@ -1871,7 +1663,7 @@ fun PlayerBackground(
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (shouldApplyBlur) it.blur(radius = effectiveBlurRadius.dp) else it
+                                    if (disableBlur) it else it.blur(radius = 60.dp)
                                 }
                             )
                             val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
@@ -1972,7 +1764,7 @@ fun PlayerBackground(
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (shouldApplyBlur) it.blur(radius = effectiveBlurRadius.dp) else it
+                                    if (disableBlur) it else it.blur(radius = 65.dp)
                                 }
                             )
                             val gradientColorStops =
