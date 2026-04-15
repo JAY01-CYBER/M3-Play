@@ -1,10 +1,12 @@
 /*
- * M3Play Project Original (2026)
- * Jay Chaudhary 
- * Licensed Under GPL-3.0 | see git history for contributors
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
  */
-
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.j.m3play.ui.screens.settings
 
@@ -30,7 +32,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -73,6 +74,7 @@ import com.j.m3play.constants.LyricsScrollKey
 import com.j.m3play.constants.LyricsTextPositionKey
 import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
+import com.j.m3play.constants.UseNewMiniPlayerDesignKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
 import com.j.m3play.constants.PureBlackKey
@@ -86,6 +88,7 @@ import com.j.m3play.constants.LyricsTextSizeKey
 import com.j.m3play.constants.LyricsLineSpacingKey
 import com.j.m3play.constants.SliderStyle
 import com.j.m3play.constants.SliderStyleKey
+import com.j.m3play.constants.SlimNavBarKey
 import com.j.m3play.constants.ShowLikedPlaylistKey
 import com.j.m3play.constants.ShowDownloadedPlaylistKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
@@ -100,7 +103,6 @@ import com.j.m3play.constants.M3PlayCanvasKey
 import com.j.m3play.constants.ThumbnailCornerRadiusKey
 import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.DisableBlurKey
-import com.j.m3play.constants.BlurRadiusKey
 import com.j.m3play.constants.UseLyricsV2Key
 import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.EnumListPreference
@@ -115,6 +117,7 @@ import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.roundToInt
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,6 +140,10 @@ fun AppearanceSettings(
     val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(
         PlayerDesignStyleKey,
         defaultValue = PlayerDesignStyle.V4
+    )
+    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(
+        UseNewMiniPlayerDesignKey,
+        defaultValue = true
     )
     val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(
         key = com.j.m3play.constants.UseNewLibraryDesignKey,
@@ -164,8 +171,7 @@ fun AppearanceSettings(
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
-    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = false)
-    val (blurRadius, onBlurRadiusChange) = rememberPreference(BlurRadiusKey, defaultValue = 36f)
+    val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = true)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
@@ -206,6 +212,11 @@ fun AppearanceSettings(
         defaultValue = GridItemSize.SMALL
     )
 
+    val (slimNav, onSlimNavChange) = rememberPreference(
+        SlimNavBarKey,
+        defaultValue = false
+    )
+
     val (swipeToSong, onSwipeToSongChange) = rememberPreference(
         SwipeToSongKey,
         defaultValue = false
@@ -239,7 +250,6 @@ fun AppearanceSettings(
     val availableBackgroundStyles = PlayerBackgroundStyle.entries.filter {
         it != PlayerBackgroundStyle.BLUR || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     }
-    val isM3PlayCanvasAvailable = playerDesignStyle != PlayerDesignStyle.V7
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
     val useDarkTheme =
@@ -269,8 +279,7 @@ fun AppearanceSettings(
         DefaultDialog(
             buttons = {
                 TextButton(
-                    onClick = { showSliderOptionDialog = false },
-                    shapes = ButtonDefaults.shapes(),
+                    onClick = { showSliderOptionDialog = false }
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -373,24 +382,6 @@ fun AppearanceSettings(
             onCheckedChange = onDisableBlurChange,
         )
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.blur_intensity)) },
-            description = stringResource(R.string.blur_intensity_value, blurRadius.roundToInt()),
-            icon = { Icon(painterResource(R.drawable.blur_on), null) },
-            isEnabled = !disableBlur,
-            content = {
-                Spacer(modifier = Modifier.height(10.dp))
-                Slider(
-                    value = blurRadius,
-                    onValueChange = onBlurRadiusChange,
-                    valueRange = 0f..48f,
-                    steps = 47,
-                    enabled = !disableBlur,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        )
-
         SwitchPreference(
             title = { Text(stringResource(R.string.use_system_font)) },
             description = stringResource(R.string.use_system_font_desc),
@@ -416,9 +407,15 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                     PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
-                    PlayerDesignStyle.V7 -> stringResource(R.string.player_design_v7)
                 }
             },
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.new_mini_player_design)) },
+            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
+            checked = useNewMiniPlayerDesign,
+            onCheckedChange = onUseNewMiniPlayerDesignChange,
         )
 
         SwitchPreference(
@@ -467,20 +464,18 @@ fun AppearanceSettings(
 
         SwitchPreference(
             title = { Text(stringResource(R.string.m3play_canvas)) },
-            description = if (isM3PlayCanvasAvailable) {
-                stringResource(R.string.m3play_canvas_desc)
-            } else {
-                stringResource(R.string.m3play_canvas_v7_desc)
-            },
+            description = stringResource(R.string.m3play_canvas_desc),
             icon = { Icon(painterResource(R.drawable.motion_photos_on), null) },
-            checked = archiveTuneCanvasEnabled && isM3PlayCanvasAvailable,
-            onCheckedChange = onM3PlayCanvasEnabledChange,
-            isEnabled = isM3PlayCanvasAvailable,
+            checked = archiveTuneCanvasEnabled,
+            onCheckedChange = onM3PlayCanvasEnabledChange
         )
       
 
         ThumbnailCornerRadiusSelectorButton(
-            onRadiusSelected = {}
+            modifier = Modifier.padding(16.dp),
+            onRadiusSelected = { selectedRadius ->
+                Timber.tag("Thumbnail").d("Radius Selector: $selectedRadius")
+            }
         )
 
         SwitchPreference(
@@ -536,8 +531,7 @@ fun AppearanceSettings(
                         TextButton(
                             onClick = { 
                                 tempSensitivity = 0.73f
-                            },
-                            shapes = ButtonDefaults.shapes(),
+                            }
                         ) {
                             Text(stringResource(R.string.reset))
                         }
@@ -548,8 +542,7 @@ fun AppearanceSettings(
                             onClick = { 
                                 tempSensitivity = swipeSensitivity
                                 showSensitivityDialog = false 
-                            },
-                            shapes = ButtonDefaults.shapes(),
+                            }
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
@@ -557,8 +550,7 @@ fun AppearanceSettings(
                             onClick = { 
                                 onSwipeSensitivityChange(tempSensitivity)
                                 showSensitivityDialog = false 
-                            },
-                            shapes = ButtonDefaults.shapes(),
+                            }
                         ) {
                             Text(stringResource(android.R.string.ok))
                         }
@@ -669,8 +661,7 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempTextSize = 24f
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -681,8 +672,7 @@ fun AppearanceSettings(
                         onClick = { 
                             tempTextSize = lyricsTextSize
                             showLyricsTextSizeDialog = false 
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -690,8 +680,7 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsTextSizeChange(tempTextSize)
                             showLyricsTextSizeDialog = false 
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -745,8 +734,7 @@ fun AppearanceSettings(
                     TextButton(
                         onClick = { 
                             tempLineSpacing = 1.3f
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(R.string.reset))
                     }
@@ -757,8 +745,7 @@ fun AppearanceSettings(
                         onClick = { 
                             tempLineSpacing = lyricsLineSpacing
                             showLyricsLineSpacingDialog = false 
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
@@ -766,8 +753,7 @@ fun AppearanceSettings(
                         onClick = { 
                             onLyricsLineSpacingChange(tempLineSpacing)
                             showLyricsLineSpacingDialog = false 
-                        },
-                        shapes = ButtonDefaults.shapes(),
+                        }
                     ) {
                         Text(stringResource(android.R.string.ok))
                     }
@@ -866,6 +852,13 @@ fun AppearanceSettings(
             icon = { Icon(painterResource(R.drawable.swipe), null) },
             checked = swipeToSong,
             onCheckedChange = onSwipeToSongChange
+        )
+
+        SwitchPreference(
+            title = { Text(stringResource(R.string.slim_navbar)) },
+            icon = { Icon(painterResource(R.drawable.nav_bar), null) },
+            checked = slimNav,
+            onCheckedChange = onSlimNavChange
         )
 
 

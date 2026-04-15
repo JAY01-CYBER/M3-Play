@@ -1,10 +1,12 @@
 /*
- * M3Play Project Original (2026)
- * Jay Chaudhary 
- * Licensed Under GPL-3.0 | see git history for contributors
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
  */
-
-
 
 package com.j.m3play.ui.screens.settings
 
