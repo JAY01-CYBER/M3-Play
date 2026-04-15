@@ -139,10 +139,12 @@
     <string name="sort_by_song_count">Song count</string>
     <string name="sort_by_length">Length</string>
     <string name="sort_by_play_time">Play time</string>
+    <string name="sort_by_most_played">Most played</string>
     <string name="sort_by_custom">Custom order</string>
     <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
+    <string name="no_matching_playlists">No matching playlists</string>
     <string name="codecs">Codecs</string>
     <string name="bitrate">Bitrate</string>
     <string name="sample_rate">Sample rate</string>
@@ -371,6 +373,7 @@
     <string name="new_library_design_description">Enable the new library design (may be unstable)</string>
     <string name="m3play_canvas">M3Play Canvas</string>
     <string name="m3play_canvas_desc">Animate album artwork while playing (Powered by BetterLyrics)</string>
+    <string name="m3play_canvas_v7_desc">Unavailable with the Immersive player style</string>
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Activity type</string>
@@ -378,6 +381,8 @@
     <string name="pure_black">Pure black</string>
     <string name="disable_blur">Disable blur effects</string>
     <string name="disable_blur_desc">Disable blur effects throughout the app</string>
+    <string name="blur_intensity">Blur intensity</string>
+    <string name="blur_intensity_value">%1$d dp</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
     <string name="player">Player</string>
     <string name="player_text_alignment">Player text alignment</string>
@@ -415,7 +420,10 @@
     <string name="login">Login</string>
     <string name="not_logged_in">Not logged in</string>
     <string name="login_failed">Login failed</string>
+    <string name="playback_confirmation_required">Playback confirmation required</string>
     <string name="playback_requires_youtube_music_confirmation">Confirm playback in YouTube Music, then return to M3Play.</string>
+    <string name="playback_login_refresh_required">Refresh YouTube Music login</string>
+    <string name="playback_requires_youtube_music_login_refresh">Refresh your YouTube Music login, then return to M3Play.</string>
     <string name="content_language">Default content language</string>
     <string name="content_country">Default content country</string>
     <string name="system_default">System default</string>
@@ -665,6 +673,7 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="playback_state_unknown">UNKNOWN</string>
     <string name="share_logs">Share logs</string>
     <string name="about">About</string>
+    <string name="open_youtube_music">Open YouTube Music</string>
     <string name="app_version">App version</string>
     <string name="new_version_available">New version available</string>
     <string name="translation_models">Translation Models</string>
