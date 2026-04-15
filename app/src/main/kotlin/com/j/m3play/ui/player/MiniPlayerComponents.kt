@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
@@ -45,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -59,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -66,10 +69,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import androidx.media3.common.Player
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -239,69 +244,72 @@ fun MiniPlayerPlayPauseButton(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(48.dp)
+        modifier = Modifier
+            .size(46.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable {
+                if (playbackState == Player.STATE_ENDED) {
+                    playerConnection.player.seekTo(0, 0)
+                    playerConnection.player.playWhenReady = true
+                } else {
+                    playerConnection.player.togglePlayPause()
+                }
+            }
     ) {
-        // Circular progress indicator around the play button
-        if (duration > 0) {
+        if (isLoading) {
             CircularProgressIndicator(
-                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp,
-                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                modifier = Modifier.size(18.dp),
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                painter = painterResource(
+                    if (playbackState == Player.STATE_ENDED) {
+                        R.drawable.replay
+                    } else if (isPlaying) {
+                        R.drawable.pause
+                    } else {
+                        R.drawable.play
+                    }
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
+    }
+}
 
-        // Play/Pause button with thumbnail background
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    shape = CircleShape
-                )
-                .clickable {
-                    if (playbackState == Player.STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
-                }
-        ) {
-            // Placeholder: The actual image background logic was intricate inside NewMiniPlayer,
-            // but here we just simplify or expect it passed? 
-            // In the original NewMiniPlayer, it was just a border and clickable, NO image actually shown in this specific box in the new design?
-            // Wait, NewMiniPlayer lines 282+ had `Box`.
-            // Ah, the image was the BACKGROUND of the main box in some designs, but here it's "Play/Pause button with thumbnail background" comment.
-            // But checking the code, it's just a Box with border. 
-            // The icon is inside.
-            
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    painter = painterResource(
-                        if (playbackState == Player.STATE_ENDED) {
-                            R.drawable.replay
-                        } else if (isPlaying) {
-                            R.drawable.pause
-                        } else {
-                            R.drawable.play
-                        }
-                    ),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
+@Composable
+private fun MiniPlayerArtwork(
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .shadow(10.dp, RoundedCornerShape(18.dp), clip = false)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        AsyncImage(
+            model = mediaMetadata?.thumbnailUrl,
+            contentDescription = mediaMetadata?.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        if (isPlaying) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(4.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
         }
     }
 }
@@ -353,9 +361,13 @@ fun MiniPlayerActionButtons(
     isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
-    IconButton(
-        onClick = onLikeClick,
-        modifier = Modifier.size(48.dp)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+            .clickable(onClick = onLikeClick)
     ) {
         Icon(
             painter = painterResource(
@@ -363,7 +375,7 @@ fun MiniPlayerActionButtons(
             ),
             contentDescription = null,
             tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -379,69 +391,72 @@ fun NewMiniPlayerContent(
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
-    
-    // Track loading state when buffering
+
     val isLoading = playbackState == Player.STATE_BUFFERING
     val isLiked = currentSong?.song?.liked == true
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Play/Pause button (left side)
-        MiniPlayerPlayPauseButton(
-            position = position,
-            duration = duration,
-            isPlaying = isPlaying,
-            playbackState = playbackState,
-            isLoading = isLoading,
-            playerConnection = playerConnection
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 6.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        ) {
+            MiniPlayerArtwork(
+                mediaMetadata = mediaMetadata,
+                isPlaying = isPlaying,
+            )
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        // Title and Artist
-        mediaMetadata?.let {
-            MiniPlayerInfo(mediaMetadata = it)
-        } ?: Spacer(Modifier.weight(1f))
+            mediaMetadata?.let {
+                MiniPlayerInfo(mediaMetadata = it)
+            } ?: Spacer(Modifier.weight(1f))
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        if (togetherSessionState !is TogetherSessionState.Idle) {
-            Surface(
-                shape = RoundedCornerShape(999.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            if (togetherSessionState !is TogetherSessionState.Idle) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.all_inclusive),
                         contentDescription = stringResource(R.string.music_together),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(8.dp).size(14.dp),
                     )
                 }
             }
+
+            MiniPlayerActionButtons(
+                isLiked = isLiked,
+                onLikeClick = playerConnection::toggleLike
+            )
+
             Spacer(modifier = Modifier.width(8.dp))
+
+            MiniPlayerPlayPauseButton(
+                position = position,
+                duration = duration,
+                isPlaying = isPlaying,
+                playbackState = playbackState,
+                isLoading = isLoading,
+                playerConnection = playerConnection
+            )
         }
 
-        // Subscribe button
-        mediaMetadata?.let {
-            MiniPlayerSubscribeButton(mediaMetadata = it)
+        if (duration > 0) {
+            LinearProgressIndicator(
+                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Action Buttons (Like)
-        MiniPlayerActionButtons(
-            isLiked = isLiked,
-            onLikeClick = playerConnection::toggleLike
-        )
     }
 }
 
