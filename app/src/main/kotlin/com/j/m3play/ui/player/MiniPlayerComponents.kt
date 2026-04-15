@@ -19,6 +19,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -46,7 +47,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +63,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -70,6 +73,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -286,31 +290,79 @@ fun MiniPlayerPlayPauseButton(
 private fun MiniPlayerArtwork(
     mediaMetadata: MediaMetadata?,
     isPlaying: Boolean,
+    position: Long,
+    duration: Long,
 ) {
     Box(
-        modifier = Modifier
-            .size(52.dp)
-            .shadow(10.dp, RoundedCornerShape(18.dp), clip = false)
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(56.dp)
     ) {
-        AsyncImage(
-            model = mediaMetadata?.thumbnailUrl,
-            contentDescription = mediaMetadata?.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+        WavyCircularProgress(
+            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
+            isPlaying = isPlaying,
+            modifier = Modifier.fillMaxSize()
         )
 
-        if (isPlaying) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
+        Box(
+            modifier = Modifier
+                .padding(5.dp)
+                .fillMaxSize()
+                .shadow(10.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = mediaMetadata?.thumbnailUrl,
+                contentDescription = mediaMetadata?.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
             )
         }
+    }
+}
+
+@Composable
+private fun WavyCircularProgress(
+    progress: Float,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+
+    Canvas(modifier = modifier) {
+        val strokeWidth = 4.dp.toPx()
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val baseRadius = (size.minDimension / 2f) - strokeWidth
+        val amplitude = if (isPlaying) 2.6.dp.toPx() else 1.4.dp.toPx()
+        val waves = 18
+        val totalSteps = 180
+        val sweepSteps = (totalSteps * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
+
+        fun buildPath(steps: Int): Path {
+            val path = Path()
+            for (i in 0..steps) {
+                val fraction = i / totalSteps.toFloat()
+                val angle = (Math.PI * 2 * fraction) - Math.PI / 2
+                val radius = baseRadius + kotlin.math.sin(angle * waves).toFloat() * amplitude
+                val x = center.x + kotlin.math.cos(angle).toFloat() * radius
+                val y = center.y + kotlin.math.sin(angle).toFloat() * radius
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            return path
+        }
+
+        drawPath(
+            path = buildPath(totalSteps),
+            color = inactiveColor,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
+
+        drawPath(
+            path = buildPath(sweepSteps),
+            color = activeColor,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
     }
 }
 
@@ -408,6 +460,8 @@ fun NewMiniPlayerContent(
             MiniPlayerArtwork(
                 mediaMetadata = mediaMetadata,
                 isPlaying = isPlaying,
+                position = position,
+                duration = duration,
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -445,16 +499,6 @@ fun NewMiniPlayerContent(
                 playbackState = playbackState,
                 isLoading = isLoading,
                 playerConnection = playerConnection
-            )
-        }
-
-        if (duration > 0) {
-            LinearProgressIndicator(
-                progress = { (position.toFloat() / duration).coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
             )
         }
     }
