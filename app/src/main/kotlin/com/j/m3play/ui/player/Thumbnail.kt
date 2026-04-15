@@ -1,6 +1,6 @@
 /*
  * M3Play Project Original (2026)
- * Kòi Natsuko (github.com/koiverse)
+ * Jay Chaudhary 
  * Licensed Under GPL-3.0 | see git history for contributors
  */
 
@@ -508,7 +508,7 @@ fun Thumbnail(
                                 }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
-                                    playerDesignStyle != PlayerDesignStyle.DEFAULT &&
+                                    playerDesignStyle != PlayerDesignStyle.V7 &&
                                     item.mediaId.isNotBlank() &&
                                     item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
