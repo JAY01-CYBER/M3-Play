@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="open_youtube_music">Open YouTube Music</string>
+    <string name="playback_login_refresh_required">Login refresh required</string>
+    <string name="playback_confirmation_required">Confirmation required</string>
+    <string name="playback_requires_youtube_music_login_refresh">Playback requires YouTube Music login refresh</string>
+    <string name="player_design_v7">V7</string>
+</resources>
