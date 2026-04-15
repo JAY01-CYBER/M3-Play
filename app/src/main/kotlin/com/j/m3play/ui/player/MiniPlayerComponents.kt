@@ -14,7 +14,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -62,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -327,24 +333,68 @@ private fun WavyCircularProgress(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isPlaying) 2200 else 5200,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "ring_rotation",
+    )
+    val waveShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (Math.PI * 2).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isPlaying) 1200 else 2200,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "ring_wave_shift",
+    )
+    val amplitudePulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isPlaying) 900 else 1600,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "ring_amplitude",
+    )
 
-    Canvas(modifier = modifier) {
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
+
+    Canvas(
+        modifier = modifier.graphicsLayer {
+            rotationZ = rotation
+        }
+    ) {
         val strokeWidth = 4.dp.toPx()
         val center = Offset(size.width / 2f, size.height / 2f)
         val baseRadius = (size.minDimension / 2f) - strokeWidth
-        val amplitude = if (isPlaying) 2.6.dp.toPx() else 1.4.dp.toPx()
-        val waves = 18
-        val totalSteps = 180
-        val sweepSteps = (totalSteps * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
+        val waves = 22
+        val totalSteps = 240
+        val progressSteps = (totalSteps * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
+        val baseAmplitude = if (isPlaying) 2.8.dp.toPx() else 1.8.dp.toPx()
+        val animatedAmplitude = baseAmplitude * amplitudePulse
 
-        fun buildPath(steps: Int): Path {
+        fun buildPath(steps: Int, amplitude: Float): Path {
             val path = Path()
             for (i in 0..steps) {
                 val fraction = i / totalSteps.toFloat()
-                val angle = (Math.PI * 2 * fraction) - Math.PI / 2
-                val radius = baseRadius + kotlin.math.sin(angle * waves).toFloat() * amplitude
+                val angle = (Math.PI * 2 * fraction) - (Math.PI / 2)
+                val wave = kotlin.math.sin((angle * waves) + waveShift).toFloat() * amplitude
+                val radius = baseRadius + wave
                 val x = center.x + kotlin.math.cos(angle).toFloat() * radius
                 val y = center.y + kotlin.math.sin(angle).toFloat() * radius
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
@@ -353,13 +403,13 @@ private fun WavyCircularProgress(
         }
 
         drawPath(
-            path = buildPath(totalSteps),
+            path = buildPath(totalSteps, 1.2.dp.toPx()),
             color = inactiveColor,
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
 
         drawPath(
-            path = buildPath(sweepSteps),
+            path = buildPath(progressSteps, animatedAmplitude),
             color = activeColor,
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
