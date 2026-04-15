@@ -1069,12 +1069,20 @@ class MusicService :
                     ?.let { playerState ->
                     delay(1000)
                     withContext(Dispatchers.Main) {
+                        player.repeatMode = playerState.repeatMode
+                        player.shuffleModeEnabled = playerState.shuffleModeEnabled
                         playerVolume.value = playerState.volume
-
-                        if (player.mediaItemCount > 0 && playerState.currentPosition > 0) {
-                            player.seekTo(player.currentMediaItemIndex, playerState.currentPosition)
+                        
+                        if (player.mediaItemCount > 0) {
+                            val index =
+                                if (playerState.currentMediaItemIndex in 0 until player.mediaItemCount) {
+                                    playerState.currentMediaItemIndex
+                                } else {
+                                    player.currentMediaItemIndex.coerceIn(0, player.mediaItemCount - 1)
+                                }
+                            player.seekTo(index, playerState.currentPosition)
                         }
-
+                        
                         currentMediaMetadata.value = player.currentMetadata
                         updateNotification()
                     }
@@ -4771,7 +4779,6 @@ class MusicService :
     }
 
     private suspend fun saveQueueToDisk() {
-        if (!queueRestoreCompleted.value) return
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
 
@@ -4840,11 +4847,7 @@ class MusicService :
             releaseAudioEffects()
         } catch (_: Exception) {}
         try {
-            if (
-                dataStore.get(PersistentQueueKey, true) &&
-                queueRestoreCompleted.value &&
-                player.mediaItemCount > 0
-            ) {
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
                 val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
                 val currentMediaItemIndex = player.currentMediaItemIndex
                 val currentPosition = player.currentPosition
@@ -4988,7 +4991,7 @@ class MusicService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
