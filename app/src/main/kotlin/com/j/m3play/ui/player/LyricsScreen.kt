@@ -1,12 +1,10 @@
 /*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
+ * M3Play Project Original (2026)
+ * Jay Chaudhary 
+ * Licensed Under GPL-3.0 | see git history for contributors
  */
+
+@file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.j.m3play.ui.player
 
@@ -47,8 +45,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.ripple
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -126,6 +125,7 @@ import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.DisableBlurKey
+import com.j.m3play.constants.BlurRadiusKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -199,7 +199,8 @@ fun LyricsScreen(
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
+    val (blurRadius) = rememberPreference(BlurRadiusKey, 36f)
 
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
@@ -303,6 +304,7 @@ fun LyricsScreen(
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors,
                 disableBlur = disableBlur,
+                blurRadius = blurRadius,
                 playerCustomImageUri = playerCustomImageUri,
                 playerCustomBlur = playerCustomBlur,
                 playerCustomContrast = playerCustomContrast,
@@ -535,10 +537,9 @@ fun LyricsScreen(
                                     modifier = Modifier.size(56.dp)
                                 ) {
                                     if (isLoading) {
-                                        CircularProgressIndicator(
+                                        CircularWavyProgressIndicator(
                                             modifier = Modifier.size(36.dp),
                                             color = textBackgroundColor,
-                                            strokeWidth = 3.dp
                                         )
                                     } else {
                                         Icon(
@@ -827,10 +828,9 @@ fun LyricsScreen(
                                 modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
+                                    CircularWavyProgressIndicator(
                                         modifier = Modifier.size(36.dp),
                                         color = textBackgroundColor,
-                                        strokeWidth = 3.dp
                                     )
                                 } else {
                                     Icon(
