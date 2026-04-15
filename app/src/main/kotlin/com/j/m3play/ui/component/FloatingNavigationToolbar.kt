@@ -66,7 +66,7 @@ fun FloatingNavigationToolbar(
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 primaryScreens.forEach { screen ->
@@ -74,7 +74,7 @@ fun FloatingNavigationToolbar(
                         screen = screen,
                         selected = isSelected(screen),
                         onClick = { onItemClick(screen, isSelected(screen)) },
-                        modifier = Modifier.weight(1f, fill = true),
+                        modifier = Modifier,
                     )
                 }
             }
@@ -90,20 +90,22 @@ fun FloatingNavigationToolbar(
             )
         }
 
+        if (onShuffleClick != null && shuffleIconRes != null) {
+            DetachedCircleButton(
+                iconRes = shuffleIconRes,
+                contentDescription = shuffleContentDescription,
+                selected = false,
+                onClick = onShuffleClick,
+                pureBlack = pureBlack,
+            )
+        }
+
         if (onMusicRecognitionClick != null) {
             DetachedCircleButton(
                 iconRes = R.drawable.mic,
                 contentDescription = musicRecognitionContentDescription,
                 selected = false,
                 onClick = onMusicRecognitionClick,
-                pureBlack = pureBlack,
-            )
-        } else if (onShuffleClick != null && shuffleIconRes != null) {
-            DetachedCircleButton(
-                iconRes = shuffleIconRes,
-                contentDescription = shuffleContentDescription,
-                selected = false,
-                onClick = onShuffleClick,
                 pureBlack = pureBlack,
                 roundedSquare = true,
             )
@@ -132,27 +134,25 @@ private fun CherryNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(24.dp),
-        modifier = modifier.defaultMinSize(minHeight = 56.dp),
+        modifier = modifier.defaultMinSize(minHeight = 56.dp, minWidth = 92.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
                     painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                     contentDescription = stringResource(screen.titleId),
                     modifier = Modifier.size(22.dp),
                 )
-                if (selected) {
-                    Text(
-                        text = stringResource(screen.titleId),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                }
+                Text(
+                    text = stringResource(screen.titleId),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    maxLines = 1,
+                )
             }
         }
     }
@@ -192,7 +192,7 @@ private fun DetachedCircleButton(
         ),
         shadowElevation = 10.dp,
         modifier = Modifier
-            .size(if (roundedSquare) 72.dp else 64.dp)
+            .size(if (roundedSquare) 62.dp else 58.dp)
             .clip(shape)
             .shadow(10.dp, shape, clip = false),
     ) {
@@ -200,7 +200,7 @@ private fun DetachedCircleButton(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
             )
         }
     }
