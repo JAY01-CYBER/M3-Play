@@ -3,7 +3,6 @@ package com.j.m3play.ui.component
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -44,48 +43,50 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val toolbarShape = RoundedCornerShape(32.dp)
     val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
     val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
 
+    val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
+    val libraryScreen = items.firstOrNull { it.route == Screens.Library.route }
     val searchScreen = items.firstOrNull { it.route == Screens.Search.route }
-    val primaryScreens = items.filter { it.route != Screens.Search.route }.take(if (slim) 2 else 3)
+    val moodScreen = items.firstOrNull { it.route == Screens.MoodAndGenres.route }
+
+    val primaryScreens = listOfNotNull(homeScreen, libraryScreen, searchScreen)
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
             color = containerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = toolbarShape,
+            shape = RoundedCornerShape(30.dp),
             border = BorderStroke(1.dp, borderColor),
             shadowElevation = 10.dp,
-            modifier = Modifier.weight(1f, fill = false).widthIn(max = if (slim) 330.dp else 430.dp),
+            modifier = Modifier.widthIn(max = if (slim) 248.dp else 270.dp),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 primaryScreens.forEach { screen ->
-                    CherryNavItem(
+                    CompactNavItem(
                         screen = screen,
                         selected = isSelected(screen),
                         onClick = { onItemClick(screen, isSelected(screen)) },
-                        modifier = Modifier,
                     )
                 }
             }
         }
 
-        if (searchScreen != null) {
+        if (onMusicRecognitionClick != null) {
             DetachedCircleButton(
-                iconRes = searchScreen.iconIdActive,
-                contentDescription = stringResource(searchScreen.titleId),
-                selected = isSelected(searchScreen),
-                onClick = { onItemClick(searchScreen, isSelected(searchScreen)) },
+                iconRes = R.drawable.mic,
+                contentDescription = musicRecognitionContentDescription,
+                selected = false,
+                onClick = onMusicRecognitionClick,
                 pureBlack = pureBlack,
             )
         }
@@ -100,28 +101,26 @@ fun FloatingNavigationToolbar(
             )
         }
 
-        if (onMusicRecognitionClick != null) {
+        if (moodScreen != null) {
             DetachedCircleButton(
-                iconRes = R.drawable.mic,
-                contentDescription = musicRecognitionContentDescription,
-                selected = false,
-                onClick = onMusicRecognitionClick,
+                iconRes = moodScreen.iconIdActive,
+                contentDescription = stringResource(moodScreen.titleId),
+                selected = isSelected(moodScreen),
+                onClick = { onItemClick(moodScreen, isSelected(moodScreen)) },
                 pureBlack = pureBlack,
-                roundedSquare = true,
             )
         }
     }
 }
 
 @Composable
-private fun CherryNavItem(
+private fun CompactNavItem(
     screen: Screens,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent,
         label = "nav_item_container",
     )
     val contentColor by animateColorAsState(
@@ -133,24 +132,24 @@ private fun CherryNavItem(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier.defaultMinSize(minHeight = 56.dp, minWidth = 92.dp),
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-                    contentDescription = stringResource(screen.titleId),
-                    modifier = Modifier.size(22.dp),
-                )
+        Row(
+            modifier = Modifier.padding(horizontal = if (selected) 14.dp else 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
+                contentDescription = stringResource(screen.titleId),
+                modifier = Modifier.size(18.dp),
+            )
+            if (selected) {
                 Text(
                     text = stringResource(screen.titleId),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                 )
             }
@@ -165,9 +164,7 @@ private fun DetachedCircleButton(
     selected: Boolean,
     onClick: () -> Unit,
     pureBlack: Boolean,
-    roundedSquare: Boolean = false,
 ) {
-    val shape = if (roundedSquare) RoundedCornerShape(24.dp) else CircleShape
     val containerColor by animateColorAsState(
         targetValue = when {
             pureBlack -> Color.White.copy(alpha = 0.08f)
@@ -185,22 +182,22 @@ private fun DetachedCircleButton(
         onClick = onClick,
         color = containerColor,
         contentColor = contentColor,
-        shape = shape,
+        shape = CircleShape,
         border = BorderStroke(
             1.dp,
             if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f),
         ),
         shadowElevation = 10.dp,
         modifier = Modifier
-            .size(if (roundedSquare) 62.dp else 58.dp)
-            .clip(shape)
-            .shadow(10.dp, shape, clip = false),
+            .size(56.dp)
+            .clip(CircleShape)
+            .shadow(10.dp, CircleShape, clip = false),
     ) {
         IconButton(onClick = onClick) {
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(20.dp),
             )
         }
     }
