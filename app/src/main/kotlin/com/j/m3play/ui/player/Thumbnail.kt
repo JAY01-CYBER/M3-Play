@@ -508,7 +508,7 @@ fun Thumbnail(
                                 }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
-                                    playerDesignStyle != PlayerDesignStyle.V7 &&
+                                    playerDesignStyle != PlayerDesignStyle.DEFAULT &&
                                     item.mediaId.isNotBlank() &&
                                     item.mediaId == currentMediaItem?.mediaId
                             var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }

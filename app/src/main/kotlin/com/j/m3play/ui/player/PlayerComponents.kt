@@ -624,7 +624,7 @@ fun PlayerTopActions(
             }
         }
 
-        PlayerDesignStyle.V7 -> {
+        PlayerDesignStyle.DEFAULT -> {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1589,7 +1589,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V7 -> {
+        PlayerDesignStyle.DEFAULT -> {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
@@ -1783,8 +1783,8 @@ fun PlayerControlsContent(
         position = position,
         duration = duration,
         textBackgroundColor = textBackgroundColor,
-        showRemainingTime = playerDesignStyle == PlayerDesignStyle.V7,
-        centerContent = if (playerDesignStyle == PlayerDesignStyle.V7 && currentFormat != null) {
+        showRemainingTime = playerDesignStyle == PlayerDesignStyle.DEFAULT,
+        centerContent = if (playerDesignStyle == PlayerDesignStyle.DEFAULT && currentFormat != null) {
             {
                 val codec = currentFormat.mimeType.substringAfter("/").uppercase()
                 val label = when {
