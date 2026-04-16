@@ -1,21 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Upstream InnerTune strings --><!-- Do not add new features here --><!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun --><!-- "InnerTune" is replaced with "M3Play" --><!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. --><resources>
-    <string name="back_button_desc">Back</string>
-    <string name="music_recognition_tap_to_listen">Tap to listen</string>
-    <string name="music_recognition_listening">Listening…</string>
-    <string name="music_recognition_processing">Processing…</string>
-    <string name="music_recognition_listen_again">Listen again</string>
-    <string name="music_recognition_no_match">No match found</string>
-    <string name="music_recognition_signature_failed">Couldn't generate a signature</string>
-    <string name="music_recognition_recognition_failed">Recognition failed</string>
-    <string name="music_recognition_open_shazam">Open Shazam</string>
-    <string name="music_recognition_lyrics_preview">Lyrics preview</string>
-    <string name="music_recognition_permission_title">Microphone permission</string>
-    <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
-    <string name="music_recognition_permission_action">Allow</string>
-    <string name="music_recognition_error">Something went wrong</string>
-    <string name="music_recognition_play_not_found">Couldn't find a playable match</string>
-    <string name="play_in_m3play">Play in M3Play</string>
     <!-- Bottom navigation -->
     <string name="home">Home</string>
     <string name="songs">Songs</string>
@@ -532,7 +516,7 @@
     <string name="use_login_for_browse">Use login for browsing content</string>
     <string name="use_login_for_browse_desc">This can influence what content you see and for example shows premium-only albums if you are logged in with a Premium account</string>
     <string name="disable_screenshot">Disable screenshot</string>
-    <string name="disable_screenshot_desc">When this option is on, screenshots and the app's view in Recents are disabled.</string>
+    <string name="disable_screenshot_desc">When this option is on, screenshots and the app\'s view in Recents are disabled.</string>
     <string name="enable_lrclib">Enable LrcLib lyrics provider</string>
     <string name="enable_kugou">Enable KuGou lyrics provider</string>
     <string name="preload_queue_lyrics">Preload queue lyrics</string>
@@ -544,11 +528,11 @@
     <string name="action_restore">Restore</string>
     <string name="imported_playlist">Imported playlist</string>
     <string name="backup_create_success">Backup created successfully</string>
-    <string name="backup_create_failed">Couldn't create backup</string>
+    <string name="backup_create_failed">Couldn\'t create backup</string>
     <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Failed to restore backup</string>
     <string name="discord_integration">Discord Integration</string>
-    <string name="discord_information">M3Play uses the KizzyRPC library to set your Discord account's status. This involves using the Discord Gateway connection, which may be considered a violation of Discord's TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
+    <string name="discord_information">M3Play uses the KizzyRPC library to set your Discord account\'s status. This involves using the Discord Gateway connection, which may be considered a violation of Discord\'s TOS. However, there are no known cases of user accounts being suspended for this reason. Use at your own risk.
 M3Play will only extract your token, and everything else is stored locally.</string>
     <string name="options">Options</string>
     <string name="preview">Preview</string>
@@ -756,8 +740,8 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="invalid_code">Invalid code</string>
     <string name="not_allowed">Not allowed</string>
     <string name="network_unavailable">Network unavailable</string>
-    <string name="together_online_not_configured">Online sessions aren't configured</string>
-    <string name="together_token_missing">Online sessions aren't available in this build</string>
+    <string name="together_online_not_configured">Online sessions aren\'t configured</string>
+    <string name="together_token_missing">Online sessions aren\'t available in this build</string>
     <string name="together_server_unreachable">Server unreachable</string>
     <string name="together_connection_timed_out">Connection timed out</string>
     <string name="together_session_not_found">Session not found</string>
@@ -779,7 +763,7 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="together_error_state">Error</string>
 
     <string name="got_it">Got it</string>
-    <string name="together_dont_show_again">Don't show this again</string>
+    <string name="together_dont_show_again">Don\'t show this again</string>
     <string name="together_welcome_title">Welcome to M3Play Music Together</string>
     <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
     <string name="together_welcome_host_title">Host a session</string>
