@@ -144,9 +144,9 @@ private fun AppleNavItem(
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
             val base = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.34f)
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.46f)
             } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.42f)
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.52f)
             }
             base.copy(alpha = 0.98f)
         } else {
@@ -173,7 +173,8 @@ private fun AppleNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(24.dp),
-        tonalElevation = if (selected) 1.dp else 0.dp,
+        tonalElevation = if (selected) 2.dp else 0.dp,
+        shadowElevation = if (selected) 2.dp else 0.dp,
         modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
         Row(
@@ -198,6 +199,12 @@ private fun AppleNavItem(
     }
 }
 
+private fun Color.punchUp(): Color = Color(
+    red = (red * 1.08f).coerceIn(0f, 1f),
+    green = (green * 1.05f).coerceIn(0f, 1f),
+    blue = (blue * 1.10f).coerceIn(0f, 1f),
+    alpha = 1f,
+)
 
 @Composable
 private fun rememberSoftAccent(
@@ -205,14 +212,12 @@ private fun rememberSoftAccent(
     surface: Color,
 ): Color {
     val cleanedAccent = if (accentColor.alpha == 0f) MaterialTheme.colorScheme.primary else accentColor
-    val mixed = if (cleanedAccent.luminance() > 0.80f) {
-        lerp(cleanedAccent, Color.Black, 0.30f)
-    } else if (cleanedAccent.luminance() < 0.18f) {
-        lerp(cleanedAccent, Color.White, 0.18f)
-    } else {
-        cleanedAccent
-    }
-    return lerp(surface, mixed, 0.58f)
+    val liftedAccent = when {
+        cleanedAccent.luminance() > 0.80f -> lerp(cleanedAccent, Color.Black, 0.26f)
+        cleanedAccent.luminance() < 0.18f -> lerp(cleanedAccent, Color.White, 0.24f)
+        else -> cleanedAccent
+    }.punchUp()
+    return lerp(surface, liftedAccent, 0.72f)
 }
 
 @Composable
@@ -230,7 +235,7 @@ private fun DetachedCircleButton(
             if (pureBlack) {
                 lerp(Color(0xFF101010), accentColor, 0.38f).copy(alpha = 0.98f)
             } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.34f).copy(alpha = 0.98f)
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.46f).copy(alpha = 0.98f)
             }
         } else {
             containerColor
@@ -251,8 +256,8 @@ private fun DetachedCircleButton(
         color = resolvedContainerColor,
         contentColor = contentColor,
         shape = CircleShape,
-        tonalElevation = 2.dp,
-        shadowElevation = 8.dp,
+        tonalElevation = 3.dp,
+        shadowElevation = 10.dp,
         modifier = Modifier.size(54.dp),
     ) {
         IconButton(onClick = onClick) {
