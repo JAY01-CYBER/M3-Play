@@ -104,7 +104,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
-import android.widget.Toast
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -113,23 +112,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.innertube.YouTube
-import com.j.m3play.innertube.models.WatchEndpoint
-import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_SONG
-import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.shazamkit.Shazam
 import com.j.m3play.shazamkit.ShazamSignatureGenerator
 import com.j.m3play.shazamkit.models.RecognitionResult
 
 const val MusicRecognitionRoute = "music_recognition"
-
-private sealed interface PlaybackTarget {
-    data class VideoId(val videoId: String) : PlaybackTarget
-    data class Song(val song: com.j.m3play.innertube.models.SongItem) : PlaybackTarget
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,7 +127,6 @@ fun MusicRecognitionScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val playerConnection = LocalPlayerConnection.current
 
     var state by remember { mutableStateOf<MusicRecognitionState>(MusicRecognitionState.Ready) }
     var recognitionJob by remember { mutableStateOf<Job?>(null) }
@@ -357,44 +344,6 @@ fun MusicRecognitionScreen(
                         is MusicRecognitionState.Success -> {
                             SuccessActions(
                                 result = target.result,
-                                onPlay = {
-                                    scope.launch {
-                                        val playbackTarget = target.result.youtubeVideoId?.takeIf { it.isNotBlank() }?.let {
-                                            PlaybackTarget.VideoId(it)
-                                        } ?: run {
-                                            val query = listOf(target.result.title, target.result.artist)
-                                                .filter { it.isNotBlank() }
-                                                .joinToString(" ")
-                                                .trim()
-                                            val firstSong = withContext(Dispatchers.IO) {
-                                                YouTube.search(query, FILTER_SONG).getOrNull()?.items?.filterIsInstance<com.j.m3play.innertube.models.SongItem>()?.firstOrNull()
-                                            }
-                                            firstSong?.let { PlaybackTarget.Song(it) }
-                                        }
-
-                                        if (playbackTarget == null) {
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.music_recognition_play_not_found),
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                            return@launch
-                                        }
-
-                                        when (playbackTarget) {
-                                            is PlaybackTarget.VideoId -> {
-                                                playerConnection?.playQueue(
-                                                    YouTubeQueue(WatchEndpoint(videoId = playbackTarget.videoId))
-                                                )
-                                            }
-                                            is PlaybackTarget.Song -> {
-                                                playerConnection?.playQueue(
-                                                    YouTubeQueue.radio(playbackTarget.song.toMediaMetadata())
-                                                )
-                                            }
-                                        }
-                                    }
-                                },
                                 onSearch = {
                                     val query = "${target.result.title} ${target.result.artist}".trim()
                                     navController.navigate("search/${Uri.encode(query)}")
@@ -807,7 +756,6 @@ private fun FailureCard(
 @Composable
 private fun SuccessActions(
     result: RecognitionResult,
-    onPlay: () -> Unit,
     onSearch: () -> Unit,
     onListenAgain: () -> Unit,
 ) {
@@ -866,28 +814,6 @@ private fun SuccessActions(
                     softWrap = false,
                 )
             }
-        }
-
-        Button(
-            onClick = onPlay,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.play),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = stringResource(R.string.play_in_m3play),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false,
-            )
         }
 
         if (!result.shazamUrl.isNullOrBlank()) {
