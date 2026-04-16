@@ -291,4 +291,5 @@
     <string name="restore_step_restoring_settings">Restoring settings</string>
     <string name="restore_step_restoring_file">Restoring %1$s</string>
     <string name="restore_step_restarting">Restarting app</string>
+    <string name="play_in_m3play">Play in M3Play</string>
 </resources>
