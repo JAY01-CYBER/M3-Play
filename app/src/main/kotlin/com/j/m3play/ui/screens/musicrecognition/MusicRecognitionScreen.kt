@@ -116,7 +116,7 @@ import kotlinx.coroutines.withContext
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.innertube.YouTube
-import com.j.m3play.innertube.WatchEndpoint
+import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_SONG
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.models.toMediaMetadata
