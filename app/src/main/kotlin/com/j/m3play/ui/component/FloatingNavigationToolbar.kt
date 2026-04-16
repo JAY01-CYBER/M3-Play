@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.j.m3play.R
 import com.j.m3play.ui.screens.Screens
-import androidx.compose.ui.graphics.luminance
 
 @Composable
 fun FloatingNavigationToolbar(
@@ -44,16 +43,16 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val mainContainerColor = if (pureBlack) {
-        Color.White.copy(alpha = 0.10f)
+        Color.White.copy(alpha = 0.09f)
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+        colorScheme.surface.copy(alpha = 0.78f)
     }
-
     val detachedContainerColor = if (pureBlack) {
-        Color.White.copy(alpha = 0.10f)
+        Color.White.copy(alpha = 0.09f)
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        colorScheme.surface.copy(alpha = 0.72f)
     }
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
@@ -70,10 +69,10 @@ fun FloatingNavigationToolbar(
     ) {
         Surface(
             color = mainContainerColor,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentColor = colorScheme.onSurface,
             shape = RoundedCornerShape(32.dp),
-            tonalElevation = 2.dp,
-            shadowElevation = 10.dp,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
             modifier = Modifier.widthIn(max = if (slim) 252.dp else 282.dp),
         ) {
             Row(
@@ -85,6 +84,7 @@ fun FloatingNavigationToolbar(
                     AppleNavItem(
                         screen = screen,
                         selected = isSelected(screen),
+                        pureBlack = pureBlack,
                         onClick = { onItemClick(screen, isSelected(screen)) },
                     )
                 }
@@ -130,19 +130,21 @@ fun FloatingNavigationToolbar(
 private fun AppleNavItem(
     screen: Screens,
     selected: Boolean,
+    pureBlack: Boolean,
     onClick: () -> Unit,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.Black.copy(alpha = 0.07f)
-            else Color.White.copy(alpha = 0.12f)
+            if (pureBlack) colorScheme.primary.copy(alpha = 0.26f)
+            else colorScheme.primary.copy(alpha = 0.18f)
         } else {
             Color.Transparent
         },
         label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "apple_nav_item_content",
     )
     val horizontalPadding by animateDpAsState(
@@ -156,7 +158,8 @@ private fun AppleNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(24.dp),
-        tonalElevation = if (selected) 1.dp else 0.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
         Row(
@@ -190,16 +193,17 @@ private fun DetachedCircleButton(
     pureBlack: Boolean,
     containerColor: Color,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
     val resolvedContainerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (pureBlack) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.08f)
+            if (pureBlack) colorScheme.primary.copy(alpha = 0.22f) else colorScheme.primary.copy(alpha = 0.16f)
         } else {
             containerColor
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "detached_button_content",
     )
 
@@ -208,8 +212,8 @@ private fun DetachedCircleButton(
         color = resolvedContainerColor,
         contentColor = contentColor,
         shape = CircleShape,
-        tonalElevation = 2.dp,
-        shadowElevation = 8.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.size(54.dp),
     ) {
         IconButton(onClick = onClick) {
@@ -221,4 +225,3 @@ private fun DetachedCircleButton(
         }
     }
 }
-
