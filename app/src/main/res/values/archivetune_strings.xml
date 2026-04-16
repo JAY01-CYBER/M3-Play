@@ -151,10 +151,10 @@
     <string name="last_song_listened">Based on last song listened</string>
     <string name="app_language">App language</string>
     <string name="configure_app_language">Configure app languages</string>
-    <string name="intent_app_language_not_found">Couldn\'t find app language settings, please configure them manually</string>
+    <string name="intent_app_language_not_found">Couldn't find app language settings, please configure them manually</string>
     <string name="open_supported_links">Open supported link by default</string>
     <string name="configure_supported_links">Configure supported links</string>
-    <string name="intent_supported_links_not_found">Couldn\'t find supported links settings, please configure them manually</string>
+    <string name="intent_supported_links_not_found">Couldn't find supported links settings, please configure them manually</string>
     <string name="set_first_lyrics_provider">Preferred lyrics provider</string>
     <string name="audio_quality_max">Max (beta)</string>
     <string name="enable_similar_content">Enable similar content</string>
@@ -183,7 +183,7 @@
     <string name="pause_remote_listen_history">Pause share listen history with YouTube Music</string>
     <string name="not_logged_in_youtube">Not logged in to YouTube</string>
     <string name="default_links">Open supported links</string>
-    <string name="open_app_settings_error">Couldn\'t open app settings</string>
+    <string name="open_app_settings_error">Couldn't open app settings</string>
     <string name="release_notes">Release notes</string>
     <string name="all_time">All time</string>
     <string name="past_24_hours">Past 24 hours</string>
@@ -206,11 +206,11 @@
     <string name="album_not_found">Album not found</string>
     <string name="album_not_found_desc">The requested album could not be loaded</string>
     <string name="playlist_private_title">This playlist was private</string>
-    <string name="playlist_private_desc">You don\'t have access to this playlist.</string>
+    <string name="playlist_private_desc">You don't have access to this playlist.</string>
     <string name="empty_playlist">Empty Playlist</string>
-    <string name="empty_playlist_desc">This playlist doesn\'t contain any songs</string>
+    <string name="empty_playlist_desc">This playlist doesn't contain any songs</string>
     <string name="empty_album">Empty Album</string>
-    <string name="empty_album_desc">This album doesn\'t contain any songs</string>
+    <string name="empty_album_desc">This album doesn't contain any songs</string>
     <plurals name="seconds">
         <item quantity="one">1 second</item>
         <item quantity="other">%d seconds</item>
@@ -219,7 +219,7 @@
     <string name="audio_crossfade_description">Smoothly transition between songs by fading out the end of each track.</string>
     <string name="audio_crossfade_dialog_title">Crossfade duration</string>
     <string name="disable_load_more_when_repeat_all">Disable load more when repeat all</string>
-    <string name="disable_load_more_when_repeat_all_desc">Don\'t auto load more songs and similar content when repeat all mode is enabled</string>
+    <string name="disable_load_more_when_repeat_all_desc">Don't auto load more songs and similar content when repeat all mode is enabled</string>
     <string name="player_stream_client">Playback client</string>
     <string name="player_stream_client_desc">Controls which YouTube client is used to fetch streams</string>
     <string name="player_stream_client_android_vr">Android VR</string>
@@ -263,7 +263,7 @@
     <string name="theme_export_failed">Export failed</string>
     <string name="theme_import_success">Theme imported</string>
     <string name="theme_import_failed">Import failed</string>
-    <string name="theme_import_failed_title">Can\'t import theme</string>
+    <string name="theme_import_failed_title">Can't import theme</string>
 
     <string name="theme_seed_colors">Seed Colors</string>
     <string name="theme_seed_primary">Primary</string>
