@@ -798,7 +798,4 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="token_copied">Token copied to clipboard</string>
     <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
     <string name="extracting_from_url">Extracting tokens from URL…</string>
-
-    <string name="music_recognition_play_not_found">Couldn't find a playable match</string>
-    <string name="play_in_m3play">Play in M3Play</string>
 </resources>
