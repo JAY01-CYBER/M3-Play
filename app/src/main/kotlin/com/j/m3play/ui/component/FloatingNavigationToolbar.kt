@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,6 +37,7 @@ fun FloatingNavigationToolbar(
     slim: Boolean,
     pureBlack: Boolean,
     modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
     onShuffleClick: (() -> Unit)? = null,
     shuffleIconRes: Int? = null,
     shuffleContentDescription: String = "",
@@ -44,16 +46,18 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
+    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
+    val softenedAccent = rememberSoftAccent(accentColor = accentColor, surface = baseSurface)
     val mainContainerColor = if (pureBlack) {
-        Color.White.copy(alpha = 0.10f)
+        lerp(baseSurface, softenedAccent, 0.18f).copy(alpha = 0.96f)
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
+        lerp(baseSurface, softenedAccent, 0.14f).copy(alpha = 0.97f)
     }
 
     val detachedContainerColor = if (pureBlack) {
-        Color.White.copy(alpha = 0.10f)
+        lerp(baseSurface, softenedAccent, 0.22f).copy(alpha = 0.96f)
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        lerp(baseSurface, softenedAccent, 0.18f).copy(alpha = 0.95f)
     }
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
@@ -85,6 +89,7 @@ fun FloatingNavigationToolbar(
                     AppleNavItem(
                         screen = screen,
                         selected = isSelected(screen),
+                        accentColor = softenedAccent,
                         onClick = { onItemClick(screen, isSelected(screen)) },
                     )
                 }
@@ -98,6 +103,7 @@ fun FloatingNavigationToolbar(
                 selected = false,
                 onClick = onMusicRecognitionClick,
                 pureBlack = pureBlack,
+                accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
             )
         }
@@ -109,6 +115,7 @@ fun FloatingNavigationToolbar(
                 selected = false,
                 onClick = onShuffleClick,
                 pureBlack = pureBlack,
+                accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
             )
         }
@@ -120,6 +127,7 @@ fun FloatingNavigationToolbar(
                 selected = isSelected(moodScreen),
                 onClick = { onItemClick(moodScreen, isSelected(moodScreen)) },
                 pureBlack = pureBlack,
+                accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
             )
         }
@@ -130,19 +138,28 @@ fun FloatingNavigationToolbar(
 private fun AppleNavItem(
     screen: Screens,
     selected: Boolean,
+    accentColor: Color,
     onClick: () -> Unit,
 ) {
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.Black.copy(alpha = 0.07f)
-            else Color.White.copy(alpha = 0.12f)
+            val base = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.34f)
+            } else {
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.42f)
+            }
+            base.copy(alpha = 0.98f)
         } else {
             Color.Transparent
         },
         label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) {
+            if (accentColor.luminance() > 0.52f) Color(0xFF111111) else Color.White.copy(alpha = 0.96f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+        },
         label = "apple_nav_item_content",
     )
     val horizontalPadding by animateDpAsState(
@@ -181,6 +198,23 @@ private fun AppleNavItem(
     }
 }
 
+
+@Composable
+private fun rememberSoftAccent(
+    accentColor: Color,
+    surface: Color,
+): Color {
+    val cleanedAccent = if (accentColor.alpha == 0f) MaterialTheme.colorScheme.primary else accentColor
+    val mixed = if (cleanedAccent.luminance() > 0.80f) {
+        lerp(cleanedAccent, Color.Black, 0.30f)
+    } else if (cleanedAccent.luminance() < 0.18f) {
+        lerp(cleanedAccent, Color.White, 0.18f)
+    } else {
+        cleanedAccent
+    }
+    return lerp(surface, mixed, 0.58f)
+}
+
 @Composable
 private fun DetachedCircleButton(
     iconRes: Int,
@@ -188,18 +222,27 @@ private fun DetachedCircleButton(
     selected: Boolean,
     onClick: () -> Unit,
     pureBlack: Boolean,
+    accentColor: Color,
     containerColor: Color,
 ) {
     val resolvedContainerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (pureBlack) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.08f)
+            if (pureBlack) {
+                lerp(Color(0xFF101010), accentColor, 0.38f).copy(alpha = 0.98f)
+            } else {
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.34f).copy(alpha = 0.98f)
+            }
         } else {
             containerColor
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) {
+            if (accentColor.luminance() > 0.52f) Color(0xFF111111) else Color.White.copy(alpha = 0.96f)
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
+        },
         label = "detached_button_content",
     )
 
