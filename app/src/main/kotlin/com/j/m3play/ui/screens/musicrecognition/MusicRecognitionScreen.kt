@@ -104,7 +104,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
-import com.j.m3play.LocalPlayerConnection
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -113,12 +112,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import moe.koiverse.archivetune.innertube.YouTube
-import moe.koiverse.archivetune.innertube.models.SongItem
 import com.j.m3play.R
-import com.j.m3play.extensions.toMediaItem
-import com.j.m3play.models.toMediaMetadata
-import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.shazamkit.Shazam
 import com.j.m3play.shazamkit.ShazamSignatureGenerator
 import com.j.m3play.shazamkit.models.RecognitionResult
@@ -133,9 +127,6 @@ fun MusicRecognitionScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val playerConnection = LocalPlayerConnection.current
-
-    var playInM3PlayLoading by remember { mutableStateOf(false) }
 
     var state by remember { mutableStateOf<MusicRecognitionState>(MusicRecognitionState.Ready) }
     var recognitionJob by remember { mutableStateOf<Job?>(null) }
@@ -353,28 +344,6 @@ fun MusicRecognitionScreen(
                         is MusicRecognitionState.Success -> {
                             SuccessActions(
                                 result = target.result,
-                                isPlayInM3PlayLoading = playInM3PlayLoading,
-                                onPlayInM3Play = {
-                                    val recognitionResult = target.result
-                                    scope.launch {
-                                        playInM3PlayLoading = true
-                                        val query = "${recognitionResult.title} ${recognitionResult.artist}".trim()
-                                        val song = findBestMatchingSong(query, recognitionResult.artist, recognitionResult.title)
-                                        if (song != null) {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = query,
-                                                    items = listOf(song.toMediaMetadata().toMediaItem()),
-                                                ),
-                                            )
-                                        } else {
-                                            state = MusicRecognitionState.Error(
-                                                context.getString(R.string.music_recognition_play_not_found),
-                                            )
-                                        }
-                                        playInM3PlayLoading = false
-                                    }
-                                },
                                 onSearch = {
                                     val query = "${target.result.title} ${target.result.artist}".trim()
                                     navController.navigate("search/${Uri.encode(query)}")
@@ -480,28 +449,6 @@ private suspend fun runRecognitionFlow(
             }
         },
     )
-}
-
-private suspend fun findBestMatchingSong(
-    query: String,
-    expectedArtist: String,
-    expectedTitle: String,
-): SongItem? = withContext(Dispatchers.IO) {
-    val result = YouTube.search(query = query, filter = YouTube.SearchFilter.FILTER_SONG).getOrNull()
-    val songs = result?.items?.filterIsInstance<SongItem>().orEmpty()
-
-    if (songs.isEmpty()) return@withContext null
-
-    val normalizedArtist = expectedArtist.trim().lowercase()
-    val normalizedTitle = expectedTitle.trim().lowercase()
-
-    songs.firstOrNull { song ->
-        val songTitle = song.title.trim().lowercase()
-        val artists = song.artists.joinToString(" ") { it.name }.lowercase()
-        normalizedTitle in songTitle && normalizedArtist in artists
-    } ?: songs.firstOrNull { song ->
-        song.title.trim().equals(expectedTitle.trim(), ignoreCase = true)
-    } ?: songs.first()
 }
 
 private fun buildMetadata(result: RecognitionResult): String {
@@ -809,8 +756,6 @@ private fun FailureCard(
 @Composable
 private fun SuccessActions(
     result: RecognitionResult,
-    isPlayInM3PlayLoading: Boolean,
-    onPlayInM3Play: () -> Unit,
     onSearch: () -> Unit,
     onListenAgain: () -> Unit,
 ) {
@@ -845,8 +790,7 @@ private fun SuccessActions(
             }
 
             Button(
-                onClick = onPlayInM3Play,
-                enabled = !isPlayInM3PlayLoading,
+                onClick = onSearch,
                 modifier =
                     Modifier
                         .weight(1f)
@@ -857,53 +801,19 @@ private fun SuccessActions(
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
             ) {
-                if (isPlayInM3PlayLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = stringResource(R.string.play_in_m3play),
+                    text = stringResource(R.string.search),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     softWrap = false,
                 )
             }
-        }
-
-        Button(
-            onClick = onSearch,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.search),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = stringResource(R.string.search),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false,
-            )
         }
 
         if (!result.shazamUrl.isNullOrBlank()) {
