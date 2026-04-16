@@ -9,8 +9,6 @@
     <string name="music_recognition_signature_failed">Couldn’t generate a signature</string>
     <string name="music_recognition_recognition_failed">Recognition failed</string>
     <string name="music_recognition_open_shazam">Open Shazam</string>
-    <string name="music_recognition_play_not_found">Couldn’t find a playable match in M3Play</string>
-    <string name="play_in_m3play">Play in M3Play</string>
     <string name="music_recognition_lyrics_preview">Lyrics preview</string>
     <string name="music_recognition_permission_title">Microphone permission</string>
     <string name="music_recognition_permission_desc">Allow microphone access to recognize nearby music.</string>
