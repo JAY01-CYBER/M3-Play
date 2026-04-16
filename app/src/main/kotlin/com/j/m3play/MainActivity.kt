@@ -29,6 +29,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -1555,12 +1556,12 @@ class MainActivity : ComponentActivity() {
                                         if (initialRoute in topLevelScreens && targetRoute in topLevelScreens) {
                                             val initialIndex = topLevelScreens.indexOf(initialRoute)
                                             val targetIndex = topLevelScreens.indexOf(targetRoute)
-                                            fadeIn(tween(220)) + slideInHorizontally(
-                                                animationSpec = tween(320),
+                                            fadeIn(tween(260, easing = FastOutSlowInEasing)) + slideInHorizontally(
+                                                animationSpec = tween(360, easing = FastOutSlowInEasing),
                                                 initialOffsetX = { if (targetIndex >= initialIndex) it / 2 else -it / 2 }
                                             )
                                         } else {
-                                            fadeIn(tween(250)) + slideInHorizontally { it / 2 }
+                                            fadeIn(tween(280, easing = FastOutSlowInEasing)) + slideInHorizontally(animationSpec = tween(360, easing = FastOutSlowInEasing)) { it / 2 }
                                         }
                                     },
                                     exitTransition = {
@@ -1569,12 +1570,12 @@ class MainActivity : ComponentActivity() {
                                         if (initialRoute in topLevelScreens && targetRoute in topLevelScreens) {
                                             val initialIndex = topLevelScreens.indexOf(initialRoute)
                                             val targetIndex = topLevelScreens.indexOf(targetRoute)
-                                            fadeOut(tween(180)) + slideOutHorizontally(
-                                                animationSpec = tween(320),
+                                            fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutHorizontally(
+                                                animationSpec = tween(360, easing = FastOutSlowInEasing),
                                                 targetOffsetX = { if (targetIndex >= initialIndex) -it / 3 else it / 3 }
                                             )
                                         } else {
-                                            fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
+                                            fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutHorizontally(animationSpec = tween(360, easing = FastOutSlowInEasing)) { -it / 2 }
                                         }
                                     },
                                     popEnterTransition = {
@@ -1583,12 +1584,12 @@ class MainActivity : ComponentActivity() {
                                         if ((initialRoute in topLevelScreens || initialRoute?.startsWith("search/") == true) && targetRoute in topLevelScreens) {
                                             val initialIndex = topLevelScreens.indexOf(initialRoute)
                                             val targetIndex = topLevelScreens.indexOf(targetRoute)
-                                            fadeIn(tween(220)) + slideInHorizontally(
-                                                animationSpec = tween(320),
+                                            fadeIn(tween(260, easing = FastOutSlowInEasing)) + slideInHorizontally(
+                                                animationSpec = tween(360, easing = FastOutSlowInEasing),
                                                 initialOffsetX = { if (targetIndex >= initialIndex) it / 2 else -it / 2 }
                                             )
                                         } else {
-                                            fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
+                                            fadeIn(tween(280, easing = FastOutSlowInEasing)) + slideInHorizontally(animationSpec = tween(360, easing = FastOutSlowInEasing)) { -it / 2 }
                                         }
                                     },
                                     popExitTransition = {
@@ -1597,12 +1598,12 @@ class MainActivity : ComponentActivity() {
                                         if ((initialRoute in topLevelScreens || initialRoute?.startsWith("search/") == true) && targetRoute in topLevelScreens) {
                                             val initialIndex = topLevelScreens.indexOf(initialRoute)
                                             val targetIndex = topLevelScreens.indexOf(targetRoute)
-                                            fadeOut(tween(180)) + slideOutHorizontally(
-                                                animationSpec = tween(320),
+                                            fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutHorizontally(
+                                                animationSpec = tween(360, easing = FastOutSlowInEasing),
                                                 targetOffsetX = { if (targetIndex >= initialIndex) -it / 3 else it / 3 }
                                             )
                                         } else {
-                                            fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
+                                            fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutHorizontally(animationSpec = tween(360, easing = FastOutSlowInEasing)) { it / 2 }
                                         }
                                     },
                                     modifier = Modifier.nestedScroll(
