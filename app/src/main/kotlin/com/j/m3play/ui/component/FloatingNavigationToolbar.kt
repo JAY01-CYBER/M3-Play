@@ -4,12 +4,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -24,9 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,16 +44,16 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val mainContainerColor = if (pureBlack) {
-        Color(0xFF121212).copy(alpha = 0.96f)
+        Color.White.copy(alpha = 0.10f)
     } else {
-        colorScheme.surface.copy(alpha = 0.93f)
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
     }
+
     val detachedContainerColor = if (pureBlack) {
-        Color(0xFF141414).copy(alpha = 0.94f)
+        Color.White.copy(alpha = 0.10f)
     } else {
-        colorScheme.surface.copy(alpha = 0.90f)
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
     }
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
@@ -72,9 +68,12 @@ fun FloatingNavigationToolbar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        GlassContainer(
+        Surface(
             color = mainContainerColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             shape = RoundedCornerShape(32.dp),
+            tonalElevation = 2.dp,
+            shadowElevation = 10.dp,
             modifier = Modifier.widthIn(max = if (slim) 252.dp else 282.dp),
         ) {
             Row(
@@ -86,7 +85,6 @@ fun FloatingNavigationToolbar(
                     AppleNavItem(
                         screen = screen,
                         selected = isSelected(screen),
-                        pureBlack = pureBlack,
                         onClick = { onItemClick(screen, isSelected(screen)) },
                     )
                 }
@@ -129,55 +127,22 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun GlassContainer(
-    color: Color,
-    shape: RoundedCornerShape,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Surface(
-        color = color,
-        shape = shape,
-        tonalElevation = 0.dp,
-        shadowElevation = 8.dp,
-        modifier = modifier,
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(shape)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.16f),
-                            Color.White.copy(alpha = 0.06f),
-                        ),
-                    ),
-                ),
-        ) {
-            content()
-        }
-    }
-}
-
-@Composable
 private fun AppleNavItem(
     screen: Screens,
     selected: Boolean,
-    pureBlack: Boolean,
     onClick: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (pureBlack) colorScheme.primary.copy(alpha = 0.30f)
-            else colorScheme.primary.copy(alpha = 0.22f)
+            if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.Black.copy(alpha = 0.07f)
+            else Color.White.copy(alpha = 0.12f)
         } else {
             Color.Transparent
         },
         label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "apple_nav_item_content",
     )
     val horizontalPadding by animateDpAsState(
@@ -191,8 +156,7 @@ private fun AppleNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(24.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = if (selected) 1.dp else 0.dp,
+        tonalElevation = if (selected) 1.dp else 0.dp,
         modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
         Row(
@@ -226,17 +190,16 @@ private fun DetachedCircleButton(
     pureBlack: Boolean,
     containerColor: Color,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
     val resolvedContainerColor by animateColorAsState(
         targetValue = if (selected) {
-            if (pureBlack) colorScheme.primary.copy(alpha = 0.28f) else colorScheme.primary.copy(alpha = 0.20f)
+            if (pureBlack) Color.White.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.08f)
         } else {
             containerColor
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) colorScheme.primary else colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+        targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
         label = "detached_button_content",
     )
 
@@ -245,30 +208,17 @@ private fun DetachedCircleButton(
         color = resolvedContainerColor,
         contentColor = contentColor,
         shape = CircleShape,
-        tonalElevation = 0.dp,
-        shadowElevation = 7.dp,
+        tonalElevation = 2.dp,
+        shadowElevation = 8.dp,
         modifier = Modifier.size(54.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.14f),
-                            Color.White.copy(alpha = 0.04f),
-                        ),
-                    ),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            IconButton(onClick = onClick) {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = contentDescription,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+        IconButton(onClick = onClick) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
+
