@@ -143,23 +143,25 @@ private fun AppleNavItem(
 ) {
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            val base = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.46f)
+            val vivid = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.70f)
             } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.52f)
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.76f)
             }
-            base.copy(alpha = 0.98f)
+            vivid.copy(alpha = 0.99f)
         } else {
             Color.Transparent
         },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "apple_nav_item_container",
     )
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
-            if (accentColor.luminance() > 0.52f) Color(0xFF111111) else Color.White.copy(alpha = 0.96f)
+            if (accentColor.luminance() > 0.68f) Color(0xFF101010) else Color.White.copy(alpha = 0.98f)
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
         },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "apple_nav_item_content",
     )
     val horizontalPadding by animateDpAsState(
@@ -233,21 +235,23 @@ private fun DetachedCircleButton(
     val resolvedContainerColor by animateColorAsState(
         targetValue = if (selected) {
             if (pureBlack) {
-                lerp(Color(0xFF101010), accentColor, 0.38f).copy(alpha = 0.98f)
+                lerp(Color(0xFF101010), accentColor, 0.52f).copy(alpha = 0.99f)
             } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.46f).copy(alpha = 0.98f)
+                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.70f).copy(alpha = 0.99f)
             }
         } else {
             containerColor
         },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
         targetValue = if (selected) {
-            if (accentColor.luminance() > 0.52f) Color(0xFF111111) else Color.White.copy(alpha = 0.96f)
+            if (accentColor.luminance() > 0.68f) Color(0xFF101010) else Color.White.copy(alpha = 0.98f)
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
         },
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "detached_button_content",
     )
 
