@@ -1410,6 +1410,7 @@ class MainActivity : ComponentActivity() {
                                                 items = navigationItems,
                                                 slim = slimNav,
                                                 pureBlack = pureBlack,
+                                                accentColor = Color(themeColor),
                                                 modifier = Modifier
                                                     .align(Alignment.BottomCenter)
                                                     .padding(
@@ -1549,29 +1550,57 @@ class MainActivity : ComponentActivity() {
                                         else -> Screens.Home
                                     }.route,
                                     enterTransition = {
-                                        if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
-                                            fadeIn(tween(250))
+                                        val initialRoute = initialState.destination.route
+                                        val targetRoute = targetState.destination.route
+                                        if (initialRoute in topLevelScreens && targetRoute in topLevelScreens) {
+                                            val initialIndex = topLevelScreens.indexOf(initialRoute)
+                                            val targetIndex = topLevelScreens.indexOf(targetRoute)
+                                            fadeIn(tween(220)) + slideInHorizontally(
+                                                animationSpec = tween(320),
+                                                initialOffsetX = { if (targetIndex >= initialIndex) it / 2 else -it / 2 }
+                                            )
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { it / 2 }
                                         }
                                     },
                                     exitTransition = {
-                                        if (initialState.destination.route in topLevelScreens && targetState.destination.route in topLevelScreens) {
-                                            fadeOut(tween(200))
+                                        val initialRoute = initialState.destination.route
+                                        val targetRoute = targetState.destination.route
+                                        if (initialRoute in topLevelScreens && targetRoute in topLevelScreens) {
+                                            val initialIndex = topLevelScreens.indexOf(initialRoute)
+                                            val targetIndex = topLevelScreens.indexOf(targetRoute)
+                                            fadeOut(tween(180)) + slideOutHorizontally(
+                                                animationSpec = tween(320),
+                                                targetOffsetX = { if (targetIndex >= initialIndex) -it / 3 else it / 3 }
+                                            )
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
                                         }
                                     },
                                     popEnterTransition = {
-                                        if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
-                                            fadeIn(tween(250))
+                                        val initialRoute = initialState.destination.route
+                                        val targetRoute = targetState.destination.route
+                                        if ((initialRoute in topLevelScreens || initialRoute?.startsWith("search/") == true) && targetRoute in topLevelScreens) {
+                                            val initialIndex = topLevelScreens.indexOf(initialRoute)
+                                            val targetIndex = topLevelScreens.indexOf(targetRoute)
+                                            fadeIn(tween(220)) + slideInHorizontally(
+                                                animationSpec = tween(320),
+                                                initialOffsetX = { if (targetIndex >= initialIndex) it / 2 else -it / 2 }
+                                            )
                                         } else {
                                             fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
                                         }
                                     },
                                     popExitTransition = {
-                                        if ((initialState.destination.route in topLevelScreens || initialState.destination.route?.startsWith("search/") == true) && targetState.destination.route in topLevelScreens) {
-                                            fadeOut(tween(200))
+                                        val initialRoute = initialState.destination.route
+                                        val targetRoute = targetState.destination.route
+                                        if ((initialRoute in topLevelScreens || initialRoute?.startsWith("search/") == true) && targetRoute in topLevelScreens) {
+                                            val initialIndex = topLevelScreens.indexOf(initialRoute)
+                                            val targetIndex = topLevelScreens.indexOf(targetRoute)
+                                            fadeOut(tween(180)) + slideOutHorizontally(
+                                                animationSpec = tween(320),
+                                                targetOffsetX = { if (targetIndex >= initialIndex) -it / 3 else it / 3 }
+                                            )
                                         } else {
                                             fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
                                         }
