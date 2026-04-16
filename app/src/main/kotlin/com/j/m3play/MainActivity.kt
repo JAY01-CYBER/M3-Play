@@ -1410,7 +1410,7 @@ class MainActivity : ComponentActivity() {
                                                 items = navigationItems,
                                                 slim = slimNav,
                                                 pureBlack = pureBlack,
-                                                accentColor = Color(themeColor),
+                                                accentColor = themeColor,
                                                 modifier = Modifier
                                                     .align(Alignment.BottomCenter)
                                                     .padding(
