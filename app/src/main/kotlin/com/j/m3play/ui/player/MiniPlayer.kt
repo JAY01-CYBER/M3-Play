@@ -102,8 +102,6 @@ fun MiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
-,
-    transitionProgress: Float = 0f
 ) {
     val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
 
@@ -112,16 +110,14 @@ fun MiniPlayer(
             position = position,
             duration = duration,
             modifier = modifier,
-            pureBlack = pureBlack,
-            transitionProgress = transitionProgress
+            pureBlack = pureBlack
         )
     } else {
         LegacyMiniPlayer(
             position = position,
             duration = duration,
             modifier = modifier,
-            pureBlack = pureBlack,
-            transitionProgress = transitionProgress
+            pureBlack = pureBlack
         )
     }
 }
@@ -132,8 +128,6 @@ private fun NewMiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
-,
-    transitionProgress: Float
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val layoutDirection = LocalLayoutDirection.current
@@ -157,10 +151,10 @@ private fun NewMiniPlayer(
                 .height(64.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f))
                 .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                    width = 0.6.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(32.dp)
                 )
         ) {
@@ -180,8 +174,6 @@ private fun LegacyMiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
-,
-    transitionProgress: Float
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -394,7 +386,6 @@ private fun LegacyMiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
     pureBlack: Boolean,
-    transitionProgress: Float,
     modifier: Modifier = Modifier,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)

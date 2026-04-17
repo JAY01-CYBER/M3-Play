@@ -299,20 +299,10 @@ private fun MiniPlayerArtwork(
     isPlaying: Boolean,
     position: Long,
     duration: Long,
-,
-    transitionProgress: Float = 0f
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(56.dp)
-            .graphicsLayer {
-                val p = transitionProgress.coerceIn(0f, 1f)
-                alpha = 1f - p
-                scaleX = 1f + (0.12f * p)
-                scaleY = 1f + (0.12f * p)
-                translationY = -30f * p
-            }
+        modifier = Modifier.size(56.dp)
     ) {
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
@@ -344,49 +334,43 @@ private fun WavyCircularProgress(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val (rotation, waveShift, amplitudePulse) = if (isPlaying) {
-        val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
-        Triple(
-            infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 2200,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "ring_rotation",
-            ).value,
-            infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = (Math.PI * 2).toFloat(),
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 1200,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "ring_wave_shift",
-            ).value,
-            infiniteTransition.animateFloat(
-                initialValue = 0.85f,
-                targetValue = 1.15f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 900,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "ring_amplitude",
-            ).value,
-        )
-    } else {
-        Triple(0f, 0f, 1f)
-    }
+    val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween<Float>(
+                durationMillis = if (isPlaying) 2200 else 5200,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "ring_rotation",
+    )
+    val waveShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (Math.PI * 2).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween<Float>(
+                durationMillis = if (isPlaying) 1200 else 2200,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "ring_wave_shift",
+    )
+    val amplitudePulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween<Float>(
+                durationMillis = if (isPlaying) 900 else 1600,
+                easing = LinearEasing,
+            ),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "ring_amplitude",
+    )
 
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
@@ -505,8 +489,6 @@ fun NewMiniPlayerContent(
     position: Long,
     duration: Long,
     playerConnection: PlayerConnection
-,
-    transitionProgress: Float = 0f
 ) {
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
@@ -531,7 +513,6 @@ fun NewMiniPlayerContent(
                 isPlaying = isPlaying,
                 position = position,
                 duration = duration,
-                transitionProgress = transitionProgress,
             )
 
             Spacer(modifier = Modifier.width(12.dp))
