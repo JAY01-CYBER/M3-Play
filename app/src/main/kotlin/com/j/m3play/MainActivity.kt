@@ -665,6 +665,12 @@ class MainActivity : ComponentActivity() {
                     val shouldShowHomeShuffleButton =
                         currentRoute == Screens.Home.route &&
                             (allLocalItems.isNotEmpty() || allYtItems.isNotEmpty())
+                    val homeFloatingButtonsVisibleState =
+                        navBackStackEntry?.savedStateHandle
+                            ?.getStateFlow("homeFloatingButtonsVisible", true)
+                            ?.collectAsState()
+                    val shouldShowHomeFloatingButtons =
+                        shouldShowHomeShuffleButton && (homeFloatingButtonsVisibleState?.value ?: true)
 
                     fun getBottomNavPadding(): Dp {
                         return if (shouldShowNavigationBar && !useRail) {
@@ -1420,7 +1426,7 @@ class MainActivity : ComponentActivity() {
                                                         bottom = bottomInset + floatingBarsBottomPadding,
                                                     )
                                                     .height(navVisibleHeight),
-                                                onShuffleClick = if (shouldShowHomeShuffleButton) {
+                                                onShuffleClick = if (shouldShowHomeFloatingButtons) {
                                                     {
                                                         val useLocalSource = when {
                                                             allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5f
@@ -1480,12 +1486,12 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 } else null,
-                                                shuffleIconRes = if (shouldShowHomeShuffleButton) R.drawable.shuffle else null,
-                                                shuffleContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.shuffle) else "",
-                                                onMusicRecognitionClick = if (shouldShowHomeShuffleButton) {
+                                                shuffleIconRes = if (shouldShowHomeFloatingButtons) R.drawable.shuffle else null,
+                                                shuffleContentDescription = if (shouldShowHomeFloatingButtons) stringResource(R.string.shuffle) else "",
+                                                onMusicRecognitionClick = if (shouldShowHomeFloatingButtons) {
                                                     { navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute) }
                                                 } else null,
-                                                musicRecognitionContentDescription = if (shouldShowHomeShuffleButton) stringResource(R.string.music_recognition) else "",
+                                                musicRecognitionContentDescription = if (shouldShowHomeFloatingButtons) stringResource(R.string.music_recognition) else "",
                                                 isSelected = { screen ->
                                                     navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
                                                         true
