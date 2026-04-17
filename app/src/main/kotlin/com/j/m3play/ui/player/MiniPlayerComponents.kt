@@ -299,18 +299,20 @@ private fun MiniPlayerArtwork(
     isPlaying: Boolean,
     position: Long,
     duration: Long,
-    transitionProgress: Float = 0f,
+,
+    transitionProgress: Float = 0f
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(56.dp)
-        .graphicsLayer {
-            val p = transitionProgress.coerceIn(0f,1f)
-            alpha = 1f - p
-            scaleX = 1f + (0.1f*p)
-            scaleY = 1f + (0.1f*p)
-            translationY = -24f*p
-        }
+        modifier = Modifier
+            .size(56.dp)
+            .graphicsLayer {
+                val p = transitionProgress.coerceIn(0f, 1f)
+                alpha = 1f - p
+                scaleX = 1f + (0.12f * p)
+                scaleY = 1f + (0.12f * p)
+                translationY = -30f * p
+            }
     ) {
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
@@ -502,7 +504,8 @@ fun NewMiniPlayerContent(
     pureBlack: Boolean,
     position: Long,
     duration: Long,
-    playerConnection: PlayerConnection,
+    playerConnection: PlayerConnection
+,
     transitionProgress: Float = 0f
 ) {
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -528,6 +531,7 @@ fun NewMiniPlayerContent(
                 isPlaying = isPlaying,
                 position = position,
                 duration = duration,
+                transitionProgress = transitionProgress,
             )
 
             Spacer(modifier = Modifier.width(12.dp))
