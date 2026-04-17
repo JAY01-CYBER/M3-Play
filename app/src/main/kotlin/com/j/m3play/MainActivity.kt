@@ -26,12 +26,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -206,6 +208,7 @@ import com.j.m3play.ui.component.BottomSheetPage
 import com.j.m3play.ui.component.COLLAPSED_ANCHOR
 import com.j.m3play.ui.component.DISMISSED_ANCHOR
 import com.j.m3play.ui.component.EXPANDED_ANCHOR
+import com.j.m3play.ui.component.FloatingDetachedActionButton
 import com.j.m3play.ui.component.FloatingNavigationToolbar
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalBottomSheetPageState
@@ -1413,6 +1416,110 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                         ) {
+                                            AnimatedVisibility(
+                                                visible = shouldShowHomeFloatingButtons,
+                                                enter = fadeIn() + slideInVertically { it / 2 },
+                                                exit = fadeOut() + slideOutVertically { it / 2 },
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(
+                                                        end = 16.dp,
+                                                        bottom = bottomInset + floatingBarsBottomPadding + navVisibleHeight + 96.dp,
+                                                    ),
+                                            ) {
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                                    horizontalAlignment = Alignment.End,
+                                                ) {
+                                                    FloatingDetachedActionButton(
+                                                        iconRes = R.drawable.mic,
+                                                        contentDescription = stringResource(R.string.music_recognition),
+                                                        selected = false,
+                                                        onClick = {
+                                                            navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute)
+                                                        },
+                                                        pureBlack = pureBlack,
+                                                        accentColor = themeColor,
+                                                        containerColor = if (pureBlack) {
+                                                            Color(0xFF1A1A1A).copy(alpha = 0.96f)
+                                                        } else {
+                                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                                        },
+                                                    )
+
+                                                    FloatingDetachedActionButton(
+                                                        iconRes = R.drawable.shuffle,
+                                                        contentDescription = stringResource(R.string.shuffle),
+                                                        selected = false,
+                                                        onClick = {
+                                                            val useLocalSource = when {
+                                                                allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5f
+                                                                allLocalItems.isNotEmpty() -> true
+                                                                else -> false
+                                                            }
+
+                                                            coroutineScope.launch(Dispatchers.Main) {
+                                                                if (useLocalSource) {
+                                                                    when (val luckyItem = allLocalItems.random()) {
+                                                                        is Song -> {
+                                                                            playerConnection?.playQueue(
+                                                                                YouTubeQueue.radio(luckyItem.toMediaMetadata())
+                                                                            )
+                                                                        }
+
+                                                                        is Album -> {
+                                                                            val albumWithSongs = withContext(Dispatchers.IO) {
+                                                                                database.albumWithSongs(luckyItem.id).first()
+                                                                            }
+
+                                                                            albumWithSongs?.let {
+                                                                                playerConnection?.playQueue(LocalAlbumRadio(it))
+                                                                            }
+                                                                        }
+
+                                                                        is Artist -> Unit
+                                                                        is Playlist -> Unit
+                                                                    }
+                                                                } else {
+                                                                    when (val luckyItem = allYtItems.random()) {
+                                                                        is SongItem -> {
+                                                                            playerConnection?.playQueue(
+                                                                                YouTubeQueue.radio(luckyItem.toMediaMetadata())
+                                                                            )
+                                                                        }
+
+                                                                        is AlbumItem -> {
+                                                                            playerConnection?.playQueue(
+                                                                                YouTubeAlbumRadio(luckyItem.playlistId)
+                                                                            )
+                                                                        }
+
+                                                                        is ArtistItem -> {
+                                                                            luckyItem.radioEndpoint?.let {
+                                                                                playerConnection?.playQueue(YouTubeQueue(it))
+                                                                            }
+                                                                        }
+
+                                                                        is PlaylistItem -> {
+                                                                            luckyItem.playEndpoint?.let {
+                                                                                playerConnection?.playQueue(YouTubeQueue(it))
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        pureBlack = pureBlack,
+                                                        accentColor = themeColor,
+                                                        containerColor = if (pureBlack) {
+                                                            Color(0xFF1A1A1A).copy(alpha = 0.96f)
+                                                        } else {
+                                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                                                        },
+                                                    )
+                                                }
+                                            }
+
                                             FloatingNavigationToolbar(
                                                 items = navigationItems,
                                                 slim = slimNav,
@@ -1426,72 +1533,11 @@ class MainActivity : ComponentActivity() {
                                                         bottom = bottomInset + floatingBarsBottomPadding,
                                                     )
                                                     .height(navVisibleHeight),
-                                                onShuffleClick = if (shouldShowHomeFloatingButtons) {
-                                                    {
-                                                        val useLocalSource = when {
-                                                            allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> Random.nextFloat() < 0.5f
-                                                            allLocalItems.isNotEmpty() -> true
-                                                            else -> false
-                                                        }
-
-                                                        coroutineScope.launch(Dispatchers.Main) {
-                                                            if (useLocalSource) {
-                                                                when (val luckyItem = allLocalItems.random()) {
-                                                                    is Song -> {
-                                                                        playerConnection?.playQueue(
-                                                                            YouTubeQueue.radio(luckyItem.toMediaMetadata())
-                                                                        )
-                                                                    }
-
-                                                                    is Album -> {
-                                                                        val albumWithSongs = withContext(Dispatchers.IO) {
-                                                                            database.albumWithSongs(luckyItem.id).first()
-                                                                        }
-
-                                                                        albumWithSongs?.let {
-                                                                            playerConnection?.playQueue(LocalAlbumRadio(it))
-                                                                        }
-                                                                    }
-
-                                                                    is Artist -> Unit
-                                                                    is Playlist -> Unit
-                                                                }
-                                                            } else {
-                                                                when (val luckyItem = allYtItems.random()) {
-                                                                    is SongItem -> {
-                                                                        playerConnection?.playQueue(
-                                                                            YouTubeQueue.radio(luckyItem.toMediaMetadata())
-                                                                        )
-                                                                    }
-
-                                                                    is AlbumItem -> {
-                                                                        playerConnection?.playQueue(
-                                                                            YouTubeAlbumRadio(luckyItem.playlistId)
-                                                                        )
-                                                                    }
-
-                                                                    is ArtistItem -> {
-                                                                        luckyItem.radioEndpoint?.let {
-                                                                            playerConnection?.playQueue(YouTubeQueue(it))
-                                                                        }
-                                                                    }
-
-                                                                    is PlaylistItem -> {
-                                                                        luckyItem.playEndpoint?.let {
-                                                                            playerConnection?.playQueue(YouTubeQueue(it))
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                } else null,
-                                                shuffleIconRes = if (shouldShowHomeFloatingButtons) R.drawable.shuffle else null,
-                                                shuffleContentDescription = if (shouldShowHomeFloatingButtons) stringResource(R.string.shuffle) else "",
-                                                onMusicRecognitionClick = if (shouldShowHomeFloatingButtons) {
-                                                    { navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute) }
-                                                } else null,
-                                                musicRecognitionContentDescription = if (shouldShowHomeFloatingButtons) stringResource(R.string.music_recognition) else "",
+                                                onShuffleClick = null,
+                                                shuffleIconRes = null,
+                                                shuffleContentDescription = "",
+                                                onMusicRecognitionClick = null,
+                                                musicRecognitionContentDescription = "",
                                                 isSelected = { screen ->
                                                     navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } ==
                                                         true
