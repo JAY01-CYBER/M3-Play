@@ -1,5 +1,3 @@
-private fun smoothProgress(p: Float): Float = p * p * (3f - 2f * p)
-
 /*
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
@@ -280,7 +278,7 @@ fun BottomSheetPlayer(
         }
     } else {
         if (useBlackBackground) {
-            lerp(MaterialTheme.colorScheme.surfaceContainer, Color.Black, smoothProgress(state.progress.coerceIn(0f,1f)))
+            lerp(MaterialTheme.colorScheme.surfaceContainer, Color.Black, state.progress)
         } else {
             MaterialTheme.colorScheme.surfaceContainer
         }
