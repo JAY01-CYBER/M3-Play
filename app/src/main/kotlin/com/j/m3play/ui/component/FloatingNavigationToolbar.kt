@@ -1,10 +1,5 @@
 package com.j.m3play.ui.component
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -99,38 +94,6 @@ fun FloatingNavigationToolbar(
                     )
                 }
             }
-        }
-
-        AnimatedVisibility(
-            visible = onMusicRecognitionClick != null,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-        ) {
-            DetachedCircleButton(
-                iconRes = R.drawable.mic,
-                contentDescription = musicRecognitionContentDescription,
-                selected = false,
-                onClick = { onMusicRecognitionClick?.invoke() },
-                pureBlack = pureBlack,
-                accentColor = softenedAccent,
-                containerColor = detachedContainerColor,
-            )
-        }
-
-        AnimatedVisibility(
-            visible = onShuffleClick != null && shuffleIconRes != null,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-        ) {
-            DetachedCircleButton(
-                iconRes = shuffleIconRes ?: R.drawable.shuffle,
-                contentDescription = shuffleContentDescription,
-                selected = false,
-                onClick = { onShuffleClick?.invoke() },
-                pureBlack = pureBlack,
-                accentColor = softenedAccent,
-                containerColor = detachedContainerColor,
-            )
         }
 
         if (moodScreen != null) {
@@ -236,7 +199,7 @@ private fun rememberSoftAccent(
 }
 
 @Composable
-private fun DetachedCircleButton(
+fun FloatingDetachedActionButton(
     iconRes: Int,
     contentDescription: String,
     selected: Boolean,
