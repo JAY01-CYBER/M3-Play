@@ -63,8 +63,6 @@ fun FloatingNavigationToolbar(
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
     val libraryScreen = items.firstOrNull { it.route == Screens.Library.route }
     val searchScreen = items.firstOrNull { it.route == Screens.Search.route }
-    val moodScreen = items.firstOrNull { it.route == Screens.MoodAndGenres.route }
-
     val primaryScreens = listOfNotNull(homeScreen, libraryScreen, searchScreen)
 
     Row(
@@ -95,37 +93,7 @@ fun FloatingNavigationToolbar(
                 }
             }
         }
-
-        if (onMusicRecognitionClick != null) {
-            DetachedCircleButton(
-                iconRes = R.drawable.mic,
-                contentDescription = musicRecognitionContentDescription,
-                selected = false,
-                onClick = onMusicRecognitionClick,
-                pureBlack = pureBlack,
-                accentColor = softenedAccent,
-                containerColor = detachedContainerColor,
-            )
-        }
-
-        if (onShuffleClick != null && shuffleIconRes != null) {
-            DetachedCircleButton(
-                iconRes = shuffleIconRes,
-                contentDescription = shuffleContentDescription,
-                selected = false,
-                onClick = onShuffleClick,
-                pureBlack = pureBlack,
-                accentColor = softenedAccent,
-                containerColor = detachedContainerColor,
-            )
-        }
-
-        if (moodScreen != null) {
-            DetachedCircleButton(
-                iconRes = moodScreen.iconIdActive,
-                contentDescription = stringResource(moodScreen.titleId),
-                selected = isSelected(moodScreen),
-                onClick = { onItemClick(moodScreen, isSelected(moodScreen)) },
+,
                 pureBlack = pureBlack,
                 accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
