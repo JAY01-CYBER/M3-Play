@@ -303,6 +303,13 @@ private fun MiniPlayerArtwork(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(56.dp)
+        .graphicsLayer {
+            val p = transitionProgress.coerceIn(0f,1f)
+            alpha = 1f - p
+            scaleX = 1f + (0.12f*p)
+            scaleY = 1f + (0.12f*p)
+            translationY = -30f*p
+        }
     ) {
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,

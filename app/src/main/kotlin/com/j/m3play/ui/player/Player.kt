@@ -921,7 +921,14 @@ fun BottomSheetPlayer(
                             val thumbnailSize = (screenWidth * 0.4).dp
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.size(thumbnailSize),
+                                modifier = Modifier.size(thumbnailSize)
+        .graphicsLayer {
+            val p = state.progress.coerceIn(0f,1f)
+            alpha = p
+            scaleX = 0.8f + (0.2f*p)
+            scaleY = 0.8f + (0.2f*p)
+            translationY = (1f - p)*140f
+        },
                                 isPlayerExpanded = state.isExpanded
                             )
                         }
