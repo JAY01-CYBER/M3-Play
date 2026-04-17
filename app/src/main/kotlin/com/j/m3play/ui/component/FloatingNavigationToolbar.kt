@@ -1,5 +1,10 @@
 package com.j.m3play.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -96,24 +101,32 @@ fun FloatingNavigationToolbar(
             }
         }
 
-        if (onMusicRecognitionClick != null) {
+        AnimatedVisibility(
+            visible = onMusicRecognitionClick != null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+        ) {
             DetachedCircleButton(
                 iconRes = R.drawable.mic,
                 contentDescription = musicRecognitionContentDescription,
                 selected = false,
-                onClick = onMusicRecognitionClick,
+                onClick = { onMusicRecognitionClick?.invoke() },
                 pureBlack = pureBlack,
                 accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
             )
         }
 
-        if (onShuffleClick != null && shuffleIconRes != null) {
+        AnimatedVisibility(
+            visible = onShuffleClick != null && shuffleIconRes != null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+        ) {
             DetachedCircleButton(
-                iconRes = shuffleIconRes,
+                iconRes = shuffleIconRes ?: R.drawable.shuffle,
                 contentDescription = shuffleContentDescription,
                 selected = false,
-                onClick = onShuffleClick,
+                onClick = { onShuffleClick?.invoke() },
                 pureBlack = pureBlack,
                 accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
