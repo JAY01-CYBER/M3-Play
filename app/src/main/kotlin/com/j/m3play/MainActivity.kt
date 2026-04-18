@@ -666,12 +666,8 @@ class MainActivity : ComponentActivity() {
                     val shouldShowHomeShuffleButton =
                         currentRoute == Screens.Home.route &&
                             (allLocalItems.isNotEmpty() || allYtItems.isNotEmpty())
-                    val homeFloatingButtonsVisibleState =
-                        navBackStackEntry?.savedStateHandle
-                            ?.getStateFlow("homeFloatingButtonsVisible", true)
-                            ?.collectAsState()
                     val shouldShowHomeFloatingButtons =
-                        shouldShowHomeShuffleButton && (homeFloatingButtonsVisibleState?.value ?: true)
+                        currentRoute == Screens.Home.route
 
                     fun getBottomNavPadding(): Dp {
                         return if (shouldShowNavigationBar && !useRail) {
