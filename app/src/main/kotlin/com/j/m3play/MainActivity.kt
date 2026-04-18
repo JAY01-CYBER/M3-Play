@@ -1564,20 +1564,24 @@ class MainActivity : ComponentActivity() {
                                         topAppBarScrollBehavior,
                                         latestVersionName
                                     )
+                                    }
                                 }
                             }
 
                             if (shouldShowHomeFloatingButtons) {
-                                Column(
+                                Box(
                                     modifier = Modifier
-                                        .wrapContentSize(Alignment.BottomEnd)
+                                        .fillMaxSize()
                                         .padding(
                                             end = 16.dp,
                                             bottom = bottomInset + floatingBarsBottomPadding + navVisibleHeight + 140.dp,
                                         ),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    horizontalAlignment = Alignment.End,
+                                    contentAlignment = Alignment.BottomEnd,
                                 ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalAlignment = Alignment.End,
+                                    ) {
                                     FloatingDetachedActionButton(
                                         iconRes = R.drawable.mic,
                                         contentDescription = stringResource(R.string.music_recognition),
