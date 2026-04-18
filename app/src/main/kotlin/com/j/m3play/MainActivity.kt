@@ -34,8 +34,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -1416,18 +1414,14 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                         ) {
-                                            AnimatedVisibility(
-                                                visible = shouldShowHomeFloatingButtons,
-                                                enter = fadeIn() + slideInVertically { it / 2 },
-                                                exit = fadeOut() + slideOutVertically { it / 2 },
-                                                modifier = Modifier
-                                                    .align(Alignment.BottomEnd)
-                                                    .padding(
-                                                        end = 16.dp,
-                                                        bottom = bottomInset + floatingBarsBottomPadding + navVisibleHeight + 96.dp,
-                                                    ),
-                                            ) {
+                                            if (shouldShowHomeFloatingButtons) {
                                                 Column(
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomEnd)
+                                                        .padding(
+                                                            end = 16.dp,
+                                                            bottom = bottomInset + floatingBarsBottomPadding + navVisibleHeight + 96.dp,
+                                                        ),
                                                     verticalArrangement = Arrangement.spacedBy(12.dp),
                                                     horizontalAlignment = Alignment.End,
                                                 ) {
