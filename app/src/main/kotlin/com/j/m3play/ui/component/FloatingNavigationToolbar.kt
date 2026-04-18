@@ -96,6 +96,30 @@ fun FloatingNavigationToolbar(
             }
         }
 
+        if (onMusicRecognitionClick != null) {
+            DetachedCircleButton(
+                iconRes = R.drawable.mic,
+                contentDescription = musicRecognitionContentDescription,
+                selected = false,
+                onClick = onMusicRecognitionClick,
+                pureBlack = pureBlack,
+                accentColor = softenedAccent,
+                containerColor = detachedContainerColor,
+            )
+        }
+
+        if (onShuffleClick != null && shuffleIconRes != null) {
+            DetachedCircleButton(
+                iconRes = shuffleIconRes,
+                contentDescription = shuffleContentDescription,
+                selected = false,
+                onClick = onShuffleClick,
+                pureBlack = pureBlack,
+                accentColor = softenedAccent,
+                containerColor = detachedContainerColor,
+            )
+        }
+
         if (moodScreen != null) {
             DetachedCircleButton(
                 iconRes = moodScreen.iconIdActive,
@@ -108,28 +132,6 @@ fun FloatingNavigationToolbar(
             )
         }
     }
-}
-
-
-@Composable
-private fun DetachedCircleButton(
-    iconRes: Int,
-    contentDescription: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    pureBlack: Boolean,
-    accentColor: Color,
-    containerColor: Color,
-) {
-    FloatingDetachedActionButton(
-        iconRes = iconRes,
-        contentDescription = contentDescription,
-        selected = selected,
-        onClick = onClick,
-        pureBlack = pureBlack,
-        accentColor = accentColor,
-        containerColor = containerColor,
-    )
 }
 
 @Composable
@@ -221,7 +223,7 @@ private fun rememberSoftAccent(
 }
 
 @Composable
-fun FloatingDetachedActionButton(
+private fun DetachedCircleButton(
     iconRes: Int,
     contentDescription: String,
     selected: Boolean,
