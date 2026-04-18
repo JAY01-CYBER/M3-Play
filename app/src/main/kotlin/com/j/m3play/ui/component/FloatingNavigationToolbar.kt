@@ -110,6 +110,28 @@ fun FloatingNavigationToolbar(
     }
 }
 
+
+@Composable
+private fun DetachedCircleButton(
+    iconRes: Int,
+    contentDescription: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    pureBlack: Boolean,
+    accentColor: Color,
+    containerColor: Color,
+) {
+    FloatingDetachedActionButton(
+        iconRes = iconRes,
+        contentDescription = contentDescription,
+        selected = selected,
+        onClick = onClick,
+        pureBlack = pureBlack,
+        accentColor = accentColor,
+        containerColor = containerColor,
+    )
+}
+
 @Composable
 private fun AppleNavItem(
     screen: Screens,
