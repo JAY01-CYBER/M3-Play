@@ -1570,7 +1570,7 @@ class MainActivity : ComponentActivity() {
                             if (shouldShowHomeFloatingButtons) {
                                 Column(
                                     modifier = Modifier
-                                        .align(Alignment.BottomEnd)
+                                        .wrapContentSize(Alignment.BottomEnd)
                                         .padding(
                                             end = 16.dp,
                                             bottom = bottomInset + floatingBarsBottomPadding + navVisibleHeight + 140.dp,
