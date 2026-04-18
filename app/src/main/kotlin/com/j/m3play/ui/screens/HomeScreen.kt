@@ -148,34 +148,6 @@ fun HomeScreen(
             }
     }
 
-    LaunchedEffect(lazylistState, backStackEntry) {
-        var previousIndex = lazylistState.firstVisibleItemIndex
-        var previousOffset = lazylistState.firstVisibleItemScrollOffset
-
-        backStackEntry?.savedStateHandle?.set("homeFloatingButtonsVisible", true)
-
-        snapshotFlow {
-            lazylistState.firstVisibleItemIndex to lazylistState.firstVisibleItemScrollOffset
-        }.collect { (currentIndex, currentOffset) ->
-            val isScrollingUp = when {
-                currentIndex != previousIndex -> currentIndex < previousIndex
-                currentOffset != previousOffset -> currentOffset < previousOffset
-                else -> currentIndex == 0 && currentOffset == 0
-            }
-
-            val shouldShowFloatingButtons =
-                (currentIndex == 0 && currentOffset == 0) || isScrollingUp
-
-            backStackEntry?.savedStateHandle?.set(
-                "homeFloatingButtonsVisible",
-                shouldShowFloatingButtons,
-            )
-
-            previousIndex = currentIndex
-            previousOffset = currentOffset
-        }
-    }
-
     if (selectedChip != null) {
         BackHandler {
             viewModel.toggleChip(selectedChip)
