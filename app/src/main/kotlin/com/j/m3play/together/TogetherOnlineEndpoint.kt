@@ -23,7 +23,7 @@ import com.j.m3play.utils.getAsync
 
 object TogetherOnlineEndpoint {
     private const val EndpointSourceUrl =
-        "https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/refs/heads/dev/M3PlayKoiverseServer.txt"
+        "wss://metroserverx.meowery.eu/ws"
 
     private const val CacheTtlMs: Long = 6 * 60 * 60 * 1000L
 
