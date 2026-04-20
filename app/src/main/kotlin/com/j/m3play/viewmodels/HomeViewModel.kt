@@ -11,7 +11,10 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.j.m3play.innertube.YouTube
+import com.j.m3play.innertube.models.AlbumItem
+import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.PlaylistItem
+import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.models.filterExplicit
@@ -45,6 +48,11 @@ import kotlinx.coroutines.supervisorScope
 import timber.log.Timber
 import javax.inject.Inject
 
+data class CommunityPlaylistItem(
+    val playlist: PlaylistItem,
+    val songs: List<SongItem>
+)
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
@@ -61,12 +69,14 @@ class HomeViewModel @Inject constructor(
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
     val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
+    val metroSpeedDialItems = MutableStateFlow<List<YTItem>>(emptyList())
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
+    val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
     private val previousHomePage = MutableStateFlow<HomePage?>(null)
 
@@ -111,6 +121,156 @@ class HomeViewModel @Inject constructor(
         }
         val songsById = database.getSongsByIds(speedDialIds).associateBy { it.id }
         speedDialSongs.value = speedDialIds.mapNotNull { songsById[it] }
+        rebuildMetroSpeedDialItems()
+    }
+
+    private fun rebuildMetroSpeedDialItems() {
+        val filled = mutableListOf<YTItem>()
+        val targetSize = 27
+
+        filled += speedDialSongs.value.map { song ->
+            SongItem(
+                id = song.id,
+                title = song.title,
+                artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                thumbnail = song.thumbnailUrl ?: "",
+                explicit = song.song.explicit
+            )
+        }
+
+        if (filled.size < targetSize) {
+            keepListening.value?.let { localItems ->
+                val needed = targetSize - filled.size
+                val available = localItems.filter { item ->
+                    filled.none { existing -> existing.id == item.id }
+                }.mapNotNull { item ->
+                    when (item) {
+                        is Song -> SongItem(
+                            id = item.id,
+                            title = item.title,
+                            artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                            thumbnail = item.thumbnailUrl ?: "",
+                            explicit = item.song.explicit
+                        )
+                        is Album -> AlbumItem(
+                            browseId = item.id,
+                            playlistId = item.album.playlistId ?: "",
+                            title = item.title,
+                            artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                            year = item.album.year,
+                            thumbnail = item.thumbnailUrl ?: ""
+                        )
+                        is Artist -> ArtistItem(
+                            id = item.id,
+                            title = item.title,
+                            thumbnail = item.thumbnailUrl,
+                            channelId = item.artist.channelId,
+                            playEndpoint = null,
+                            shuffleEndpoint = null,
+                            radioEndpoint = null
+                        )
+                        else -> null
+                    }
+                }
+                filled += available.take(needed)
+            }
+        }
+
+        if (filled.size < targetSize) {
+            quickPicks.value?.let { songs ->
+                val needed = targetSize - filled.size
+                val available = songs.filter { song ->
+                    filled.none { existing -> existing.id == song.id }
+                }.map { song ->
+                    SongItem(
+                        id = song.id,
+                        title = song.title,
+                        artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                        thumbnail = song.thumbnailUrl ?: "",
+                        explicit = song.song.explicit
+                    )
+                }
+                filled += available.take(needed)
+            }
+        }
+
+        metroSpeedDialItems.value = filled.take(targetSize)
+    }
+
+    private suspend fun getCommunityPlaylists() {
+        val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
+        val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
+            .filter { it.artist.isYouTubeArtist }
+            .shuffled()
+            .take(3)
+        val songSeeds = database.mostPlayedSongs(fromTimeStamp, limit = 5).first()
+            .shuffled()
+            .take(2)
+
+        val candidatePlaylists = java.util.Collections.synchronizedList(mutableListOf<PlaylistItem>())
+
+        kotlinx.coroutines.coroutineScope {
+            artistSeeds.map { seed ->
+                launch(Dispatchers.IO) {
+                    YouTube.artist(seed.id).onSuccess { page ->
+                        page.sections.forEach { section ->
+                            section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
+                                if (playlist.author?.name != "YouTube Music" &&
+                                    playlist.author?.name != "YouTube" &&
+                                    playlist.author?.name != "Playlist" &&
+                                    playlist.author?.name != seed.artist.name &&
+                                    !playlist.id.startsWith("RD") &&
+                                    !playlist.id.startsWith("OLAK")
+                                ) {
+                                    candidatePlaylists.add(playlist)
+                                }
+                            }
+                        }
+                    }.onFailure { reportException(it) }
+                }
+            }
+
+            songSeeds.map { seed ->
+                launch(Dispatchers.IO) {
+                    val endpoint = YouTube.next(WatchEndpoint(videoId = seed.id)).getOrNull()?.relatedEndpoint
+                    if (endpoint != null) {
+                        YouTube.related(endpoint).onSuccess { page ->
+                            page.playlists.forEach { playlist ->
+                                if (playlist.author?.name != "YouTube Music" &&
+                                    playlist.author?.name != "YouTube" &&
+                                    playlist.author?.name != "Playlist" &&
+                                    !playlist.id.startsWith("RD") &&
+                                    !playlist.id.startsWith("OLAK")
+                                ) {
+                                    candidatePlaylists.add(playlist)
+                                }
+                            }
+                        }.onFailure { reportException(it) }
+                    }
+                }
+            }.forEach { it.join() }
+        }
+
+        val uniqueCandidates = candidatePlaylists.distinctBy { it.id }.shuffled().take(5)
+        val playlists = java.util.Collections.synchronizedList(mutableListOf<CommunityPlaylistItem>())
+
+        kotlinx.coroutines.coroutineScope {
+            uniqueCandidates.map { playlist ->
+                launch(Dispatchers.IO) {
+                    YouTube.playlist(playlist.id).onSuccess { page ->
+                        val songs = page.songs.take(4)
+                        if (songs.isNotEmpty()) {
+                            val updatedPlaylist = playlist.copy(
+                                songCountText = page.playlist.songCountText ?: playlist.songCountText
+                            )
+                            playlists.add(CommunityPlaylistItem(updatedPlaylist, songs))
+                        }
+                    }.onFailure { reportException(it) }
+                }
+            }.forEach { it.join() }
+        }
+
+        communityPlaylists.value = playlists.shuffled()
     }
 
     private suspend fun load() {
@@ -126,6 +286,7 @@ class HomeViewModel @Inject constructor(
                 launch { getQuickPicks() }
                 launch { loadSpeedDialSongs() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
+                launch { getCommunityPlaylists() }
                 
                 launch {
                     val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5)
@@ -136,6 +297,7 @@ class HomeViewModel @Inject constructor(
                         .first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }
                         .shuffled().take(5)
                     keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
+                    rebuildMetroSpeedDialItems()
                 }
 
                 launch {
@@ -181,6 +343,8 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+            rebuildMetroSpeedDialItems()
+
             allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
                 .filter { it is Song || it is Album }
 
@@ -189,6 +353,7 @@ class HomeViewModel @Inject constructor(
             }
 
             allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
+                    communityPlaylists.value.orEmpty().flatMap { listOf(it.playlist) + it.songs } +
                     homePage.value?.sections?.flatMap { it.items }.orEmpty()
                     
             isInitialLoadComplete.value = true
@@ -241,6 +406,7 @@ class HomeViewModel @Inject constructor(
         similarRecommendations.value = (artistRecommendations + songRecommendations).shuffled()
         
         allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
+                communityPlaylists.value.orEmpty().flatMap { listOf(it.playlist) + it.songs } +
                 homePage.value?.sections?.flatMap { it.items }.orEmpty()
     }
 
