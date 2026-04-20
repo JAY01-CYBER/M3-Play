@@ -13,6 +13,7 @@ package com.j.m3play.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +33,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -41,6 +45,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -106,6 +113,7 @@ import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.YouTubeGridItem
+import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
@@ -127,6 +135,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -1094,6 +1103,292 @@ fun LazyListScope.SimilarRecommendationsContainer(
                     haptic = haptic,
                     scope = scope
                 )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun CommunityPlaylistsSection(
+    playlists: List<CommunityPlaylistItem>,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(playlists, key = { it.playlist.id }) { item ->
+            CommunityPlaylistCard(
+                item = item,
+                mediaMetadata = mediaMetadata,
+                isPlaying = isPlaying,
+                navController = navController,
+                playerConnection = playerConnection,
+                menuState = menuState,
+                haptic = haptic
+            )
+        }
+    }
+}
+
+@Composable
+fun CommunityPlaylistCard(
+    item: CommunityPlaylistItem,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.width(340.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.75f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { navController.navigate("online_playlist/${item.playlist.id}") }
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(108.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Row(modifier = Modifier.weight(1f)) {
+                            item.songs.getOrNull(0)?.let { song ->
+                                AsyncImage(
+                                    model = song.thumbnail,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.weight(1f).fillMaxSize()
+                                )
+                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                            item.songs.getOrNull(1)?.let { song ->
+                                AsyncImage(
+                                    model = song.thumbnail,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.weight(1f).fillMaxSize()
+                                )
+                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                        }
+                        Row(modifier = Modifier.weight(1f)) {
+                            item.songs.getOrNull(2)?.let { song ->
+                                AsyncImage(
+                                    model = song.thumbnail,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.weight(1f).fillMaxSize()
+                                )
+                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                            item.songs.getOrNull(3)?.let { song ->
+                                AsyncImage(
+                                    model = song.thumbnail,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.weight(1f).fillMaxSize()
+                                )
+                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = item.playlist.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    item.playlist.author?.name?.takeIf { it.isNotBlank() }?.let { author ->
+                        Text(
+                            text = author,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    item.playlist.songCountText?.takeIf { it.isNotBlank() }?.let { meta ->
+                        Text(
+                            text = meta,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            item.songs.take(4).forEach { song ->
+                val isActiveSong = mediaMetadata?.id == song.id
+                Box(
+                    modifier = Modifier.combinedClickable(
+                        onClick = {
+                            playerConnection.playQueue(
+                                YouTubeQueue(
+                                    song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                    song.toMediaMetadata()
+                                )
+                            )
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show {
+                                YouTubeSongMenu(
+                                    song = song,
+                                    navController = navController,
+                                    onDismiss = menuState::dismiss
+                                )
+                            }
+                        }
+                    )
+                ) {
+                    YouTubeListItem(
+                        item = song,
+                        isActive = isActiveSong,
+                        isPlaying = isActiveSong && isPlaying,
+                        isSwipeable = false,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MetroSpeedDialSection(
+    items: List<YTItem>,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    val displayItems = remember(items) { items.distinctBy { it.id }.take(27) }
+    val targetItemSize = 160.dp
+    val availableWidth = 360.dp
+    val columns = 3
+    val rows = 2
+    val itemsPerPage = columns * rows
+    val itemWidth = availableWidth / columns
+    val pageCount = ((displayItems.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
+    val pagerState = rememberPagerState(pageCount = { pageCount })
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 16.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemWidth * rows)
+        ) { page ->
+            val pageItems = displayItems.drop(page * itemsPerPage).take(itemsPerPage)
+            Column(modifier = Modifier.fillMaxSize()) {
+                for (row in 0 until rows) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        for (col in 0 until columns) {
+                            val itemIndex = row * columns + col
+                            Box(
+                                modifier = Modifier
+                                    .width(itemWidth)
+                                    .padding(4.dp)
+                            ) {
+                                val currentItem = pageItems.getOrNull(itemIndex)
+                                if (currentItem != null) {
+                                    val isActiveItem = mediaMetadata?.id == currentItem.id
+                                    Box(
+                                        modifier = Modifier.combinedClickable(
+                                            onClick = {
+                                                when (currentItem) {
+                                                    is SongItem -> playerConnection.playQueue(
+                                                        YouTubeQueue(
+                                                            currentItem.endpoint ?: WatchEndpoint(videoId = currentItem.id),
+                                                            currentItem.toMediaMetadata()
+                                                        )
+                                                    )
+                                                    is AlbumItem -> navController.navigate("album/${currentItem.id}")
+                                                    is ArtistItem -> navController.navigate("artist/${currentItem.id}")
+                                                    is PlaylistItem -> navController.navigate("online_playlist/${currentItem.id}")
+                                                }
+                                            },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                menuState.show {
+                                                    when (currentItem) {
+                                                        is SongItem -> YouTubeSongMenu(
+                                                            song = currentItem,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                        is AlbumItem -> YouTubeAlbumMenu(
+                                                            album = currentItem,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                        is ArtistItem -> YouTubeArtistMenu(
+                                                            artist = currentItem,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                        is PlaylistItem -> YouTubePlaylistMenu(
+                                                            playlist = currentItem,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    ) {
+                                        YouTubeGridItem(
+                                            item = currentItem,
+                                            isActive = isActiveItem,
+                                            isPlaying = isActiveItem && isPlaying,
+                                            fillMaxWidth = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.fillMaxWidth())
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

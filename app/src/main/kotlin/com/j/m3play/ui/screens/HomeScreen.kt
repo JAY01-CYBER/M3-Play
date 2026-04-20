@@ -103,8 +103,10 @@ fun HomeScreen(
 
     val quickPicks by viewModel.quickPicks.collectAsState()
     val speedDialSongs by viewModel.speedDialSongs.collectAsState()
+    val metroSpeedDialItems by viewModel.metroSpeedDialItems.collectAsState()
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
+    val communityPlaylists by viewModel.communityPlaylists.collectAsState()
     val homePage by viewModel.homePage.collectAsState()
 
     val selectedChip by viewModel.selectedChip.collectAsState()
@@ -408,6 +410,48 @@ fun HomeScreen(
                     item {
                         SpeedDialSection(
                             speedDialSongs = songs,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
+                }
+
+                metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.speed_dial_mix),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        MetroSpeedDialSection(
+                            items = items,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
+                }
+
+                communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.from_the_community),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        CommunityPlaylistsSection(
+                            playlists = playlists,
                             mediaMetadata = mediaMetadata,
                             isPlaying = isPlaying,
                             navController = navController,
