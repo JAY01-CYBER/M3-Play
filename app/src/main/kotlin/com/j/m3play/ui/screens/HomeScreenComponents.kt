@@ -1151,136 +1151,178 @@ fun CommunityPlaylistCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.width(340.dp),
-        shape = RoundedCornerShape(28.dp),
+        modifier = modifier.width(320.dp).height(420.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.75f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(28.dp),
+        onClick = { navController.navigate("online_playlist/${item.playlist.id}") },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { navController.navigate("online_playlist/${item.playlist.id}") }
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(108.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                    modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp))
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         Row(modifier = Modifier.weight(1f)) {
-                            item.songs.getOrNull(0)?.let { song ->
-                                AsyncImage(
-                                    model = song.thumbnail,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.weight(1f).fillMaxSize()
-                                )
-                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
-                            item.songs.getOrNull(1)?.let { song ->
-                                AsyncImage(
-                                    model = song.thumbnail,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.weight(1f).fillMaxSize()
-                                )
-                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                            AsyncImage(
+                                model = item.songs.getOrNull(0)?.thumbnail,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.weight(1f).fillMaxSize(),
+                            )
+                            AsyncImage(
+                                model = item.songs.getOrNull(1)?.thumbnail,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.weight(1f).fillMaxSize(),
+                            )
                         }
                         Row(modifier = Modifier.weight(1f)) {
-                            item.songs.getOrNull(2)?.let { song ->
-                                AsyncImage(
-                                    model = song.thumbnail,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.weight(1f).fillMaxSize()
-                                )
-                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
-                            item.songs.getOrNull(3)?.let { song ->
-                                AsyncImage(
-                                    model = song.thumbnail,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.weight(1f).fillMaxSize()
-                                )
-                            } ?: Spacer(modifier = Modifier.weight(1f).fillMaxSize())
+                            AsyncImage(
+                                model = item.songs.getOrNull(2)?.thumbnail,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.weight(1f).fillMaxSize(),
+                            )
+                            AsyncImage(
+                                model = item.songs.getOrNull(3)?.thumbnail,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.weight(1f).fillMaxSize(),
+                            )
                         }
                     }
                 }
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Text(
                         text = item.playlist.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    item.playlist.author?.name?.takeIf { it.isNotBlank() }?.let { author ->
-                        Text(
-                            text = author,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.playlist.author?.name ?: item.playlist.songCountText.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
+            ) {
+                item.songs.take(3).forEach { song ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .combinedClickable(
+                                onClick = {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())
+                                    )
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        YouTubeSongMenu(
+                                            song = song,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                }
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        AsyncImage(
+                            model = song.thumbnail,
+                            contentDescription = null,
+                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop,
                         )
-                    }
-                    item.playlist.songCountText?.takeIf { it.isNotBlank() }?.let { meta ->
-                        Text(
-                            text = meta,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = song.artists.joinToString(", ") { it.name },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }
 
-            item.songs.take(4).forEach { song ->
-                val isActiveSong = mediaMetadata?.id == song.id
-                Box(
-                    modifier = Modifier.combinedClickable(
-                        onClick = {
-                            playerConnection.playQueue(
-                                YouTubeQueue(
-                                    song.endpoint ?: WatchEndpoint(videoId = song.id),
-                                    song.toMediaMetadata()
-                                )
-                            )
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                YouTubeSongMenu(
-                                    song = song,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+            ) {
+                IconButton(
+                    onClick = {
+                        item.playlist.playEndpoint?.let {
+                            playerConnection.playQueue(YouTubeQueue(it))
                         }
-                    )
+                    },
+                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                 ) {
-                    YouTubeListItem(
-                        item = song,
-                        isActive = isActiveSong,
-                        isPlaying = isActiveSong && isPlaying,
-                        isSwipeable = false,
-                        modifier = Modifier.fillMaxWidth()
+                    Icon(
+                        painter = painterResource(R.drawable.play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        item.playlist.radioEndpoint?.let {
+                            playerConnection.playQueue(YouTubeQueue(it))
+                        }
+                    },
+                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.radio),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
+                IconButton(
+                    onClick = { navController.navigate("online_playlist/${item.playlist.id}") },
+                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.add),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
         }
     }
 }
-
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1294,99 +1336,189 @@ fun MetroSpeedDialSection(
     haptic: HapticFeedback,
     modifier: Modifier = Modifier
 ) {
-    val displayItems = remember(items) { items.distinctBy { it.id }.take(27) }
+    val distinctItems = remember(items) { items.distinctBy { it.id }.take(24) }
+    val tileSize = 130.dp
+    val spacing = 10.dp
+    val state = rememberLazyGridState()
+    val rowCount = min(3, distinctItems.size + 1)
+    val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
     val coroutineScope = rememberCoroutineScope()
-    val availableWidth = 360.dp
-    val columns = 3
-    val rows = 2
-    val itemsPerPage = columns * rows
-    val itemWidth = availableWidth / columns
-    val pageCount = ((displayItems.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
-    val pagerState = rememberPagerState(pageCount = { pageCount })
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            pageSpacing = 16.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(itemWidth * rows)
-        ) { page ->
-            val pageItems = displayItems.drop(page * itemsPerPage).take(itemsPerPage)
-            Column(modifier = Modifier.fillMaxSize()) {
-                for (row in 0 until rows) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        for (col in 0 until columns) {
-                            val itemIndex = row * columns + col
-                            Box(
-                                modifier = Modifier
-                                    .width(itemWidth)
-                                    .padding(4.dp)
-                            ) {
-                                val currentItem = pageItems.getOrNull(itemIndex)
-                                if (currentItem != null) {
-                                    val isActiveItem = mediaMetadata?.id == currentItem.id
-                                    Box(
-                                        modifier = Modifier.combinedClickable(
-                                            onClick = {
-                                                when (currentItem) {
-                                                    is SongItem -> playerConnection.playQueue(
-                                                        YouTubeQueue(
-                                                            currentItem.endpoint ?: WatchEndpoint(videoId = currentItem.id),
-                                                            currentItem.toMediaMetadata()
-                                                        )
-                                                    )
-                                                    is AlbumItem -> navController.navigate("album/${currentItem.id}")
-                                                    is ArtistItem -> navController.navigate("artist/${currentItem.id}")
-                                                    is PlaylistItem -> navController.navigate("online_playlist/${currentItem.id}")
-                                                }
-                                            },
-                                            onLongClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                menuState.show {
-                                                    when (currentItem) {
-                                                        is SongItem -> YouTubeSongMenu(
-                                                            song = currentItem,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                        is AlbumItem -> YouTubeAlbumMenu(
-                                                            albumItem = currentItem,
-                                                            navController = navController,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                        is ArtistItem -> YouTubeArtistMenu(
-                                                            artist = currentItem,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                        is PlaylistItem -> YouTubePlaylistMenu(
-                                                            playlist = currentItem,
-                                                            coroutineScope = coroutineScope,
-                                                            onDismiss = menuState::dismiss
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    ) {
-                                        YouTubeGridItem(
-                                            item = currentItem,
-                                            isActive = isActiveItem,
-                                            isPlaying = isActiveItem && isPlaying,
-                                            fillMaxWidth = true,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
+    fun openItem(item: YTItem) {
+        when (item) {
+            is SongItem -> playerConnection.playQueue(
+                YouTubeQueue(item.endpoint ?: WatchEndpoint(videoId = item.id), item.toMediaMetadata())
+            )
+            is AlbumItem -> navController.navigate("album/${item.id}")
+            is ArtistItem -> navController.navigate("artist/${item.id}")
+            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+        }
+    }
+
+    fun showItemMenu(item: YTItem) {
+        menuState.show {
+            when (item) {
+                is SongItem -> YouTubeSongMenu(
+                    song = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is AlbumItem -> YouTubeAlbumMenu(
+                    albumItem = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is ArtistItem -> YouTubeArtistMenu(
+                    artist = item,
+                    onDismiss = menuState::dismiss
+                )
+                is PlaylistItem -> YouTubePlaylistMenu(
+                    playlist = item,
+                    coroutineScope = coroutineScope,
+                    onDismiss = menuState::dismiss
+                )
+            }
+        }
+    }
+
+    val dotState by remember(state, distinctItems.size) {
+        derivedStateOf {
+            val songsPerDot = 8
+            val totalItems = distinctItems.size
+            if (totalItems <= 0) {
+                Triple(0, 0, 0)
+            } else {
+                val pages = ceil(totalItems / songsPerDot.toFloat()).toInt().coerceAtLeast(1)
+                val visibleItemIndex = state.firstVisibleItemIndex.coerceIn(0, (totalItems - 1).coerceAtLeast(0))
+                val currentPage = (visibleItemIndex / songsPerDot).coerceIn(0, pages - 1)
+                val dots = min(3, pages)
+                val selectedDot = if (pages <= 3) currentPage else ((currentPage.toFloat() / (pages - 1).coerceAtLeast(1)) * (dots - 1)).toInt().coerceIn(0, dots - 1)
+                Triple(dots, selectedDot, pages)
+            }
+        }
+    }
+
+    val (dotsCount, selectedDotIndex) = dotState.let { (dots, selected, _) -> dots to selected }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        LazyHorizontalGrid(
+            state = state,
+            rows = GridCells.Fixed(rowCount),
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing),
+            contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
+            modifier = Modifier.fillMaxWidth().height(gridHeight),
+        ) {
+            items(
+                items = distinctItems,
+                key = { it.id },
+                contentType = { "metro_speed_dial_item" }
+            ) { item ->
+                val isActive = mediaMetadata?.id == item.id
+                Box(
+                    modifier = Modifier
+                        .width(tileSize)
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .combinedClickable(
+                            onClick = {
+                                if (isActive && item is SongItem) {
+                                    playerConnection.player.togglePlayPause()
                                 } else {
-                                    Spacer(modifier = Modifier.fillMaxWidth())
+                                    openItem(item)
                                 }
+                            },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showItemMenu(item)
                             }
+                        )
+                ) {
+                    AsyncImage(
+                        model = item.thumbnail,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.7f)
+                                    )
+                                )
+                            )
+                    )
+
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+
+                    if (isActive && isPlaying && item is SongItem) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.volume_up),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(6.dp).size(16.dp)
+                            )
                         }
                     }
+                }
+            }
+
+            item(key = "metro_speed_dial_random", contentType = "metro_speed_dial_random") {
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .width(tileSize)
+                        .aspectRatio(1f)
+                        .combinedClickable(
+                            onClick = { distinctItems.randomOrNull()?.let(::openItem) },
+                            onLongClick = {}
+                        )
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            painter = painterResource(R.drawable.casino),
+                            contentDescription = stringResource(R.string.speed_dial_random),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        if (dotsCount > 1) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                repeat(dotsCount) { index ->
+                    val isSelected = index == selectedDotIndex
+                    Surface(
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(if (isSelected) 8.dp else 6.dp),
+                    ) {}
                 }
             }
         }

@@ -423,7 +423,7 @@ fun HomeScreen(
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                     item {
                         NavigationTitle(
-                            title = stringResource(R.string.speed_dial_mix),
+                            title = stringResource(R.string.speed_dial),
                             modifier = Modifier.animateItem()
                         )
                     }
