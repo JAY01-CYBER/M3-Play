@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.LazyRow
@@ -59,6 +58,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -1295,7 +1295,7 @@ fun MetroSpeedDialSection(
     modifier: Modifier = Modifier
 ) {
     val displayItems = remember(items) { items.distinctBy { it.id }.take(27) }
-    val targetItemSize = 160.dp
+    val coroutineScope = rememberCoroutineScope()
     val availableWidth = 360.dp
     val columns = 3
     val rows = 2
@@ -1355,18 +1355,17 @@ fun MetroSpeedDialSection(
                                                             onDismiss = menuState::dismiss
                                                         )
                                                         is AlbumItem -> YouTubeAlbumMenu(
-                                                            album = currentItem,
+                                                            albumItem = currentItem,
                                                             navController = navController,
                                                             onDismiss = menuState::dismiss
                                                         )
                                                         is ArtistItem -> YouTubeArtistMenu(
                                                             artist = currentItem,
-                                                            navController = navController,
                                                             onDismiss = menuState::dismiss
                                                         )
                                                         is PlaylistItem -> YouTubePlaylistMenu(
                                                             playlist = currentItem,
-                                                            navController = navController,
+                                                            coroutineScope = coroutineScope,
                                                             onDismiss = menuState::dismiss
                                                         )
                                                     }
