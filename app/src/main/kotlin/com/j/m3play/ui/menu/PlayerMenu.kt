@@ -116,6 +116,7 @@ import com.j.m3play.constants.EqualizerVirtualizerEnabledKey
 import com.j.m3play.constants.EqualizerVirtualizerStrengthKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.models.MediaMetadata
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.playback.EqCapabilities
 import com.j.m3play.playback.EqProfile
 import com.j.m3play.playback.EqProfilesPayload
