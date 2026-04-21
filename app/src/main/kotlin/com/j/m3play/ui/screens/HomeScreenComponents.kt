@@ -82,6 +82,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
 import com.j.m3play.R
+import com.j.m3play.LocalDatabase
 import com.j.m3play.constants.GridThumbnailHeight
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
@@ -1336,12 +1337,20 @@ fun MetroSpeedDialSection(
     haptic: HapticFeedback,
     modifier: Modifier = Modifier
 ) {
-    val distinctItems = remember(items) { items.distinctBy { it.id }.take(24) }
-    val tileSize = 130.dp
-    val spacing = 10.dp
-    val state = rememberLazyGridState()
-    val rowCount = min(3, distinctItems.size + 1)
-    val gridHeight = (tileSize * rowCount) + (spacing * (rowCount - 1))
+    val database = LocalDatabase.current
+    val distinctItems = remember(items) { items.distinctBy { it.id }.take(26) }
+    val columns = 3
+    val rows = 3
+    val slotsPerPage = columns * rows
+    val firstPageContentSlots = slotsPerPage - 1
+    val pagerCount = remember(distinctItems.size) {
+        when {
+            distinctItems.isEmpty() -> 1
+            distinctItems.size <= firstPageContentSlots -> 1
+            else -> 1 + ceil((distinctItems.size - firstPageContentSlots) / slotsPerPage.toFloat()).toInt()
+        }
+    }
+    val pagerState = rememberPagerState(pageCount = { pagerCount })
     val coroutineScope = rememberCoroutineScope()
 
     fun openItem(item: YTItem) {
@@ -1381,144 +1390,201 @@ fun MetroSpeedDialSection(
         }
     }
 
-    val dotState by remember(state, distinctItems.size) {
-        derivedStateOf {
-            val songsPerDot = 8
-            val totalItems = distinctItems.size
-            if (totalItems <= 0) {
-                Triple(0, 0, 0)
-            } else {
-                val pages = ceil(totalItems / songsPerDot.toFloat()).toInt().coerceAtLeast(1)
-                val visibleItemIndex = state.firstVisibleItemIndex.coerceIn(0, (totalItems - 1).coerceAtLeast(0))
-                val currentPage = (visibleItemIndex / songsPerDot).coerceIn(0, pages - 1)
-                val dots = min(3, pages)
-                val selectedDot = if (pages <= 3) currentPage else ((currentPage.toFloat() / (pages - 1).coerceAtLeast(1)) * (dots - 1)).toInt().coerceIn(0, dots - 1)
-                Triple(dots, selectedDot, pages)
+    @Composable
+    fun SpeedDialPoster(item: YTItem) {
+        val isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id)
+        val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initial = false)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp))
+                .combinedClickable(
+                    onClick = {
+                        if (item is SongItem && isActive) {
+                            playerConnection.player.togglePlayPause()
+                        } else {
+                            openItem(item)
+                        }
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showItemMenu(item)
+                    }
+                )
+        ) {
+            AsyncImage(
+                model = item.thumbnail,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.35f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.92f),
+                            )
+                        )
+                    )
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+
+                if (item !is SongItem) {
+                    Icon(
+                        painter = painterResource(R.drawable.navigate_next),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            if (isPinned) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.28f),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.bookmark_filled),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(6.dp).size(12.dp),
+                    )
+                }
+            } else if (isActive && isPlaying && item is SongItem) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.volume_up),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(6.dp).size(12.dp),
+                    )
+                }
             }
         }
     }
 
-    val (dotsCount, selectedDotIndex) = dotState.let { (dots, selected, _) -> dots to selected }
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        LazyHorizontalGrid(
-            state = state,
-            rows = GridCells.Fixed(rowCount),
-            horizontalArrangement = Arrangement.spacedBy(spacing),
-            verticalArrangement = Arrangement.spacedBy(spacing),
-            contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
-            modifier = Modifier.fillMaxWidth().height(gridHeight),
+    @Composable
+    fun RandomTile() {
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .combinedClickable(
+                    onClick = { distinctItems.randomOrNull()?.let(::openItem) },
+                    onLongClick = {}
+                )
         ) {
-            items(
-                items = distinctItems,
-                key = { it.id },
-                contentType = { "metro_speed_dial_item" }
-            ) { item ->
-                val isActive = mediaMetadata?.id == item.id
-                Box(
-                    modifier = Modifier
-                        .width(tileSize)
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .combinedClickable(
-                            onClick = {
-                                if (isActive && item is SongItem) {
-                                    playerConnection.player.togglePlayPause()
-                                } else {
-                                    openItem(item)
-                                }
-                            },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showItemMenu(item)
-                            }
-                        )
-                ) {
-                    AsyncImage(
-                        model = item.thumbnail,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                val dotColor = MaterialTheme.colorScheme.onSecondaryContainer
+                listOf(
+                    Alignment.TopStart to 20.dp,
+                    Alignment.TopEnd to 20.dp,
+                    Alignment.Center to 0.dp,
+                    Alignment.BottomStart to 20.dp,
+                    Alignment.BottomEnd to 20.dp,
+                ).forEach { (align, offset) ->
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.7f)
-                                    )
-                                )
-                            )
+                            .align(align)
+                            .padding(offset)
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(dotColor)
                     )
-
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.align(Alignment.BottomStart).padding(horizontal = 12.dp, vertical = 10.dp)
-                    )
-
-                    if (isActive && isPlaying && item is SongItem) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.volume_up),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(6.dp).size(16.dp)
-                            )
-                        }
-                    }
                 }
             }
+        }
+    }
 
-            item(key = "metro_speed_dial_random", contentType = "metro_speed_dial_random") {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .width(tileSize)
-                        .aspectRatio(1f)
-                        .combinedClickable(
-                            onClick = { distinctItems.randomOrNull()?.let(::openItem) },
-                            onLongClick = {}
-                        )
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            painter = painterResource(R.drawable.casino),
-                            contentDescription = stringResource(R.string.speed_dial_random),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(36.dp)
-                        )
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 16.dp,
+            modifier = Modifier.fillMaxWidth().height(414.dp),
+        ) { page ->
+            val pageItems = when (page) {
+                0 -> distinctItems.take(firstPageContentSlots)
+                else -> distinctItems.drop(firstPageContentSlots + (page - 1) * slotsPerPage).take(slotsPerPage)
+            }
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                for (row in 0 until rows) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        for (col in 0 until columns) {
+                            val slotIndex = row * columns + col
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 5.dp)
+                            ) {
+                                when {
+                                    page == 0 && slotIndex == slotsPerPage - 1 -> RandomTile()
+                                    slotIndex < pageItems.size -> SpeedDialPoster(pageItems[slotIndex])
+                                    else -> Spacer(modifier = Modifier.fillMaxSize())
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (dotsCount > 1) {
+        if (pagerState.pageCount > 1) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.height(24.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
             ) {
-                repeat(dotsCount) { index ->
-                    val isSelected = index == selectedDotIndex
-                    Surface(
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(if (isSelected) 8.dp else 6.dp),
-                    ) {}
+                repeat(pagerState.pageCount) { index ->
+                    val color = if (pagerState.currentPage == index) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .size(8.dp)
+                    )
                 }
             }
         }

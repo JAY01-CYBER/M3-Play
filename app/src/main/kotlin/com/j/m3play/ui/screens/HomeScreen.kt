@@ -376,50 +376,6 @@ fun HomeScreen(
                     }
                 }
 
-                quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                    /*
-                    item {
-                        NavigationTitle(
-                            title = stringResource(R.string.quick_picks),
-                            modifier = Modifier.animateItem()
-                        )
-                    }
-                    */
-
-                    item {
-                        QuickPicksSection(
-                            quickPicks = picks,
-                            mediaMetadata = mediaMetadata,
-                            isPlaying = isPlaying,
-                            navController = navController,
-                            playerConnection = playerConnection,
-                            menuState = menuState,
-                            haptic = haptic
-                        )
-                    }
-                }
-
-                speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
-                    item {
-                        NavigationTitle(
-                            title = stringResource(R.string.speed_dial),
-                            modifier = Modifier.animateItem()
-                        )
-                    }
-
-                    item {
-                        SpeedDialSection(
-                            speedDialSongs = songs,
-                            mediaMetadata = mediaMetadata,
-                            isPlaying = isPlaying,
-                            navController = navController,
-                            playerConnection = playerConnection,
-                            menuState = menuState,
-                            haptic = haptic
-                        )
-                    }
-                }
-
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                     item {
                         NavigationTitle(
@@ -441,6 +397,20 @@ fun HomeScreen(
                     }
                 }
 
+                quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
+                    item {
+                        QuickPicksSection(
+                            quickPicks = picks,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
+                }
+
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
                     item {
                         NavigationTitle(
@@ -452,6 +422,27 @@ fun HomeScreen(
                     item {
                         CommunityPlaylistsSection(
                             playlists = playlists,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic
+                        )
+                    }
+                }
+
+                speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
+                    item {
+                        NavigationTitle(
+                            title = stringResource(R.string.speed_dial),
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        SpeedDialSection(
+                            speedDialSongs = songs,
                             mediaMetadata = mediaMetadata,
                             isPlaying = isPlaying,
                             navController = navController,
