@@ -77,6 +77,7 @@ import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.db.entities.PlaylistEntity
 import com.j.m3play.db.entities.PlaylistSongMap
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.models.toMediaMetadata
@@ -113,6 +114,7 @@ fun YouTubePlaylistMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val syncUtils = LocalSyncUtils.current
     val dbPlaylist by database.playlistByBrowseId(playlist.id).collectAsState(initial = null)
+    val isInSpeedDial by database.speedDialDao.isPinned(playlist.id).collectAsState(initial = false)
 
     var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
     var showImportPlaylistDialog by rememberSaveable { mutableStateOf(false) }
@@ -528,6 +530,32 @@ fun YouTubePlaylistMenu(
                         },
                         modifier = Modifier.clickable {
                             showChoosePlaylistDialog = true
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = dividerModifier,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    ListItem(
+                        headlineContent = { Text(text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial)) },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (isInSpeedDial) {
+                                    database.speedDialDao.delete(playlist.id)
+                                } else {
+                                    database.speedDialDao.insert(SpeedDialItem.fromYTItem(playlist))
+                                }
+                            }
+                            onDismiss()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     )

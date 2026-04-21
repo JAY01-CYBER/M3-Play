@@ -36,6 +36,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +52,13 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.db.entities.ArtistEntity
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.NewAction
 import com.j.m3play.ui.component.NewActionGrid
 import com.j.m3play.ui.component.YouTubeListItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +70,8 @@ fun YouTubeArtistMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val libraryArtist by database.artist(artist.id).collectAsState(initial = null)
+    val coroutineScope = rememberCoroutineScope()
+    val isInSpeedDial by database.speedDialDao.isPinned(artist.id).collectAsState(initial = false)
 
     YouTubeListItem(
         item = artist,
@@ -132,6 +138,30 @@ fun YouTubeArtistMenu(
                             )
                         )
                     }
+
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    if (isInSpeedDial) {
+                                        database.speedDialDao.delete(artist.id)
+                                    } else {
+                                        database.speedDialDao.insert(SpeedDialItem.fromYTItem(artist))
+                                    }
+                                }
+                                onDismiss()
+                            }
+                        )
+                    )
 
                     // Share button
                     add(

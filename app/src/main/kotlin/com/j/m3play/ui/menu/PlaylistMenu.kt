@@ -60,6 +60,7 @@ import com.j.m3play.R
 import com.j.m3play.db.entities.Playlist
 import com.j.m3play.db.entities.PlaylistSong
 import com.j.m3play.db.entities.Song
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
@@ -91,6 +92,7 @@ fun PlaylistMenu(
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val dbPlaylist by database.playlist(playlist.id).collectAsState(initial = playlist)
+    val isInSpeedDial by database.speedDialDao.isPinned(playlist.id).collectAsState(initial = false)
     var songs by remember {
         mutableStateOf(emptyList<Song>())
     }
@@ -358,6 +360,34 @@ fun PlaylistMenu(
                             ),
                         )
                     }
+                },
+            ),
+            NewAction(
+                icon = {
+                    Icon(
+                        painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        if (isInSpeedDial) database.speedDialDao.delete(playlist.id)
+                        else database.speedDialDao.insert(
+                            SpeedDialItem(
+                                id = playlist.id,
+                                secondaryId = playlist.playlist.browseId,
+                                title = playlist.playlist.name,
+                                subtitle = null,
+                                thumbnailUrl = playlist.playlist.thumbnailUrl,
+                                type = "LOCAL_PLAYLIST",
+                                explicit = false,
+                            )
+                        )
+                    }
+                    onDismiss()
                 },
             ),
             NewAction(

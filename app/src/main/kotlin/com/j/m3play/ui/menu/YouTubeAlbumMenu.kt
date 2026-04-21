@@ -70,6 +70,7 @@ import com.j.m3play.constants.ArtistSeparatorsKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.db.entities.Song
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.YouTubeAlbumRadio
@@ -97,6 +98,7 @@ fun YouTubeAlbumMenu(
     val playerConnection = LocalPlayerConnection.current ?: return
     val album by database.albumWithSongs(albumItem.id).collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
+    val isInSpeedDial by database.speedDialDao.isPinned(albumItem.id).collectAsState(initial = false)
 
     LaunchedEffect(Unit) {
         database.album(albumItem.id).collect { album ->
@@ -350,6 +352,27 @@ fun YouTubeAlbumMenu(
                                     playerConnection.playQueue(YouTubeAlbumRadio(albumItem.playlistId))
                                 }
                             }
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (isInSpeedDial) {
+                                    database.speedDialDao.delete(albumItem.id)
+                                } else {
+                                    database.speedDialDao.insert(SpeedDialItem.fromYTItem(albumItem))
+                                }
+                            }
+                            onDismiss()
                         }
                     ),
                     NewAction(

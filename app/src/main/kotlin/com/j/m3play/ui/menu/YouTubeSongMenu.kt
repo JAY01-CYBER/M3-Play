@@ -76,6 +76,7 @@ import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.db.entities.SongEntity
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.models.toMediaMetadata
@@ -105,6 +106,7 @@ fun YouTubeSongMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val librarySong by database.song(song.id).collectAsState(initial = null)
+    val isInSpeedDial by database.speedDialDao.isPinned(song.id).collectAsState(initial = false)
     val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
     val coroutineScope = rememberCoroutineScope()
     val syncUtils = LocalSyncUtils.current
@@ -329,6 +331,24 @@ fun YouTubeSongMenu(
                         text = stringResource(R.string.add_to_playlist),
                         onClick = {
                             showChoosePlaylistDialog = true
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (isInSpeedDial) database.speedDialDao.delete(song.id)
+                                else database.speedDialDao.insert(SpeedDialItem.fromYTItem(song))
+                            }
+                            onDismiss()
                         }
                     ),
                     NewAction(

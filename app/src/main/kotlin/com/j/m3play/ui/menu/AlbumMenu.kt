@@ -78,6 +78,7 @@ import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Song
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
@@ -103,6 +104,7 @@ fun AlbumMenu(
     val database = LocalDatabase.current
     val downloadUtil = LocalDownloadUtil.current
     val playerConnection = LocalPlayerConnection.current ?: return
+    val isInSpeedDial by database.speedDialDao.isPinned(originalAlbum.id).collectAsState(initial = false)
     val scope = rememberCoroutineScope()
     val libraryAlbum by database.album(originalAlbum.id).collectAsState(initial = originalAlbum)
     val album = libraryAlbum ?: originalAlbum
@@ -385,6 +387,37 @@ fun AlbumMenu(
                                     )
                                 )
                             }
+                        }
+                    ),
+                    NewAction(
+                        icon = {
+                            Icon(
+                                painter = painterResource(if (isInSpeedDial) R.drawable.bookmark_filled else R.drawable.bookmark),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (isInSpeedDial) {
+                                    database.speedDialDao.delete(album.id)
+                                } else {
+                                    database.speedDialDao.insert(
+                                        SpeedDialItem(
+                                            id = album.id,
+                                            secondaryId = album.album.playlistId,
+                                            title = album.title,
+                                            subtitle = album.artists.joinToString(", ") { it.name },
+                                            thumbnailUrl = album.thumbnailUrl,
+                                            type = "ALBUM",
+                                            explicit = false,
+                                        )
+                                    )
+                                }
+                            }
+                            onDismiss()
                         }
                     ),
                     NewAction(
