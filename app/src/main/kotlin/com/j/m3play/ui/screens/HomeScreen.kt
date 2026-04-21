@@ -309,73 +309,6 @@ fun HomeScreen(
                     }
                 }
 
-                item {
-                    TimeGreetingCard(
-                        onSearchClick = {
-                            runCatching {navController.navigate("search/")
-                            }
-                        }
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ActionCard(
-                            title = "Liked",
-                            icon = R.drawable.favorite,
-                            onClick = {
-                                runCatching { navController.navigate("auto_playlist/liked") }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ActionCard(
-                            title = "Downloads",
-                            icon = R.drawable.download,
-                            onClick = {
-                                runCatching { navController.navigate("auto_playlist/downloaded") }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        ActionCard(
-                            title = "History",
-                            icon = R.drawable.history,
-                            onClick = {
-                                runCatching { navController.navigate("history") }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        ActionCard(
-                            title = if (isLoggedIn) "Account" else "Library",
-                            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
-                            onClick = {
-                                if (isLoggedIn) {
-                                    runCatching { navController.navigate("account") }
-                                } else {
-                                    runCatching { navController.navigate("library") }
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                     item {
                         NavigationTitle(
@@ -428,6 +361,61 @@ fun HomeScreen(
                             playerConnection = playerConnection,
                             menuState = menuState,
                             haptic = haptic
+                        )
+                    }
+                }
+
+                item {
+                    TimeGreetingCard(
+                        onSearchClick = {
+                            runCatching {navController.navigate("search/") }
+                        }
+                    )
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ActionCard(
+                            title = "Liked",
+                            icon = R.drawable.favorite,
+                            onClick = { runCatching { navController.navigate("auto_playlist/liked") } },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionCard(
+                            title = "Downloads",
+                            icon = R.drawable.download,
+                            onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ActionCard(
+                            title = "History",
+                            icon = R.drawable.history,
+                            onClick = { runCatching { navController.navigate("history") } },
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionCard(
+                            title = if (isLoggedIn) "Account" else "Library",
+                            icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
+                            onClick = {
+                                if (isLoggedIn) runCatching { navController.navigate("account") }
+                                else runCatching { navController.navigate("library") }
+                            },
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
