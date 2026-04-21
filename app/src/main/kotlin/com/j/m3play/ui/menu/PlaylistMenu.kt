@@ -306,12 +306,15 @@ fun PlaylistMenu(
     val playNextText = stringResource(R.string.play_next)
     val addToQueueText = stringResource(R.string.add_to_queue)
     val shareText = stringResource(R.string.share)
+    val speedDialText = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial)
 
     val primaryActions = remember(
         songs,
         playText,
         shuffleText,
         shareText,
+        speedDialText,
+        isInSpeedDial,
         playlist.playlist.name,
         dbPlaylist?.playlist?.browseId,
         onDismiss,
@@ -371,7 +374,7 @@ fun PlaylistMenu(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                text = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial),
+                text = speedDialText,
                 onClick = {
                     coroutineScope.launch(Dispatchers.IO) {
                         if (isInSpeedDial) database.speedDialDao.delete(playlist.id)
