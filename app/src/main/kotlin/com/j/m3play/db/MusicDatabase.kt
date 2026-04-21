@@ -25,9 +25,9 @@ import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+import com.j.m3play.db.daos.SpeedDialDao
 import com.j.m3play.db.entities.AlbumArtistMap
 import com.j.m3play.db.entities.AlbumEntity
 import com.j.m3play.db.entities.ArtistEntity
@@ -46,6 +46,7 @@ import com.j.m3play.db.entities.SongArtistMap
 import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.db.entities.SortedSongAlbumMap
 import com.j.m3play.db.entities.SortedSongArtistMap
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.db.entities.TagEntity
 import com.j.m3play.db.entities.PlaylistTagMap
 import com.j.m3play.extensions.toSQLiteQuery
@@ -57,13 +58,16 @@ import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
 private const val TAG = "MusicDatabase"
-private const val CURRENT_VERSION = 27
+private const val CURRENT_VERSION = 28
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
 ) : DatabaseDao by delegate.dao {
     val openHelper: SupportSQLiteOpenHelper
         get() = delegate.openHelper
+
+    val speedDialDao: SpeedDialDao
+        get() = delegate.speedDialDao
 
     fun query(block: MusicDatabase.() -> Unit) =
         with(delegate) {
@@ -122,7 +126,8 @@ class MusicDatabase(
         SetVideoIdEntity::class,
         PlayCountEntity::class,
         TagEntity::class,
-        PlaylistTagMap::class
+        PlaylistTagMap::class,
+        SpeedDialItem::class
     ],
     views = [
         SortedSongArtistMap::class,
@@ -157,6 +162,7 @@ class MusicDatabase(
 @TypeConverters(Converters::class)
 abstract class InternalDatabase : RoomDatabase() {
     abstract val dao: DatabaseDao
+    abstract val speedDialDao: SpeedDialDao
 
     companion object {
         const val DB_NAME = "song.db"
