@@ -28,15 +28,14 @@ import com.j.m3play.constants.HideVideoKey
 import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.QuickPicks
 import com.j.m3play.constants.QuickPicksKey
-import com.j.m3play.constants.SpeedDialSongIdsKey
 import com.j.m3play.constants.YtmSyncKey
 import com.j.m3play.db.MusicDatabase
 import com.j.m3play.db.entities.*
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toEnum
 import com.j.m3play.models.SimilarRecommendation
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.get
-import com.j.m3play.utils.getAsync
 import com.j.m3play.utils.SyncUtils
 import com.j.m3play.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -109,34 +108,20 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadSpeedDialSongs() {
-        val speedDialIds = context.dataStore.getAsync(SpeedDialSongIdsKey, "")
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
-        if (speedDialIds.isEmpty()) {
+        val pinned = database.speedDialDao.getAll().first()
+        val pinnedSongIds = pinned.filter { it.type == "SONG" }.map { it.id }.distinct().take(24)
+        if (pinnedSongIds.isEmpty()) {
             speedDialSongs.value = emptyList()
-            return
+        } else {
+            val songsById = database.getSongsByIds(pinnedSongIds).associateBy { it.id }
+            speedDialSongs.value = pinnedSongIds.mapNotNull { songsById[it] }
         }
-        val songsById = database.getSongsByIds(speedDialIds).associateBy { it.id }
-        speedDialSongs.value = speedDialIds.mapNotNull { songsById[it] }
-        rebuildMetroSpeedDialItems()
+        rebuildMetroSpeedDialItems(pinned)
     }
 
-    private fun rebuildMetroSpeedDialItems() {
-        val filled = mutableListOf<YTItem>()
+    private fun rebuildMetroSpeedDialItems(pinned: List<SpeedDialItem>) {
+        val filled = pinned.map { it.toYTItem() }.toMutableList()
         val targetSize = 27
-
-        filled += speedDialSongs.value.map { song ->
-            SongItem(
-                id = song.id,
-                title = song.title,
-                artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
-                thumbnail = song.thumbnailUrl ?: "",
-                explicit = song.song.explicit
-            )
-        }
 
         if (filled.size < targetSize) {
             keepListening.value?.let { localItems ->
@@ -297,7 +282,7 @@ class HomeViewModel @Inject constructor(
                         .first().filter { it.artist.isYouTubeArtist && it.artist.thumbnailUrl != null }
                         .shuffled().take(5)
                     keepListening.value = (keepListeningSongs + keepListeningAlbums + keepListeningArtists).shuffled()
-                    rebuildMetroSpeedDialItems()
+                    loadSpeedDialSongs()
                 }
 
                 launch {
@@ -343,7 +328,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            rebuildMetroSpeedDialItems()
+            loadSpeedDialSongs()
 
             allLocalItems.value = (quickPicks.value.orEmpty() + forgottenFavorites.value.orEmpty() + keepListening.value.orEmpty())
                 .filter { it is Song || it is Album }
@@ -521,9 +506,7 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            context.dataStore.data
-                .map { it[SpeedDialSongIdsKey].orEmpty() }
-                .distinctUntilChanged()
+            database.speedDialDao.getAll()
                 .collect {
                     loadSpeedDialSongs()
                 }
