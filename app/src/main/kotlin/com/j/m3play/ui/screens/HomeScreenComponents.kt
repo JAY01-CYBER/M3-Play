@@ -46,6 +46,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,6 +82,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import com.j.m3play.R
 import com.j.m3play.LocalDatabase
 import com.j.m3play.constants.GridThumbnailHeight
@@ -1338,6 +1340,9 @@ fun MetroSpeedDialSection(
     modifier: Modifier = Modifier
 ) {
     val database = LocalDatabase.current
+    val viewModel: HomeViewModel = hiltViewModel()
+    val isRandomizing by viewModel.isRandomizing.collectAsState()
+    val pinnedEntries by database.speedDialDao.getAll().collectAsState(initial = emptyList())
     val distinctItems = remember(items) { items.distinctBy { it.id }.take(26) }
     val columns = 3
     val rows = 3
@@ -1360,7 +1365,11 @@ fun MetroSpeedDialSection(
             )
             is AlbumItem -> navController.navigate("album/${item.id}")
             is ArtistItem -> navController.navigate("artist/${item.id}")
-            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+            is PlaylistItem -> {
+                val rawType = pinnedEntries.find { it.id == item.id }?.type
+                if (rawType == "LOCAL_PLAYLIST") navController.navigate("local_playlist/${item.id}")
+                else navController.navigate("online_playlist/${item.id}")
+            }
         }
     }
 
@@ -1500,7 +1509,13 @@ fun MetroSpeedDialSection(
             modifier = Modifier
                 .fillMaxSize()
                 .combinedClickable(
-                    onClick = { distinctItems.randomOrNull()?.let(::openItem) },
+                    onClick = {
+                        if (!isRandomizing) {
+                            coroutineScope.launch {
+                                viewModel.getRandomItem()?.let(::openItem)
+                            }
+                        }
+                    },
                     onLongClick = {}
                 )
         ) {
@@ -1519,7 +1534,14 @@ fun MetroSpeedDialSection(
                             .padding(offset)
                             .size(12.dp)
                             .clip(CircleShape)
-                            .background(dotColor)
+                            .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
+                    )
+                }
+                if (isRandomizing) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(28.dp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
