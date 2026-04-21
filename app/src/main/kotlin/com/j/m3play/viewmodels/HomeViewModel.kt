@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.random.Random
 
 data class CommunityPlaylistItem(
     val playlist: PlaylistItem,
@@ -67,11 +68,81 @@ class HomeViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
-    val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
-    val metroSpeedDialItems = MutableStateFlow<List<YTItem>>(emptyList())
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
+    val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
+    val isRandomizing = MutableStateFlow(false)
+    val pinnedSpeedDialItems: StateFlow<List<SpeedDialItem>> =
+        database.speedDialDao.getAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val metroSpeedDialItems: StateFlow<List<YTItem>> =
+        combine(
+            database.speedDialDao.getAll(),
+            keepListening,
+            quickPicks,
+        ) { pinned, keepListeningItems, quickPickSongs ->
+            val pinnedItems = pinned.map { it.toYTItem() }
+            val filled = pinnedItems.toMutableList()
+            val targetSize = 27
+
+            if (filled.size < targetSize) {
+                keepListeningItems?.let { localItems ->
+                    val needed = targetSize - filled.size
+                    val available = localItems.filter { item ->
+                        filled.none { existing -> existing.id == item.id }
+                    }.mapNotNull { item ->
+                        when (item) {
+                            is Song -> SongItem(
+                                id = item.id,
+                                title = item.title,
+                                artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                                thumbnail = item.thumbnailUrl ?: "",
+                                explicit = item.song.explicit,
+                            )
+                            is Album -> AlbumItem(
+                                browseId = item.id,
+                                playlistId = item.album.playlistId ?: "",
+                                title = item.title,
+                                artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                                year = item.album.year,
+                                thumbnail = item.thumbnailUrl ?: "",
+                            )
+                            is Artist -> ArtistItem(
+                                id = item.id,
+                                title = item.title,
+                                thumbnail = item.thumbnailUrl,
+                                channelId = item.artist.channelId,
+                                playEndpoint = null,
+                                shuffleEndpoint = null,
+                                radioEndpoint = null,
+                            )
+                            else -> null
+                        }
+                    }
+                    filled.addAll(available.take(needed))
+                }
+            }
+
+            if (filled.size < targetSize) {
+                quickPickSongs?.let { songs ->
+                    val needed = targetSize - filled.size
+                    val available = songs.filter { song ->
+                        filled.none { existing -> existing.id == song.id }
+                    }.map { song ->
+                        SongItem(
+                            id = song.id,
+                            title = song.title,
+                            artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                            thumbnail = song.thumbnailUrl ?: "",
+                            explicit = song.song.explicit,
+                        )
+                    }
+                    filled.addAll(available.take(needed))
+                }
+            }
+
+            filled.take(targetSize)
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
@@ -116,73 +187,92 @@ class HomeViewModel @Inject constructor(
             val songsById = database.getSongsByIds(pinnedSongIds).associateBy { it.id }
             speedDialSongs.value = pinnedSongIds.mapNotNull { songsById[it] }
         }
-        rebuildMetroSpeedDialItems(pinned)
     }
 
-    private fun rebuildMetroSpeedDialItems(pinned: List<SpeedDialItem>) {
-        val filled = pinned.map { it.toYTItem() }.toMutableList()
-        val targetSize = 27
+    suspend fun getRandomItem(): YTItem? {
+        try {
+            isRandomizing.value = true
+            kotlinx.coroutines.delay(1000)
 
-        if (filled.size < targetSize) {
-            keepListening.value?.let { localItems ->
-                val needed = targetSize - filled.size
-                val available = localItems.filter { item ->
-                    filled.none { existing -> existing.id == item.id }
-                }.mapNotNull { item ->
-                    when (item) {
-                        is Song -> SongItem(
-                            id = item.id,
-                            title = item.title,
-                            artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
-                            thumbnail = item.thumbnailUrl ?: "",
-                            explicit = item.song.explicit
-                        )
-                        is Album -> AlbumItem(
-                            browseId = item.id,
-                            playlistId = item.album.playlistId ?: "",
-                            title = item.title,
-                            artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
-                            year = item.album.year,
-                            thumbnail = item.thumbnailUrl ?: ""
-                        )
-                        is Artist -> ArtistItem(
-                            id = item.id,
-                            title = item.title,
-                            thumbnail = item.thumbnailUrl,
-                            channelId = item.artist.channelId,
-                            playEndpoint = null,
-                            shuffleEndpoint = null,
-                            radioEndpoint = null
-                        )
-                        else -> null
-                    }
-                }
-                filled += available.take(needed)
-            }
-        }
+            val userSongs = mutableListOf<YTItem>()
+            val otherSources = mutableListOf<YTItem>()
 
-        if (filled.size < targetSize) {
             quickPicks.value?.let { songs ->
-                val needed = targetSize - filled.size
-                val available = songs.filter { song ->
-                    filled.none { existing -> existing.id == song.id }
-                }.map { song ->
+                userSongs.addAll(songs.map { song ->
                     SongItem(
                         id = song.id,
                         title = song.title,
                         artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
                         thumbnail = song.thumbnailUrl ?: "",
-                        explicit = song.song.explicit
+                        explicit = song.song.explicit,
                     )
+                })
+            }
+
+            keepListening.value?.let { items ->
+                items.forEach { item ->
+                    when (item) {
+                        is Song -> userSongs.add(
+                            SongItem(
+                                id = item.id,
+                                title = item.title,
+                                artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                                thumbnail = item.thumbnailUrl ?: "",
+                                explicit = item.song.explicit,
+                            )
+                        )
+                        is Album -> otherSources.add(
+                            AlbumItem(
+                                browseId = item.id,
+                                playlistId = item.album.playlistId ?: "",
+                                title = item.title,
+                                artists = item.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
+                                year = item.album.year,
+                                thumbnail = item.thumbnailUrl ?: "",
+                            )
+                        )
+                        is Artist -> otherSources.add(
+                            ArtistItem(
+                                id = item.id,
+                                title = item.title,
+                                thumbnail = item.thumbnailUrl,
+                                channelId = item.artist.channelId,
+                                playEndpoint = null,
+                                shuffleEndpoint = null,
+                                radioEndpoint = null,
+                            )
+                        )
+                        else -> Unit
+                    }
                 }
-                filled += available.take(needed)
+            }
+
+            otherSources.addAll(allYtItems.value)
+
+            return if (userSongs.isNotEmpty() && (otherSources.isEmpty() || Random.nextFloat() < 0.8f)) {
+                userSongs.distinctBy { it.id }.shuffled().firstOrNull()
+            } else {
+                otherSources.distinctBy { it.id }.shuffled().firstOrNull()
+            } ?: userSongs.firstOrNull() ?: otherSources.firstOrNull()
+        } finally {
+            isRandomizing.value = false
+        }
+    }
+
+    fun togglePin(item: YTItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val speedDialItem = SpeedDialItem.fromYTItem(item)
+            val isPinned = database.speedDialDao.isPinned(speedDialItem.id).first()
+            if (isPinned) {
+                database.speedDialDao.delete(speedDialItem.id)
+            } else {
+                database.speedDialDao.insert(speedDialItem)
             }
         }
-
-        metroSpeedDialItems.value = filled.take(targetSize)
     }
 
     private suspend fun getCommunityPlaylists() {
+
         val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
         val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
             .filter { it.artist.isYouTubeArtist }
