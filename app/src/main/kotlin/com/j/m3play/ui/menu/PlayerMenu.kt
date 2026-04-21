@@ -115,7 +115,6 @@ import com.j.m3play.constants.EqualizerSelectedProfileIdKey
 import com.j.m3play.constants.EqualizerVirtualizerEnabledKey
 import com.j.m3play.constants.EqualizerVirtualizerStrengthKey
 import com.j.m3play.constants.ListItemHeight
-import com.j.m3play.constants.SpeedDialSongIdsKey
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.EqCapabilities
 import com.j.m3play.playback.EqProfile
@@ -170,16 +169,7 @@ fun PlayerMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
-    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
-    val speedDialSongs = remember(speedDialSongIds) {
-        speedDialSongIds
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
-    }
-    val isInSpeedDial = remember(speedDialSongs, mediaMetadata.id) { mediaMetadata.id in speedDialSongs }
+    val isInSpeedDial by database.speedDialDao.isPinned(mediaMetadata.id).collectAsState(initial = false)
 
     // Split artists by configured separators
     data class SplitArtist(
@@ -477,12 +467,22 @@ fun PlayerMenu(
                             else R.string.pin_to_speed_dial
                         ),
                         onClick = {
-                            val updatedIds = if (isInSpeedDial) {
-                                speedDialSongs.filterNot { it == mediaMetadata.id }
-                            } else {
-                                (speedDialSongs + mediaMetadata.id).distinct().take(24)
+                            coroutineScope.launch(Dispatchers.IO) {
+                                if (isInSpeedDial) {
+                                    database.speedDialDao.delete(mediaMetadata.id)
+                                } else {
+                                    database.speedDialDao.insert(
+                                        SpeedDialItem(
+                                            id = mediaMetadata.id,
+                                            title = mediaMetadata.title,
+                                            subtitle = mediaMetadata.artists.joinToString(", ") { it.name },
+                                            thumbnailUrl = mediaMetadata.thumbnailUrl,
+                                            type = "SONG",
+                                            explicit = false,
+                                        )
+                                    )
+                                }
                             }
-                            onSpeedDialSongIdsChange(updatedIds.joinToString(","))
                             onDismiss()
                         }
                     ),

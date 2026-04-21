@@ -87,13 +87,13 @@ import com.j.m3play.constants.ExternalDownloaderEnabledKey
 import com.j.m3play.constants.ExternalDownloaderPackageKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
-import com.j.m3play.constants.SpeedDialSongIdsKey
 import com.j.m3play.db.entities.ArtistEntity
 import com.j.m3play.db.entities.Event
 import com.j.m3play.db.entities.PlaylistSong
 import com.j.m3play.db.entities.Song
 import com.j.m3play.db.entities.SongArtistMap
 import com.j.m3play.db.MusicDatabase
+import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.ExoDownloadService
@@ -146,16 +146,7 @@ fun SongMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
-    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
-    val speedDialSongs = remember(speedDialSongIds) {
-        speedDialSongIds
-            .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .take(24)
-    }
-    val isInSpeedDial = remember(speedDialSongs, song.id) { song.id in speedDialSongs }
+    val isInSpeedDial by database.speedDialDao.isPinned(song.id).collectAsState(initial = false)
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -579,12 +570,22 @@ fun SongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        val updatedIds = if (isInSpeedDial) {
-                            speedDialSongs.filterNot { it == song.id }
-                        } else {
-                            (speedDialSongs + song.id).distinct().take(24)
+                        coroutineScope.launch(Dispatchers.IO) {
+                            if (isInSpeedDial) {
+                                database.speedDialDao.delete(song.id)
+                            } else {
+                                database.speedDialDao.insert(
+                                    SpeedDialItem(
+                                        id = song.id,
+                                        title = song.title,
+                                        subtitle = song.artists.joinToString(", ") { it.name },
+                                        thumbnailUrl = song.thumbnailUrl,
+                                        type = "SONG",
+                                        explicit = song.song.explicit,
+                                    )
+                                )
+                            }
                         }
-                        onSpeedDialSongIdsChange(updatedIds.joinToString(","))
                         onDismiss()
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
