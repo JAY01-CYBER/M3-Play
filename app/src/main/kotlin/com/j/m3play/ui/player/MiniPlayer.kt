@@ -151,10 +151,10 @@ private fun NewMiniPlayer(
                 .height(64.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .border(
-                    width = 0.6.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.12f),
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
                     shape = RoundedCornerShape(32.dp)
                 )
         ) {
