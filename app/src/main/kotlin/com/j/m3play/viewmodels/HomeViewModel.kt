@@ -123,23 +123,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            if (filled.size < targetSize) {
-                quickPickSongs?.let { songs ->
-                    val needed = targetSize - filled.size
-                    val available = songs.filter { song ->
-                        filled.none { existing -> existing.id == song.id }
-                    }.map { song ->
-                        SongItem(
-                            id = song.id,
-                            title = song.title,
-                            artists = song.artists.map { com.j.m3play.innertube.models.Artist(name = it.name, id = it.id) },
-                            thumbnail = song.thumbnailUrl ?: "",
-                            explicit = song.song.explicit,
-                        )
-                    }
-                    filled.addAll(available.take(needed))
-                }
-            }
+            
 
             filled.take(targetSize)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
