@@ -1,14 +1,14 @@
 package com.j.m3play.ui.screens.library
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.*
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -39,7 +39,6 @@ fun LibraryScreen(navController: NavController) {
     val filterContent = @Composable {
         Column {
 
-            // 🔥 FILTER CHIPS (clean spacing)
             ChipsRow(
                 chips = listOf(
                     LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
@@ -67,11 +66,10 @@ fun LibraryScreen(navController: NavController) {
                     database = database,
                     selectedTags = selectedTagIds,
                     onTagToggle = { tag ->
-                        val newTags = if (tag.id in selectedTagIds) {
-                            selectedTagIds - tag.id
-                        } else {
-                            selectedTagIds + tag.id
-                        }
+                        val newTags =
+                            if (tag.id in selectedTagIds) selectedTagIds - tag.id
+                            else selectedTagIds + tag.id
+
                         onSelectedTagsFilterChange(newTags.joinToString(","))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -83,18 +81,28 @@ fun LibraryScreen(navController: NavController) {
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
-    val color4 = MaterialTheme.colorScheme.primaryContainer
-    val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
+
+    
+    val infinite = rememberInfiniteTransition(label = "")
+    val shift by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 30f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = ""
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🔥 CLEAN GRADIENT (TOP ONLY + SUBTLE)
+        
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp) // ✅ LIMITED HEIGHT
+                    .height(260.dp)
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawBehind {
@@ -104,41 +112,31 @@ fun LibraryScreen(navController: NavController) {
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                colors = listOf(
-                                    color1.copy(alpha = 0.20f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(w * 0.2f, h * 0.2f),
+                                listOf(color1.copy(0.18f), Color.Transparent),
+                                center = Offset(w * 0.2f + shift, h * 0.2f),
                                 radius = w * 0.6f
                             )
                         )
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                colors = listOf(
-                                    color2.copy(alpha = 0.18f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(w * 0.8f, h * 0.25f),
+                                listOf(color2.copy(0.16f), Color.Transparent),
+                                center = Offset(w * 0.8f - shift, h * 0.3f),
                                 radius = w * 0.7f
                             )
                         )
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                colors = listOf(
-                                    color3.copy(alpha = 0.16f),
-                                    Color.Transparent
-                                ),
+                                listOf(color3.copy(0.14f), Color.Transparent),
                                 center = Offset(w * 0.5f, h * 0.5f),
                                 radius = w * 0.8f
                             )
                         )
 
-                        // Smooth fade
                         drawRect(
                             brush = Brush.verticalGradient(
-                                colors = listOf(
+                                listOf(
                                     Color.Transparent,
                                     surfaceColor.copy(alpha = 0.4f),
                                     surfaceColor
@@ -149,28 +147,42 @@ fun LibraryScreen(navController: NavController) {
             )
         }
 
-        // 🔥 CONTENT
-        when (filterType) {
-            LibraryFilter.LIBRARY ->
-                LibraryMixScreen(navController, filterContent)
+        
+        AnimatedContent(
+            targetState = filterType,
+            transitionSpec = {
+                fadeIn(tween(300)) + slideInVertically { it / 6 } togetherWith
+                        fadeOut(tween(200))
+            },
+            label = ""
+        ) { state ->
 
-            LibraryFilter.PLAYLISTS ->
-                LibraryPlaylistsScreen(navController, filterContent)
+            when (state) {
 
-            LibraryFilter.SONGS ->
-                LibrarySongsScreen(navController) {
-                    filterType = LibraryFilter.LIBRARY
-                }
+                LibraryFilter.LIBRARY ->
+                    LibraryMixScreen(navController, filterContent)
 
-            LibraryFilter.ALBUMS ->
-                LibraryAlbumsScreen(navController) {
-                    filterType = LibraryFilter.LIBRARY
-                }
+                LibraryFilter.PLAYLISTS ->
+                    LibraryPlaylistsScreen(navController, filterContent)
 
-            LibraryFilter.ARTISTS ->
-                LibraryArtistsScreen(navController) {
-                    filterType = LibraryFilter.LIBRARY
-                }
+                LibraryFilter.SONGS ->
+                    LibrarySongsScreen(
+                        navController = navController,
+                        onDeselect = { filterType = LibraryFilter.LIBRARY }
+                    )
+
+                LibraryFilter.ALBUMS ->
+                    LibraryAlbumsScreen(
+                        navController = navController,
+                        onDeselect = { filterType = LibraryFilter.LIBRARY }
+                    )
+
+                LibraryFilter.ARTISTS ->
+                    LibraryArtistsScreen(
+                        navController = navController,
+                        onDeselect = { filterType = LibraryFilter.LIBRARY }
+                    )
+            }
         }
     }
 }
