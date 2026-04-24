@@ -4,21 +4,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,66 +38,90 @@ fun FloatingNavigationToolbar(
 ) {
     val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
     val softenedAccent = rememberSoftAccent(accentColor = accentColor, surface = baseSurface)
-    val mainContainerColor = if (pureBlack) {
-        lerp(baseSurface, softenedAccent, 0.18f).copy(alpha = 0.96f)
-    } else {
-        lerp(baseSurface, softenedAccent, 0.14f).copy(alpha = 0.97f)
-    }
 
-    val detachedContainerColor = if (pureBlack) {
-        lerp(baseSurface, softenedAccent, 0.22f).copy(alpha = 0.96f)
-    } else {
-        lerp(baseSurface, softenedAccent, 0.18f).copy(alpha = 0.95f)
-    }
+    
+    val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
+    val detachedContainerColor = lerp(baseSurface, softenedAccent, 0.16f)
 
     val homeScreen = items.firstOrNull { it.route == Screens.Home.route }
     val libraryScreen = items.firstOrNull { it.route == Screens.Library.route }
     val searchScreen = items.firstOrNull { it.route == Screens.Search.route }
     val moodScreen = items.firstOrNull { it.route == Screens.MoodAndGenres.route }
 
-    val primaryScreens = listOfNotNull(homeScreen, libraryScreen, searchScreen)
-
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+
+        
         Surface(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = RoundedCornerShape(32.dp),
-            tonalElevation = 2.dp,
-            shadowElevation = 10.dp,
-            modifier = Modifier.widthIn(max = if (slim) 252.dp else 282.dp),
+            tonalElevation = 3.dp,
+            shadowElevation = 12.dp,
+            modifier = Modifier.widthIn(max = if (slim) 260.dp else 300.dp),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                primaryScreens.forEach { screen ->
+
+                
+                homeScreen?.let {
                     AppleNavItem(
-                        screen = screen,
-                        selected = isSelected(screen),
+                        screen = it,
+                        selected = isSelected(it),
                         accentColor = softenedAccent,
-                        onClick = { onItemClick(screen, isSelected(screen)) },
+                        onClick = { onItemClick(it, isSelected(it)) },
+                    )
+                }
+
+                
+                if (onMusicRecognitionClick != null) {
+                    Surface(
+                        onClick = onMusicRecognitionClick,
+                        shape = CircleShape,
+                        color = detachedContainerColor,
+                        tonalElevation = 2.dp,
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.mic),
+                            contentDescription = musicRecognitionContentDescription,
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+            
+                libraryScreen?.let {
+                    AppleNavItem(
+                        screen = it,
+                        selected = isSelected(it),
+                        accentColor = softenedAccent,
+                        onClick = { onItemClick(it, isSelected(it)) },
+                    )
+                }
+
+            
+                searchScreen?.let {
+                    AppleNavItem(
+                        screen = it,
+                        selected = isSelected(it),
+                        accentColor = softenedAccent,
+                        onClick = { onItemClick(it, isSelected(it)) },
                     )
                 }
             }
         }
 
-        if (onMusicRecognitionClick != null) {
-            DetachedCircleButton(
-                iconRes = R.drawable.mic,
-                contentDescription = musicRecognitionContentDescription,
-                selected = false,
-                onClick = onMusicRecognitionClick,
-                pureBlack = pureBlack,
-                accentColor = softenedAccent,
-                containerColor = detachedContainerColor,
-            )
-        }
-
+        
         if (onShuffleClick != null && shuffleIconRes != null) {
             DetachedCircleButton(
                 iconRes = shuffleIconRes,
@@ -120,12 +134,13 @@ fun FloatingNavigationToolbar(
             )
         }
 
-        if (moodScreen != null) {
+    
+        moodScreen?.let {
             DetachedCircleButton(
-                iconRes = moodScreen.iconIdActive,
-                contentDescription = stringResource(moodScreen.titleId),
-                selected = isSelected(moodScreen),
-                onClick = { onItemClick(moodScreen, isSelected(moodScreen)) },
+                iconRes = it.iconIdActive,
+                contentDescription = stringResource(it.titleId),
+                selected = isSelected(it),
+                onClick = { onItemClick(it, isSelected(it)) },
                 pureBlack = pureBlack,
                 accentColor = softenedAccent,
                 containerColor = detachedContainerColor,
@@ -143,31 +158,22 @@ private fun AppleNavItem(
 ) {
     val containerColor by animateColorAsState(
         targetValue = if (selected) {
-            val vivid = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.70f)
-            } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.76f)
-            }
-            vivid.copy(alpha = 0.99f)
-        } else {
-            Color.Transparent
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "apple_nav_item_container",
+            lerp(MaterialTheme.colorScheme.surface, accentColor, 0.7f)
+        } else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium), 
+        label = "",
     )
+
     val contentColor by animateColorAsState(
-        targetValue = if (selected) {
-            if (accentColor.luminance() > 0.68f) Color(0xFF101010) else Color.White.copy(alpha = 0.98f)
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "apple_nav_item_content",
+        targetValue = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "",
     )
+
     val horizontalPadding by animateDpAsState(
         targetValue = if (selected) 15.dp else 12.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "apple_nav_item_padding",
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "",
     )
 
     Surface(
@@ -175,17 +181,17 @@ private fun AppleNavItem(
         color = containerColor,
         contentColor = contentColor,
         shape = RoundedCornerShape(24.dp),
-        tonalElevation = if (selected) 2.dp else 0.dp,
-        shadowElevation = if (selected) 2.dp else 0.dp,
         modifier = Modifier.defaultMinSize(minHeight = 50.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
+                painter = painterResource(
+                    if (selected) screen.iconIdActive else screen.iconIdInactive
+                ),
                 contentDescription = stringResource(screen.titleId),
                 modifier = Modifier.size(18.dp),
             )
@@ -201,25 +207,13 @@ private fun AppleNavItem(
     }
 }
 
-private fun Color.punchUp(): Color = Color(
-    red = (red * 1.08f).coerceIn(0f, 1f),
-    green = (green * 1.05f).coerceIn(0f, 1f),
-    blue = (blue * 1.10f).coerceIn(0f, 1f),
-    alpha = 1f,
-)
-
 @Composable
 private fun rememberSoftAccent(
     accentColor: Color,
     surface: Color,
 ): Color {
-    val cleanedAccent = if (accentColor.alpha == 0f) MaterialTheme.colorScheme.primary else accentColor
-    val liftedAccent = when {
-        cleanedAccent.luminance() > 0.80f -> lerp(cleanedAccent, Color.Black, 0.26f)
-        cleanedAccent.luminance() < 0.18f -> lerp(cleanedAccent, Color.White, 0.24f)
-        else -> cleanedAccent
-    }.punchUp()
-    return lerp(surface, liftedAccent, 0.72f)
+    val safeAccent = if (accentColor.alpha == 0f) MaterialTheme.colorScheme.primary else accentColor
+    return lerp(surface, safeAccent, 0.7f)
 }
 
 @Composable
@@ -232,33 +226,9 @@ private fun DetachedCircleButton(
     accentColor: Color,
     containerColor: Color,
 ) {
-    val resolvedContainerColor by animateColorAsState(
-        targetValue = if (selected) {
-            if (pureBlack) {
-                lerp(Color(0xFF101010), accentColor, 0.52f).copy(alpha = 0.99f)
-            } else {
-                lerp(MaterialTheme.colorScheme.surface, accentColor, 0.70f).copy(alpha = 0.99f)
-            }
-        } else {
-            containerColor
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "detached_button_container",
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) {
-            if (accentColor.luminance() > 0.68f) Color(0xFF101010) else Color.White.copy(alpha = 0.98f)
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
-        },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "detached_button_content",
-    )
-
     Surface(
         onClick = onClick,
-        color = resolvedContainerColor,
-        contentColor = contentColor,
+        color = containerColor,
         shape = CircleShape,
         tonalElevation = 3.dp,
         shadowElevation = 10.dp,
@@ -273,4 +243,3 @@ private fun DetachedCircleButton(
         }
     }
 }
-
