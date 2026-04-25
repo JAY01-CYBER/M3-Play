@@ -2,18 +2,13 @@ package com.j.m3play.ui.screens.library
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -88,12 +83,13 @@ fun LibraryScreen(navController: NavController) {
     val color3 = MaterialTheme.colorScheme.tertiary
     val surfaceColor = MaterialTheme.colorScheme.surface
 
+
     val infinite = rememberInfiniteTransition(label = "")
     val shift by infinite.animateFloat(
         initialValue = 0f,
-        targetValue = 30f,
+        targetValue = 40f,
         animationSpec = infiniteRepeatable(
-            animation = tween(7000, easing = LinearEasing),
+            animation = tween(8000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = ""
@@ -101,12 +97,12 @@ fun LibraryScreen(navController: NavController) {
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-    
+        
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(240.dp)
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawBehind {
@@ -116,7 +112,7 @@ fun LibraryScreen(navController: NavController) {
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                listOf(color1.copy(0.18f), Color.Transparent),
+                                listOf(color1.copy(0.15f), Color.Transparent),
                                 center = Offset(w * 0.2f + shift, h * 0.2f),
                                 radius = w * 0.6f
                             )
@@ -124,7 +120,7 @@ fun LibraryScreen(navController: NavController) {
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                listOf(color2.copy(0.16f), Color.Transparent),
+                                listOf(color2.copy(0.13f), Color.Transparent),
                                 center = Offset(w * 0.8f - shift, h * 0.3f),
                                 radius = w * 0.7f
                             )
@@ -132,7 +128,7 @@ fun LibraryScreen(navController: NavController) {
 
                         drawRect(
                             brush = Brush.radialGradient(
-                                listOf(color3.copy(0.14f), Color.Transparent),
+                                listOf(color3.copy(0.12f), Color.Transparent),
                                 center = Offset(w * 0.5f, h * 0.5f),
                                 radius = w * 0.8f
                             )
@@ -142,7 +138,7 @@ fun LibraryScreen(navController: NavController) {
                             brush = Brush.verticalGradient(
                                 listOf(
                                     Color.Transparent,
-                                    surfaceColor.copy(alpha = 0.4f),
+                                    surfaceColor.copy(alpha = 0.35f),
                                     surfaceColor
                                 )
                             )
@@ -151,10 +147,11 @@ fun LibraryScreen(navController: NavController) {
             )
         }
 
+        
         AnimatedContent(
             targetState = filterType,
             transitionSpec = {
-                fadeIn(tween(250)) + slideInVertically { it / 8 } togetherWith
+                fadeIn(tween(300)) + slideInVertically { it / 8 } togetherWith
                         fadeOut(tween(200))
             },
             label = ""
@@ -162,45 +159,8 @@ fun LibraryScreen(navController: NavController) {
 
             when (state) {
 
-                
-                LibraryFilter.LIBRARY -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-
-                        filterContent()
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            LibraryPill("Liked", R.drawable.favorite, Modifier.weight(1f))
-                            LibraryPill("Downloaded", R.drawable.download, Modifier.weight(1f))
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            LibraryPill("Top 50", R.drawable.trending, Modifier.weight(1f))
-                            LibraryPill("Cached", R.drawable.cached, Modifier.weight(1f))
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(20) {
-                                MiniAlbumItem()
-                            }
-                        }
-                    }
-                }
+                LibraryFilter.LIBRARY ->
+                    LibraryMixScreen(navController, filterContent)
 
                 LibraryFilter.PLAYLISTS ->
                     LibraryPlaylistsScreen(navController, filterContent)
@@ -224,50 +184,5 @@ fun LibraryScreen(navController: NavController) {
                     )
             }
         }
-    }
-}
-
-@Composable
-fun LibraryPill(title: String, icon: Int, modifier: Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = title,
-                modifier = Modifier.size(20.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-@Composable
-fun MiniAlbumItem() {
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Album",
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1
-        )
     }
 }
