@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Handles playback, audio pipeline & logic  │
  * │                                            │
- * │  Signature: M3PLAY::CORE::ENGINE::V3       │
+ * │  Signature: M3PLAY::CORE::ENGINE::V4       │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -1067,7 +1067,7 @@ class MusicService :
                 
                 readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
                     ?.let { playerState ->
-                    // FIX 3: Removed delay(1000) for instant state loading
+                    // FIX: Removed delay(1000) for instant state loading
                     withContext(Dispatchers.Main) {
                         player.repeatMode = playerState.repeatMode
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
@@ -1141,7 +1141,7 @@ class MusicService :
 
             val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
 
-            // 🔥 FIX 1: Instant loading and metadata set from saved file directly
+            // 🔥 FIX: Instant loading and metadata set from saved file directly
             val savedMetadata = persistedQueue.items.getOrNull(fullIndex)
             if (savedMetadata != null) {
                 currentMediaMetadata.value = savedMetadata
@@ -4610,16 +4610,18 @@ class MusicService :
         if (!persistentFile.exists() || !persistentFile.isFile) return null
 
         return synchronized(persistentStateLock) {
-            runCatching {
+            try {
                 persistentFile.inputStream().use { fis ->
-                    ObjectInputStream(fis).use { input ->
+                    java.io.ObjectInputStream(fis).use { input ->
                         input.readObject() as? T
                     }
                 }
-            }.onFailure {
-                Timber.tag("MusicService").w(it, "Failed to read persistent file: $fileName")
+            } catch (e: Exception) {
+                Timber.tag("MusicService").e(e, "CRITICAL: Queue read failed for $fileName")
+                e.printStackTrace()
                 runCatching { persistentFile.delete() }
-            }.getOrNull()
+                null
+            }
         }
     }
 
@@ -4693,6 +4695,47 @@ class MusicService :
             likedDate = null,
             inLibrary = null,
         )
+    }
+
+    // Main thread/Sync file write for when app is swiped away
+    private fun saveQueueToDiskSync() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+        if (mediaItemsSnapshot.isEmpty()) return
+
+        val currentMediaItemIndex = player.currentMediaItemIndex
+        val currentPosition = player.currentPosition
+        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+        val playWhenReady = player.playWhenReady
+        val repeatMode = player.repeatMode
+        val shuffleModeEnabled = player.shuffleModeEnabled
+        val volume = playerVolume.value
+        val playbackState = player.playbackState
+
+        val persistQueue = currentQueue.toPersistQueue(
+            title = queueTitle,
+            items = mediaItemsSnapshot,
+            mediaItemIndex = currentMediaItemIndex,
+            position = currentPosition
+        )
+        val persistAutomix = PersistQueue(
+            title = "automix",
+            items = automixSnapshot,
+            mediaItemIndex = 0,
+            position = 0,
+        )
+        val persistPlayerState = PersistPlayerState(
+            playWhenReady = playWhenReady,
+            repeatMode = repeatMode,
+            shuffleModeEnabled = shuffleModeEnabled,
+            volume = volume,
+            currentPosition = currentPosition,
+            currentMediaItemIndex = currentMediaItemIndex,
+            playbackState = playbackState
+        )
+
+        writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+        writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
+        writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
     }
 
     private suspend fun saveQueueToDisk() {
@@ -4855,15 +4898,13 @@ class MusicService :
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         
-        // FIX 1: App close hote hi instantly Queue save karo
+        // 🔥 FIX 1: App close hote hi instantly Queue save karo without Coroutines!
         try {
-            runBlocking {
-                if (player.mediaItemCount > 0) {
-                    saveQueueToDisk()
-                }
+            if (player.mediaItemCount > 0) {
+                saveQueueToDiskSync()
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to save queue on task clear")
+            Timber.tag("MusicService").e(e, "CRITICAL: Failed to save queue on task clear")
         }
 
         // When the user clears the app from Recents, ensure we clear Discord rich presence
@@ -4904,7 +4945,7 @@ class MusicService :
 
                 if (stopMusicOnTaskClearEnabled) {
                     if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                        runBlocking { saveQueueToDisk() }
+                        saveQueueToDiskSync() // Extra safety fallback
                     }
                     runCatching { stopAndClearPlayback() }
                     runCatching {
