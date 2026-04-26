@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Handles playback, audio pipeline & logic  │
  * │                                            │
- * │  Signature: M3PLAY::CORE::ENGINE::V2       │
+ * │  Signature: M3PLAY::CORE::ENGINE::V3       │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -1141,13 +1141,16 @@ class MusicService :
 
             val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
 
-            // FIX 2: Instant loading and metadata set
+            // 🔥 FIX 1: Instant loading and metadata set from saved file directly
+            val savedMetadata = persistedQueue.items.getOrNull(fullIndex)
+            if (savedMetadata != null) {
+                currentMediaMetadata.value = savedMetadata
+            }
+
             player.setMediaItems(items, fullIndex, initialStatus.position)
             player.prepare()
             player.playWhenReady = false
             
-            val targetItem = items[fullIndex]
-            currentMediaMetadata.value = targetItem.metadata ?: player.currentMetadata
             updateNotification()
         }
     }
@@ -1178,13 +1181,6 @@ class MusicService :
             }
 
             if (DiscordPresenceManager.isRunning() && lastPresenceToken == key) {
-                // try {
-                //     if (DiscordPresenceManager.restart()) {
-                //         Timber.tag("MusicService").d("Presence manager restarted with same token")
-                //     }
-                // } catch (ex: Exception) {
-                //     Timber.tag("MusicService").e(ex, "Failed to restart presence manager")
-                // }
                 return@launch
             }
 
@@ -1441,12 +1437,6 @@ class MusicService :
     }
 
     private fun skipOnError() {
-        /**
-         * Auto skip to the next media item on error.
-         *
-         * To prevent a "runaway diesel engine" scenario, force the user to take action after
-         * too many errors come up too quickly. Pause to show player "stopped" state
-         */
         consecutivePlaybackErr += 2
         val nextWindowIndex = player.nextMediaItemIndex
 
@@ -1665,7 +1655,6 @@ class MusicService :
 
             val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            // FIX 2.5: Chunking removed, load items instantly
             player.setMediaItems(items, index, initialStatus.position)
             player.prepare()
             player.playWhenReady = playWhenReady
@@ -4836,8 +4825,13 @@ class MusicService :
         hasBoundClients = true
         cancelIdleStop()
         val result = super.onBind(intent) ?: binder
-        if (player.mediaItemCount > 0 && player.currentMediaItem != null) {
-            currentMediaMetadata.value = player.currentMetadata
+        
+        // 🔥 FIX 2: UI connect hote hi null aane se roko
+        if (player.mediaItemCount > 0) {
+            val currentMeta = player.currentMediaItem?.metadata ?: player.currentMetadata
+            if (currentMeta != null) {
+                currentMediaMetadata.value = currentMeta
+            }
             scope.launch {
                 delay(50)
                 updateNotification()
@@ -4861,7 +4855,7 @@ class MusicService :
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         
-        // FIX 1: App close hote hi instantly Queue save karo (bina 10 sec wait kiye)
+        // FIX 1: App close hote hi instantly Queue save karo
         try {
             runBlocking {
                 if (player.mediaItemCount > 0) {
