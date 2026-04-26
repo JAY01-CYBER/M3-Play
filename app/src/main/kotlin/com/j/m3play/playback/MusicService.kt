@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Handles playback, audio pipeline & logic  │
  * │                                            │
- * │  Signature: M3PLAY::CORE::ENGINE::V1       │
+ * │  Signature: M3PLAY::CORE::ENGINE::V2       │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -1067,7 +1067,7 @@ class MusicService :
                 
                 readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
                     ?.let { playerState ->
-                    delay(1000)
+                    // FIX 3: Removed delay(1000) for instant state loading
                     withContext(Dispatchers.Main) {
                         player.repeatMode = playerState.repeatMode
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
@@ -1083,7 +1083,9 @@ class MusicService :
                             player.seekTo(index, playerState.currentPosition)
                         }
                         
-                        currentMediaMetadata.value = player.currentMetadata
+                        if (currentMediaMetadata.value == null) {
+                            currentMediaMetadata.value = player.currentMetadata
+                        }
                         updateNotification()
                     }
                 }
@@ -1093,7 +1095,6 @@ class MusicService :
             }
         }
 
-        // Save queue periodically to prevent queue loss from crash or force kill
         // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
@@ -1139,34 +1140,15 @@ class MusicService :
             }
 
             val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
-            val windowStart = (fullIndex - 20).coerceAtLeast(0)
-            val windowEnd = (fullIndex + 50).coerceAtMost(items.size)
 
-            val initialChunk = items.subList(windowStart, windowEnd)
-            val relativeIndex = (fullIndex - windowStart).coerceIn(0, initialChunk.lastIndex)
-
-            player.setMediaItems(
-                initialChunk,
-                relativeIndex,
-                initialStatus.position,
-            )
+            // FIX 2: Instant loading and metadata set
+            player.setMediaItems(items, fullIndex, initialStatus.position)
             player.prepare()
             player.playWhenReady = false
-            currentMediaMetadata.value = player.currentMetadata
+            
+            val targetItem = items[fullIndex]
+            currentMediaMetadata.value = targetItem.metadata ?: player.currentMetadata
             updateNotification()
-
-            if (items.size > initialChunk.size) {
-                scope.launch(SilentHandler) {
-                    delay(2000)
-                    if (!isActive || player.mediaItemCount == 0) return@launch
-                    if (windowStart > 0) {
-                        player.addMediaItems(0, items.subList(0, windowStart))
-                    }
-                    if (windowEnd < items.size) {
-                        player.addMediaItems(items.subList(windowEnd, items.size))
-                    }
-                }
-            }
         }
     }
 
@@ -1678,71 +1660,17 @@ class MusicService :
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
-            if (initialStatus.items.isEmpty()) return@launch
-            if (queue.preloadItem != null) {
-                player.addMediaItems(
-                    0,
-                    initialStatus.items.subList(0, initialStatus.mediaItemIndex)
-                )
-                player.addMediaItems(
-                    initialStatus.items.subList(
-                        initialStatus.mediaItemIndex + 1,
-                        initialStatus.items.size
-                    )
-                )
-                if (player.shuffleModeEnabled) {
-                    applyCurrentFirstShuffleOrder()
-                }
-            } else {
-                val items = initialStatus.items
-                val index = initialStatus.mediaItemIndex
-                
-                // Chunk Loading: Only load a window around the current item initially
-                // to prevent blocking the Main Thread for seconds with large queues.
-                val windowStart = (index - 20).coerceAtLeast(0)
-                val windowEnd = (index + 50).coerceAtMost(items.size)
-                
-                val initialChunk = items.subList(windowStart, windowEnd)
-                val relativeIndex = index - windowStart
-                
-                player.setMediaItems(
-                    initialChunk,
-                    if (relativeIndex > 0) relativeIndex else 0,
-                    initialStatus.position,
-                )
-                player.prepare()
-                player.playWhenReady = playWhenReady
-                if (player.shuffleModeEnabled) {
-                    applyCurrentFirstShuffleOrder()
-                }
-                
-                // Defer loading the rest of the queue
-                if (items.size > initialChunk.size) {
-                    scope.launch(SilentHandler) {
-                        try {
-                            delay(2000) // Allow UI to settle
-                            if (!isActive) return@launch
-                            
-                            // Add preceding items
-                            if (windowStart > 0) {
-                                val startChunk = items.subList(0, windowStart)
-                                player.addMediaItems(0, startChunk)
-                            }
-                            
-                            // Add succeeding items
-                            if (windowEnd < items.size) {
-                                val endChunk = items.subList(windowEnd, items.size)
-                                player.addMediaItems(endChunk)
-                            }
+            val items = initialStatus.items
+            if (items.isEmpty()) return@launch
 
-                            if (player.shuffleModeEnabled) {
-                                applyCurrentFirstShuffleOrder()
-                            }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Failed to load deferred queue items")
-                        }
-                    }
-                }
+            val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            
+            // FIX 2.5: Chunking removed, load items instantly
+            player.setMediaItems(items, index, initialStatus.position)
+            player.prepare()
+            player.playWhenReady = playWhenReady
+            if (player.shuffleModeEnabled) {
+                applyCurrentFirstShuffleOrder()
             }
         }
     }
@@ -4932,6 +4860,18 @@ class MusicService :
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
+        
+        // FIX 1: App close hote hi instantly Queue save karo (bina 10 sec wait kiye)
+        try {
+            runBlocking {
+                if (player.mediaItemCount > 0) {
+                    saveQueueToDisk()
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to save queue on task clear")
+        }
+
         // When the user clears the app from Recents, ensure we clear Discord rich presence
         try {
             scope.launch {
