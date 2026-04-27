@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -118,10 +118,9 @@ fun HomeScreen(
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val communityPlaylists by viewModel.communityPlaylists.collectAsState()
+    
+
     val homePage by viewModel.homePage.collectAsState()
-    
-    
-    val ytmExactShelves by viewModel.ytmExactShelves.collectAsState()
 
     val selectedChip by viewModel.selectedChip.collectAsState()
 
@@ -389,44 +388,6 @@ fun HomeScreen(
                     }
                 }
 
-            
-                items(ytmExactShelves) { shelf ->
-                    if (shelf.items.isNotEmpty()) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-                            // Shelf Title
-                            NavigationTitle(
-                                title = shelf.title,
-                                modifier = Modifier.animateItem()
-                            )
-
-                            // Horizontal Scrolling List (Carousel) for items
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(shelf.items) { item ->
-                                    YTItemCard(
-                                        item = item,
-                                        onSongClick = { song -> 
-                                            // Handle navigation or playback based on your app's logic
-                                            // e.g. playerConnection.play(song)
-                                        },
-                                        onAlbumClick = { id -> 
-                                            runCatching { navController.navigate("album/$id") }
-                                        },
-                                        onArtistClick = { id -> 
-                                            runCatching { navController.navigate("artist/$id") }
-                                        },
-                                        onPlaylistClick = { id -> 
-                                            runCatching { navController.navigate("online_playlist/$id") }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                     item {
                         NavigationTitle(
@@ -574,26 +535,42 @@ fun HomeScreen(
                     scope = scope
                 )
 
+                
                 homePage?.sections?.forEach { section ->
-                    item {
-                        HomePageSectionTitle(
-                            section = section,
-                            navController = navController,
-                            modifier = Modifier.animateItem()
-                        )
-                    }
+                    if (section.items.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp).animateItem()) {
+                                NavigationTitle(
+                                    title = section.title,
+                                )
 
-                    item {
-                        HomePageSectionContent(
-                            section = section,
-                            mediaMetadata = mediaMetadata,
-                            isPlaying = isPlaying,
-                            navController = navController,
-                            playerConnection = playerConnection,
-                            menuState = menuState,
-                            haptic = haptic,
-                            scope = scope
-                        )
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(section.items) { item ->
+                                        YTItemCard(
+                                            item = item,
+                                            onSongClick = { song -> 
+                                                // Default play behavior
+                                                playerConnection.playQueue(
+                                                    com.j.m3play.playback.queues.ListQueue(
+                                                        title = section.title,
+                                                        items = section.items.mapNotNull { 
+                                                            if (it is SongItem) com.j.m3play.extensions.toMediaItem(it) else null 
+                                                        },
+                                                        startIndex = section.items.indexOf(song).coerceAtLeast(0)
+                                                    )
+                                                )
+                                            },
+                                            onAlbumClick = { id -> runCatching { navController.navigate("album/$id") } },
+                                            onArtistClick = { id -> runCatching { navController.navigate("artist/$id") } },
+                                            onPlaylistClick = { id -> runCatching { navController.navigate("online_playlist/$id") } }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -703,7 +680,7 @@ fun YTItemCard(
 
     Column(
         modifier = Modifier
-            .width(120.dp)
+            .width(130.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable {
                 when (item) {
@@ -717,7 +694,7 @@ fun YTItemCard(
     ) {
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .size(130.dp)
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
