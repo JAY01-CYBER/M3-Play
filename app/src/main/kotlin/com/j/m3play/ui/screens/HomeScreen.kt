@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -24,8 +24,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -33,14 +31,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -64,30 +57,21 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.AsyncImage 
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
-import com.j.m3play.extensions.toMediaItem
-import com.j.m3play.innertube.models.AlbumItem
-import com.j.m3play.innertube.models.ArtistItem
-import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.SongItem
-import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.LocalBottomSheetPageState
@@ -98,6 +82,8 @@ import com.j.m3play.ui.utils.SnapLayoutInfoProvider
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -119,8 +105,6 @@ fun HomeScreen(
     val forgottenFavorites by viewModel.forgottenFavorites.collectAsState()
     val keepListening by viewModel.keepListening.collectAsState()
     val communityPlaylists by viewModel.communityPlaylists.collectAsState()
-    
-    
     val homePage by viewModel.homePage.collectAsState()
 
     val selectedChip by viewModel.selectedChip.collectAsState()
@@ -536,41 +520,26 @@ fun HomeScreen(
                     scope = scope
                 )
 
-            
                 homePage?.sections?.forEach { section ->
-                    if (section.items.isNotEmpty()) {
-                        item {
-                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp).animateItem()) {
-                                NavigationTitle(
-                                    title = section.title,
-                                )
+                    item {
+                        HomePageSectionTitle(
+                            section = section,
+                            navController = navController,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
 
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(section.items) { item ->
-                                        YTItemCard(
-                                            item = item,
-                                            onSongClick = { song -> 
-                                                playerConnection.playQueue(
-                                                    com.j.m3play.playback.queues.ListQueue(
-                                                        title = section.title,
-                                                        items = section.items.mapNotNull { 
-                                                            if (it is SongItem) it.toMediaItem() else null 
-                                                        },
-                                                        startIndex = section.items.indexOf(song).coerceAtLeast(0)
-                                                    )
-                                                )
-                                            },
-                                            onAlbumClick = { id -> runCatching { navController.navigate("album/$id") } },
-                                            onArtistClick = { id -> runCatching { navController.navigate("artist/$id") } },
-                                            onPlaylistClick = { id -> runCatching { navController.navigate("online_playlist/$id") } }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    item {
+                        HomePageSectionContent(
+                            section = section,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic,
+                            scope = scope
+                        )
                     }
                 }
 
@@ -661,79 +630,6 @@ fun ActionCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
-            )
-        }
-    }
-}
-
-
-@Composable
-fun YTItemCard(
-    item: YTItem,
-    onSongClick: (SongItem) -> Unit,
-    onAlbumClick: (String) -> Unit,
-    onArtistClick: (String) -> Unit,
-    onPlaylistClick: (String) -> Unit
-) {
-    val isArtist = item is ArtistItem
-    val shape = if (isArtist) CircleShape else RoundedCornerShape(12.dp)
-
-    Column(
-        modifier = Modifier
-            .width(130.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable {
-                when (item) {
-                    is SongItem -> onSongClick(item)
-                    is AlbumItem -> onAlbumClick(item.browseId)
-                    is ArtistItem -> onArtistClick(item.id)
-                    is PlaylistItem -> onPlaylistClick(item.id)
-                }
-            },
-        horizontalAlignment = if (isArtist) Alignment.CenterHorizontally else Alignment.Start
-    ) {
-        Box(
-            modifier = Modifier
-                .size(130.dp)
-                .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-        ) {
-            
-            AsyncImage(
-                model = item.thumbnail,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = item.title,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = if (isArtist) Modifier.padding(horizontal = 8.dp) else Modifier
-        )
-        
-        val subtitle = when (item) {
-            is SongItem -> item.artists.joinToString(", ") { it.name }
-            is AlbumItem -> item.artists?.joinToString(", ") { it.name } ?: item.year?.toString()
-            is PlaylistItem -> item.songCountText ?: item.author?.name
-            is ArtistItem -> "Artist"
-            else -> null
-        }
-        
-        if (!subtitle.isNullOrBlank()) {
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = if (isArtist) Modifier.padding(horizontal = 8.dp) else Modifier
             )
         }
     }
