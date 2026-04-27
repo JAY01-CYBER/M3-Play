@@ -10,6 +10,8 @@
 
 package com.j.m3play.ui.player
 
+import android.content.Context
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -42,6 +44,7 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,41 +70,44 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import androidx.media3.common.C
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
-import androidx.compose.material3.Icon
+
+
+import com.j.m3play.canvas.CanvasArtwork
+import com.j.m3play.canvas.M3PlayCanvas
+
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.canvas.M3PlayCanvas
-import com.j.m3play.canvas.CanvasArtwork
+import com.j.m3play.constants.CropThumbnailToSquareKey
+import com.j.m3play.constants.HidePlayerThumbnailKey
+import com.j.m3play.constants.M3PlayCanvasKey
+import com.j.m3play.constants.MaxCanvasCacheSizeKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.SeekExtraSeconds
 import com.j.m3play.constants.SwipeThumbnailKey
-import com.j.m3play.constants.M3PlayCanvasKey
-import com.j.m3play.constants.MaxCanvasCacheSizeKey
 import com.j.m3play.constants.ThumbnailCornerRadiusKey
-import com.j.m3play.constants.CropThumbnailToSquareKey
-import com.j.m3play.constants.HidePlayerThumbnailKey
 import com.j.m3play.extensions.metadata
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.YouTube
@@ -123,9 +129,6 @@ import java.io.File
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
-import android.content.Context
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import androidx.compose.ui.viewinterop.AndroidView
 
 object CanvasArtworkPlaybackCache {
     private const val defaultMaxSize = 256
@@ -346,7 +349,6 @@ fun Thumbnail(
         // but prefer mediaMetadata for immediate updates during crossfade.
         val metadata = mediaMetadata
         if (metadata != null) {
-            // Use extension to convert metadata to a proper MediaItem with all fields (uri, artwork, tag)
             metadata.toMediaItem()
         } else {
             try {
@@ -482,13 +484,12 @@ fun Thumbnail(
                         state = thumbnailLazyGridState,
                         rows = GridCells.Fixed(1),
                         flingBehavior = rememberSnapFlingBehavior(thumbnailSnapLayoutInfoProvider),
-                        userScrollEnabled = swipeThumbnail && isPlayerExpanded, // Only allow swipe when player is expanded
+                        userScrollEnabled = swipeThumbnail && isPlayerExpanded, 
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(
                             items = mediaItems,
                             key = { item -> 
-                                // Use mediaId with stable fallback to avoid recomposition issues
                                 item.mediaId.ifEmpty { "unknown_${item.hashCode()}" }
                             }
                         ) { item ->
@@ -610,7 +611,6 @@ fun Thumbnail(
                                                     )
                                                     seekDirection = context.getString(R.string.seek_forward_dynamic, skipAmount / 1000)
                                                 }
-                                                // If a user double-tap skip lands on a new media item, restart presence manager to pick up artwork quickly
                                                 if (com.j.m3play.ui.screens.settings.DiscordPresenceManager.isRunning()) {
                                                     try { com.j.m3play.ui.screens.settings.DiscordPresenceManager.restart() } catch (_: Exception) {}
                                                 }
@@ -627,7 +627,6 @@ fun Thumbnail(
                                                 .clip(RoundedCornerShape(thumbnailCornerRadius.dp))
                                             ) {
                                     if (hidePlayerThumbnail) {
-                                        // Show app logo when thumbnail is hidden
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
@@ -952,7 +951,6 @@ fun SnapLayoutInfoProvider(
     override fun calculateSnapOffset(velocity: Float): Float {
         val bounds = calculateSnappingOffsetBounds()
 
-        // Only snap when velocity exceeds threshold
         if (abs(velocity) < velocityThreshold) {
             if (abs(bounds.start) < abs(bounds.endInclusive))
                 return bounds.start
@@ -974,12 +972,10 @@ fun SnapLayoutInfoProvider(
         layoutInfo.visibleItemsInfo.fastForEach { item ->
             val offset = calculateDistanceToDesiredSnapPosition(layoutInfo, item, positionInLayout)
 
-            // Find item that is closest to the center
             if (offset <= 0 && offset > lowerBoundOffset) {
                 lowerBoundOffset = offset
             }
 
-            // Find item that is closest to center, but after it
             if (offset >= 0 && offset < upperBoundOffset) {
                 upperBoundOffset = offset
             }
@@ -1005,3 +1001,4 @@ fun calculateDistanceToDesiredSnapPosition(
 
 private val LazyGridLayoutInfo.singleAxisViewportSize: Int
     get() = if (orientation == Orientation.Vertical) viewportSize.height else viewportSize.width
+
