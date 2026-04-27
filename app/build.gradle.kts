@@ -199,6 +199,8 @@ dependencies {
     implementation(libs.kuromoji.ipadic)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
+    implementation("com.google.code.gson:gson:2.10.1")
+
 
     implementation(libs.apache.lang3)
 
