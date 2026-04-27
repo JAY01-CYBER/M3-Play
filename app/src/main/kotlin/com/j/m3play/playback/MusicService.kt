@@ -2,9 +2,8 @@
  * ╭────────────────────────────────────────────╮
  * │            M3Play Core Engine              │
  * │--------------------------------------------│
- * │  Handles playback, audio pipeline & logic  │
- * │                                            │
- * │  Signature: M3PLAY::CORE::ENGINE::V4       │
+ * │  JSON Queue Persistence (Metrolist Logic)  │
+ * │  Signature: M3PLAY::CORE::ENGINE::V5       │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -85,6 +84,11 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializer
+import com.google.gson.reflect.TypeToken
 import com.j.m3play.innertube.YouTube
 import com.j.m3play.innertube.models.YouTubeClient
 import com.j.m3play.innertube.models.SongItem
@@ -220,9 +224,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.FileOutputStream
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
-import java.io.Serializable
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -364,6 +365,16 @@ class MusicService :
     private val audioNormalizationEnabled = MutableStateFlow(true)
     private var crossfadeAudio: CrossfadeAudio? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
+
+    // 🔥 Metrolist Style JSON Engine setup (with LocalDateTime support)
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(LocalDateTime::class.java, JsonSerializer<LocalDateTime> { src, _, _ ->
+            JsonPrimitive(src.toString())
+        })
+        .registerTypeAdapter(LocalDateTime::class.java, JsonDeserializer { json, _, _ ->
+            runCatching { LocalDateTime.parse(json.asString) }.getOrNull()
+        })
+        .create()
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -4605,19 +4616,18 @@ class MusicService :
         )
     }
 
+    // 🔥 Naya JSON Reader (Metrolist Logic)
     private inline fun <reified T> readPersistentObject(fileName: String): T? {
         val persistentFile = filesDir.resolve(fileName)
         if (!persistentFile.exists() || !persistentFile.isFile) return null
 
         return synchronized(persistentStateLock) {
             try {
-                persistentFile.inputStream().use { fis ->
-                    java.io.ObjectInputStream(fis).use { input ->
-                        input.readObject() as? T
-                    }
-                }
+                val jsonString = persistentFile.readText() // Read file as plain text
+                val type = object : TypeToken<T>() {}.type
+                gson.fromJson<T>(jsonString, type)
             } catch (e: Exception) {
-                Timber.tag("MusicService").e(e, "CRITICAL: Queue read failed for $fileName")
+                Timber.tag("MusicService").e(e, "CRITICAL: JSON Queue read failed for $fileName")
                 e.printStackTrace()
                 runCatching { persistentFile.delete() }
                 null
@@ -4625,29 +4635,25 @@ class MusicService :
         }
     }
 
-    private fun writePersistentObject(fileName: String, payload: Serializable) {
+    // 🔥 Naya JSON Writer (OS kill hone se pehle fast text likhega)
+    private inline fun <reified T> writePersistentObject(fileName: String, payload: T) {
         val persistentFile = filesDir.resolve(fileName)
         val tempFile = filesDir.resolve("$fileName.tmp")
 
         synchronized(persistentStateLock) {
-            runCatching {
-                FileOutputStream(tempFile).use { fos ->
-                    ObjectOutputStream(fos).use { output ->
-                        output.writeObject(payload)
-                        output.flush()
-                    }
-                    fos.fd.sync()
-                }
+            try {
+                val jsonString = gson.toJson(payload) // Convert complex objects to JSON text
+                tempFile.writeText(jsonString)        // Save instantly!
 
                 if (persistentFile.exists() && !persistentFile.delete()) {
-                    error("Could not replace $fileName")
+                    Timber.tag("MusicService").e("Could not replace $fileName")
                 }
                 if (!tempFile.renameTo(persistentFile)) {
-                    error("Could not atomically move $fileName")
+                    Timber.tag("MusicService").e("Could not atomically move $fileName")
                 }
-            }.onFailure {
+            } catch (e: Exception) {
                 runCatching { tempFile.delete() }
-                reportException(it)
+                Timber.tag("MusicService").e(e, "Failed to write JSON queue")
             }
         }
     }
@@ -4869,7 +4875,6 @@ class MusicService :
         cancelIdleStop()
         val result = super.onBind(intent) ?: binder
         
-        // 🔥 FIX 2: UI connect hote hi null aane se roko
         if (player.mediaItemCount > 0) {
             val currentMeta = player.currentMediaItem?.metadata ?: player.currentMetadata
             if (currentMeta != null) {
@@ -4898,7 +4903,7 @@ class MusicService :
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         
-        // 🔥 FIX 1: App close hote hi instantly Queue save karo without Coroutines!
+        
         try {
             if (player.mediaItemCount > 0) {
                 saveQueueToDiskSync()
