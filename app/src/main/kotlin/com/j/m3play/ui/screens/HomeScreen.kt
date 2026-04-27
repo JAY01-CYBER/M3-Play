@@ -75,13 +75,14 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.AsyncImage
+import coil.compose.AsyncImage 
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
+import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.PlaylistItem
@@ -119,7 +120,7 @@ fun HomeScreen(
     val keepListening by viewModel.keepListening.collectAsState()
     val communityPlaylists by viewModel.communityPlaylists.collectAsState()
     
-
+    
     val homePage by viewModel.homePage.collectAsState()
 
     val selectedChip by viewModel.selectedChip.collectAsState()
@@ -535,7 +536,7 @@ fun HomeScreen(
                     scope = scope
                 )
 
-                
+            
                 homePage?.sections?.forEach { section ->
                     if (section.items.isNotEmpty()) {
                         item {
@@ -552,12 +553,11 @@ fun HomeScreen(
                                         YTItemCard(
                                             item = item,
                                             onSongClick = { song -> 
-                                                // Default play behavior
                                                 playerConnection.playQueue(
                                                     com.j.m3play.playback.queues.ListQueue(
                                                         title = section.title,
                                                         items = section.items.mapNotNull { 
-                                                            if (it is SongItem) com.j.m3play.extensions.toMediaItem(it) else null 
+                                                            if (it is SongItem) it.toMediaItem() else null 
                                                         },
                                                         startIndex = section.items.indexOf(song).coerceAtLeast(0)
                                                     )
@@ -698,6 +698,7 @@ fun YTItemCard(
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
+            
             AsyncImage(
                 model = item.thumbnail,
                 contentDescription = item.title,
