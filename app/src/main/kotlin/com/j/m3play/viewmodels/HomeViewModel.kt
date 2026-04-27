@@ -38,8 +38,6 @@ import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.get
 import com.j.m3play.utils.SyncUtils
 import com.j.m3play.utils.reportException
-import com.j.m3play.innertube.getExactMusicHome 
-import com.j.m3play.innertube.HomeShelf         
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -75,10 +73,6 @@ class HomeViewModel @Inject constructor(
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
     val isRandomizing = MutableStateFlow(false)
-    
-    
-    val ytmExactShelves = MutableStateFlow<List<HomeShelf>>(emptyList())
-
     val pinnedSpeedDialItems: StateFlow<List<SpeedDialItem>> =
         database.speedDialDao.getAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     val metroSpeedDialItems: StateFlow<List<YTItem>> =
@@ -389,9 +383,7 @@ if (filled.size < targetSize) {
                     loadSpeedDialSongs()
                 }
 
-                
                 launch {
-                    
                     YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
                             chips = filterHomeChips(page.chips),
@@ -400,13 +392,6 @@ if (filled.size < targetSize) {
                             }
                         )
                     }.onFailure { reportException(it) }
-
-                    
-                    YouTube.getExactMusicHome().onSuccess { ytmShelves ->
-                        ytmExactShelves.value = ytmShelves
-                    }.onFailure { 
-                        Timber.e(it, "Failed to load exact YTM home") 
-                    }
                 }
 
                 launch {
@@ -452,8 +437,7 @@ if (filled.size < targetSize) {
 
             allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
                     communityPlaylists.value.orEmpty().flatMap { listOf(it.playlist) + it.songs } +
-                    homePage.value?.sections?.flatMap { it.items }.orEmpty() +
-                    ytmExactShelves.value.flatMap { it.items } 
+                    homePage.value?.sections?.flatMap { it.items }.orEmpty()
                     
             isInitialLoadComplete.value = true
         } catch (e: Exception) {
@@ -506,8 +490,7 @@ if (filled.size < targetSize) {
         
         allYtItems.value = similarRecommendations.value?.flatMap { it.items }.orEmpty() +
                 communityPlaylists.value.orEmpty().flatMap { listOf(it.playlist) + it.songs } +
-                homePage.value?.sections?.flatMap { it.items }.orEmpty() +
-                ytmExactShelves.value.flatMap { it.items }
+                homePage.value?.sections?.flatMap { it.items }.orEmpty()
     }
 
     private suspend fun songLoad() {
