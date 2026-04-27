@@ -32,7 +32,6 @@ include(":lastfm")
 include("simpmusic")
 include(":betterlyrics")
 include(":kizzy")
-include(":canvas")
 include(":shazamkit")
 
 // Use a local copy of NewPipe Extractor by uncommenting the lines below.
