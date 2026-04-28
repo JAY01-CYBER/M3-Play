@@ -201,7 +201,6 @@ dependencies {
     implementation(libs.room.ktx)
     implementation("com.google.code.gson:gson:2.10.1")
 
-
     implementation(libs.apache.lang3)
 
     implementation(libs.hilt)
@@ -220,22 +219,21 @@ dependencies {
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
+    // --- Ktor Clean Setup (Duplicates Removed) ---
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.websockets)
+    
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.server.content.negotiation)
 
-    implementation("io.ktor:ktor-client-core:2.3.6")
-    implementation("io.ktor:ktor-client-okhttp:2.3.6")
+    // Canvas Required Client Plugins
     implementation("io.ktor:ktor-client-content-negotiation:2.3.6")
     implementation("io.ktor:ktor-client-encoding:2.3.6")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.6")
-
 
     coreLibraryDesugaring(libs.desugaring)
 
