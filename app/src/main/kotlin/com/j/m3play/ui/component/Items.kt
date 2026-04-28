@@ -327,7 +327,7 @@ fun SongListItem(
                 isSelected = isSelected,
                 isActive = isActive,
                 isPlaying = isPlaying,
-                shape = RoundedCornerShape(6.dp), 
+                shape = RoundedCornerShape(6.dp),
                 modifier = Modifier.size(48.dp)
             )
 
@@ -982,34 +982,67 @@ fun YouTubeListItem(
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
 
     val content: @Composable () -> Unit = {
-        ListItem(
-            title = item.title,
-            subtitle = when (item) {
-                is SongItem -> joinByBullet(
-                    item.artists.joinToString { it.name },
-                    makeTimeString(item.duration?.times(1000L)),
-                    viewCountText
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp) // Premium spacing
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ItemThumbnail(
+                thumbnailUrl = item.thumbnail,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
+                    ),
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
-                is ArtistItem -> null
-                is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
-            },
-            badges = badges,
-            thumbnailContent = {
-                ItemThumbnail(
-                    thumbnailUrl = item.thumbnail,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
-                    modifier = Modifier.size(ListThumbnailSize)
-                )
-            },
-            trailingContent = trailingContent,
-            modifier = modifier,
-            isActive = isActive
-        )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    badges()
+
+                    val subtitleText = when (item) {
+                        is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
+                        is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
+                        is ArtistItem -> null
+                        is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+                    }
+
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            trailingContent()
+        }
     }
 
     if (item is SongItem && isSwipeable && swipeEnabled) {
