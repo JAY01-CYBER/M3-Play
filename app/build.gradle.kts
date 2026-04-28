@@ -220,26 +220,23 @@ dependencies {
     implementation(libs.compose.cloudy)
 
     // =======================================================
-    // KTOR UNIFIED SETUP (Locked to 2.3.12 to prevent drops)
+    // 🔥 KTOR 3.4.2 SETUP (100% matched with libs.versions.toml)
     // =======================================================
-    val ktorVersion = "2.3.12"
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.websockets)
     
-    // Client Libs
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
-    implementation("io.ktor:ktor-client-websockets:$ktorVersion")
+    // Canvas Plugins
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.encoding)
+    implementation(libs.ktor.serialization.json)
     
-    // Canvas Required Plugins
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-client-encoding:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-
-    // Server Libs
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
-    implementation("io.ktor:ktor-server-cio:$ktorVersion")
-    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
-    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    // Server Plugins
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.content.negotiation)
     // =======================================================
 
     coreLibraryDesugaring(libs.desugaring)
