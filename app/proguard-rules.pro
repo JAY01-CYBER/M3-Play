@@ -127,16 +127,30 @@
 -keep class org.jaudiotagger.** { *; }
 
 ## =======================================================
-##  Ktor & Canvas Networking Rules (Fix for Release Crash)
+##  Ktor & Canvas Nuclear Rules (Final Fix for Crash)
 ## =======================================================
+
+# Keep everything in Ktor (Classes, Interfaces, Enums, Members)
 -keep class io.ktor.** { *; }
+-keep interface io.ktor.** { *; }
+-keep enum io.ktor.** { *; }
+-keepclassmembers class io.ktor.** { *; }
 -dontwarn io.ktor.**
 
+# Keep ContentNegotiation specifically
+-keep class io.ktor.client.plugins.contentnegotiation.** { *; }
+-keepclassmembers class io.ktor.client.plugins.contentnegotiation.** { *; }
+
+# Keep Serialization plugins
 -keep class kotlinx.serialization.** { *; }
+-keep interface kotlinx.serialization.** { *; }
+-keepclassmembers class kotlinx.serialization.** { *; }
 -dontwarn kotlinx.serialization.**
 
 -keep class kotlin.reflect.** { *; }
 -dontwarn kotlin.reflect.**
 
-# Specifically keep ContentNegotiation to prevent the NoClassDefFoundError
--keep class io.ktor.client.plugins.contentnegotiation.** { *; }
+# Keep ServiceLoaders (Ktor uses this internally for engines/plugins)
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keep class META-INF.services.** { *; }
