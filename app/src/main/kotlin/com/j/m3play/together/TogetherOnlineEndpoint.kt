@@ -5,92 +5,20 @@
  * Signature: M3PLAY::GENERAL::V1
  */
 
- 
 package com.j.m3play.together
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import java.net.URI
-import java.util.concurrent.TimeUnit
-import com.j.m3play.constants.TogetherOnlineEndpointCacheKey
-import com.j.m3play.constants.TogetherOnlineEndpointLastCheckedAtKey
-import com.j.m3play.utils.getAsync
 
 object TogetherOnlineEndpoint {
-    private const val EndpointSourceUrl =
-        "wss://metroserverx.meowery.eu/ws"
 
-    private const val CacheTtlMs: Long = 6 * 60 * 60 * 1000L
-
-    private val httpClient =
-        HttpClient(OkHttp) {
-            engine {
-                config {
-                    connectTimeout(12, TimeUnit.SECONDS)
-                    readTimeout(12, TimeUnit.SECONDS)
-                    writeTimeout(12, TimeUnit.SECONDS)
-                    retryOnConnectionFailure(true)
-                }
-            }
-        }
+    private const val MyServerBaseUrl = "https://metroserverx.meowery.eu"
 
     suspend fun baseUrlOrNull(
         dataStore: DataStore<Preferences>,
-    ): String? {
-        val now = System.currentTimeMillis()
-        val cached = dataStore.getAsync(TogetherOnlineEndpointCacheKey)?.trim().orEmpty()
-        val lastCheckedAt = dataStore.getAsync(TogetherOnlineEndpointLastCheckedAtKey, 0L)
-
-        if (cached.isNotBlank() && now - lastCheckedAt < CacheTtlMs) return cached
-
-        val fetched = fetchEndpointFromSourceOrNull()
-        if (fetched != null) {
-            dataStore.edit { prefs ->
-                prefs[TogetherOnlineEndpointCacheKey] = fetched
-                prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
-            }
-            return fetched
-        }
-
-        if (cached.isNotBlank()) {
-            dataStore.edit { prefs ->
-                prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
-            }
-            return cached
-        }
-
-        dataStore.edit { prefs ->
-            prefs[TogetherOnlineEndpointLastCheckedAtKey] = now
-        }
-        return null
-    }
-
-    private suspend fun fetchEndpointFromSourceOrNull(): String? {
-        val text =
-            runCatching { httpClient.get(EndpointSourceUrl).bodyAsText() }
-                .getOrNull()
-                ?.trim()
-                .orEmpty()
-        if (text.isBlank()) return null
-
-        val candidate =
-            text.lineSequence()
-                .map { it.trim() }
-                .firstOrNull { it.isNotBlank() }
-                ?: return null
-
-        val uri = runCatching { URI(candidate) }.getOrNull() ?: return null
-        val scheme = uri.scheme?.trim()?.lowercase()
-        if (scheme != "http" && scheme != "https") return null
-        val host = uri.host?.trim().orEmpty()
-        if (host.isBlank()) return null
-
-        return candidate.trimEnd('/')
+    ): String {
+        return MyServerBaseUrl
     }
 
     fun onlineWebSocketUrlOrNull(
@@ -100,13 +28,10 @@ object TogetherOnlineEndpoint {
         val derived = deriveWebSocketUrlFromBaseUrl(baseUrl) ?: return null
         val normalized = normalizeWebSocketUrl(rawWsUrl, baseUrl) ?: return derived
 
-        val host =
-            runCatching { URI(normalized).host }.getOrNull()?.trim()?.lowercase()
-                ?: return derived
+        val host = runCatching { URI(normalized).host }.getOrNull()?.trim()?.lowercase() ?: return derived
         if (host == "localhost" || host == "127.0.0.1" || host == "0.0.0.0") return derived
 
-        val baseHost =
-            runCatching { URI(baseUrl.trim()).host }.getOrNull()?.trim()?.lowercase()
+        val baseHost = runCatching { URI(baseUrl.trim()).host }.getOrNull()?.trim()?.lowercase()
         if (baseHost != null && isIpv4Address(baseHost) && !isIpv4Address(host)) return derived
 
         return normalized
@@ -121,29 +46,20 @@ object TogetherOnlineEndpoint {
         }
     }
 
-    private fun deriveWebSocketUrlFromBaseUrl(
-        baseUrl: String,
-    ): String? {
+    private fun deriveWebSocketUrlFromBaseUrl(baseUrl: String): String? {
         val uri = runCatching { URI(baseUrl.trim()) }.getOrNull() ?: return null
         val host = uri.host?.trim()?.ifBlank { null } ?: return null
         val scheme = uri.scheme?.trim()?.lowercase()
         val wsScheme = if (scheme == "https") "wss" else "ws"
 
         val portPart = if (uri.port != -1 && uri.port != 80 && uri.port != 443) ":${uri.port}" else ""
-        val normalizedPath =
-            uri.path
-                ?.trim()
-                ?.trimEnd('/')
-                .orEmpty()
-                .let { if (it.endsWith("/v1")) it else "$it/v1" }
+        val normalizedPath = uri.path?.trim()?.trimEnd('/').orEmpty().let { if (it.endsWith("/v1")) it else "$it/v1" }
 
+        
         return "$wsScheme://$host$portPart$normalizedPath/together/ws"
     }
 
-    private fun normalizeWebSocketUrl(
-        raw: String,
-        baseUrl: String,
-    ): String? {
+    private fun normalizeWebSocketUrl(raw: String, baseUrl: String): String? {
         val trimmed = raw.trim()
         if (trimmed.isBlank()) return null
         if (trimmed.startsWith("ws://") || trimmed.startsWith("wss://")) return trimmed
