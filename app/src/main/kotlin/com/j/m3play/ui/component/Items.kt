@@ -273,6 +273,7 @@ fun GridItem(
     fillMaxWidth = fillMaxWidth
 )
 
+
 @Composable
 fun SongListItem(
     song: Song,
@@ -307,29 +308,74 @@ fun SongListItem(
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
 
     val content: @Composable () -> Unit = {
-        ListItem(
-            title = song.song.title,
-            subtitle = joinByBullet(
-                song.artists.joinToString { it.name },
-                makeTimeString(song.song.duration * 1000L),
-                viewCountText
-            ),
-            badges = badges,
-            thumbnailContent = {
-                ItemThumbnail(
-                    thumbnailUrl = song.song.thumbnailUrl,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = RoundedCornerShape(ThumbnailCornerRadius),
-                    modifier = Modifier.size(ListThumbnailSize)
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp) // Premium spacing
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Album Art (Rounded Square with Play Indicator)
+            ItemThumbnail(
+                thumbnailUrl = song.song.thumbnailUrl,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = RoundedCornerShape(6.dp), 
+                modifier = Modifier.size(48.dp)
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // 2. Texts and Icons (Stacked vertically)
+            Column(modifier = Modifier.weight(1f)) {
+                // Title
+                Text(
+                    text = song.song.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
+                    ),
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-            },
-            trailingContent = trailingContent,
-            modifier = modifier,
-            isActive = isActive
-        )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Subtitle Row (Heart -> Check -> Artist • Time)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    
+                    // Automatically renders your Red Heart, Explicit 'E', and Download Checkbox
+                    badges()
+
+                    val subtitleText = joinByBullet(
+                        song.artists.joinToString { it.name },
+                        makeTimeString(song.song.duration * 1000L),
+                        viewCountText
+                    )
+
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // 3. Three Dots / Custom Trailing Content
+            trailingContent()
+        }
     }
 
     if (isSwipeable && swipeEnabled) {
