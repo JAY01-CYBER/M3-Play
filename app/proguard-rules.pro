@@ -125,3 +125,18 @@
 -dontwarn javax.imageio.**
 -dontwarn javax.swing.**
 -keep class org.jaudiotagger.** { *; }
+
+## =======================================================
+##  Ktor & Canvas Networking Rules (Fix for Release Crash)
+## =======================================================
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
+-keep class kotlinx.serialization.** { *; }
+-dontwarn kotlinx.serialization.**
+
+-keep class kotlin.reflect.** { *; }
+-dontwarn kotlin.reflect.**
+
+# Specifically keep ContentNegotiation to prevent the NoClassDefFoundError
+-keep class io.ktor.client.plugins.contentnegotiation.** { *; }
