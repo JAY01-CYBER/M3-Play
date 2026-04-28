@@ -219,21 +219,28 @@ dependencies {
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
-    // --- Ktor Clean Setup (Duplicates Removed) ---
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.serialization.json)
-    implementation(libs.ktor.client.websockets)
+    // =======================================================
+    // KTOR UNIFIED SETUP (Locked to 2.3.12 to prevent drops)
+    // =======================================================
+    val ktorVersion = "2.3.12"
     
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.cio)
-    implementation(libs.ktor.server.websockets)
-    implementation(libs.ktor.server.content.negotiation)
+    // Client Libs
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
+    implementation("io.ktor:ktor-client-websockets:$ktorVersion")
+    
+    // Canvas Required Plugins
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-client-encoding:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 
-    // Canvas Required Client Plugins
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.6")
-    implementation("io.ktor:ktor-client-encoding:2.3.6")
+    // Server Libs
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-cio:$ktorVersion")
+    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
+    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+    // =======================================================
 
     coreLibraryDesugaring(libs.desugaring)
 
