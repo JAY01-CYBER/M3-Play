@@ -288,7 +288,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 }
             }
 
-            // CUSTOM GLOSSY REFRESH INDICATOR WITH YOUR NEW ICON
+            
             if (pullRefreshState.distanceFraction > 0f || isRefreshing) {
                 Box(
                     modifier = Modifier
