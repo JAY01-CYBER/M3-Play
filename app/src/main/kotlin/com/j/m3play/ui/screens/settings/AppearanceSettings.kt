@@ -39,7 +39,6 @@ import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.roundToInt
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,48 +57,26 @@ fun AppearanceSettings(
     )
     
     val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
-    val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(UseNewLibraryDesignKey, defaultValue = false)
-    val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, defaultValue = false)
-    val (archiveTuneCanvasEnabled, onM3PlayCanvasEnabledChange) = rememberPreference(M3PlayCanvasKey, defaultValue = false)
     val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.DEFAULT)
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, defaultValue = true)
-    val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, defaultValue = false)
-    val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(DefaultOpenTabKey, defaultValue = NavigationTab.HOME)
-    val (playerButtonsStyle, onPlayerButtonsStyleChange) = rememberEnumPreference(PlayerButtonsStyleKey, defaultValue = PlayerButtonsStyle.DEFAULT)
     
     // LYRICS SETTINGS
-    val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(LyricsTextPositionKey, defaultValue = LyricsPosition.LEFT)
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
         key = LyricsAnimationStyleKey,
         defaultValue = LyricsAnimationStyle.APPLE
     )
-    val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
-    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
-    val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
-    val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(SliderStyleKey, defaultValue = SliderStyle.Standard)
-    val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(SwipeThumbnailKey, defaultValue = true)
-    val (swipeSensitivity, onSwipeSensitivityChange) = rememberPreference(SwipeSensitivityKey, defaultValue = 0.73f)
-    val (gridItemSize, onGridItemSizeChange) = rememberEnumPreference(GridItemsSizeKey, defaultValue = GridItemSize.SMALL)
     val (slimNav, onSlimNavChange) = rememberPreference(SlimNavBarKey, defaultValue = false)
-    val (swipeToSong, onSwipeToSongChange) = rememberPreference(SwipeToSongKey, defaultValue = false)
-    
-    val (showLikedPlaylist, onShowLikedPlaylistChange) = rememberPreference(ShowLikedPlaylistKey, defaultValue = true)
-    val (showDownloadedPlaylist, onShowDownloadedPlaylistChange) = rememberPreference(ShowDownloadedPlaylistKey, defaultValue = true)
-    val (showTopPlaylist, onShowTopPlaylistChange) = rememberPreference(ShowTopPlaylistKey, defaultValue = true)
-    val (showCachedPlaylist, onShowCachedPlaylistChange) = rememberPreference(ShowCachedPlaylistKey, defaultValue = true)
-    val (showTagsInLibrary, onShowTagsInLibraryChange) = rememberPreference(ShowTagsInLibraryKey, defaultValue = true)
-    val (showHomeCategoryChips, onShowHomeCategoryChipsChange) = rememberPreference(ShowHomeCategoryChipsKey, defaultValue = true)
 
     val isSystemInDarkTheme = isSystemInDarkTheme()
+    
+    // FIX: Variable name mismatch solved (darkMode instead of darkTheme)
     val useDarkTheme = remember(darkMode, isSystemInDarkTheme) {
-        if (darkMode == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
+        if (darkMode == DarkMode.AUTO) isSystemInDarkTheme else darkMode == DarkMode.ON
     }
-
-    val (defaultChip, onDefaultChipChange) = rememberEnumPreference(key = ChipSortTypeKey, defaultValue = LibraryFilter.LIBRARY)
 
     var showSliderOptionDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -156,7 +133,7 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                     PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
-                    PlayerDesignStyle.APPLE -> "Apple Music Style" // Custom text for Apple
+                    PlayerDesignStyle.APPLE -> "Apple Music Style" 
                 }
             },
         )
@@ -206,13 +183,6 @@ fun AppearanceSettings(
           }
         )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.lyrics_auto_scroll)) },
-            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-            checked = lyricsScroll,
-            onCheckedChange = onLyricsScrollChange,
-        )
-
         PreferenceGroupTitle(title = stringResource(R.string.misc))
 
         SwitchPreference(
@@ -232,7 +202,6 @@ fun AppearanceSettings(
         }
     )
     
-    // Slider Style Dialog
     if (showSliderOptionDialog) {
         DefaultDialog(
             buttons = { TextButton(onClick = { showSliderOptionDialog = false }) { Text(stringResource(android.R.string.cancel)) } },
