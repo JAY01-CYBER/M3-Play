@@ -193,7 +193,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
     val url = if (isLoggedIn) accountImageUrl else null
 
-    val scope = rememberCoroutineScope() // Defined at top level
+    val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
     val forgottenFavoritesState = rememberLazyGridState()
 
@@ -204,12 +204,15 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         label = "rotation"
     )
 
+    // Colors for blur effect
+    val primaryBlurColor = MaterialTheme.colorScheme.primary
+    val surfaceBlurColor = MaterialTheme.colorScheme.surface
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (!disableBlur) {
             Box(modifier = Modifier.fillMaxWidth().fillMaxSize(0.7f).align(Alignment.TopCenter).zIndex(-1f).drawWithCache {
-                val surfaceColor = surfaceColor
                 onDrawBehind {
-                    drawRect(brush = Brush.verticalGradient(colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), surfaceColor), endY = size.height))
+                    drawRect(brush = Brush.verticalGradient(colors = listOf(primaryBlurColor.copy(alpha = 0.15f), surfaceBlurColor), endY = size.height))
                 }
             })
         }
