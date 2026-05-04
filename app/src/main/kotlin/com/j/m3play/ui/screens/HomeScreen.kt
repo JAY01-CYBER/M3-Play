@@ -85,6 +85,7 @@ fun CommunityPlaylistCard(
     modifier: Modifier = Modifier,
 ) {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val playerConnection = LocalPlayerConnection.current // Store context here
     val containerColor = if (isDark) MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp) 
                          else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
@@ -126,10 +127,10 @@ fun CommunityPlaylistCard(
                 }
             }
             Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)) {
-                IconButton(onClick = { item.playlist.playEndpoint?.let { LocalPlayerConnection.current?.playQueue(YouTubeQueue(it)) } }, modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape)) {
+                IconButton(onClick = { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }, modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape)) {
                     Icon(painter = painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
                 }
-                IconButton(onClick = { item.playlist.radioEndpoint?.let { LocalPlayerConnection.current?.playQueue(YouTubeQueue(it)) } }, modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape)) {
+                IconButton(onClick = { item.playlist.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }, modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape)) {
                     Icon(painter = painterResource(R.drawable.radio), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(24.dp))
                 }
             }
@@ -192,10 +193,8 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
     val url = if (isLoggedIn) accountImageUrl else null
 
-    val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
 
-    // Animation for custom refresh icon rotation
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
@@ -268,10 +267,10 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
                 keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
                     item { NavigationTitle(title = stringResource(R.string.keep_listening)) }
-                    item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
+                    item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope()) }
                 }
 
-                AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
+                AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope())
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                     item { NavigationTitle(title = stringResource(R.string.forgotten_favorites)) }
@@ -280,7 +279,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
                 homePage?.sections?.forEach { section ->
                     item { HomePageSectionTitle(section = section, navController = navController) }
-                    item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
+                    item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope()) }
                 }
 
                 if (isLoading || homePage?.continuation != null) {
@@ -288,30 +287,17 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 }
             }
 
-            
             if (pullRefreshState.distanceFraction > 0f || isRefreshing) {
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
-                        .padding(top = 12.dp)
-                        .size(44.dp)
-                        .graphicsLayer {
-                            rotationZ = if (isRefreshing) rotation else pullRefreshState.distanceFraction * 400f
-                            scaleX = pullRefreshState.distanceFraction.coerceIn(0.7f, 1f)
-                            scaleY = pullRefreshState.distanceFraction.coerceIn(0.7f, 1f)
-                            alpha = pullRefreshState.distanceFraction.coerceIn(0f, 1f)
-                        }
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f), CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), CircleShape),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()).padding(top = 12.dp).size(44.dp).graphicsLayer {
+                        rotationZ = if (isRefreshing) rotation else pullRefreshState.distanceFraction * 400f
+                        scaleX = pullRefreshState.distanceFraction.coerceIn(0.7f, 1f)
+                        scaleY = pullRefreshState.distanceFraction.coerceIn(0.7f, 1f)
+                        alpha = pullRefreshState.distanceFraction.coerceIn(0f, 1f)
+                    }.background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f), CircleShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_refresh),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(painter = painterResource(id = R.drawable.ic_refresh), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -325,14 +311,7 @@ fun ActionCard(title: String, icon: Int, onClick: () -> Unit, modifier: Modifier
     val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "scale")
 
     Box(
-        modifier = modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .height(52.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
-            .padding(horizontal = 12.dp),
+        modifier = modifier.graphicsLayer { scaleX = scale; scaleY = scale }.height(52.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)).border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f), RoundedCornerShape(16.dp)).clickable(interactionSource = interactionSource, indication = null) { onClick() }.padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
