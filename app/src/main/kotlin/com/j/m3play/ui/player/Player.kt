@@ -2,66 +2,31 @@ package com.j.m3play.ui.player
 
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.media3.common.C
 import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -69,13 +34,9 @@ import coil3.toBitmap
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.*
-import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.component.*
-import com.j.m3play.ui.menu.PlayerMenu
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.ui.theme.PlayerColorExtractor
-import com.j.m3play.ui.utils.ShowMediaInfo
-import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -100,7 +61,6 @@ fun BottomSheetPlayer(
 
     val playerDesignStyle by rememberEnumPreference(key = PlayerDesignStyleKey, defaultValue = PlayerDesignStyle.V4)
     val playerBackground by rememberEnumPreference(key = PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.DEFAULT)
-    val (pureBlackPref) = rememberPreference(PureBlackKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, defaultValue = true)
     
     val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -129,9 +89,8 @@ fun BottomSheetPlayer(
         if (playerBackground != PlayerBackgroundStyle.DEFAULT && mediaMetadata?.thumbnailUrl != null) {
             val cached = gradientColorsCache[mediaMetadata!!.id]
             if (cached != null) { gradientColors = cached } else {
-                val result = runCatching { withContext(Dispatchers.IO) { 
-                    context.imageLoader.execute(ImageRequest.Builder(context).data(mediaMetadata!!.thumbnailUrl).allowHardware(false).build()) 
-                }}.getOrNull()
+                val request = ImageRequest.Builder(context).data(mediaMetadata!!.thumbnailUrl).allowHardware(false).build()
+                val result = runCatching { withContext(Dispatchers.IO) { context.imageLoader.execute(request) } }.getOrNull()
                 result?.image?.toBitmap()?.let { bitmap ->
                     val palette = Palette.from(bitmap).generate()
                     val extracted = PlayerColorExtractor.extractGradientColors(palette, MaterialTheme.colorScheme.surface.toArgb())
@@ -142,8 +101,8 @@ fun BottomSheetPlayer(
         }
     }
 
-    val TextBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.APPLE) Color.White else Color.White
-    val icBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.APPLE) Color.Black else Color.Black
+    val TextBackgroundColor = Color.White
+    val icBackgroundColor = Color.Black
 
     val playerButtonsStyle by rememberEnumPreference(key = PlayerButtonsStyleKey, defaultValue = PlayerButtonsStyle.DEFAULT)
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -238,19 +197,17 @@ fun BottomSheetPlayer(
                     onSliderValueChangeFinished = onSliderValueChangeFinished,
                 )
             }
-
             if (playerDesignStyle != PlayerDesignStyle.APPLE) {
                 Spacer(Modifier.height(30.dp))
             }
         }
 
-        val queueOnBackgroundColor = if (useDarkTheme && pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
         Queue(
             state = queueSheetState,
             playerBottomSheetState = state,
             navController = navController,
             backgroundColor = if (useDarkTheme && pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-            onBackgroundColor = queueOnBackgroundColor,
+            onBackgroundColor = if (useDarkTheme && pureBlack) Color.White else MaterialTheme.colorScheme.onSurface,
             TextBackgroundColor = TextBackgroundColor,
             textButtonColor = textButtonColor,
             iconButtonColor = iconButtonColor,
