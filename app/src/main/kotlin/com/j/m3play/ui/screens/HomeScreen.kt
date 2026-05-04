@@ -85,7 +85,7 @@ fun CommunityPlaylistCard(
     modifier: Modifier = Modifier,
 ) {
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val playerConnection = LocalPlayerConnection.current // Store context here
+    val playerConnection = LocalPlayerConnection.current
     val containerColor = if (isDark) MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp) 
                          else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
@@ -193,7 +193,9 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
     val url = if (isLoggedIn) accountImageUrl else null
 
+    val scope = rememberCoroutineScope() // Defined at top level
     val lazylistState = rememberLazyListState()
+    val forgottenFavoritesState = rememberLazyGridState()
 
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
@@ -205,7 +207,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     Box(modifier = Modifier.fillMaxSize()) {
         if (!disableBlur) {
             Box(modifier = Modifier.fillMaxWidth().fillMaxSize(0.7f).align(Alignment.TopCenter).zIndex(-1f).drawWithCache {
-                val surfaceColor = MaterialTheme.colorScheme.surface
+                val surfaceColor = surfaceColor
                 onDrawBehind {
                     drawRect(brush = Brush.verticalGradient(colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), surfaceColor), endY = size.height))
                 }
@@ -215,6 +217,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
         BoxWithConstraints(modifier = Modifier.fillMaxSize().pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh)) {
             val itemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
             val itemWidth = maxWidth * itemWidthFactor
+            val snapProvider = remember(forgottenFavoritesState) { SnapLayoutInfoProvider(forgottenFavoritesState, { l, i -> l * itemWidthFactor / 2f - i / 2f }) }
 
             LazyColumn(state = lazylistState, contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                 if (showHomeCategoryChips) {
@@ -267,19 +270,19 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
 
                 keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
                     item { NavigationTitle(title = stringResource(R.string.keep_listening)) }
-                    item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope()) }
+                    item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
-                AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope())
+                AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                     item { NavigationTitle(title = stringResource(R.string.forgotten_favorites)) }
-                    item { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = itemWidth, lazyGridState = rememberLazyGridState(), snapLayoutInfoProvider = SnapLayoutInfoProvider(rememberLazyGridState(), { l, i -> l * itemWidthFactor / 2f - i / 2f }), navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
+                    item { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = itemWidth, lazyGridState = forgottenFavoritesState, snapLayoutInfoProvider = snapProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
                 homePage?.sections?.forEach { section ->
                     item { HomePageSectionTitle(section = section, navController = navController) }
-                    item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = rememberCoroutineScope()) }
+                    item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
                 if (isLoading || homePage?.continuation != null) {
