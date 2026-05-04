@@ -42,9 +42,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +57,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -73,6 +77,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -89,7 +94,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.PlayerBackgroundStyle
@@ -111,6 +115,137 @@ import com.j.m3play.ui.theme.PlayerBackgroundColorUtils
 import com.j.m3play.ui.theme.PlayerSliderColors
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.makeTimeString
+import me.saket.squiggles.SquigglySlider
+
+@Composable
+fun ApplePlayerStyle(
+    mediaMetadata: MediaMetadata,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    position: Long,
+    duration: Long,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrev: () -> Unit,
+    onSeek: (Long) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. Full Screen Artwork
+        AsyncImage(
+            model = mediaMetadata.thumbnailUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 2. Dark Gradient Overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.4f), Color.Black.copy(alpha = 0.9f)),
+                        startY = 600f
+                    )
+                )
+        )
+
+        // 3. UI Content Layer
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 28.dp),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            // Song Info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = mediaMetadata.title,
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = mediaMetadata.artists.joinToString { it.name },
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 18.sp,
+                        maxLines = 1
+                    )
+                }
+                
+                Icon(
+                    painter = painterResource(R.drawable.favorite_border),
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.8f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Progress Slider
+            val progress = if (duration > 0) position.toFloat() / duration else 0f
+            Slider(
+                value = progress,
+                onValueChange = { onSeek((it * duration).toLong()) },
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.Transparent,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                ),
+                modifier = Modifier.fillMaxWidth().height(4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Main Playback Controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onPrev) {
+                    Icon(painterResource(R.drawable.skip_previous), null, tint = Color.White, modifier = Modifier.size(44.dp))
+                }
+
+                IconButton(onClick = onPlayPause, modifier = Modifier.size(80.dp)) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(40.dp))
+                    } else {
+                        Icon(
+                            painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                            null, tint = Color.White, modifier = Modifier.fillMaxSize(0.7f)
+                        )
+                    }
+                }
+
+                IconButton(onClick = onNext) {
+                    Icon(painterResource(R.drawable.skip_next), null, tint = Color.White, modifier = Modifier.size(44.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(50.dp))
+
+            // Bottom Utility Row
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(painterResource(R.drawable.history), null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.share), null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.library_music), null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+            }
+        }
+    }
+}
 
 @Composable
 fun PlayerTitleSection(
@@ -1549,6 +1684,21 @@ fun PlayerControlsContent(
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit
 ) {
+    if (playerDesignStyle == PlayerDesignStyle.APPLE) {
+        ApplePlayerStyle(
+            mediaMetadata = mediaMetadata,
+            isPlaying = isPlaying,
+            isLoading = isLoading,
+            position = position,
+            duration = duration,
+            onPlayPause = { playerConnection.player.togglePlayPause() },
+            onNext = playerConnection::seekToNext,
+            onPrev = playerConnection::seekToPrevious,
+            onSeek = onSliderValueChange
+        )
+        return
+    }
+
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
 
@@ -1635,6 +1785,7 @@ fun PlayerControlsContent(
         currentSongLiked = currentSongLiked
     )
 }
+
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
@@ -1966,7 +2117,6 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
-                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
@@ -2056,9 +2206,7 @@ fun PlayerBackground(
                 }
             }
 
-            else -> {
-                // DEFAULT or other modes - no background
-            }
+            else -> { }
         }
     }
 }
