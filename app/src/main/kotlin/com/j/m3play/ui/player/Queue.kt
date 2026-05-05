@@ -415,7 +415,8 @@ fun Queue(
                         onShowLyrics = onShowLyrics
                     )
                 }
-                
+
+                //  ADDED: APPLE style
                 PlayerDesignStyle.APPLE -> {
                     QueueCollapsedContentV3(
                         showCodecOnPlayer = showCodecOnPlayer,
@@ -1111,3 +1112,5 @@ fun Queue(
                 )
                 .align(Alignment.BottomCenter),
         )
+    }
+}
