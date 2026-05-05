@@ -415,41 +415,41 @@ fun Queue(
                     )
                 }
 
-                // ✅ ADDED: APPLE style
                 PlayerDesignStyle.APPLE -> {
-                    QueueCollapsedContentV3(
-                        showCodecOnPlayer = showCodecOnPlayer,
-                        currentFormat = currentFormat,
-                        textBackgroundColor = TextBackgroundColor,
-                        sleepTimerEnabled = sleepTimerEnabled,
-                        sleepTimerTimeLeft = sleepTimerTimeLeft,
-                        onExpandQueue = { state.expandSoft() },
-                        onSleepTimerClick = {
-                            if (sleepTimerEnabled) {
-                                playerConnection.service.sleepTimer.clear()
-                            } else {
-                                showSleepTimerDialog = true
-                            }
-                        },
-                        onShowLyrics = onShowLyrics,
-                        onMenuClick = {
-                            menuState.show {
-                                PlayerMenu(
-                                    mediaMetadata = mediaMetadata,
-                                    navController = navController,
-                                    playerBottomSheetState = playerBottomSheetState,
-                                    onShowDetailsDialog = {
-                                        mediaMetadata?.id?.let {
-                                            bottomSheetPageState.show {
-                                                ShowMediaInfo(it)
-                                            }
-                                        }
-                                    },
-                                    onDismiss = menuState::dismiss
-                                )
+    QueueCollapsedContentV3(
+        showCodecOnPlayer = showCodecOnPlayer,
+        currentFormat = currentFormat,
+        textBackgroundColor = TextBackgroundColor,
+        sleepTimerEnabled = sleepTimerEnabled,
+        sleepTimerTimeLeft = sleepTimerTimeLeft,
+        onExpandQueue = { state.expandSoft() },
+        onSleepTimerClick = {
+            if (sleepTimerEnabled) {
+                playerConnection.service.sleepTimer.clear()
+            } else {
+                showSleepTimerDialog = true
+            }
+        },
+        onShowLyrics = onShowLyrics,
+        onMenuClick = {
+            menuState.show {
+                PlayerMenu(
+                    mediaMetadata = mediaMetadata,
+                    navController = navController,
+                    playerBottomSheetState = playerBottomSheetState,
+                    onShowDetailsDialog = {
+                        mediaMetadata?.id?.let {
+                            bottomSheetPageState.show {
+                                ShowMediaInfo(it)
                             }
                         }
-                    )
+                    },
+                    onDismiss = menuState::dismiss
+                )
+            }
+        }
+    )
+                }
                 }
             }
 
