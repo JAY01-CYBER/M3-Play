@@ -449,9 +449,6 @@ fun Queue(
             }
         }
     )
-                }
-                }
-            }
 
             if (showSleepTimerDialog) {
                 SleepTimerDialog(
