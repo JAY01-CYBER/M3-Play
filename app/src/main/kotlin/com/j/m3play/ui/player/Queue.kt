@@ -1112,4 +1112,3 @@ fun Queue(
                 .align(Alignment.BottomCenter),
         )
     }
-}
