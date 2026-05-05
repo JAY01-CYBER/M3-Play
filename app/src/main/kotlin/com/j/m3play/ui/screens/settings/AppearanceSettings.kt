@@ -159,7 +159,7 @@ fun AppearanceSettings(
     )
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
-        defaultValue = 16f // default dp
+        defaultValue = 16f
     )
     val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(
         CropThumbnailToSquareKey,
@@ -186,8 +186,8 @@ fun AppearanceSettings(
         defaultValue = LyricsPosition.LEFT
     )
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
-    key = LyricsAnimationStyleKey,
-    defaultValue = LyricsAnimationStyle.APPLE
+        key = LyricsAnimationStyleKey,
+        defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
@@ -407,6 +407,7 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                     PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
+                    PlayerDesignStyle.APPLE -> "Apple Music"
                 }
             },
         )
@@ -435,7 +436,7 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
@@ -445,7 +446,6 @@ fun AppearanceSettings(
             },
         )
 
-        // When custom background is selected, show a direct link to customize it
         if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.customized_background)) },
@@ -469,7 +469,6 @@ fun AppearanceSettings(
             checked = archiveTuneCanvasEnabled,
             onCheckedChange = onM3PlayCanvasEnabledChange
         )
-      
 
         ThumbnailCornerRadiusSelectorButton(
             modifier = Modifier.padding(16.dp),
@@ -485,7 +484,6 @@ fun AppearanceSettings(
             checked = cropThumbnailToSquare,
             onCheckedChange = onCropThumbnailToSquareChange
         )
-
 
         EnumListPreference(
             title = { Text(stringResource(R.string.player_buttons_style)) },
@@ -518,38 +516,38 @@ fun AppearanceSettings(
 
         AnimatedVisibility(swipeThumbnail) {
             var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
-            
+
             if (showSensitivityDialog) {
                 var tempSensitivity by remember { mutableFloatStateOf(swipeSensitivity) }
-                
+
                 DefaultDialog(
-                    onDismiss = { 
+                    onDismiss = {
                         tempSensitivity = swipeSensitivity
-                        showSensitivityDialog = false 
+                        showSensitivityDialog = false
                     },
                     buttons = {
                         TextButton(
-                            onClick = { 
+                            onClick = {
                                 tempSensitivity = 0.73f
                             }
                         ) {
                             Text(stringResource(R.string.reset))
                         }
-                        
+
                         Spacer(modifier = Modifier.weight(1f))
-                        
+
                         TextButton(
-                            onClick = { 
+                            onClick = {
                                 tempSensitivity = swipeSensitivity
-                                showSensitivityDialog = false 
+                                showSensitivityDialog = false
                             }
                         ) {
                             Text(stringResource(android.R.string.cancel))
                         }
                         TextButton(
-                            onClick = { 
+                            onClick = {
                                 onSwipeSensitivityChange(tempSensitivity)
-                                showSensitivityDialog = false 
+                                showSensitivityDialog = false
                             }
                         ) {
                             Text(stringResource(android.R.string.ok))
@@ -565,13 +563,13 @@ fun AppearanceSettings(
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-    
+
                         Text(
                             text = stringResource(R.string.sensitivity_percentage, (tempSensitivity * 100).roundToInt()),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-    
+
                         Slider(
                             value = tempSensitivity,
                             onValueChange = { tempSensitivity = it },
@@ -581,7 +579,7 @@ fun AppearanceSettings(
                     }
                 }
             }
-            
+
             PreferenceEntry(
                 title = { Text(stringResource(R.string.swipe_sensitivity)) },
                 description = stringResource(R.string.sensitivity_percentage, (swipeSensitivity * 100).roundToInt()),
@@ -617,20 +615,20 @@ fun AppearanceSettings(
         )
 
         EnumListPreference(
-          title = { Text(stringResource(R.string.lyrics_animation_style)) },
-          icon = { Icon(painterResource(R.drawable.animation), null) },
-          selectedValue = lyricsAnimation,
-          onValueSelected = onLyricsAnimationChange,
-          valueText = {
-              when (it) {
-                  LyricsAnimationStyle.NONE -> stringResource(R.string.none)
-                  LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
-                  LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
-                  LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
-                  LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
-                  LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-              }
-          }
+            title = { Text(stringResource(R.string.lyrics_animation_style)) },
+            icon = { Icon(painterResource(R.drawable.animation), null) },
+            selectedValue = lyricsAnimation,
+            onValueSelected = onLyricsAnimationChange,
+            valueText = {
+                when (it) {
+                    LyricsAnimationStyle.NONE -> stringResource(R.string.none)
+                    LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
+                    LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
+                    LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
+                    LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+                    LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                }
+            }
         )
 
         SwitchPreference(
@@ -648,38 +646,38 @@ fun AppearanceSettings(
         )
 
         var showLyricsTextSizeDialog by rememberSaveable { mutableStateOf(false) }
-        
+
         if (showLyricsTextSizeDialog) {
             var tempTextSize by remember { mutableFloatStateOf(lyricsTextSize) }
-            
+
             DefaultDialog(
-                onDismiss = { 
+                onDismiss = {
                     tempTextSize = lyricsTextSize
-                    showLyricsTextSizeDialog = false 
+                    showLyricsTextSizeDialog = false
                 },
                 buttons = {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             tempTextSize = 24f
                         }
                     ) {
                         Text(stringResource(R.string.reset))
                     }
-                    
+
                     Spacer(modifier = Modifier.weight(1f))
-                    
+
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             tempTextSize = lyricsTextSize
-                            showLyricsTextSizeDialog = false 
+                            showLyricsTextSizeDialog = false
                         }
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             onLyricsTextSizeChange(tempTextSize)
-                            showLyricsTextSizeDialog = false 
+                            showLyricsTextSizeDialog = false
                         }
                     ) {
                         Text(stringResource(android.R.string.ok))
@@ -712,47 +710,47 @@ fun AppearanceSettings(
                 }
             }
         }
-        
+
         PreferenceEntry(
             title = { Text(stringResource(R.string.lyrics_text_size)) },
             description = "${lyricsTextSize.roundToInt()} sp",
             icon = { Icon(painterResource(R.drawable.text_fields), null) },
             onClick = { showLyricsTextSizeDialog = true }
         )
-        
+
         var showLyricsLineSpacingDialog by rememberSaveable { mutableStateOf(false) }
-        
+
         if (showLyricsLineSpacingDialog) {
             var tempLineSpacing by remember { mutableFloatStateOf(lyricsLineSpacing) }
-            
+
             DefaultDialog(
-                onDismiss = { 
+                onDismiss = {
                     tempLineSpacing = lyricsLineSpacing
-                    showLyricsLineSpacingDialog = false 
+                    showLyricsLineSpacingDialog = false
                 },
                 buttons = {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             tempLineSpacing = 1.3f
                         }
                     ) {
                         Text(stringResource(R.string.reset))
                     }
-                    
+
                     Spacer(modifier = Modifier.weight(1f))
-                    
+
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             tempLineSpacing = lyricsLineSpacing
-                            showLyricsLineSpacingDialog = false 
+                            showLyricsLineSpacingDialog = false
                         }
                     ) {
                         Text(stringResource(android.R.string.cancel))
                     }
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             onLyricsLineSpacingChange(tempLineSpacing)
-                            showLyricsLineSpacingDialog = false 
+                            showLyricsLineSpacingDialog = false
                         }
                     ) {
                         Text(stringResource(android.R.string.ok))
@@ -785,7 +783,7 @@ fun AppearanceSettings(
                 }
             }
         }
-        
+
         PreferenceEntry(
             title = { Text(stringResource(R.string.lyrics_line_spacing)) },
             description = "${String.format("%.1f", lyricsLineSpacing)}x",
@@ -860,7 +858,6 @@ fun AppearanceSettings(
             checked = slimNav,
             onCheckedChange = onSlimNavChange
         )
-
 
         EnumListPreference(
             title = { Text(stringResource(R.string.grid_cell_size)) },
