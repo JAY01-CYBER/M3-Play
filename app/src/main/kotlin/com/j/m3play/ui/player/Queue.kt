@@ -82,6 +82,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -414,16 +415,17 @@ fun Queue(
                         onShowLyrics = onShowLyrics
                     )
                 }
+            }
 
-                PlayerDesignStyle.APPLE -> {
-    QueueCollapsedContentV3(
-        showCodecOnPlayer = showCodecOnPlayer,
-        currentFormat = currentFormat,
-        textBackgroundColor = TextBackgroundColor,
-        sleepTimerEnabled = sleepTimerEnabled,
-        sleepTimerTimeLeft = sleepTimerTimeLeft,
-        onExpandQueue = { state.expandSoft() },
-        onSleepTimerClick = {
+            PlayerDesignStyle.APPLE -> {
+                QueueCollapsedContentV3(
+                showCodecOnPlayer = showCodecOnPlayer,
+                currentFormat = currentFormat,
+                textBackgroundColor = TextBackgroundColor,
+                sleepTimerEnabled = sleepTimerEnabled,
+                sleepTimerTimeLeft = sleepTimerTimeLeft,
+                onExpandQueue = { state.expandSoft() },
+                onSleepTimerClick = {
             if (sleepTimerEnabled) {
                 playerConnection.service.sleepTimer.clear()
             } else {
@@ -449,6 +451,7 @@ fun Queue(
             }
         }
     )
+            }
 
             if (showSleepTimerDialog) {
                 SleepTimerDialog(
@@ -593,6 +596,9 @@ fun Queue(
             if (!state.isCollapsed && currentPlayingUid != null) {
                 val indexInMutableList = mutableQueueWindows.indexOfFirst { it.uid == currentPlayingUid }
                 if (indexInMutableList != -1) {
+                    // Scroll to the item + headerItems (Spacer)
+                    // The Spacer is at index 0, so the first song is at index 1.
+                    // If indexInMutableList is 0 (first song), we want to scroll to index 1.
                     lazyListState.scrollToItem(indexInMutableList + 1)
                 }
             }
@@ -739,6 +745,7 @@ fun Queue(
                             Row(
                                 horizontalArrangement = Arrangement.Center,
                                 modifier = Modifier.graphicsLayer {
+                                    // Enable hardware acceleration for smoother dragging
                                     compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
                                 }
                             ) {
@@ -786,6 +793,7 @@ fun Queue(
                                                 modifier = Modifier
                                                     .draggableHandle()
                                                     .graphicsLayer {
+                                                        // Improve touch response
                                                         alpha = 0.99f
                                                     }
                                             ) {
@@ -850,8 +858,8 @@ fun Queue(
                                                 if (!selection) {
                                                     selection = true
                                                 }
-                                                selectedSongs.clear()
-                                                selectedSongs.add(window.mediaItem.metadata!!)
+                                                selectedSongs.clear() // Clear all selections
+                                                selectedSongs.add(window.mediaItem.metadata!!) // Select current item
                                             },
                                         ),
                                 )
@@ -952,6 +960,7 @@ fun Queue(
             }
         }
 
+        // Old header hidden - now using sticky header at top of queue
         Column(
             modifier =
             Modifier
@@ -1042,6 +1051,7 @@ fun Queue(
 
         val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
 
+        // Bottom bar hidden - controls now in sticky header
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
             modifier =
@@ -1109,4 +1119,6 @@ fun Queue(
                 .align(Alignment.BottomCenter),
         )
     }
+}
+}
 }
