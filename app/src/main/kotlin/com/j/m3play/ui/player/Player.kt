@@ -894,25 +894,6 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                } else if (playerDesignStyle == PlayerDesignStyle.V1) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        M3ImmersiveBackdrop(
-                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
-                            disableBlur = disableBlur
-                        )
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = queueSheetState.collapsedBound)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
-                        ) {
-                            enrichedMetadata?.let { controlsContent(it) }
-                            Spacer(Modifier.height(24.dp))
-                        }
-                    }
                 } else {
                     Row(
                         modifier =
@@ -1144,12 +1125,12 @@ fun M3ImmersiveBackdrop(
     thumbnailUrl: String?,
     disableBlur: Boolean
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         // Breathing Animation
         val infiniteTransition = rememberInfiniteTransition(label = "breathing")
         val scale by infiniteTransition.animateFloat(
-            initialValue = 1.05f,
-            targetValue = 1.15f,
+            initialValue = 1.02f,
+            targetValue = 1.10f,
             animationSpec = infiniteRepeatable(
                 animation = tween(15000, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
@@ -1168,28 +1149,24 @@ fun M3ImmersiveBackdrop(
             AsyncImage(
                 model = thumbnailUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Crop, // THIS fixes the squashing issue and makes it full screen
-                modifier = Modifier
-                    .fillMaxSize()
-                    .let {
-                        if (!disableBlur) it.blur(radius = 60.dp) else it
-                    }
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
         }
 
         // Dark Frosted Gradient Overlays for perfect text contrast
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.4f),
-                            0.3f to Color.Transparent,
-                            0.6f to Color.Black.copy(alpha = 0.5f),
-                            1f to Color.Black.copy(alpha = 0.95f) // Solid at bottom
+                            0.0f to Color.Black.copy(alpha = 0.2f),
+                            0.2f to Color.Transparent,
+                            0.5f to Color.Transparent,
+                            0.7f to Color.Black.copy(alpha = 0.6f),
+                            0.9f to Color.Black.copy(alpha = 0.95f),
+                            1.0f to Color.Black.copy(alpha = 1.0f)
                         )
                     )
                 )
