@@ -93,7 +93,7 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 
 import com.j.m3play.canvas.CanvasArtwork
-import com.j.m3play.canvas.MonochromeApiCanvas // Fixed Import
+import com.j.m3play.canvas.MonochromeApiCanvas 
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -494,11 +494,6 @@ fun Thumbnail(
                             var skipMultiplier by remember { mutableStateOf(1) }
                             var lastTapTime by remember { mutableLongStateOf(0L) }
                             val itemMetadata = remember(item) { item.metadata }
-                            val storefront =
-                                remember {
-                                    val country = Locale.getDefault().country
-                                    if (country.length == 2) country.lowercase(Locale.ROOT) else "us"
-                                }
                             val shouldAnimateCanvas =
                                 archiveTuneCanvasEnabled &&
                                     item.mediaId.isNotBlank() &&
@@ -515,7 +510,7 @@ fun Thumbnail(
                                 }
                             }
 
-                            // FIXED CANVAS FETCH LOGIC HERE
+                            // FIXED CANVAS FETCH LOGIC HERE (storefront hataya)
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
 
@@ -561,8 +556,7 @@ fun Thumbnail(
                                             MonochromeApiCanvas
                                                 .getBySongArtist(
                                                     song = song,
-                                                    artist = artist,
-                                                    storefront = storefront,
+                                                    artist = artist
                                                 )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
                                         }
                                     }
