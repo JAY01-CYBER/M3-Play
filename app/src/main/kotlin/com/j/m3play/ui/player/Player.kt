@@ -20,10 +20,12 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -87,7 +89,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -405,31 +406,29 @@ fun BottomSheetPlayer(
 
     val changeBound = state.expandedBound / 3
 
-    val TextBackgroundColor =
-        when (playerBackground) {
-            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-            PlayerBackgroundStyle.BLUR -> Color.White
-            PlayerBackgroundStyle.GRADIENT -> Color.White
-            PlayerBackgroundStyle.COLORING -> Color.White
-            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
-            PlayerBackgroundStyle.GLOW -> Color.White
-            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
-            PlayerBackgroundStyle.CUSTOM -> Color.White
-        }
+    val TextBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.White else when (playerBackground) {
+        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
+        PlayerBackgroundStyle.BLUR -> Color.White
+        PlayerBackgroundStyle.GRADIENT -> Color.White
+        PlayerBackgroundStyle.COLORING -> Color.White
+        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
+        PlayerBackgroundStyle.GLOW -> Color.White
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
+        PlayerBackgroundStyle.CUSTOM -> Color.White
+    }
 
-    val icBackgroundColor =
-        when (playerBackground) {
-            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-            PlayerBackgroundStyle.BLUR -> Color.Black
-            PlayerBackgroundStyle.GRADIENT -> Color.Black
-            PlayerBackgroundStyle.COLORING -> Color.Black
-            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
-            PlayerBackgroundStyle.GLOW -> Color.Black
-            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
-            PlayerBackgroundStyle.CUSTOM -> Color.Black
-        }
+    val icBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.Black else when (playerBackground) {
+        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
+        PlayerBackgroundStyle.BLUR -> Color.Black
+        PlayerBackgroundStyle.GRADIENT -> Color.Black
+        PlayerBackgroundStyle.COLORING -> Color.Black
+        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
+        PlayerBackgroundStyle.GLOW -> Color.Black
+        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
+        PlayerBackgroundStyle.CUSTOM -> Color.Black
+    }
 
-    val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
+    val (textButtonColor, iconButtonColor) = if (playerDesignStyle == PlayerDesignStyle.V1) Pair(Color.White, Color.Black) else when (playerButtonsStyle) {
         PlayerButtonsStyle.DEFAULT -> Pair(TextBackgroundColor, icBackgroundColor)
         PlayerButtonsStyle.SECONDARY -> Pair(
             MaterialTheme.colorScheme.secondary,
@@ -787,9 +786,9 @@ fun BottomSheetPlayer(
             }
         }
 
-        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
+        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { metadata ->
             PlayerControlsContent(
-                mediaMetadata = mediaMetadata,
+                mediaMetadata = metadata,
                 playerDesignStyle = playerDesignStyle,
                 sliderStyle = sliderStyle,
                 playbackState = playbackState,
@@ -814,10 +813,11 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
+                currentFormat = currentFormat // Pass format for Codec badge
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V1) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -1028,6 +1028,27 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
+                } else if (playerDesignStyle == PlayerDesignStyle.V1) {
+                    // M3Play Exclusive Immersive Frosted Style
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        M3ImmersiveBackdrop(
+                            sliderPositionProvider = { sliderPosition },
+                            isPlayerExpanded = state.isExpanded,
+                            disableBlur = disableBlur
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = queueSheetState.collapsedBound)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        ) {
+                            enrichedMetadata?.let { controlsContent(it) }
+                            Spacer(Modifier.height(24.dp))
+                        }
+                    }
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1036,76 +1057,15 @@ fun BottomSheetPlayer(
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
-                        if (playerDesignStyle == PlayerDesignStyle.V1) {
-                            
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .weight(1.2f) 
-                                    .fillMaxWidth() 
-                            ) {
-                                val scale by animateFloatAsState(
-                                    targetValue = if (isPlaying) 1f else 0.85f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessLow
-                                    ),
-                                    label = "thumbnailScale"
-                                )
-                                val cornerRadius by animateDpAsState(
-                                    targetValue = if (isPlaying) 0.dp else 24.dp, 
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessLow
-                                    ),
-                                    label = "thumbnailRadius"
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .graphicsLayer {
-                                            scaleX = scale
-                                            scaleY = scale
-                                            shadowElevation = if (isPlaying) 0f else 30f
-                                            shape = RoundedCornerShape(cornerRadius)
-                                            clip = true
-                                        }
-                                ) {
-                                    // Yahan Canvas wapas add kar diya gaya hai
-                                    Thumbnail(
-                                        sliderPositionProvider = { sliderPosition },
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                        isPlayerExpanded = state.isExpanded
-                                    )
-                                    
-                                    // Bottom Gradient taaki title aur controls ekdum clear dikhein
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .fillMaxWidth()
-                                            .height(160.dp)
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
-                                                )
-                                            )
-                                    )
-                                }
-                            }
-                        } else {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Thumbnail(
-                                    sliderPositionProvider = { sliderPosition },
-                                    modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                    isPlayerExpanded = state.isExpanded
-                                )
-                            }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Thumbnail(
+                                sliderPositionProvider = { sliderPosition },
+                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                isPlayerExpanded = state.isExpanded
+                            )
                         }
 
                         enrichedMetadata?.let {
@@ -1174,6 +1134,63 @@ fun BottomSheetPlayer(
                 }
             }
         }
+    }
+}
+
+// Ye naya Immersive Breathing Backdrop hai
+@Composable
+fun M3ImmersiveBackdrop(
+    sliderPositionProvider: () -> Long?,
+    isPlayerExpanded: Boolean,
+    disableBlur: Boolean
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Breathing Animation
+        val infiniteTransition = rememberInfiniteTransition(label = "breathing")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = 1.08f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(12000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale"
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+        ) {
+            Thumbnail(
+                sliderPositionProvider = sliderPositionProvider,
+                modifier = Modifier.fillMaxSize().let {
+                    if (!disableBlur) it.blur(45.dp) else it
+                },
+                isPlayerExpanded = isPlayerExpanded
+            )
+        }
+
+        // Dark Frosted Gradient Overlays for perfect text contrast
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color.Black.copy(alpha = 0.5f),
+                            0.3f to Color.Transparent,
+                            0.6f to Color.Black.copy(alpha = 0.4f),
+                            1f to Color.Black.copy(alpha = 0.95f) // Solid at bottom
+                        )
+                    )
+                )
+        )
     }
 }
 
