@@ -158,6 +158,8 @@ dependencies {
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
+    implementation("com.google.code.gson:gson:2.10.1")
+
 
     implementation(libs.activity)
     implementation(libs.navigation)
