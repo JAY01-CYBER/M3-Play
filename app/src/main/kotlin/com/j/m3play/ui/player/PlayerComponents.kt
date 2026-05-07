@@ -51,7 +51,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -418,6 +417,7 @@ fun PlayerTopActions(
                     }
                 }
 
+                // More menu button - cinematic glass card
                 Surface(
                     onClick = {
                         menuState.show {
@@ -616,42 +616,6 @@ fun PlayerTopActions(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                }
-            }
-        }
-
-        // ✅ ADDED: APPLE style top actions (simple share + like)
-        PlayerDesignStyle.APPLE -> {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    val intent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${mediaMetadata.id}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, null))
-                }) {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(onClick = { playerConnection.toggleLike() }) {
-                    Icon(
-                        painter = painterResource(
-                            if (currentSongLiked) R.drawable.favorite
-                            else R.drawable.favorite_border
-                        ),
-                        contentDescription = null,
-                        tint = if (currentSongLiked) MaterialTheme.colorScheme.error
-                               else textBackgroundColor.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
-                    )
                 }
             }
         }
@@ -1549,76 +1513,14 @@ fun PlayerPlaybackControls(
                 }
             }
         }
-
-        // ✅ ADDED: APPLE style playback controls (minimal, Apple style handles its own)
-        PlayerDesignStyle.APPLE -> {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Previous
-                IconButton(onClick = playerConnection::seekToPrevious, enabled = canSkipPrevious) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_previous),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 0.9f else 0.4f),
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                // Play/Pause
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(playPauseRoundness))
-                        .background(textButtonColor)
-                        .clickable {
-                            if (playbackState == STATE_ENDED) {
-                                playerConnection.player.seekTo(0, 0)
-                                playerConnection.player.playWhenReady = true
-                            } else {
-                                playerConnection.player.togglePlayPause()
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(36.dp),
-                            color = iconButtonColor,
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(
-                                when {
-                                    playbackState == STATE_ENDED -> R.drawable.replay
-                                    isPlaying -> R.drawable.pause
-                                    else -> R.drawable.play
-                                }
-                            ),
-                            contentDescription = null,
-                            tint = iconButtonColor,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
-                // Next
-                IconButton(onClick = playerConnection::seekToNext, enabled = canSkipNext) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_next),
-                        contentDescription = null,
-                        tint = textBackgroundColor.copy(alpha = if (canSkipNext) 0.9f else 0.4f),
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-        }
     }
 }
 
+/**
+ * Wrapper composable that combines all player control components.
+ * This replaces the large inline controlsContent lambda in BottomSheetPlayer
+ * to reduce JIT compilation overhead.
+ */
 @Composable
 fun PlayerControlsContent(
     mediaMetadata: MediaMetadata,
@@ -1733,7 +1635,6 @@ fun PlayerControlsContent(
         currentSongLiked = currentSongLiked
     )
 }
-
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
@@ -1793,15 +1694,15 @@ fun PlayerBackground(
                         Box(modifier = Modifier.fillMaxSize()) {
                             val gradientColorStops = if (colors.size >= 3) {
                                 arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.92f),
-                                    0.5f to colors[1].copy(alpha = 0.75f),
-                                    1.0f to colors[2].copy(alpha = 0.65f)
+                                    0.0f to colors[0].copy(alpha = 0.92f), // Top: primary vibrant color
+                                    0.5f to colors[1].copy(alpha = 0.75f), // Middle: darker variant
+                                    1.0f to colors[2].copy(alpha = 0.65f)  // Bottom: black-ish
                                 )
                             } else {
                                 arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.9f),
-                                    0.6f to colors[0].copy(alpha = 0.55f),
-                                    1.0f to Color.Black.copy(alpha = 0.7f)
+                                    0.0f to colors[0].copy(alpha = 0.9f), // Top: primary color
+                                    0.6f to colors[0].copy(alpha = 0.55f), // Middle: faded variant
+                                    1.0f to Color.Black.copy(alpha = 0.7f) // Bottom: black
                                 )
                             }
                             Box(
@@ -1809,6 +1710,7 @@ fun PlayerBackground(
                                     .fillMaxSize()
                                     .background(Brush.verticalGradient(colorStops = gradientColorStops))
                             )
+                            // Keep a gentle dark overlay to ensure text contrast on bright artwork
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1941,8 +1843,10 @@ fun PlayerBackground(
                                     val width = size.width
                                     val height = size.height
 
+                                    // Use a dark base, but the gradients will cover most of it
                                     val baseColor = Color(0xFF050505)
 
+                                    // Extract up to 6 colors
                                     val color1 = colors.getOrElse(0) { Color.DarkGray }
                                     val color2 = colors.getOrElse(1) { color1 }
                                     val color3 = colors.getOrElse(2) { color2 }
@@ -1950,6 +1854,7 @@ fun PlayerBackground(
                                     val color5 = colors.getOrElse(4) { color2 }
                                     val color6 = colors.getOrElse(5) { color3 }
 
+                                    // Top-Left Large Glow (Primary)
                                     val brush1 = Brush.radialGradient(
                                         colors = listOf(
                                             color1.copy(alpha = 0.8f),
@@ -1960,6 +1865,7 @@ fun PlayerBackground(
                                         radius = width * 1.2f
                                     )
 
+                                    // Bottom-Right Large Glow (Secondary)
                                     val brush2 = Brush.radialGradient(
                                         colors = listOf(
                                             color2.copy(alpha = 0.75f),
@@ -1970,6 +1876,7 @@ fun PlayerBackground(
                                         radius = width * 1.1f
                                     )
 
+                                    // Top-Right Glow (Tertiary)
                                     val brush3 = Brush.radialGradient(
                                         colors = listOf(
                                             color3.copy(alpha = 0.7f),
@@ -1980,6 +1887,7 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
+                                    // Bottom-Left (Quaternary)
                                     val brush4 = Brush.radialGradient(
                                         colors = listOf(
                                             color4.copy(alpha = 0.65f),
@@ -1990,6 +1898,7 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
+                                    // Top-Center (Quinary)
                                     val brush5 = Brush.radialGradient(
                                         colors = listOf(
                                             color5.copy(alpha = 0.6f),
@@ -2000,6 +1909,7 @@ fun PlayerBackground(
                                         radius = width * 0.9f
                                     )
                                     
+                                    // Bottom-Center (Senary)
                                     val brush6 = Brush.radialGradient(
                                         colors = listOf(
                                             color6.copy(alpha = 0.6f),
@@ -2056,6 +1966,7 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
