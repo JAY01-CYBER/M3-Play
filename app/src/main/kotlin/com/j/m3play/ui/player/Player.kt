@@ -87,6 +87,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -140,7 +141,6 @@ import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.imageLoader
-import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
@@ -1037,15 +1037,15 @@ fun BottomSheetPlayer(
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
                         if (playerDesignStyle == PlayerDesignStyle.V1) {
+                            
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 32.dp, vertical = 16.dp)
+                                    .weight(1.2f) 
+                                    .fillMaxWidth() 
                             ) {
                                 val scale by animateFloatAsState(
-                                    targetValue = if (isPlaying) 1f else 0.82f,
+                                    targetValue = if (isPlaying) 1f else 0.85f,
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioLowBouncy,
                                         stiffness = Spring.StiffnessLow
@@ -1053,7 +1053,7 @@ fun BottomSheetPlayer(
                                     label = "thumbnailScale"
                                 )
                                 val cornerRadius by animateDpAsState(
-                                    targetValue = if (isPlaying) 12.dp else 24.dp,
+                                    targetValue = if (isPlaying) 0.dp else 24.dp, 
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioLowBouncy,
                                         stiffness = Spring.StiffnessLow
@@ -1061,21 +1061,39 @@ fun BottomSheetPlayer(
                                     label = "thumbnailRadius"
                                 )
 
-                                AsyncImage(
-                                    model = mediaMetadata?.thumbnailUrl,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
+                                Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .aspectRatio(1f)
                                         .graphicsLayer {
                                             scaleX = scale
                                             scaleY = scale
-                                            shadowElevation = if (isPlaying) 40f else 15f
+                                            shadowElevation = if (isPlaying) 0f else 30f
                                             shape = RoundedCornerShape(cornerRadius)
                                             clip = true
                                         }
-                                )
+                                ) {
+                                    // Yahan Canvas wapas add kar diya gaya hai
+                                    Thumbnail(
+                                        sliderPositionProvider = { sliderPosition },
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                        isPlayerExpanded = state.isExpanded
+                                    )
+                                    
+                                    // Bottom Gradient taaki title aur controls ekdum clear dikhein
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .fillMaxWidth()
+                                            .height(160.dp)
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                                                )
+                                            )
+                                    )
+                                }
                             }
                         } else {
                             Box(
