@@ -199,7 +199,6 @@ dependencies {
     implementation(libs.kuromoji.ipadic)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
-    implementation("com.google.code.gson:gson:2.10.1")
 
     implementation(libs.apache.lang3)
 
@@ -215,29 +214,20 @@ dependencies {
     implementation(project(":betterlyrics"))
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
+    implementation(project(":canvas"))
     implementation(project(":shazamkit"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
-    // =======================================================
-    // 🔥 KTOR 3.4.2 SETUP (100% matched with libs.versions.toml)
-    // =======================================================
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
-    implementation(libs.ktor.client.websockets)
-    
-    // Canvas Plugins
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.ktor.client.encoding)
     implementation(libs.ktor.serialization.json)
-    
-    // Server Plugins
+    implementation(libs.ktor.client.websockets)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.server.content.negotiation)
-    // =======================================================
 
     coreLibraryDesugaring(libs.desugaring)
 
