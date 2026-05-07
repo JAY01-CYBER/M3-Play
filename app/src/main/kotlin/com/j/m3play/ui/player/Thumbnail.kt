@@ -92,9 +92,8 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 
-
 import com.j.m3play.canvas.CanvasArtwork
-import com.j.m3play.canvas.M3PlayCanvas
+import com.j.m3play.canvas.MonochromeApiCanvas // Fixed Import
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -262,7 +261,7 @@ object CanvasArtworkPlaybackCache {
 fun Thumbnail(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
-    isPlayerExpanded: Boolean = true, // Add parameter to control swipe based on player state
+    isPlayerExpanded: Boolean = true,
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val context = LocalContext.current
@@ -345,8 +344,6 @@ fun Thumbnail(
     } else null
 
     val currentMediaItem = remember(mediaMetadata) {
-        // Fallback to player's current item if mediaMetadata is null, 
-        // but prefer mediaMetadata for immediate updates during crossfade.
         val metadata = mediaMetadata
         if (metadata != null) {
             metadata.toMediaItem()
@@ -518,6 +515,7 @@ fun Thumbnail(
                                 }
                             }
 
+                            // FIXED CANVAS FETCH LOGIC HERE
                             LaunchedEffect(shouldAnimateCanvas, item.mediaId) {
                                 if (!shouldAnimateCanvas) return@LaunchedEffect
 
@@ -560,12 +558,12 @@ fun Thumbnail(
                                             }
 
                                         candidates.firstNotNullOfOrNull { (song, artist) ->
-                                            M3PlayCanvas
+                                            MonochromeApiCanvas
                                                 .getBySongArtist(
                                                     song = song,
                                                     artist = artist,
                                                     storefront = storefront,
-                                                )?.takeIf { !it.preferredAnimationUrl.isNullOrBlank() }
+                                                )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
                                         }
                                     }
                                 canvasArtwork = fetched
@@ -1001,4 +999,3 @@ fun calculateDistanceToDesiredSnapPosition(
 
 private val LazyGridLayoutInfo.singleAxisViewportSize: Int
     get() = if (orientation == Orientation.Vertical) viewportSize.height else viewportSize.width
-
