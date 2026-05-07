@@ -141,6 +141,7 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
+import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -271,12 +272,10 @@ fun BottomSheetPlayer(
         }
     val backgroundColor = if (useNewMiniPlayerDesign) {
         if (useBlackBackground && state.value > state.collapsedBound) {
-            // Make background transparent when collapsed, gradually show when pulled up (same as normal mode)
             val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                 .coerceIn(0f, 1f)
             Color.Black.copy(alpha = progress)
         } else {
-            // Make background transparent when collapsed, gradually show when pulled up
             val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                 .coerceIn(0f, 1f)
             MaterialTheme.colorScheme.surfaceContainer.copy(alpha = progress)
@@ -320,29 +319,24 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
     
-    // Track loading state: when buffering or when user is seeking
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     var gradientColors by remember {
         mutableStateOf<List<Color>>(emptyList())
     }
     
-    // Previous background states for smooth transitions
     var previousThumbnailUrl by remember { mutableStateOf<String?>(null) }
     var previousGradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     
-    // Cache for gradient colors to prevent re-extraction for same songs
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
     if (!canSkipNext && automix.isNotEmpty()) {
         playerConnection.service.addToQueueAutomix(automix[0], 0)
     }
 
-    // Default gradient colors for fallback
     val defaultGradientColors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     
-    // Update previous states when media changes
     LaunchedEffect(mediaMetadata?.id) {
         val currentThumbnail = mediaMetadata?.thumbnailUrl
         if (currentThumbnail != previousThumbnailUrl) {
@@ -355,7 +349,6 @@ fun BottomSheetPlayer(
         if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
-                // Check cache first
                 val cachedColors = gradientColorsCache[currentMetadata.id]
                 if (cachedColors != null) {
                     gradientColors = cachedColors
@@ -693,11 +686,9 @@ fun BottomSheetPlayer(
         },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
-                // Apply same enhanced fade logic to blur/gradient backgrounds
                 val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                     .coerceIn(0f, 1f)
                 
-                // Only start fading when very close to dismissal (last 20%)
                 val fadeProgress = if (progress < 0.2f) {
                     ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
                 } else {
@@ -707,12 +698,9 @@ fun BottomSheetPlayer(
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
-                // Enhanced background - stable until last 20% of drag (both normal and pure black)
-                // Calculate progress for fade effect
                 val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
                     .coerceIn(0f, 1f)
                 
-                // Only start fading when very close to dismissal (last 20%)
                 val fadeProgress = if (progress < 0.2f) {
                     ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
                 } else {
@@ -720,10 +708,8 @@ fun BottomSheetPlayer(
                 }
                 
                 if (useBlackBackground) {
-                    // Apply same logic to pure black background
                     Color.Black.copy(alpha = 1f - fadeProgress)
                 } else {
-                    // Apply same logic to normal theme
                     MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
                 }
             }
@@ -747,8 +733,6 @@ fun BottomSheetPlayer(
             sliderPosition?.let {
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
                 if (isTransitioning) {
-                    // During crossfade, we want to seek in the NEXT song (the one UI is showing)
-                    // The easiest way is to skip to it and then seek
                     playerConnection.player.seekToNext()
                     playerConnection.player.seekTo(it)
                 } else {
@@ -813,7 +797,7 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                currentFormat = currentFormat // Pass format for Codec badge
+                currentFormat = currentFormat
             )
         }
 
@@ -908,6 +892,25 @@ fun BottomSheetPlayer(
                                     },
                                 )
                             }
+                        }
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V1) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        M3ImmersiveBackdrop(
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
+                            disableBlur = disableBlur
+                        )
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = queueSheetState.collapsedBound)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                        ) {
+                            enrichedMetadata?.let { controlsContent(it) }
+                            Spacer(Modifier.height(24.dp))
                         }
                     }
                 } else {
@@ -1029,11 +1032,9 @@ fun BottomSheetPlayer(
                         }
                     }
                 } else if (playerDesignStyle == PlayerDesignStyle.V1) {
-                    // M3Play Exclusive Immersive Frosted Style
                     Box(modifier = Modifier.fillMaxSize()) {
                         M3ImmersiveBackdrop(
-                            sliderPositionProvider = { sliderPosition },
-                            isPlayerExpanded = state.isExpanded,
+                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
                             disableBlur = disableBlur
                         )
 
@@ -1042,7 +1043,7 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = queueSheetState.collapsedBound)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                                 .nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
@@ -1140,18 +1141,17 @@ fun BottomSheetPlayer(
 // Ye naya Immersive Breathing Backdrop hai
 @Composable
 fun M3ImmersiveBackdrop(
-    sliderPositionProvider: () -> Long?,
-    isPlayerExpanded: Boolean,
+    thumbnailUrl: String?,
     disableBlur: Boolean
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Breathing Animation
         val infiniteTransition = rememberInfiniteTransition(label = "breathing")
         val scale by infiniteTransition.animateFloat(
-            initialValue = 1.0f,
-            targetValue = 1.08f,
+            initialValue = 1.05f,
+            targetValue = 1.15f,
             animationSpec = infiniteRepeatable(
-                animation = tween(12000, easing = LinearEasing),
+                animation = tween(15000, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "scale"
@@ -1165,12 +1165,15 @@ fun M3ImmersiveBackdrop(
                     scaleY = scale
                 }
         ) {
-            Thumbnail(
-                sliderPositionProvider = sliderPositionProvider,
-                modifier = Modifier.fillMaxSize().let {
-                    if (!disableBlur) it.blur(45.dp) else it
-                },
-                isPlayerExpanded = isPlayerExpanded
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop, // THIS fixes the squashing issue and makes it full screen
+                modifier = Modifier
+                    .fillMaxSize()
+                    .let {
+                        if (!disableBlur) it.blur(radius = 60.dp) else it
+                    }
             )
         }
 
@@ -1183,9 +1186,9 @@ fun M3ImmersiveBackdrop(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color.Black.copy(alpha = 0.5f),
+                            0f to Color.Black.copy(alpha = 0.4f),
                             0.3f to Color.Transparent,
-                            0.6f to Color.Black.copy(alpha = 0.4f),
+                            0.6f to Color.Black.copy(alpha = 0.5f),
                             1f to Color.Black.copy(alpha = 0.95f) // Solid at bottom
                         )
                     )
