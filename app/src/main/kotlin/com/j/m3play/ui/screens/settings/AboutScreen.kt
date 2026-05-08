@@ -312,8 +312,8 @@ private fun CreditsCard() {
         Spacer(modifier = Modifier.height(16.dp))
 
         CreditLine(
-            title = "ViMusic",
-            subtitle = "Special thanks to ViMusic for the brilliant Canvas logic and inspiration for the Spotify-style background animations.",
+            title = "Vivi Music",
+            subtitle = "Special thanks to Vivi Music for the brilliant Canvas logic and inspiration for the Spotify-style background animations.",
             highlightTitle = true
         )
 
