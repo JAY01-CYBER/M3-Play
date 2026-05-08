@@ -26,7 +26,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -110,7 +109,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -598,16 +596,16 @@ private fun ThumbnailHeader(
                 style = MaterialTheme.typography.titleMedium,
                 color = textColor
             )
-            val playingFrom = albumTitle ?: queueTitle
-            AnimatedContent(
-                targetState = playingFrom,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "NowPlayingAnimation"
-            ) { text ->
-                if (!text.isNullOrBlank()) {
+            val playingFrom = albumTitle ?: queueTitle ?: ""
+            AnimatedVisibility(
+                visible = playingFrom.isNotBlank(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = text,
+                        text = playingFrom,
                         style = MaterialTheme.typography.titleMedium,
                         color = textColor.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -683,7 +681,6 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        // EXACT VIMUSIC LOGIC: PERFECT SQUARE CONTAINER + CLIP
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
@@ -729,7 +726,6 @@ private fun ThumbnailItem(
                         
                         var result: CanvasArtwork? = null
 
-                        // APPLE MUSIC STYLE CANVAS (PRIORITY 1)
                         if (albumNameRaw.isNotBlank()) {
                             result = MonochromeAlbumCanvas.getByAlbumArtist(
                                 album = albumNameRaw,
@@ -737,7 +733,6 @@ private fun ThumbnailItem(
                             )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
                         }
                         
-                        // FALLBACK TO TIDAL VIDEO COVER (PRIORITY 2)
                         if (result == null) {
                             result = MonochromeApiCanvas.getBySongArtist(
                                 song = songTitle,
@@ -905,7 +900,6 @@ private fun CanvasArtworkPlayer(
                 layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 player = exoPlayer
                 useController = false
-                
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM 
                 setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
@@ -928,7 +922,15 @@ fun SnapLayoutInfoProvider(
     override fun calculateApproachOffset(velocity: Float, decayOffset: Float): Float = 0f
     override fun calculateSnapOffset(velocity: Float): Float {
         val bounds = calculateSnappingOffsetBounds()
-        return if (abs(velocity) < velocityThreshold) { if (abs(bounds.start) < abs(bounds.endInclusive)) bounds.start else bounds.endInclusive } else when { velocity < 0 -> bounds.start velocity > 0 -> bounds.endInclusive else -> 0f }
+        return if (abs(velocity) < velocityThreshold) {
+            if (abs(bounds.start) < abs(bounds.endInclusive)) bounds.start else bounds.endInclusive
+        } else {
+            when {
+                velocity < 0 -> bounds.start
+                velocity > 0 -> bounds.endInclusive
+                else -> 0f
+            }
+        }
     }
     fun calculateSnappingOffsetBounds(): ClosedFloatingPointRange<Float> {
         var lowerBoundOffset = Float.NEGATIVE_INFINITY
