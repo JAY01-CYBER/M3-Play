@@ -67,7 +67,7 @@ fun ChangelogScreen(
                 changes = listOf(
                     "Redesigned Mini Player for a cleaner look",
                     "Home Screen redesign (added Community & Speed Dial)",
-                    "Added ViMusic canvas (Spotify-style) - Special thanks to ViMusic!",
+                    "Added Vivi Music canvas (Spotify-style) - Special thanks to Vivi Music!",
                     "Added new Home icon",
                     "Optimized Music Service and improved screen performance",
                     "Fixed playback errors and various crash issues"
