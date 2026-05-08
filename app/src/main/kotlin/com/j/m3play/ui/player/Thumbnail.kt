@@ -114,10 +114,13 @@ import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.canvas.CanvasArtwork
+import com.j.m3play.canvas.MonochromeAlbumCanvas
 import com.j.m3play.canvas.MonochromeApiCanvas
+
 import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.HidePlayerThumbnailKey
 import com.j.m3play.constants.M3PlayCanvasKey
@@ -680,7 +683,7 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        
+        // EXACT VIMUSIC LOGIC: PERFECT SQUARE CONTAINER + CLIP
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
@@ -719,22 +722,31 @@ private fun ThumbnailItem(
                     val fetched = withContext(Dispatchers.IO) {
                         val songTitleRaw = item.mediaMetadata.title?.toString() ?: ""
                         val artistNameRaw = item.mediaMetadata.artist?.toString() ?: ""
+                        val albumNameRaw = item.mediaMetadata.albumTitle?.toString() ?: ""
                         
                         val songTitle = normalizeCanvasSongTitle(songTitleRaw)
                         val artistName = normalizeCanvasArtistName(artistNameRaw)
                         
-                        linkedSetOf(
-                            songTitle to artistName,
-                            songTitleRaw to artistName,
-                            songTitle to artistNameRaw,
-                            songTitleRaw to artistNameRaw,
-                        ).filter { (s, a) -> s.isNotBlank() && a.isNotBlank() }
-                            .firstNotNullOfOrNull { (s, a) ->
-                                MonochromeApiCanvas.getBySongArtist(
-                                    song = s,
-                                    artist = a
-                                )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
-                            }
+                        var result: CanvasArtwork? = null
+
+                        // APPLE MUSIC STYLE CANVAS (PRIORITY 1)
+                        if (albumNameRaw.isNotBlank()) {
+                            result = MonochromeAlbumCanvas.getByAlbumArtist(
+                                album = albumNameRaw,
+                                artist = artistName
+                            )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
+                        }
+                        
+                        // FALLBACK TO TIDAL VIDEO COVER (PRIORITY 2)
+                        if (result == null) {
+                            result = MonochromeApiCanvas.getBySongArtist(
+                                song = songTitle,
+                                artist = artistName,
+                                album = albumNameRaw.takeIf { it.isNotBlank() }
+                            )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
+                        }
+
+                        result
                     }
                     
                     canvasArtwork = fetched
@@ -796,7 +808,7 @@ private fun ThumbnailImage(
                 .networkCachePolicy(CachePolicy.ENABLED)
                 .build(),
             contentDescription = null,
-            contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Fit, 
+            contentScale = ContentScale.Crop, 
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -893,7 +905,7 @@ private fun CanvasArtworkPlayer(
                 layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 player = exoPlayer
                 useController = false
-            
+                
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM 
                 setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
             }
