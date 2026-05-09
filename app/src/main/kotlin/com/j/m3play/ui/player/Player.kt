@@ -378,24 +378,12 @@ fun BottomSheetPlayer(
 
     val TextBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.White else when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR -> Color.White
-        PlayerBackgroundStyle.GRADIENT -> Color.White
-        PlayerBackgroundStyle.COLORING -> Color.White
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
-        PlayerBackgroundStyle.GLOW -> Color.White
-        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
-        PlayerBackgroundStyle.CUSTOM -> Color.White
+        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.COLORING, PlayerBackgroundStyle.BLUR_GRADIENT, PlayerBackgroundStyle.GLOW, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.CUSTOM -> Color.White
     }
 
     val icBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.Black else when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-        PlayerBackgroundStyle.BLUR -> Color.Black
-        PlayerBackgroundStyle.GRADIENT -> Color.Black
-        PlayerBackgroundStyle.COLORING -> Color.Black
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
-        PlayerBackgroundStyle.GLOW -> Color.Black
-        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
-        PlayerBackgroundStyle.CUSTOM -> Color.Black
+        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.COLORING, PlayerBackgroundStyle.BLUR_GRADIENT, PlayerBackgroundStyle.GLOW, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.CUSTOM -> Color.Black
     }
 
     val (textButtonColor, iconButtonColor) = if (playerDesignStyle == PlayerDesignStyle.V1) Pair(Color.White, Color.Black) else when (playerButtonsStyle) {
@@ -430,12 +418,8 @@ fun BottomSheetPlayer(
             onDismissRequest = { showSleepTimerDialog = false },
             icon = { Icon(painter = painterResource(R.drawable.bedtime), contentDescription = null) },
             title = { Text(stringResource(R.string.sleep_timer)) },
-            confirmButton = {
-                TextButton(onClick = { showSleepTimerDialog = false; playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt()) }) { Text(stringResource(android.R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSleepTimerDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-            },
+            confirmButton = { TextButton(onClick = { showSleepTimerDialog = false; playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt()) }) { Text(stringResource(android.R.string.ok)) } },
+            dismissButton = { TextButton(onClick = { showSleepTimerDialog = false }) { Text(stringResource(android.R.string.cancel)) } },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = pluralStringResource(R.plurals.minute, sleepTimerValue.roundToInt(), sleepTimerValue.roundToInt()), style = MaterialTheme.typography.bodyLarge)
@@ -470,14 +454,10 @@ fun BottomSheetPlayer(
                     if (!isUserSeeking) {
                         sliderPosition?.let { targetPosition ->
                             val clampedTargetPosition = when {
-                                currentPlayerDuration > 0L && currentPlayerDuration != C.TIME_UNSET -> {
-                                    targetPosition.coerceIn(0L, currentPlayerDuration)
-                                }
+                                currentPlayerDuration > 0L && currentPlayerDuration != C.TIME_UNSET -> { targetPosition.coerceIn(0L, currentPlayerDuration) }
                                 else -> targetPosition.coerceAtLeast(0L)
                             }
-                            if (abs(currentPlayerPosition - clampedTargetPosition) <= SeekbarSettleToleranceMs) {
-                                sliderPosition = null
-                            }
+                            if (abs(currentPlayerPosition - clampedTargetPosition) <= SeekbarSettleToleranceMs) { sliderPosition = null }
                         }
                     }
                 }
@@ -488,9 +468,7 @@ fun BottomSheetPlayer(
                 duration = if (metaDuration > 0) metaDuration else 0L
             }
             val currentPlayerPosition = playerConnection.player.currentPosition
-            if (sliderPosition == null && currentPlayerPosition > 0L) {
-                position = currentPlayerPosition
-            }
+            if (sliderPosition == null && currentPlayerPosition > 0L) { position = currentPlayerPosition }
         }
     }
 
@@ -510,18 +488,12 @@ fun BottomSheetPlayer(
 
     val focusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(state.isExpanded) {
-        if (state.isExpanded) focusRequester.requestFocus()
-    }
+    LaunchedEffect(state.isExpanded) { if (state.isExpanded) { focusRequester.requestFocus() } }
 
     BottomSheet(
         state = state,
-        modifier = modifier
-            .focusRequester(focusRequester)
-            .focusable()
-            .onKeyEvent { keyEvent ->
+        modifier = modifier.focusRequester(focusRequester).focusable().onKeyEvent { keyEvent ->
             if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
-
             when (keyEvent.key) {
                 Key.DirectionLeft -> {
                     val now = SystemClock.uptimeMillis()
@@ -567,12 +539,7 @@ fun BottomSheetPlayer(
         val onSliderValueChangeFinished: () -> Unit = {
             sliderPosition?.let {
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
-                if (isTransitioning) {
-                    playerConnection.player.seekToNext()
-                    playerConnection.player.seekTo(it)
-                } else {
-                    playerConnection.player.seekTo(it)
-                }
+                if (isTransitioning) { playerConnection.player.seekToNext(); playerConnection.player.seekTo(it) } else { playerConnection.player.seekTo(it) }
                 position = it
             }
             isUserSeeking = false
@@ -597,45 +564,21 @@ fun BottomSheetPlayer(
 
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { metadata ->
             PlayerControlsContent(
-                mediaMetadata = metadata,
-                playerDesignStyle = playerDesignStyle,
-                sliderStyle = sliderStyle,
-                playbackState = playbackState,
-                isPlaying = isPlaying,
-                isLoading = isLoading,
-                repeatMode = repeatMode,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                textBackgroundColor = TextBackgroundColor,
-                icBackgroundColor = icBackgroundColor,
-                sliderPosition = sliderPosition,
-                position = position,
-                duration = duration,
-                playerConnection = playerConnection,
-                navController = navController,
-                state = state,
-                menuState = menuState,
-                bottomSheetPageState = bottomSheetPageState,
-                clipboardManager = clipboardManager,
-                context = context,
-                onSliderValueChange = onSliderValueChange,
-                onSliderValueChangeFinished = onSliderValueChangeFinished,
-                currentFormat = currentFormat
+                mediaMetadata = metadata, playerDesignStyle = playerDesignStyle, sliderStyle = sliderStyle, playbackState = playbackState,
+                isPlaying = isPlaying, isLoading = isLoading, repeatMode = repeatMode, canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext, textButtonColor = textButtonColor, iconButtonColor = iconButtonColor,
+                textBackgroundColor = TextBackgroundColor, icBackgroundColor = icBackgroundColor, sliderPosition = sliderPosition,
+                position = position, duration = duration, playerConnection = playerConnection, navController = navController,
+                state = state, menuState = menuState, bottomSheetPageState = bottomSheetPageState, clipboardManager = clipboardManager,
+                context = context, onSliderValueChange = onSliderValueChange, onSliderValueChangeFinished = onSliderValueChangeFinished, currentFormat = currentFormat
             )
         }
 
         if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V1) {
             PlayerBackground(
-                playerBackground = playerBackground,
-                mediaMetadata = mediaMetadata,
-                gradientColors = gradientColors,
-                disableBlur = disableBlur,
-                playerCustomImageUri = playerCustomImageUri,
-                playerCustomBlur = playerCustomBlur,
-                playerCustomContrast = playerCustomContrast,
-                playerCustomBrightness = playerCustomBrightness
+                playerBackground = playerBackground, mediaMetadata = mediaMetadata, gradientColors = gradientColors,
+                disableBlur = disableBlur, playerCustomImageUri = playerCustomImageUri, playerCustomBlur = playerCustomBlur,
+                playerCustomContrast = playerCustomContrast, playerCustomBrightness = playerCustomBrightness
             )
         }
 
@@ -655,25 +598,12 @@ fun BottomSheetPlayer(
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom)),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                LittlePlayerContent(
-                                    mediaMetadata = metadata,
-                                    sliderPosition = sliderPosition,
-                                    positionMs = position,
-                                    durationMs = duration,
-                                    textColor = littleTextColor,
-                                    liked = currentSongLiked,
-                                    onCollapse = state::collapseSoft,
-                                    onToggleLike = playerConnection::toggleLike,
-                                    onExpandQueue = queueSheetState::expandSoft,
-                                    onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } },
-                                )
+                                LittlePlayerContent(mediaMetadata = metadata, sliderPosition = sliderPosition, positionMs = position, durationMs = duration, textColor = littleTextColor, liked = currentSongLiked, onCollapse = state::collapseSoft, onToggleLike = playerConnection::toggleLike, onExpandQueue = queueSheetState::expandSoft, onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } })
                             }
                         }
                     }
                 } else {
-                    Row(
-                        modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).padding(bottom = queueSheetState.collapsedBound + 48.dp),
-                    ) {
+                    Row(modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).padding(bottom = queueSheetState.collapsedBound + 48.dp)) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
                             val screenWidth = LocalConfiguration.current.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
@@ -698,63 +628,68 @@ fun BottomSheetPlayer(
 
                     Box(modifier = Modifier.fillMaxSize().background(littleBackground)) {
                         Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(progressFraction).align(Alignment.TopStart).background(progressOverlayColor))
-                        Box(
-                            modifier = Modifier.fillMaxSize().littlePlayerOverlayGestures(seekEnabled = seekEnabled, durationMs = duration, progressFraction = progressFraction, canSkipPrevious = canSkipPrevious, canSkipNext = canSkipNext, onSeekToPositionMs = updatedOnSliderValueChange, onSeekFinished = updatedOnSliderValueChangeFinished, onSkipPrevious = playerConnection::seekToPrevious, onSkipNext = playerConnection::seekToNext)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom)),
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize().littlePlayerOverlayGestures(seekEnabled = seekEnabled, durationMs = duration, progressFraction = progressFraction, canSkipPrevious = canSkipPrevious, canSkipNext = canSkipNext, onSeekToPositionMs = updatedOnSliderValueChange, onSeekFinished = updatedOnSliderValueChangeFinished, onSkipPrevious = playerConnection::seekToPrevious, onSkipNext = playerConnection::seekToNext).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom))) {
                             enrichedMetadata?.let { metadata ->
-                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
-                                    LittlePlayerContent(
-                                        mediaMetadata = metadata, sliderPosition = sliderPosition, positionMs = position, durationMs = duration, textColor = littleTextColor, liked = currentSongLiked, onCollapse = state::collapseSoft, onToggleLike = playerConnection::toggleLike, onExpandQueue = queueSheetState::expandSoft,
-                                        onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } },
-                                    )
-                                }
+                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) { LittlePlayerContent(mediaMetadata = metadata, sliderPosition = sliderPosition, positionMs = position, durationMs = duration, textColor = littleTextColor, liked = currentSongLiked, onCollapse = state::collapseSoft, onToggleLike = playerConnection::toggleLike, onExpandQueue = queueSheetState::expandSoft, onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } }) }
                             }
                         }
                     }
                 } else if (playerDesignStyle == PlayerDesignStyle.V1) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         M3ImmersiveBackdrop(thumbnailUrl = mediaMetadata?.thumbnailUrl, disableBlur = disableBlur)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = queueSheetState.collapsedBound).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).nestedScroll(state.preUpPostDownNestedScrollConnection),
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = queueSheetState.collapsedBound).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).nestedScroll(state.preUpPostDownNestedScrollConnection)) {
                             enrichedMetadata?.let { controlsContent(it) }
                             Spacer(Modifier.height(24.dp))
                         }
                     }
                 } else {
-                    // --- APPLE STYLE DEFAULT PLAYER (V4 & Fallback) ---
+                    // --- APPLE MUSIC STYLE LAYOUT (V4 FIXED) ---
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound)
                     ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Thumbnail(
-                                sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.fillMaxSize().nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                isPlayerExpanded = state.isExpanded
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
-                                            startY = 500f
-                                        )
-                                    )
-                            )
-                        }
+                        // LAYER 1: Apple Default Blur Background
+                        AsyncImage(
+                            model = mediaMetadata?.thumbnailUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().blur(50.dp)
+                        )
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
 
+                        // LAYER 2: Swipeable Thumbnail (Full screen if canvas, centered if not)
+                        Thumbnail(
+                            sliderPositionProvider = { sliderPosition },
+                            modifier = Modifier.fillMaxSize(),
+                            isPlayerExpanded = state.isExpanded
+                        )
+
+                        // LAYER 3: Dark Bottom Gradient (Taaki controls white me clear dikhe)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                        startY = 800f // Adjust fade point based on screen
+                                    )
+                                )
+                        )
+
+                        // LAYER 4: Player Controls Content
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                         ) {
-                            Spacer(Modifier.weight(1f))
-                            enrichedMetadata?.let { controlsContent(it) }
+                            Spacer(Modifier.weight(1f)) // Controls ko perfectly bottom bhejna
+                            
+                            enrichedMetadata?.let {
+                                controlsContent(it)
+                            }
+                            
                             Spacer(Modifier.height(30.dp))
                         }
                     }
@@ -770,29 +705,11 @@ fun BottomSheetPlayer(
             PlayerButtonsStyle.SECONDARY -> Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.onSecondary)
         }
 
-        Queue(
-            state = queueSheetState,
-            playerBottomSheetState = state,
-            navController = navController,
-            backgroundColor = if (useBlackBackground) { Color.Black } else { MaterialTheme.colorScheme.surfaceContainer },
-            onBackgroundColor = queueOnBackgroundColor,
-            TextBackgroundColor = TextBackgroundColor,
-            textButtonColor = textButtonColor,
-            iconButtonColor = iconButtonColor,
-            onShowLyrics = { lyricsSheetState.expandSoft() },
-            pureBlack = pureBlack,
-        )
+        Queue(state = queueSheetState, playerBottomSheetState = state, navController = navController, backgroundColor = if (useBlackBackground) { Color.Black } else { MaterialTheme.colorScheme.surfaceContainer }, onBackgroundColor = queueOnBackgroundColor, TextBackgroundColor = TextBackgroundColor, textButtonColor = textButtonColor, iconButtonColor = iconButtonColor, onShowLyrics = { lyricsSheetState.expandSoft() }, pureBlack = pureBlack)
 
         mediaMetadata?.let { metadata ->
-            BottomSheet(
-                state = lyricsSheetState,
-                backgroundColor = Color.Unspecified,
-                onDismiss = { },
-                collapsedContent = { }
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = lyricsSheetState.progress.coerceIn(0f, 1f)))
-                ) {
+            BottomSheet(state = lyricsSheetState, backgroundColor = Color.Unspecified, onDismiss = { }, collapsedContent = { }) {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = lyricsSheetState.progress.coerceIn(0f, 1f)))) {
                     LyricsScreen(mediaMetadata = metadata, onBackClick = { lyricsSheetState.collapseSoft() }, navController = navController)
                 }
             }
@@ -800,125 +717,49 @@ fun BottomSheetPlayer(
     }
 }
 
+// Ye naya Immersive Breathing Backdrop hai (For V1)
 @Composable
-fun M3ImmersiveBackdrop(
-    thumbnailUrl: String?,
-    disableBlur: Boolean
-) {
+fun M3ImmersiveBackdrop(thumbnailUrl: String?, disableBlur: Boolean) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1.02f,
-            targetValue = 1.10f,
-            animationSpec = infiniteRepeatable(animation = tween(15000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-            label = "scale"
-        )
-
-        Box(
-            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
-        ) {
-            AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        }
-
-        Box(
-            modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0.0f to Color.Black.copy(alpha = 0.2f), 0.2f to Color.Transparent, 0.5f to Color.Transparent, 0.7f to Color.Black.copy(alpha = 0.6f), 0.9f to Color.Black.copy(alpha = 0.95f), 1.0f to Color.Black.copy(alpha = 1.0f))))
-        )
+        val scale by infiniteTransition.animateFloat(initialValue = 1.02f, targetValue = 1.10f, animationSpec = infiniteRepeatable(animation = tween(15000, easing = LinearEasing), repeatMode = RepeatMode.Reverse), label = "scale")
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }) { AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0.0f to Color.Black.copy(alpha = 0.2f), 0.2f to Color.Transparent, 0.5f to Color.Transparent, 0.7f to Color.Black.copy(alpha = 0.6f), 0.9f to Color.Black.copy(alpha = 0.95f), 1.0f to Color.Black.copy(alpha = 1.0f)))))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LittlePlayerContent(
-    mediaMetadata: MediaMetadata,
-    sliderPosition: Long?,
-    positionMs: Long,
-    durationMs: Long,
-    textColor: Color,
-    liked: Boolean,
-    onCollapse: () -> Unit,
-    onToggleLike: () -> Unit,
-    onExpandQueue: () -> Unit,
-    onMenuClick: () -> Unit,
-) {
+private fun LittlePlayerContent(mediaMetadata: MediaMetadata, sliderPosition: Long?, positionMs: Long, durationMs: Long, textColor: Color, liked: Boolean, onCollapse: () -> Unit, onToggleLike: () -> Unit, onExpandQueue: () -> Unit, onMenuClick: () -> Unit) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val titleColor = textColor.copy(alpha = 0.95f)
         val secondaryColor = textColor.copy(alpha = 0.6f)
         val timeColor = textColor.copy(alpha = 0.85f)
-
         val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
-
         val titleSize = (56f * scale).sp
         val timeSize = (44f * scale).sp
         val iconSize = (26f * scale).dp
         val collapseIconSize = (28f * scale).dp
         val horizontalPadding = (18f * scale).dp
         val verticalPadding = (10f * scale).dp
-
         val displayPositionMs = sliderPosition ?: positionMs
+        val timeText = remember(displayPositionMs, durationMs) { val positionText = makeTimeString(displayPositionMs); val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""; if (durationText.isBlank()) positionText else "$positionText/$durationText" }
+        val artistsText = remember(mediaMetadata.artists) { mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name } }
 
-        val timeText = remember(displayPositionMs, durationMs) {
-            val positionText = makeTimeString(displayPositionMs)
-            val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
-            if (durationText.isBlank()) positionText else "$positionText/$durationText"
-        }
-
-        val artistsText = remember(mediaMetadata.artists) {
-            mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
-        }
-
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding, vertical = verticalPadding),
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding, vertical = verticalPadding)) {
             Spacer(Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(modifier = Modifier.weight(1f)) {
-                    AnimatedContent(
-                        targetState = mediaMetadata.title,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "little_title",
-                    ) { title ->
-                        Text(text = title, color = titleColor, fontSize = titleSize, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
-                    }
-
+                    AnimatedContent(targetState = mediaMetadata.title, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "little_title") { title -> Text(text = title, color = titleColor, fontSize = titleSize, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee()) }
                     Spacer(Modifier.height((10f * scale).dp))
-
-                    mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle ->
-                        AnimatedContent(
-                            targetState = albumTitle,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "little_album",
-                        ) { album ->
-                            Text(text = album, color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
-                        }
-                    }
-
-                    artistsText.takeIf { it.isNotBlank() }?.let { artists ->
-                        AnimatedContent(
-                            targetState = artists,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "little_artists",
-                        ) { artistLine ->
-                            Text(text = "by - $artistLine", color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
-                        }
-                    }
+                    mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle -> AnimatedContent(targetState = albumTitle, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "little_album") { album -> Text(text = album, color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee()) } }
+                    artistsText.takeIf { it.isNotBlank() }?.let { artists -> AnimatedContent(targetState = artists, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "little_artists") { artistLine -> Text(text = "by - $artistLine", color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee()) } }
                 }
-
                 Spacer(Modifier.width((16f * scale).dp))
                 Text(text = timeText, color = timeColor, fontSize = timeSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.widthIn(min = (140f * scale).dp))
             }
-
-            Spacer(Modifier.height((14f * scale).dp))
-            Spacer(Modifier.height((6f * scale).dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Spacer(Modifier.height((14f * scale).dp)); Spacer(Modifier.height((6f * scale).dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(painter = painterResource(R.drawable.expand_more), contentDescription = null, tint = textColor.copy(alpha = 0.8f), modifier = Modifier.size(collapseIconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCollapse))
                 Spacer(Modifier.weight(1f))
                 Icon(painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else textColor.copy(alpha = 0.78f), modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleLike))
@@ -932,98 +773,42 @@ private fun LittlePlayerContent(
 }
 
 @Composable
-private fun LandscapeLikeBox(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Layout(
-        content = content,
-        modifier = modifier.graphicsLayer { clip = true },
-    ) { measurables, constraints ->
+private fun LandscapeLikeBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier.graphicsLayer { clip = true }) { measurables, constraints ->
         val measurable = measurables.firstOrNull()
-        if (measurable == null) {
-            layout(constraints.minWidth, constraints.minHeight) {}
-        } else {
+        if (measurable == null) { layout(constraints.minWidth, constraints.minHeight) {} } else {
             val swappedConstraints = Constraints(minWidth = constraints.minHeight, maxWidth = constraints.maxHeight, minHeight = constraints.minWidth, maxHeight = constraints.maxWidth)
             val placeable = measurable.measure(swappedConstraints)
-            val width = constraints.maxWidth
-            val height = constraints.maxHeight
-            val rotatedWidth = placeable.height
-            val rotatedHeight = placeable.width
-
-            val x = ((width - rotatedWidth) / 2).coerceAtLeast(0)
-            val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
-
-            layout(width, height) {
-                placeable.placeWithLayer(x, y) { transformOrigin = TransformOrigin(0f, 0f); rotationZ = 90f; translationX = placeable.height.toFloat() }
-            }
+            val width = constraints.maxWidth; val height = constraints.maxHeight; val rotatedWidth = placeable.height; val rotatedHeight = placeable.width
+            val x = ((width - rotatedWidth) / 2).coerceAtLeast(0); val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
+            layout(width, height) { placeable.placeWithLayer(x, y) { transformOrigin = TransformOrigin(0f, 0f); rotationZ = 90f; translationX = placeable.height.toFloat() } }
         }
     }
 }
 
-private fun Modifier.littlePlayerOverlayGestures(
-    seekEnabled: Boolean,
-    durationMs: Long,
-    progressFraction: Float,
-    canSkipPrevious: Boolean,
-    canSkipNext: Boolean,
-    onSeekToPositionMs: (Long) -> Unit,
-    onSeekFinished: () -> Unit,
-    onSkipPrevious: () -> Unit,
-    onSkipNext: () -> Unit,
-): Modifier {
+private fun Modifier.littlePlayerOverlayGestures(seekEnabled: Boolean, durationMs: Long, progressFraction: Float, canSkipPrevious: Boolean, canSkipNext: Boolean, onSeekToPositionMs: (Long) -> Unit, onSeekFinished: () -> Unit, onSkipPrevious: () -> Unit, onSkipNext: () -> Unit): Modifier {
     return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
-        var lastTapUptimeMs = 0L
-        var lastTapPosition: Offset? = null
-        val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
-        val touchSlop = viewConfiguration.touchSlop
-
+        var lastTapUptimeMs = 0L; var lastTapPosition: Offset? = null; val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong(); val touchSlop = viewConfiguration.touchSlop
         awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = true)
-            val pointerId = down.id
-            var upPosition = down.position
-            val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val down = awaitFirstDown(requireUnconsumed = true); val pointerId = down.id; var upPosition = down.position
+            val minOverlayHeightPx = 24.dp.toPx(); val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
             val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
-
             var isSeeking = false
-
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Main)
-                val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
-                upPosition = change.position
+                val event = awaitPointerEvent(PointerEventPass.Main); val change = event.changes.firstOrNull { it.id == pointerId } ?: continue; upPosition = change.position
                 if (!change.pressed) break
-                if (!isSeeking && seekAllowedFromDown) {
-                    val distanceFromDown = (change.position - down.position).getDistance()
-                    if (distanceFromDown > touchSlop) isSeeking = true
-                }
+                if (!isSeeking && seekAllowedFromDown) { val distanceFromDown = (change.position - down.position).getDistance(); if (distanceFromDown > touchSlop) isSeeking = true }
                 if (isSeeking) {
                     val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
                     val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
-                    onSeekToPositionMs(targetMs)
-                    change.consume()
+                    onSeekToPositionMs(targetMs); change.consume()
                 }
             }
-
-            if (isSeeking) {
-                onSeekFinished()
-                lastTapUptimeMs = 0L
-                lastTapPosition = null
-            } else {
-                val now = SystemClock.uptimeMillis()
-                val previousTapPosition = lastTapPosition
+            if (isSeeking) { onSeekFinished(); lastTapUptimeMs = 0L; lastTapPosition = null } else {
+                val now = SystemClock.uptimeMillis(); val previousTapPosition = lastTapPosition
                 val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
-
-                if (isDoubleTap) {
-                    val isTopSide = upPosition.y < size.height / 2f
-                    if (isTopSide) { if (canSkipPrevious) onSkipPrevious() } else { if (canSkipNext) onSkipNext() }
-                    lastTapUptimeMs = 0L
-                    lastTapPosition = null
-                } else {
-                    lastTapUptimeMs = now
-                    lastTapPosition = upPosition
-                }
+                if (isDoubleTap) { val isTopSide = upPosition.y < size.height / 2f; if (isTopSide) { if (canSkipPrevious) onSkipPrevious() } else { if (canSkipNext) onSkipNext() }; lastTapUptimeMs = 0L; lastTapPosition = null } else { lastTapUptimeMs = now; lastTapPosition = upPosition }
             }
         }
     }
