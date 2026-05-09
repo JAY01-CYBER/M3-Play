@@ -638,6 +638,46 @@ private fun ThumbnailItem(
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
+    val shouldAnimateCanvas = archiveTuneCanvasEnabled && item.mediaId.isNotBlank() && item.mediaId == currentMediaId
+    var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
+    var canvasFetchInFlight by remember(item.mediaId) { mutableStateOf(false) }
+
+    if (shouldAnimateCanvas) {
+        LaunchedEffect(item.mediaId) {
+            CanvasArtworkPlaybackCache.get(item.mediaId)?.let { cached ->
+                canvasArtwork = cached
+                return@LaunchedEffect
+            }
+            if (canvasFetchInFlight) return@LaunchedEffect
+            canvasFetchInFlight = true
+
+            val fetched = withContext(Dispatchers.IO) {
+                val songTitleRaw = item.mediaMetadata.title?.toString() ?: ""
+                val artistNameRaw = item.mediaMetadata.artist?.toString() ?: ""
+                val albumNameRaw = item.mediaMetadata.albumTitle?.toString() ?: ""
+                
+                val songTitle = normalizeCanvasSongTitle(songTitleRaw)
+                val artistName = normalizeCanvasArtistName(artistNameRaw)
+                
+                var result: CanvasArtwork? = null
+                if (albumNameRaw.isNotBlank()) {
+                    result = MonochromeAlbumCanvas.getByAlbumArtist(albumNameRaw, artistName)
+                        ?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
+                }
+                if (result == null) {
+                    result = MonochromeApiCanvas.getBySongArtist(songTitle, artistName, albumNameRaw.takeIf { it.isNotBlank() })
+                        ?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
+                }
+                result
+            }
+            canvasArtwork = fetched
+            if (fetched != null) CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
+            canvasFetchInFlight = false
+        }
+    }
+
+    val hasCanvas = shouldAnimateCanvas && canvasArtwork != null
+
     Box(
         modifier = Modifier
             .then(
@@ -647,27 +687,19 @@ private fun ThumbnailItem(
                     Modifier
                         .width(dimensions.itemWidth)
                         .fillMaxSize()
+                        .then(if (!hasCanvas) Modifier.padding(horizontal = PlayerHorizontalPadding) else Modifier)
                 }
             )
-            .padding(horizontal = PlayerHorizontalPadding)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = { offset ->
                         val currentPosition = playerConnection.player.currentPosition
                         val duration = playerConnection.player.duration
-
                         val now = System.currentTimeMillis()
-                        if (incrementalSeekSkipEnabled && now - lastTapTime < 1000) {
-                            skipMultiplier++
-                        } else {
-                            skipMultiplier = 1
-                        }
+                        if (incrementalSeekSkipEnabled && now - lastTapTime < 1000) skipMultiplier++ else skipMultiplier = 1
                         lastTapTime = now
-
                         val skipAmount = 5000 * skipMultiplier
-
-                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) ||
-                                (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
+                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) || (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
 
                         if (isLeftSide) {
                             playerConnection.player.seekTo((currentPosition - skipAmount).coerceAtLeast(0))
@@ -681,83 +713,26 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(dimensions.thumbnailSize)
-                .clip(RoundedCornerShape(dimensions.cornerRadius))
-        ) {
-            if (hidePlayerThumbnail) {
-                HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
-            } else {
-                val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) {
-                    currentMediaThumbnail
-                } else {
-                    item.mediaMetadata.artworkUri?.toString()
-                }
-
-                ThumbnailImage(
-                    artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
+        if (hasCanvas) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CanvasArtworkPlayer(
+                    primaryUrl = canvasArtwork!!.animated,
+                    fallbackUrl = canvasArtwork!!.videoUrl,
+                    isPlaying = isPlaying,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
-            
-            val shouldAnimateCanvas = archiveTuneCanvasEnabled && item.mediaId.isNotBlank() && item.mediaId == currentMediaId
-            
-            if (shouldAnimateCanvas) {
-                var canvasArtwork by remember(item.mediaId) { mutableStateOf<CanvasArtwork?>(null) }
-                var canvasFetchInFlight by remember(item.mediaId) { mutableStateOf(false) }
-
-                LaunchedEffect(item.mediaId) {
-                    CanvasArtworkPlaybackCache.get(item.mediaId)?.let { cached ->
-                        canvasArtwork = cached
-                        return@LaunchedEffect
-                    }
-
-                    if (canvasFetchInFlight) return@LaunchedEffect
-                    canvasFetchInFlight = true
-
-                    val fetched = withContext(Dispatchers.IO) {
-                        val songTitleRaw = item.mediaMetadata.title?.toString() ?: ""
-                        val artistNameRaw = item.mediaMetadata.artist?.toString() ?: ""
-                        val albumNameRaw = item.mediaMetadata.albumTitle?.toString() ?: ""
-                        
-                        val songTitle = normalizeCanvasSongTitle(songTitleRaw)
-                        val artistName = normalizeCanvasArtistName(artistNameRaw)
-                        
-                        var result: CanvasArtwork? = null
-
-                        if (albumNameRaw.isNotBlank()) {
-                            result = MonochromeAlbumCanvas.getByAlbumArtist(
-                                album = albumNameRaw,
-                                artist = artistName
-                            )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
-                        }
-                        
-                        if (result == null) {
-                            result = MonochromeApiCanvas.getBySongArtist(
-                                song = songTitle,
-                                artist = artistName,
-                                album = albumNameRaw.takeIf { it.isNotBlank() }
-                            )?.takeIf { !it.animated.isNullOrBlank() || !it.videoUrl.isNullOrBlank() }
-                        }
-
-                        result
-                    }
-                    
-                    canvasArtwork = fetched
-                    if (fetched != null) {
-                        CanvasArtworkPlaybackCache.put(item.mediaId, fetched)
-                    }
-                    canvasFetchInFlight = false
-                }
-
-                canvasArtwork?.let { artwork ->
-                    CanvasArtworkPlayer(
-                        primaryUrl = artwork.animated,
-                        fallbackUrl = artwork.videoUrl,
-                        isPlaying = isPlaying,
-                        modifier = Modifier.fillMaxSize()
-                    )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(dimensions.thumbnailSize)
+                    .clip(RoundedCornerShape(dimensions.cornerRadius))
+            ) {
+                val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) currentMediaThumbnail else item.mediaMetadata.artworkUri?.toString()
+                if (hidePlayerThumbnail) {
+                    HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
+                } else {
+                    ThumbnailImage(artworkUri = artworkUriToUse, cropArtwork = cropAlbumArt)
                 }
             }
         }
