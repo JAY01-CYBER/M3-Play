@@ -117,17 +117,14 @@ import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToLong
 import kotlin.math.roundToInt
-
 
 @Composable
 fun PlayerTitleSection(
@@ -434,7 +431,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More menu button - cinematic glass card
                 Surface(
                     onClick = {
                         menuState.show {
@@ -476,7 +472,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share - Frosted Glass
                 Surface(
                     onClick = { 
                         val intent = Intent().apply {
@@ -496,7 +491,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Options - Frosted Glass (FIXED)
                 Surface(
                     onClick = { 
                         menuState.show { 
@@ -762,7 +756,6 @@ fun PlayerTimeLabel(
     ) {
         Text(text = makeTimeString(sliderPosition ?: position), style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
 
-        // Exclusive Glowing Codec Badge for V1
         if (playerDesignStyle == PlayerDesignStyle.V1 && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val label = when {
@@ -809,8 +802,111 @@ fun PlayerPlaybackControls(
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
 
     when (playerDesignStyle) {
+        PlayerDesignStyle.V4 -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = PlayerHorizontalPadding, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.shuffle),
+                    contentDescription = null,
+                    tint = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 1f else 0.4f),
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled }
+                )
+
+                Icon(
+                    painter = painterResource(R.drawable.skip_previous),
+                    contentDescription = null,
+                    tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 1f else 0.4f),
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clickable(
+                            enabled = canSkipPrevious,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { playerConnection.seekToPrevious() }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            if (playbackState == STATE_ENDED) {
+                                playerConnection.player.seekTo(0, 0)
+                                playerConnection.player.playWhenReady = true
+                            } else {
+                                playerConnection.player.togglePlayPause()
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = textBackgroundColor,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(
+                                when {
+                                    playbackState == STATE_ENDED -> R.drawable.replay
+                                    isPlaying -> R.drawable.pause
+                                    else -> R.drawable.play
+                                }
+                            ),
+                            contentDescription = null,
+                            tint = textBackgroundColor,
+                            modifier = Modifier.size(56.dp)
+                        )
+                    }
+                }
+
+                Icon(
+                    painter = painterResource(R.drawable.skip_next),
+                    contentDescription = null,
+                    tint = textBackgroundColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clickable(
+                            enabled = canSkipNext,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { playerConnection.seekToNext() }
+                )
+
+                Icon(
+                    painter = painterResource(
+                        when (repeatMode) {
+                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                            else -> R.drawable.repeat
+                        }
+                    ),
+                    contentDescription = null,
+                    tint = textBackgroundColor.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.4f else 1f),
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { playerConnection.player.toggleRepeatMode() }
+                )
+            }
+        }
+
         PlayerDesignStyle.V2 -> {
-            BoxWithConstraints(
+             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val maxW = maxWidth
@@ -855,7 +951,7 @@ fun PlayerPlaybackControls(
                             }
                         },
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = textButtonColor,
+                             containerColor = textButtonColor,
                             contentColor = iconButtonColor
                         ),
                         modifier = Modifier
@@ -894,7 +990,7 @@ fun PlayerPlaybackControls(
                         ),
                         modifier = Modifier
                             .size(width = sideButtonWidth, height = sideButtonHeight)
-                            .clip(RoundedCornerShape(32.dp))
+                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.skip_next),
@@ -946,7 +1042,7 @@ fun PlayerPlaybackControls(
                                 playerConnection.seekToPrevious()
                             },
                         contentAlignment = Alignment.Center
-                    ) {
+                     ) {
                         Icon(
                             painter = painterResource(R.drawable.skip_previous),
                             contentDescription = null,
@@ -961,7 +1057,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(50))
                             .background(textBackgroundColor)
                             .clickable {
-                                if (playbackState == STATE_ENDED) {
+                               if (playbackState == STATE_ENDED) {
                                     playerConnection.player.seekTo(0, 0)
                                     playerConnection.player.playWhenReady = true
                                 } else {
@@ -978,7 +1074,7 @@ fun PlayerPlaybackControls(
                             )
                         } else {
                             Icon(
-                                painter = painterResource(
+                                 painter = painterResource(
                                     when {
                                         playbackState == STATE_ENDED -> R.drawable.replay
                                         isPlaying -> R.drawable.pause
@@ -1001,7 +1097,7 @@ fun PlayerPlaybackControls(
                                 playerConnection.seekToNext()
                             },
                         contentAlignment = Alignment.Center
-                    ) {
+                     ) {
                         Icon(
                             painter = painterResource(R.drawable.skip_next),
                             contentDescription = null,
@@ -1023,7 +1119,7 @@ fun PlayerPlaybackControls(
                                     Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                     Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
                                     else -> R.drawable.repeat
-                                }
+                                 }
                             ),
                             contentDescription = null,
                             tint = textBackgroundColor.copy(
@@ -1036,212 +1132,23 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V4 -> {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding)
-            ) {
-                val baseLarge = 56.dp
-                val baseSmall = 46.dp
-                val baseGap = 12.dp
-                val baseLargeIcon = 28.dp
-                val baseSmallIcon = 22.dp
-                val baseLargeRadius = 18.dp
-                val baseSmallRadius = 16.dp
-                val centerSize = 88.dp
-                val centerPadding = 40.dp
-                val sideTotal = (maxWidth - centerSize - centerPadding) / 2f
-                val scale =
-                    ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f)
-                val large = baseLarge * scale
-                val small = baseSmall * scale
-                val gap = baseGap * scale
-                val largeIcon = baseLargeIcon * scale
-                val smallIcon = baseSmallIcon * scale
-                val largeRadius = baseLargeRadius * scale
-                val smallRadius = baseSmallRadius * scale
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            onClick = {
-                                playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
-                            },
-                            shape = RoundedCornerShape(smallRadius),
-                            color = textBackgroundColor.copy(
-                                alpha = if (shuffleModeEnabled) 0.2f else 0.08f
-                            ),
-                            modifier = Modifier.size(small)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.shuffle),
-                                    contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (shuffleModeEnabled) 1f else 0.6f
-                                    ),
-                                    modifier = Modifier.size(smallIcon)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(gap))
-
-                        Surface(
-                            onClick = { playerConnection.seekToPrevious() },
-                            enabled = canSkipPrevious,
-                            shape = RoundedCornerShape(largeRadius),
-                            color = textBackgroundColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(large)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.skip_previous),
-                                    contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (canSkipPrevious) 1f else 0.4f
-                                    ),
-                                    modifier = Modifier.size(largeIcon)
-                                )
-                            }
-                        }
-                    }
-
-                    Surface(
-                        onClick = {
-                            if (playbackState == STATE_ENDED) {
-                                playerConnection.player.seekTo(0, 0)
-                                playerConnection.player.playWhenReady = true
-                            } else {
-                                playerConnection.player.togglePlayPause()
-                            }
-                        },
-                        shape = RoundedCornerShape(28.dp),
-                        color = textButtonColor,
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp)
-                            .size(88.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(40.dp),
-                                    color = icBackgroundColor,
-                                    strokeWidth = 3.dp
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(
-                                        when {
-                                            playbackState == STATE_ENDED -> R.drawable.replay
-                                            isPlaying -> R.drawable.pause
-                                            else -> R.drawable.play
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = icBackgroundColor,
-                                    modifier = Modifier.size(44.dp)
-                                )
-                            }
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            onClick = { playerConnection.seekToNext() },
-                            enabled = canSkipNext,
-                            shape = RoundedCornerShape(largeRadius),
-                            color = textBackgroundColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(large)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.skip_next),
-                                    contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (canSkipNext) 1f else 0.4f
-                                    ),
-                                    modifier = Modifier.size(largeIcon)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(gap))
-
-                        Surface(
-                            onClick = { playerConnection.player.toggleRepeatMode() },
-                            shape = RoundedCornerShape(smallRadius),
-                            color = textBackgroundColor.copy(
-                                alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f
-                            ),
-                            modifier = Modifier.size(small)
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        when (repeatMode) {
-                                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                            else -> R.drawable.repeat
-                                        }
-                                    ),
-                                    contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.6f else 1f
-                                    ),
-                                    modifier = Modifier.size(smallIcon)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         PlayerDesignStyle.V1, PlayerDesignStyle.V5 -> {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding)
             ) {
-                // Shuffle
                 Surface(
                     onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
                     shape = RoundedCornerShape(50),
                     color = Color.Transparent,
                     modifier = Modifier.size(48.dp)
-                ) {
+                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(painterResource(R.drawable.shuffle), null, tint = Color.White.copy(alpha = if (shuffleModeEnabled) 1f else 0.5f), modifier = Modifier.size(24.dp))
                     }
-                }
+                 }
 
-                // Previous
                 Surface(
                     onClick = playerConnection::seekToPrevious,
                     enabled = canSkipPrevious,
@@ -1255,7 +1162,6 @@ fun PlayerPlaybackControls(
                     }
                 }
 
-                // Play / Pause
                 Surface(
                     onClick = { if (playbackState == STATE_ENDED) { playerConnection.player.seekTo(0, 0); playerConnection.player.playWhenReady = true } else { playerConnection.player.togglePlayPause() } },
                     shape = RoundedCornerShape(50),
@@ -1272,7 +1178,6 @@ fun PlayerPlaybackControls(
                     }
                 }
 
-                // Next
                 Surface(
                     onClick = playerConnection::seekToNext,
                     enabled = canSkipNext,
@@ -1286,7 +1191,6 @@ fun PlayerPlaybackControls(
                     }
                 }
 
-                // Repeat
                 Surface(
                     onClick = { playerConnection.player.toggleRepeatMode() },
                     shape = RoundedCornerShape(50),
@@ -1487,11 +1391,6 @@ fun PlayerPlaybackControls(
     }
 }
 
-/**
- * Wrapper composable that combines all player control components.
- * This replaces the large inline controlsContent lambda in BottomSheetPlayer
- * to reduce JIT compilation overhead.
- */
 @Composable
 fun PlayerControlsContent(
     mediaMetadata: MediaMetadata,
@@ -1818,10 +1717,8 @@ fun PlayerBackground(
                                     val width = size.width
                                     val height = size.height
 
-                                    // Use a dark base, but the gradients will cover most of it
                                     val baseColor = Color(0xFF050505)
 
-                                    // Extract up to 6 colors
                                     val color1 = colors.getOrElse(0) { Color.DarkGray }
                                     val color2 = colors.getOrElse(1) { color1 }
                                     val color3 = colors.getOrElse(2) { color2 }
@@ -1829,7 +1726,6 @@ fun PlayerBackground(
                                     val color5 = colors.getOrElse(4) { color2 }
                                     val color6 = colors.getOrElse(5) { color3 }
 
-                                    // Top-Left Large Glow (Primary)
                                     val brush1 = Brush.radialGradient(
                                         colors = listOf(
                                             color1.copy(alpha = 0.8f),
@@ -1840,7 +1736,6 @@ fun PlayerBackground(
                                         radius = width * 1.2f
                                     )
 
-                                    // Bottom-Right Large Glow (Secondary)
                                     val brush2 = Brush.radialGradient(
                                         colors = listOf(
                                             color2.copy(alpha = 0.75f),
@@ -1851,7 +1746,6 @@ fun PlayerBackground(
                                         radius = width * 1.1f
                                     )
 
-                                    // Top-Right Glow (Tertiary)
                                     val brush3 = Brush.radialGradient(
                                         colors = listOf(
                                             color3.copy(alpha = 0.7f),
@@ -1862,7 +1756,6 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
-                                    // Bottom-Left (Quaternary)
                                     val brush4 = Brush.radialGradient(
                                         colors = listOf(
                                             color4.copy(alpha = 0.65f),
@@ -1873,7 +1766,6 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
-                                    // Top-Center (Quinary)
                                     val brush5 = Brush.radialGradient(
                                         colors = listOf(
                                             color5.copy(alpha = 0.6f),
@@ -1884,7 +1776,6 @@ fun PlayerBackground(
                                         radius = width * 0.9f
                                     )
                                     
-                                    // Bottom-Center (Senary)
                                     val brush6 = Brush.radialGradient(
                                         colors = listOf(
                                             color6.copy(alpha = 0.6f),
@@ -1941,7 +1832,6 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
-                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
@@ -2057,9 +1947,7 @@ private fun LittlePlayerContent(
         val secondaryColor = textColor.copy(alpha = 0.6f)
         val timeColor = textColor.copy(alpha = 0.85f)
 
-        val scale =
-            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
-                .coerceIn(0.78f, 1.15f)
+        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
 
         val titleSize = (56f * scale).sp
         val timeSize = (44f * scale).sp
@@ -2081,10 +1969,7 @@ private fun LittlePlayerContent(
         }
 
         Column(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding, vertical = verticalPadding),
         ) {
             Spacer(Modifier.weight(1f))
 
@@ -2161,7 +2046,6 @@ private fun LittlePlayerContent(
             }
 
             Spacer(Modifier.height((14f * scale).dp))
-
             Spacer(Modifier.height((6f * scale).dp))
 
             Row(
@@ -2172,14 +2056,7 @@ private fun LittlePlayerContent(
                     painter = painterResource(R.drawable.expand_more),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.8f),
-                    modifier =
-                    Modifier
-                        .size(collapseIconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onCollapse,
-                        ),
+                    modifier = Modifier.size(collapseIconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCollapse),
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -2187,17 +2064,8 @@ private fun LittlePlayerContent(
                 Icon(
                     painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
                     contentDescription = null,
-                    tint =
-                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-                    else textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleLike,
-                        ),
+                    tint = if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else textColor.copy(alpha = 0.78f),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleLike),
                 )
 
                 Spacer(Modifier.width((18f * scale).dp))
@@ -2206,14 +2074,7 @@ private fun LittlePlayerContent(
                     painter = painterResource(R.drawable.queue_music),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onExpandQueue,
-                        ),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onExpandQueue),
                 )
 
                 Spacer(Modifier.width((18f * scale).dp))
@@ -2222,14 +2083,7 @@ private fun LittlePlayerContent(
                     painter = painterResource(R.drawable.more_vert),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onMenuClick,
-                        ),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onMenuClick),
                 )
             }
         }
@@ -2249,13 +2103,12 @@ private fun LandscapeLikeBox(
         if (measurable == null) {
             layout(constraints.minWidth, constraints.minHeight) {}
         } else {
-            val swappedConstraints =
-                Constraints(
-                    minWidth = constraints.minHeight,
-                    maxWidth = constraints.maxHeight,
-                    minHeight = constraints.minWidth,
-                    maxHeight = constraints.maxWidth,
-                )
+            val swappedConstraints = Constraints(
+                minWidth = constraints.minHeight,
+                maxWidth = constraints.maxHeight,
+                minHeight = constraints.minWidth,
+                maxHeight = constraints.maxWidth,
+            )
 
             val placeable = measurable.measure(swappedConstraints)
             val width = constraints.maxWidth
@@ -2300,13 +2153,8 @@ private fun Modifier.littlePlayerOverlayGestures(
 
             var upPosition = down.position
             val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx =
-                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown =
-                seekEnabled &&
-                    durationMs > 0L &&
-                    durationMs != C.TIME_UNSET &&
-                    down.position.y <= overlayHeightPx
+            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
 
             var isSeeking = false
 
@@ -2323,12 +2171,9 @@ private fun Modifier.littlePlayerOverlayGestures(
                 }
 
                 if (isSeeking) {
-                    val fraction =
-                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
-
-                    val targetMs =
-                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
                     onSeekToPositionMs(targetMs)
                     change.consume()
                 }
@@ -2341,10 +2186,7 @@ private fun Modifier.littlePlayerOverlayGestures(
             } else {
                 val now = SystemClock.uptimeMillis()
                 val previousTapPosition = lastTapPosition
-                val isDoubleTap =
-                    previousTapPosition != null &&
-                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
-                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+                val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
 
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f
