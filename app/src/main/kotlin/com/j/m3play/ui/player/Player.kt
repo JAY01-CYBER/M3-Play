@@ -234,7 +234,6 @@ fun BottomSheetPlayer(
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
 
-    // Custom background preferences (image + effects)
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
@@ -272,12 +271,10 @@ fun BottomSheetPlayer(
         }
     val backgroundColor = if (useNewMiniPlayerDesign) {
         if (useBlackBackground && state.value > state.collapsedBound) {
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
+            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
             Color.Black.copy(alpha = progress)
         } else {
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
+            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
             MaterialTheme.colorScheme.surfaceContainer.copy(alpha = progress)
         }
     } else {
@@ -306,28 +303,16 @@ fun BottomSheetPlayer(
 
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
 
-    var position by rememberSaveable(mediaMetadata?.id) {
-        mutableLongStateOf(playerConnection.player.currentPosition)
-    }
-    var duration by rememberSaveable(mediaMetadata?.id) {
-        mutableLongStateOf(playerConnection.player.duration)
-    }
-    var sliderPosition by remember(mediaMetadata?.id) {
-        mutableStateOf<Long?>(null)
-    }
-    var isUserSeeking by remember(mediaMetadata?.id) {
-        mutableStateOf(false)
-    }
+    var position by rememberSaveable(mediaMetadata?.id) { mutableLongStateOf(playerConnection.player.currentPosition) }
+    var duration by rememberSaveable(mediaMetadata?.id) { mutableLongStateOf(playerConnection.player.duration) }
+    var sliderPosition by remember(mediaMetadata?.id) { mutableStateOf<Long?>(null) }
+    var isUserSeeking by remember(mediaMetadata?.id) { mutableStateOf(false) }
     
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
-    var gradientColors by remember {
-        mutableStateOf<List<Color>>(emptyList())
-    }
-    
+    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     var previousThumbnailUrl by remember { mutableStateOf<String?>(null) }
     var previousGradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
     if (!canSkipNext && automix.isNotEmpty()) {
@@ -369,17 +354,9 @@ fun BottomSheetPlayer(
                         val bitmap = result.image?.toBitmap()
                         if (bitmap != null) {
                             val palette = withContext(Dispatchers.Default) {
-                                Palette.from(bitmap)
-                                    .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                                    .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                                    .generate()
+                                Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate()
                             }
-
-                            val extractedColors = PlayerColorExtractor.extractGradientColors(
-                                palette = palette,
-                                fallbackColor = fallbackColor
-                            )
-
+                            val extractedColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = fallbackColor)
                             gradientColorsCache[currentMetadata.id] = extractedColors
                             gradientColors = extractedColors
                         } else {
@@ -423,110 +400,53 @@ fun BottomSheetPlayer(
 
     val (textButtonColor, iconButtonColor) = if (playerDesignStyle == PlayerDesignStyle.V1) Pair(Color.White, Color.Black) else when (playerButtonsStyle) {
         PlayerButtonsStyle.DEFAULT -> Pair(TextBackgroundColor, icBackgroundColor)
-        PlayerButtonsStyle.SECONDARY -> Pair(
-            MaterialTheme.colorScheme.secondary,
-            MaterialTheme.colorScheme.onSecondary
-        )
+        PlayerButtonsStyle.SECONDARY -> Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.onSecondary)
     }
 
-    val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
-        .collectAsState(initial = null)
+    val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "").collectAsState(initial = null)
 
-    val sleepTimerEnabled =
-        remember(
-            playerConnection.service.sleepTimer.triggerTime,
-            playerConnection.service.sleepTimer.pauseWhenSongEnd
-        ) {
-            playerConnection.service.sleepTimer.isActive
-        }
-
-    var sleepTimerTimeLeft by remember {
-        mutableLongStateOf(0L)
-    }
+    val sleepTimerEnabled = remember(playerConnection.service.sleepTimer.triggerTime, playerConnection.service.sleepTimer.pauseWhenSongEnd) { playerConnection.service.sleepTimer.isActive }
+    var sleepTimerTimeLeft by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(sleepTimerEnabled) {
         if (sleepTimerEnabled) {
             while (isActive) {
-                sleepTimerTimeLeft =
-                    if (playerConnection.service.sleepTimer.pauseWhenSongEnd) {
-                        playerConnection.player.duration - playerConnection.player.currentPosition
-                    } else {
-                        playerConnection.service.sleepTimer.triggerTime - System.currentTimeMillis()
-                    }
+                sleepTimerTimeLeft = if (playerConnection.service.sleepTimer.pauseWhenSongEnd) {
+                    playerConnection.player.duration - playerConnection.player.currentPosition
+                } else {
+                    playerConnection.service.sleepTimer.triggerTime - System.currentTimeMillis()
+                }
                 delay(1000L)
             }
         }
     }
 
-    var showSleepTimerDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var sleepTimerValue by remember {
-        mutableFloatStateOf(30f)
-    }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var sleepTimerValue by remember { mutableFloatStateOf(30f) }
+   
     if (showSleepTimerDialog) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
             onDismissRequest = { showSleepTimerDialog = false },
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.bedtime),
-                    contentDescription = null
-                )
-            },
+            icon = { Icon(painter = painterResource(R.drawable.bedtime), contentDescription = null) },
             title = { Text(stringResource(R.string.sleep_timer)) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSleepTimerDialog = false
-                        playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt())
-                    },
-                ) {
-                    Text(stringResource(android.R.string.ok))
-                }
+                TextButton(onClick = { showSleepTimerDialog = false; playerConnection.service.sleepTimer.start(sleepTimerValue.roundToInt()) }) { Text(stringResource(android.R.string.ok)) }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showSleepTimerDialog = false },
-                ) {
-                    Text(stringResource(android.R.string.cancel))
-                }
+                TextButton(onClick = { showSleepTimerDialog = false }) { Text(stringResource(android.R.string.cancel)) }
             },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.minute,
-                            sleepTimerValue.roundToInt(),
-                            sleepTimerValue.roundToInt()
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-
-                    Slider(
-                        value = sleepTimerValue,
-                        onValueChange = { sleepTimerValue = it },
-                        valueRange = 5f..120f,
-                        steps = (120 - 5) / 5 - 1,
-                    )
-
-                    OutlinedIconButton(
-                        onClick = {
-                            showSleepTimerDialog = false
-                            playerConnection.service.sleepTimer.start(-1)
-                        },
-                    ) {
-                        Text(stringResource(R.string.end_of_song))
-                    }
+                    Text(text = pluralStringResource(R.plurals.minute, sleepTimerValue.roundToInt(), sleepTimerValue.roundToInt()), style = MaterialTheme.typography.bodyLarge)
+                    Slider(value = sleepTimerValue, onValueChange = { sleepTimerValue = it }, valueRange = 5f..120f, steps = (120 - 5) / 5 - 1)
+                    OutlinedIconButton(onClick = { showSleepTimerDialog = false; playerConnection.service.sleepTimer.start(-1) }) { Text(stringResource(R.string.end_of_song)) }
                 }
             },
         )
     }
 
-    var showChoosePlaylistDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(mediaMetadata?.id, playbackState) {
         val startTime = SystemClock.elapsedRealtime()
@@ -574,37 +494,13 @@ fun BottomSheetPlayer(
         }
     }
 
-    val dynamicQueuePeekHeight =
-        if (playerDesignStyle == PlayerDesignStyle.V5) {
-            0.dp
-        } else if (showCodecOnPlayer) {
-            88.dp
-        } else {
-            QueuePeekHeight
-        }
-
+    val dynamicQueuePeekHeight = if (playerDesignStyle == PlayerDesignStyle.V5) { 0.dp } else if (showCodecOnPlayer) { 88.dp } else { QueuePeekHeight }
     val dismissedBound = dynamicQueuePeekHeight + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
-    val queueSheetState = rememberBottomSheetState(
-        dismissedBound = dismissedBound,
-        expandedBound = state.expandedBound,
-        collapsedBound = dismissedBound + 1.dp,
-        initialAnchor = 1
-    )
-    
-    val lyricsSheetState = rememberBottomSheetState(
-        dismissedBound = 0.dp,
-        expandedBound = state.expandedBound,
-        collapsedBound = 0.dp,
-        initialAnchor = 1
-    )
+    val queueSheetState = rememberBottomSheetState(dismissedBound = dismissedBound, expandedBound = state.expandedBound, collapsedBound = dismissedBound + 1.dp, initialAnchor = 1)
+    val lyricsSheetState = rememberBottomSheetState(dismissedBound = 0.dp, expandedBound = state.expandedBound, collapsedBound = 0.dp, initialAnchor = 1)
 
-    BackHandler(
-        enabled =
-        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
-            (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
-            (!state.isCollapsed && !state.isDismissed)
-    ) {
+    BackHandler(enabled = (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) || (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) || (!state.isCollapsed && !state.isDismissed)) {
         when {
             !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
@@ -615,9 +511,7 @@ fun BottomSheetPlayer(
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(state.isExpanded) {
-        if (state.isExpanded) {
-            focusRequester.requestFocus()
-        }
+        if (state.isExpanded) focusRequester.requestFocus()
     }
 
     BottomSheet(
@@ -631,11 +525,7 @@ fun BottomSheetPlayer(
             when (keyEvent.key) {
                 Key.DirectionLeft -> {
                     val now = SystemClock.uptimeMillis()
-                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
-                        keyboardSkipMultiplier++
-                    } else {
-                        keyboardSkipMultiplier = 1
-                    }
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) { keyboardSkipMultiplier++ } else { keyboardSkipMultiplier = 1 }
                     lastKeyboardTapTime = now
                     val skipAmount = 5000L * keyboardSkipMultiplier
                     playerConnection.player.seekTo((playerConnection.player.currentPosition - skipAmount).coerceAtLeast(0))
@@ -643,92 +533,37 @@ fun BottomSheetPlayer(
                 }
                 Key.DirectionRight -> {
                     val now = SystemClock.uptimeMillis()
-                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
-                        keyboardSkipMultiplier++
-                    } else {
-                        keyboardSkipMultiplier = 1
-                    }
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) { keyboardSkipMultiplier++ } else { keyboardSkipMultiplier = 1 }
                     lastKeyboardTapTime = now
                     val skipAmount = 5000L * keyboardSkipMultiplier
                     playerConnection.player.seekTo((playerConnection.player.currentPosition + skipAmount).coerceAtMost(playerConnection.player.duration))
                     true
                 }
-                Key.DirectionUp -> {
-                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f)
-                    true
-                }
-                Key.DirectionDown -> {
-                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f)
-                    true
-                }
-                Key.Spacebar -> {
-                    playerConnection.player.togglePlayPause()
-                    true
-                }
-                Key.N -> {
-                    if (keyEvent.isShiftPressed) {
-                        playerConnection.seekToNext()
-                        true
-                    } else false
-                }
-                Key.P -> {
-                    if (keyEvent.isShiftPressed) {
-                        playerConnection.seekToPrevious()
-                        true
-                    } else false
-                }
-                Key.L -> {
-                    playerConnection.toggleLike()
-                    true
-                }
+                Key.DirectionUp -> { playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f); true }
+                Key.DirectionDown -> { playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f); true }
+                Key.Spacebar -> { playerConnection.player.togglePlayPause(); true }
+                Key.N -> { if (keyEvent.isShiftPressed) { playerConnection.seekToNext(); true } else false }
+                Key.P -> { if (keyEvent.isShiftPressed) { playerConnection.seekToPrevious(); true } else false }
+                Key.L -> { playerConnection.toggleLike(); true }
                 else -> false
             }
         },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                    .coerceIn(0f, 1f)
-                
-                val fadeProgress = if (progress < 0.2f) {
-                    ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-                
+                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                    .coerceIn(0f, 1f)
-                
-                val fadeProgress = if (progress < 0.2f) {
-                    ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-                
-                if (useBlackBackground) {
-                    Color.Black.copy(alpha = 1f - fadeProgress)
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
-                }
+                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
+                if (useBlackBackground) { Color.Black.copy(alpha = 1f - fadeProgress) } else { MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress) }
             }
         },
-        onDismiss = {
-            playerConnection.service.stopAndClearPlayback()
-        },
-        collapsedContent = {
-            MiniPlayer(
-                position = position,
-                duration = duration,
-                pureBlack = pureBlack,
-            )
-        },
+        onDismiss = { playerConnection.service.stopAndClearPlayback() },
+        collapsedContent = { MiniPlayer(position = position, duration = duration, pureBlack = pureBlack) },
     ) {
-        val onSliderValueChange: (Long) -> Unit = {
-            isUserSeeking = true
-            sliderPosition = it
-        }
+        val onSliderValueChange: (Long) -> Unit = { isUserSeeking = true; sliderPosition = it }
         val onSliderValueChangeFinished: () -> Unit = {
             sliderPosition?.let {
                 val isTransitioning = playerConnection.player.currentMediaItem?.mediaId != mediaMetadata?.id
@@ -746,10 +581,7 @@ fun BottomSheetPlayer(
         val updatedOnSliderValueChange by rememberUpdatedState(onSliderValueChange)
         val updatedOnSliderValueChangeFinished by rememberUpdatedState(onSliderValueChangeFinished)
 
-        val nextUpMetadata =
-            remember(queueWindows, currentWindowIndex) {
-                queueWindows.getOrNull(currentWindowIndex + 1)?.mediaItem?.metadata
-            }
+        val nextUpMetadata = remember(queueWindows, currentWindowIndex) { queueWindows.getOrNull(currentWindowIndex + 1)?.mediaItem?.metadata }
 
         val enrichedMetadata = remember(mediaMetadata, currentSong) {
             val meta = mediaMetadata ?: return@remember null
@@ -757,15 +589,8 @@ fun BottomSheetPlayer(
             val dbAlbum = currentSong?.album
             val dbAlbumId = currentSong?.song?.albumId
             when {
-                dbAlbum != null -> meta.copy(
-                    album = MediaMetadata.Album(id = dbAlbum.id, title = dbAlbum.title)
-                )
-                dbAlbumId != null -> meta.copy(
-                    album = MediaMetadata.Album(
-                        id = dbAlbumId,
-                        title = currentSong?.song?.albumName.orEmpty()
-                    )
-                )
+                dbAlbum != null -> meta.copy(album = MediaMetadata.Album(id = dbAlbum.id, title = dbAlbum.title))
+                dbAlbumId != null -> meta.copy(album = MediaMetadata.Album(id = dbAlbumId, title = currentSong?.song?.albumName.orEmpty()))
                 else -> meta
             }
         }
@@ -814,55 +639,20 @@ fun BottomSheetPlayer(
             )
         }
 
-// distance
-
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
-                    val progressFraction =
-                        remember(displayPositionMs, duration) {
-                            if (duration <= 0L || duration == C.TIME_UNSET) 0f
-                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                        }
+                    val progressFraction = remember(displayPositionMs, duration) { if (duration <= 0L || duration == C.TIME_UNSET) 0f else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f) }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
 
-                    Box(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(littleBackground),
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize().background(littleBackground)) {
+                        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(progressFraction).align(Alignment.TopStart).background(progressOverlayColor))
                         Box(
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(progressFraction)
-                                .align(Alignment.TopStart)
-                                .background(progressOverlayColor),
-                        )
-                        Box(
-                            modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .littlePlayerOverlayGestures(
-                                    seekEnabled = seekEnabled,
-                                    durationMs = duration,
-                                    progressFraction = progressFraction,
-                                    canSkipPrevious = canSkipPrevious,
-                                    canSkipNext = canSkipNext,
-                                    onSeekToPositionMs = updatedOnSliderValueChange,
-                                    onSeekFinished = updatedOnSliderValueChangeFinished,
-                                    onSkipPrevious = playerConnection::seekToPrevious,
-                                    onSkipNext = playerConnection::seekToNext,
-                                )
-                                .windowInsetsPadding(
-                                    WindowInsets.systemBars.only(
-                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
-                                    )
-                                ),
+                            modifier = Modifier.fillMaxSize().littlePlayerOverlayGestures(seekEnabled = seekEnabled, durationMs = duration, progressFraction = progressFraction, canSkipPrevious = canSkipPrevious, canSkipNext = canSkipNext, onSeekToPositionMs = updatedOnSliderValueChange, onSeekFinished = updatedOnSliderValueChangeFinished, onSkipPrevious = playerConnection::seekToPrevious, onSkipNext = playerConnection::seekToNext)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom)),
                         ) {
                             enrichedMetadata?.let { metadata ->
                                 LittlePlayerContent(
@@ -875,138 +665,48 @@ fun BottomSheetPlayer(
                                     onCollapse = state::collapseSoft,
                                     onToggleLike = playerConnection::toggleLike,
                                     onExpandQueue = queueSheetState::expandSoft,
-                                    onMenuClick = {
-                                        menuState.show {
-                                            PlayerMenu(
-                                                mediaMetadata = metadata,
-                                                navController = navController,
-                                                playerBottomSheetState = state,
-                                                onShowDetailsDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(metadata.id)
-                                                    }
-                                                },
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
-                                    },
+                                    onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } },
                                 )
                             }
                         }
                     }
                 } else {
                     Row(
-                        modifier =
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound + 48.dp),
+                        modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).padding(bottom = queueSheetState.collapsedBound + 48.dp),
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.weight(1f),
-                        ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
                             val screenWidth = LocalConfiguration.current.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
-                            Thumbnail(
-                                sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.size(thumbnailSize),
-                                isPlayerExpanded = state.isExpanded
-                            )
+                            Thumbnail(sliderPositionProvider = { sliderPosition }, modifier = Modifier.size(thumbnailSize), isPlayerExpanded = state.isExpanded)
                         }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier =
-                            Modifier
-                                .weight(1f)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))) {
                             Spacer(Modifier.weight(1f))
-
-                            enrichedMetadata?.let {
-                                controlsContent(it)
-                            }
-
+                            enrichedMetadata?.let { controlsContent(it) }
                             Spacer(Modifier.weight(1f))
                         }
                     }
                 }
             }
-
             else -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
-                    val progressFraction =
-                        remember(displayPositionMs, duration) {
-                            if (duration <= 0L || duration == C.TIME_UNSET) 0f
-                            else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                        }
+                    val progressFraction = remember(displayPositionMs, duration) { if (duration <= 0L || duration == C.TIME_UNSET) 0f else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f) }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
                     val seekEnabled = duration > 0L && duration != C.TIME_UNSET
 
-                    Box(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(littleBackground),
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize().background(littleBackground)) {
+                        Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(progressFraction).align(Alignment.TopStart).background(progressOverlayColor))
                         Box(
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(progressFraction)
-                                .align(Alignment.TopStart)
-                                .background(progressOverlayColor),
-                        )
-                        Box(
-                            modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .littlePlayerOverlayGestures(
-                                    seekEnabled = seekEnabled,
-                                    durationMs = duration,
-                                    progressFraction = progressFraction,
-                                    canSkipPrevious = canSkipPrevious,
-                                    canSkipNext = canSkipNext,
-                                    onSeekToPositionMs = updatedOnSliderValueChange,
-                                    onSeekFinished = updatedOnSliderValueChangeFinished,
-                                    onSkipPrevious = playerConnection::seekToPrevious,
-                                    onSkipNext = playerConnection::seekToNext,
-                                )
-                                .windowInsetsPadding(
-                                    WindowInsets.systemBars.only(
-                                        WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom
-                                    )
-                                ),
+                            modifier = Modifier.fillMaxSize().littlePlayerOverlayGestures(seekEnabled = seekEnabled, durationMs = duration, progressFraction = progressFraction, canSkipPrevious = canSkipPrevious, canSkipNext = canSkipNext, onSeekToPositionMs = updatedOnSliderValueChange, onSeekFinished = updatedOnSliderValueChangeFinished, onSkipPrevious = playerConnection::seekToPrevious, onSkipNext = playerConnection::seekToNext)
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top + WindowInsetsSides.Bottom)),
                         ) {
                             enrichedMetadata?.let { metadata ->
                                 LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
                                     LittlePlayerContent(
-                                        mediaMetadata = metadata,
-                                        sliderPosition = sliderPosition,
-                                        positionMs = position,
-                                        durationMs = duration,
-                                        textColor = littleTextColor,
-                                        liked = currentSongLiked,
-                                        onCollapse = state::collapseSoft,
-                                        onToggleLike = playerConnection::toggleLike,
-                                        onExpandQueue = queueSheetState::expandSoft,
-                                        onMenuClick = {
-                                            menuState.show {
-                                                PlayerMenu(
-                                                    mediaMetadata = metadata,
-                                                    navController = navController,
-                                                    playerBottomSheetState = state,
-                                                    onShowDetailsDialog = {
-                                                        bottomSheetPageState.show {
-                                                            ShowMediaInfo(metadata.id)
-                                                        }
-                                                    },
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
-                                        },
+                                        mediaMetadata = metadata, sliderPosition = sliderPosition, positionMs = position, durationMs = duration, textColor = littleTextColor, liked = currentSongLiked, onCollapse = state::collapseSoft, onToggleLike = playerConnection::toggleLike, onExpandQueue = queueSheetState::expandSoft,
+                                        onMenuClick = { menuState.show { PlayerMenu(mediaMetadata = metadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(metadata.id) } }, onDismiss = menuState::dismiss) } },
                                     )
                                 }
                             }
@@ -1014,47 +714,49 @@ fun BottomSheetPlayer(
                     }
                 } else if (playerDesignStyle == PlayerDesignStyle.V1) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        M3ImmersiveBackdrop(
-                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
-                            disableBlur = disableBlur
-                        )
-
+                        M3ImmersiveBackdrop(thumbnailUrl = mediaMetadata?.thumbnailUrl, disableBlur = disableBlur)
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = queueSheetState.collapsedBound)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = queueSheetState.collapsedBound).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).nestedScroll(state.preUpPostDownNestedScrollConnection),
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
                             Spacer(Modifier.height(24.dp))
                         }
                     }
                 } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                        Modifier
+                    // --- APPLE STYLE DEFAULT PLAYER (V4 & Fallback) ---
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound),
+                            .padding(bottom = queueSheetState.collapsedBound)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.weight(1f),
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                modifier = Modifier.fillMaxSize().nestedScroll(state.preUpPostDownNestedScrollConnection),
                                 isPlayerExpanded = state.isExpanded
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                            startY = 500f
+                                        )
+                                    )
                             )
                         }
 
-                        enrichedMetadata?.let {
-                            controlsContent(it)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            enrichedMetadata?.let { controlsContent(it) }
+                            Spacer(Modifier.height(30.dp))
                         }
-
-                        Spacer(Modifier.height(30.dp))
                     }
                 }
             }
@@ -1065,22 +767,14 @@ fun BottomSheetPlayer(
 
         val (queueTextButtonColor, queueIconButtonColor) = when (playerButtonsStyle) {
             PlayerButtonsStyle.DEFAULT -> Pair(queueOnBackgroundColor, queueSurfaceColor)
-            PlayerButtonsStyle.SECONDARY -> Pair(
-                MaterialTheme.colorScheme.secondary,
-                MaterialTheme.colorScheme.onSecondary
-            )
+            PlayerButtonsStyle.SECONDARY -> Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.onSecondary)
         }
 
         Queue(
             state = queueSheetState,
             playerBottomSheetState = state,
             navController = navController,
-            backgroundColor =
-            if (useBlackBackground) {
-                Color.Black
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
+            backgroundColor = if (useBlackBackground) { Color.Black } else { MaterialTheme.colorScheme.surfaceContainer },
             onBackgroundColor = queueOnBackgroundColor,
             TextBackgroundColor = TextBackgroundColor,
             textButtonColor = textButtonColor,
@@ -1089,87 +783,45 @@ fun BottomSheetPlayer(
             pureBlack = pureBlack,
         )
 
-        // Lyrics BottomSheet - separate from Queue
         mediaMetadata?.let { metadata ->
             BottomSheet(
                 state = lyricsSheetState,
                 backgroundColor = Color.Unspecified,
-                onDismiss = { /* Optional dismiss action */ },
-                collapsedContent = {
-                    // Empty collapsed content - fully hidden when collapsed
-                }
+                onDismiss = { },
+                collapsedContent = { }
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(
-                                alpha = lyricsSheetState.progress.coerceIn(0f, 1f)
-                            )
-                        )
+                    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = lyricsSheetState.progress.coerceIn(0f, 1f)))
                 ) {
-                    LyricsScreen(
-                        mediaMetadata = metadata,
-                        onBackClick = { lyricsSheetState.collapseSoft() },
-                        navController = navController
-                    )
+                    LyricsScreen(mediaMetadata = metadata, onBackClick = { lyricsSheetState.collapseSoft() }, navController = navController)
                 }
             }
         }
     }
 }
 
-// Ye naya Immersive Breathing Backdrop hai
 @Composable
 fun M3ImmersiveBackdrop(
     thumbnailUrl: String?,
     disableBlur: Boolean
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // Breathing Animation
         val infiniteTransition = rememberInfiniteTransition(label = "breathing")
         val scale by infiniteTransition.animateFloat(
             initialValue = 1.02f,
             targetValue = 1.10f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(15000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
+            animationSpec = infiniteRepeatable(animation = tween(15000, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
             label = "scale"
         )
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
+            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale }
         ) {
-            AsyncImage(
-                model = thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            AsyncImage(model = thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
 
-        // Dark Frosted Gradient Overlays for perfect text contrast
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color.Black.copy(alpha = 0.2f),
-                            0.2f to Color.Transparent,
-                            0.5f to Color.Transparent,
-                            0.7f to Color.Black.copy(alpha = 0.6f),
-                            0.9f to Color.Black.copy(alpha = 0.95f),
-                            1.0f to Color.Black.copy(alpha = 1.0f)
-                        )
-                    )
-                )
+            modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0.0f to Color.Black.copy(alpha = 0.2f), 0.2f to Color.Transparent, 0.5f to Color.Transparent, 0.7f to Color.Black.copy(alpha = 0.6f), 0.9f to Color.Black.copy(alpha = 0.95f), 1.0f to Color.Black.copy(alpha = 1.0f))))
         )
     }
 }
@@ -1193,9 +845,7 @@ private fun LittlePlayerContent(
         val secondaryColor = textColor.copy(alpha = 0.6f)
         val timeColor = textColor.copy(alpha = 0.85f)
 
-        val scale =
-            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
-                .coerceIn(0.78f, 1.15f)
+        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
 
         val titleSize = (56f * scale).sp
         val timeSize = (44f * scale).sp
@@ -1217,10 +867,7 @@ private fun LittlePlayerContent(
         }
 
         Column(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding, vertical = verticalPadding),
         ) {
             Spacer(Modifier.weight(1f))
 
@@ -1235,15 +882,7 @@ private fun LittlePlayerContent(
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
                         label = "little_title",
                     ) { title ->
-                        Text(
-                            text = title,
-                            color = titleColor,
-                            fontSize = titleSize,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee(),
-                        )
+                        Text(text = title, color = titleColor, fontSize = titleSize, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
                     }
 
                     Spacer(Modifier.height((10f * scale).dp))
@@ -1254,14 +893,7 @@ private fun LittlePlayerContent(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                             label = "little_album",
                         ) { album ->
-                            Text(
-                                text = album,
-                                color = secondaryColor,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
+                            Text(text = album, color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
                         }
                     }
 
@@ -1271,102 +903,29 @@ private fun LittlePlayerContent(
                             transitionSpec = { fadeIn() togetherWith fadeOut() },
                             label = "little_artists",
                         ) { artistLine ->
-                            Text(
-                                text = "by - $artistLine",
-                                color = secondaryColor,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
+                            Text(text = "by - $artistLine", color = secondaryColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.basicMarquee())
                         }
                     }
                 }
 
                 Spacer(Modifier.width((16f * scale).dp))
-
-                Text(
-                    text = timeText,
-                    color = timeColor,
-                    fontSize = timeSize,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    modifier = Modifier.widthIn(min = (140f * scale).dp),
-                )
+                Text(text = timeText, color = timeColor, fontSize = timeSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.widthIn(min = (140f * scale).dp))
             }
 
             Spacer(Modifier.height((14f * scale).dp))
-
             Spacer(Modifier.height((6f * scale).dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.expand_more),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.8f),
-                    modifier =
-                    Modifier
-                        .size(collapseIconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onCollapse,
-                        ),
-                )
-
+                Icon(painter = painterResource(R.drawable.expand_more), contentDescription = null, tint = textColor.copy(alpha = 0.8f), modifier = Modifier.size(collapseIconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCollapse))
                 Spacer(Modifier.weight(1f))
-
-                Icon(
-                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
-                    contentDescription = null,
-                    tint =
-                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-                    else textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleLike,
-                        ),
-                )
-
+                Icon(painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else textColor.copy(alpha = 0.78f), modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleLike))
                 Spacer(Modifier.width((18f * scale).dp))
-
-                Icon(
-                    painter = painterResource(R.drawable.queue_music),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onExpandQueue,
-                        ),
-                )
-
+                Icon(painter = painterResource(R.drawable.queue_music), contentDescription = null, tint = textColor.copy(alpha = 0.78f), modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onExpandQueue))
                 Spacer(Modifier.width((18f * scale).dp))
-
-                Icon(
-                    painter = painterResource(R.drawable.more_vert),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onMenuClick,
-                        ),
-                )
+                Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, tint = textColor.copy(alpha = 0.78f), modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onMenuClick))
             }
         }
     }
@@ -1385,14 +944,7 @@ private fun LandscapeLikeBox(
         if (measurable == null) {
             layout(constraints.minWidth, constraints.minHeight) {}
         } else {
-            val swappedConstraints =
-                Constraints(
-                    minWidth = constraints.minHeight,
-                    maxWidth = constraints.maxHeight,
-                    minHeight = constraints.minWidth,
-                    maxHeight = constraints.maxWidth,
-                )
-
+            val swappedConstraints = Constraints(minWidth = constraints.minHeight, maxWidth = constraints.maxHeight, minHeight = constraints.minWidth, maxHeight = constraints.maxWidth)
             val placeable = measurable.measure(swappedConstraints)
             val width = constraints.maxWidth
             val height = constraints.maxHeight
@@ -1403,11 +955,7 @@ private fun LandscapeLikeBox(
             val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
 
             layout(width, height) {
-                placeable.placeWithLayer(x, y) {
-                    transformOrigin = TransformOrigin(0f, 0f)
-                    rotationZ = 90f
-                    translationX = placeable.height.toFloat()
-                }
+                placeable.placeWithLayer(x, y) { transformOrigin = TransformOrigin(0f, 0f); rotationZ = 90f; translationX = placeable.height.toFloat() }
             }
         }
     }
@@ -1433,16 +981,10 @@ private fun Modifier.littlePlayerOverlayGestures(
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = true)
             val pointerId = down.id
-
             var upPosition = down.position
             val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx =
-                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown =
-                seekEnabled &&
-                    durationMs > 0L &&
-                    durationMs != C.TIME_UNSET &&
-                    down.position.y <= overlayHeightPx
+            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
 
             var isSeeking = false
 
@@ -1450,21 +992,15 @@ private fun Modifier.littlePlayerOverlayGestures(
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
                 upPosition = change.position
-
                 if (!change.pressed) break
-
                 if (!isSeeking && seekAllowedFromDown) {
                     val distanceFromDown = (change.position - down.position).getDistance()
                     if (distanceFromDown > touchSlop) isSeeking = true
                 }
-
                 if (isSeeking) {
-                    val fraction =
-                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
-
-                    val targetMs =
-                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
                     onSeekToPositionMs(targetMs)
                     change.consume()
                 }
@@ -1477,18 +1013,11 @@ private fun Modifier.littlePlayerOverlayGestures(
             } else {
                 val now = SystemClock.uptimeMillis()
                 val previousTapPosition = lastTapPosition
-                val isDoubleTap =
-                    previousTapPosition != null &&
-                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
-                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+                val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
 
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f
-                    if (isTopSide) {
-                        if (canSkipPrevious) onSkipPrevious()
-                    } else {
-                        if (canSkipNext) onSkipNext()
-                    }
+                    if (isTopSide) { if (canSkipPrevious) onSkipPrevious() } else { if (canSkipNext) onSkipNext() }
                     lastTapUptimeMs = 0L
                     lastTapPosition = null
                 } else {
