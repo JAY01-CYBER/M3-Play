@@ -635,33 +635,25 @@ fun BottomSheetPlayer(
                         }
                     }
                 } else if (playerDesignStyle == PlayerDesignStyle.V1) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        M3ImmersiveBackdrop(thumbnailUrl = mediaMetadata?.thumbnailUrl, disableBlur = disableBlur)
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = queueSheetState.collapsedBound).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)).nestedScroll(state.preUpPostDownNestedScrollConnection)) {
-                            enrichedMetadata?.let { controlsContent(it) }
-                            Spacer(Modifier.height(24.dp))
-                        }
-                    }
-                } else {
-                    // --- APPLE MUSIC STYLE LAYOUT (V4 FIXED) ---
+                    // --- V1: APPLE MUSIC PERFECT LAYOUT ---
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(bottom = queueSheetState.collapsedBound)
                     ) {
-                        // LAYER 1: Apple Default Blur Background
+                        // LAYER 1: Fallback Background (For Normal Artwork)
                         AsyncImage(
                             model = mediaMetadata?.thumbnailUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize().blur(50.dp)
+                            modifier = Modifier.fillMaxSize().let { if (disableBlur) it else it.blur(60.dp) }
                         )
-                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) // Darken
 
                         // LAYER 2: Swipeable Thumbnail (Full screen if canvas, centered if not)
                         Thumbnail(
                             sliderPositionProvider = { sliderPosition },
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().nestedScroll(state.preUpPostDownNestedScrollConnection),
                             isPlayerExpanded = state.isExpanded
                         )
 
@@ -671,8 +663,8 @@ fun BottomSheetPlayer(
                                 .fillMaxSize()
                                 .background(
                                     Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                                        startY = 800f // Adjust fade point based on screen
+                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)),
+                                        startY = 600f
                                     )
                                 )
                         )
@@ -684,14 +676,35 @@ fun BottomSheetPlayer(
                                 .fillMaxSize()
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                         ) {
-                            Spacer(Modifier.weight(1f)) // Controls ko perfectly bottom bhejna
+                            Spacer(Modifier.weight(1f)) // Push controls to bottom
                             
                             enrichedMetadata?.let {
                                 controlsContent(it)
                             }
                             
-                            Spacer(Modifier.height(30.dp))
+                            Spacer(Modifier.height(32.dp))
                         }
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+                            .padding(bottom = queueSheetState.collapsedBound),
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Thumbnail(
+                                sliderPositionProvider = { sliderPosition },
+                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                isPlayerExpanded = state.isExpanded
+                            )
+                        }
+
+                        enrichedMetadata?.let { controlsContent(it) }
+                        Spacer(Modifier.height(30.dp))
                     }
                 }
             }
@@ -717,7 +730,7 @@ fun BottomSheetPlayer(
     }
 }
 
-// Ye naya Immersive Breathing Backdrop hai (For V1)
+// Old M3ImmersiveBackdrop kept here just in case, but V1 now uses the integrated Apple Box
 @Composable
 fun M3ImmersiveBackdrop(thumbnailUrl: String?, disableBlur: Boolean) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
