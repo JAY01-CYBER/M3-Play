@@ -281,15 +281,30 @@ fun PlayerTopActions(
         }
 
         PlayerDesignStyle.V4 -> {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(onClick = { val intent = Intent().apply { action = Intent.ACTION_SEND; type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${mediaMetadata.id}") }; context.startActivity(Intent.createChooser(intent, null)) }, shape = RoundedCornerShape(14.dp), color = textBackgroundColor.copy(alpha = 0.12f), modifier = Modifier.height(44.dp).width(44.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painter = painterResource(R.drawable.share), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp)) }
+                }
+                Surface(onClick = { playerConnection.toggleLike() }, shape = RoundedCornerShape(14.dp), color = if (currentSongLiked) MaterialTheme.colorScheme.error.copy(alpha = 0.25f) else textBackgroundColor.copy(alpha = 0.12f), modifier = Modifier.height(44.dp).width(44.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painter = painterResource(if (currentSongLiked) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (currentSongLiked) MaterialTheme.colorScheme.error else textBackgroundColor, modifier = Modifier.size(22.dp)) }
+                }
+                Surface(onClick = { menuState.show { PlayerMenu(mediaMetadata = mediaMetadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { mediaMetadata.id.let { bottomSheetPageState.show { ShowMediaInfo(it) } } }, onDismiss = menuState::dismiss, ) } }, shape = RoundedCornerShape(14.dp), color = textBackgroundColor.copy(alpha = 0.12f), modifier = Modifier.height(44.dp).width(44.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painter = painterResource(R.drawable.more_horiz), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp)) }
+                }
+            }
+        }
+
+        PlayerDesignStyle.V1 -> {
+            // --- APPLE MUSIC STYLE TOP ACTIONS ---
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                // Like / Star Button (Apple Style)
+                // Like / Star
                 Surface(
                     onClick = { playerConnection.toggleLike() },
-                    shape = RoundedCornerShape(50), 
+                    shape = RoundedCornerShape(50),
                     color = textBackgroundColor.copy(alpha = 0.15f),
                     modifier = Modifier.size(32.dp)
                 ) {
@@ -309,8 +324,8 @@ fun PlayerTopActions(
                         menuState.show {
                             PlayerMenu(
                                 mediaMetadata = mediaMetadata, navController = navController, playerBottomSheetState = state,
-                                onShowDetailsDialog = { mediaMetadata.id.let { bottomSheetPageState.show { ShowMediaInfo(it) } } },
-                                onDismiss = menuState::dismiss,
+                                onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(mediaMetadata.id) } },
+                                onDismiss = menuState::dismiss
                             )
                         }
                     },
@@ -321,17 +336,6 @@ fun PlayerTopActions(
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(painterResource(R.drawable.more_horiz), null, tint = textBackgroundColor, modifier = Modifier.size(18.dp))
                     }
-                }
-            }
-        }
-
-        PlayerDesignStyle.V1 -> {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(onClick = { val intent = Intent().apply { action = Intent.ACTION_SEND; type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${mediaMetadata.id}") }; context.startActivity(Intent.createChooser(intent, null)) }, shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.1f), border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.2f)), modifier = Modifier.size(42.dp)) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painterResource(R.drawable.share), null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-                }
-                Surface(onClick = { menuState.show { PlayerMenu(mediaMetadata = mediaMetadata, navController = navController, playerBottomSheetState = state, onShowDetailsDialog = { bottomSheetPageState.show { ShowMediaInfo(mediaMetadata.id) } }, onDismiss = menuState::dismiss) } }, shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.1f), border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.2f)), modifier = Modifier.size(42.dp)) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painterResource(R.drawable.more_horiz), null, tint = Color.White, modifier = Modifier.size(22.dp)) }
                 }
             }
         }
@@ -389,44 +393,57 @@ fun PlayerTimeLabel(
     sliderPosition: Long?, position: Long, duration: Long, textBackgroundColor: Color,
     currentFormat: FormatEntity? = null, playerDesignStyle: PlayerDesignStyle
 ) {
-    val showBadge = (playerDesignStyle == PlayerDesignStyle.V1 || playerDesignStyle == PlayerDesignStyle.V4) && currentFormat != null
+    if (playerDesignStyle == PlayerDesignStyle.V1) {
+        // --- V1: APPLE MUSIC PERFECT CENTER LOSSLESS ---
+        val showBadge = currentFormat != null
 
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding + 4.dp)
-    ) {
-        Text(
-            text = makeTimeString(sliderPosition ?: position), 
-            style = MaterialTheme.typography.labelMedium, 
-            color = textBackgroundColor.copy(alpha = 0.7f), 
-            modifier = Modifier.align(Alignment.CenterStart)
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding + 4.dp)
+        ) {
+            Text(
+                text = makeTimeString(sliderPosition ?: position), 
+                style = MaterialTheme.typography.labelMedium, 
+                color = textBackgroundColor.copy(alpha = 0.7f), 
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
 
-        if (showBadge) {
-            val codec = currentFormat!!.mimeType.substringAfter("/").uppercase()
-            val label = when {
-                codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
-                else -> codec
-            }
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = textBackgroundColor.copy(alpha = 0.15f),
-                modifier = Modifier.align(Alignment.Center)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) {
-                    Icon(painterResource(R.drawable.graphic_eq), null, modifier = Modifier.size(10.dp), tint = textBackgroundColor.copy(alpha = 0.9f))
-                    Spacer(Modifier.width(4.dp))
-                    Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = textBackgroundColor.copy(alpha = 0.9f), fontWeight = FontWeight.Bold)
+            if (showBadge) {
+                val codec = currentFormat!!.mimeType.substringAfter("/").uppercase()
+                val label = when {
+                    codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
+                    else -> codec
+                }
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = textBackgroundColor.copy(alpha = 0.15f),
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)) {
+                        Icon(painterResource(R.drawable.graphic_eq), null, modifier = Modifier.size(10.dp), tint = textBackgroundColor.copy(alpha = 0.9f))
+                        Spacer(Modifier.width(4.dp))
+                        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = textBackgroundColor.copy(alpha = 0.9f), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        }
 
-        val timeRemaining = duration - (sliderPosition ?: position)
-        Text(
-            text = if (duration != C.TIME_UNSET && timeRemaining > 0) "-${makeTimeString(timeRemaining)}" else "", 
-            style = MaterialTheme.typography.labelMedium, 
-            color = textBackgroundColor.copy(alpha = 0.7f), 
-            modifier = Modifier.align(Alignment.CenterEnd)
-        )
+            val timeRemaining = duration - (sliderPosition ?: position)
+            Text(
+                text = if (duration != C.TIME_UNSET && timeRemaining > 0) "-${makeTimeString(timeRemaining)}" else "", 
+                style = MaterialTheme.typography.labelMedium, 
+                color = textBackgroundColor.copy(alpha = 0.7f), 
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
+    } else {
+        // --- ORIGINAL V2, V3, V4, V5, V6 TIME LABEL ---
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding + 4.dp),
+        ) {
+            Text(text = makeTimeString(sliderPosition ?: position), style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
+            Text(text = if (duration != C.TIME_UNSET) makeTimeString(duration) else "", style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
+        }
     }
 }
 
@@ -471,14 +488,35 @@ fun PlayerPlaybackControls(
         }
 
         PlayerDesignStyle.V4 -> {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding)) {
+                val baseLarge = 56.dp; val baseSmall = 46.dp; val baseGap = 12.dp; val baseLargeIcon = 28.dp; val baseSmallIcon = 22.dp; val baseLargeRadius = 18.dp; val baseSmallRadius = 16.dp; val centerSize = 88.dp; val centerPadding = 40.dp; val sideTotal = (maxWidth - centerSize - centerPadding) / 2f
+                val scale = ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f); val large = baseLarge * scale; val small = baseSmall * scale; val gap = baseGap * scale; val largeIcon = baseLargeIcon * scale; val smallIcon = baseSmallIcon * scale; val largeRadius = baseLargeRadius * scale; val smallRadius = baseSmallRadius * scale
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        Surface(onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled }, shape = RoundedCornerShape(smallRadius), color = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 0.2f else 0.08f), modifier = Modifier.size(small)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.shuffle), contentDescription = null, tint = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 1f else 0.6f), modifier = Modifier.size(smallIcon)) } }
+                        Spacer(modifier = Modifier.width(gap))
+                        Surface(onClick = { playerConnection.seekToPrevious() }, enabled = canSkipPrevious, shape = RoundedCornerShape(largeRadius), color = textBackgroundColor.copy(alpha = 0.15f), modifier = Modifier.size(large)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.skip_previous), contentDescription = null, tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 1f else 0.4f), modifier = Modifier.size(largeIcon)) } }
+                    }
+                    Surface(onClick = { if (playbackState == STATE_ENDED) { playerConnection.player.seekTo(0, 0); playerConnection.player.playWhenReady = true } else { playerConnection.player.togglePlayPause() } }, shape = RoundedCornerShape(28.dp), color = textButtonColor, modifier = Modifier.padding(horizontal = 20.dp).size(88.dp)) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { if (isLoading) { CircularProgressIndicator(modifier = Modifier.size(40.dp), color = icBackgroundColor, strokeWidth = 3.dp) } else { Icon(painter = painterResource(when { playbackState == STATE_ENDED -> R.drawable.replay; isPlaying -> R.drawable.pause; else -> R.drawable.play }), contentDescription = null, tint = icBackgroundColor, modifier = Modifier.size(44.dp)) } }
+                    }
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
+                        Surface(onClick = { playerConnection.seekToNext() }, enabled = canSkipNext, shape = RoundedCornerShape(largeRadius), color = textBackgroundColor.copy(alpha = 0.15f), modifier = Modifier.size(large)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.skip_next), contentDescription = null, tint = textBackgroundColor.copy(alpha = if (canSkipNext) 1f else 0.4f), modifier = Modifier.size(largeIcon)) } }
+                        Spacer(modifier = Modifier.width(gap))
+                        Surface(onClick = { playerConnection.player.toggleRepeatMode() }, shape = RoundedCornerShape(smallRadius), color = textBackgroundColor.copy(alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f), modifier = Modifier.size(small)) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(when (repeatMode) { Player.REPEAT_MODE_ONE -> R.drawable.repeat_one; else -> R.drawable.repeat }), contentDescription = null, tint = textBackgroundColor.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.6f else 1f), modifier = Modifier.size(smallIcon)) } }
+                    }
+                }
+            }
+        }
+
+        PlayerDesignStyle.V1 -> {
+            // --- V1: APPLE MUSIC PERFECT CLEAN ICONS ---
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PlayerHorizontalPadding, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Shuffle (Small)
+                // Shuffle (Small Apple Style)
                 Icon(
                     painter = painterResource(R.drawable.shuffle),
                     contentDescription = null,
@@ -533,7 +571,7 @@ fun PlayerPlaybackControls(
                     ) { playerConnection.seekToNext() }
                 )
 
-                // Repeat (Small)
+                // Repeat (Small Apple Style)
                 Icon(
                     painter = painterResource(when (repeatMode) { Player.REPEAT_MODE_ONE -> R.drawable.repeat_one else -> R.drawable.repeat }),
                     contentDescription = null,
@@ -545,7 +583,7 @@ fun PlayerPlaybackControls(
             }
         }
 
-        PlayerDesignStyle.V1, PlayerDesignStyle.V5 -> {
+        PlayerDesignStyle.V5 -> {
             Row(horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding)) {
                 Surface(onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled }, shape = RoundedCornerShape(50), color = Color.Transparent, modifier = Modifier.size(48.dp)) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White.copy(alpha = if (shuffleModeEnabled) 1f else 0.5f), modifier = Modifier.size(24.dp)) } }
                 Surface(onClick = playerConnection::seekToPrevious, enabled = canSkipPrevious, shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.1f), border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.2f)), modifier = Modifier.size(56.dp)) { Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(painterResource(R.drawable.skip_previous), null, tint = Color.White.copy(alpha = if (canSkipPrevious) 1f else 0.4f), modifier = Modifier.size(32.dp)) } }
@@ -579,47 +617,879 @@ fun PlayerPlaybackControls(
     }
 }
 
+/**
+ * Wrapper composable that combines all player control components.
+ * This replaces the large inline controlsContent lambda in BottomSheetPlayer
+ * to reduce JIT compilation overhead.
+ */
 @Composable
 fun PlayerControlsContent(
-    mediaMetadata: MediaMetadata, playerDesignStyle: PlayerDesignStyle, sliderStyle: SliderStyle, playbackState: Int,
-    isPlaying: Boolean, isLoading: Boolean, repeatMode: Int, canSkipPrevious: Boolean, canSkipNext: Boolean, textButtonColor: Color,
-    iconButtonColor: Color, textBackgroundColor: Color, icBackgroundColor: Color, sliderPosition: Long?, position: Long,
-    duration: Long, playerConnection: PlayerConnection, navController: NavController, state: BottomSheetState,
-    menuState: MenuState, bottomSheetPageState: BottomSheetPageState, clipboardManager: ClipboardManager, context: Context,
-    onSliderValueChange: (Long) -> Unit, onSliderValueChangeFinished: () -> Unit, currentFormat: FormatEntity? = null 
+    mediaMetadata: MediaMetadata,
+    playerDesignStyle: PlayerDesignStyle,
+    sliderStyle: SliderStyle,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    repeatMode: Int,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    textButtonColor: Color,
+    iconButtonColor: Color,
+    textBackgroundColor: Color,
+    icBackgroundColor: Color,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    playerConnection: PlayerConnection,
+    navController: NavController,
+    state: BottomSheetState,
+    menuState: MenuState,
+    bottomSheetPageState: BottomSheetPageState,
+    clipboardManager: ClipboardManager,
+    context: Context,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    currentFormat: FormatEntity? = null 
 ) {
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
-    val playPauseRoundness by animateDpAsState(targetValue = if (isPlaying) 24.dp else 36.dp, animationSpec = tween(durationMillis = 90, easing = LinearEasing), label = "playPauseRoundness")
 
-    Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding)) {
-        Column(modifier = Modifier.weight(1f)) { PlayerTitleSection(mediaMetadata = mediaMetadata, textBackgroundColor = textBackgroundColor, navController = navController, state = state, clipboardManager = clipboardManager, context = context) }
+    val playPauseRoundness by animateDpAsState(
+        targetValue = if (isPlaying) 24.dp else 36.dp,
+        animationSpec = tween(durationMillis = 90, easing = LinearEasing),
+        label = "playPauseRoundness",
+    )
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PlayerHorizontalPadding),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            PlayerTitleSection(
+                mediaMetadata = mediaMetadata,
+                textBackgroundColor = textBackgroundColor,
+                navController = navController,
+                state = state,
+                clipboardManager = clipboardManager,
+                context = context
+            )
+        }
+
         Spacer(modifier = Modifier.width(12.dp))
-        PlayerTopActions(mediaMetadata = mediaMetadata, playerDesignStyle = playerDesignStyle, textButtonColor = textButtonColor, iconButtonColor = iconButtonColor, textBackgroundColor = textBackgroundColor, playerConnection = playerConnection, navController = navController, menuState = menuState, state = state, bottomSheetPageState = bottomSheetPageState, context = context, currentSongLiked = currentSongLiked)
+
+        PlayerTopActions(
+            mediaMetadata = mediaMetadata,
+            playerDesignStyle = playerDesignStyle,
+            textButtonColor = textButtonColor,
+            iconButtonColor = iconButtonColor,
+            textBackgroundColor = textBackgroundColor,
+            playerConnection = playerConnection,
+            navController = navController,
+            menuState = menuState,
+            state = state,
+            bottomSheetPageState = bottomSheetPageState,
+            context = context,
+            currentSongLiked = currentSongLiked
+        )
     }
+
     Spacer(Modifier.height(12.dp))
-    PlayerSlider(sliderStyle = sliderStyle, sliderPosition = sliderPosition, position = position, duration = duration, isPlaying = isPlaying, textButtonColor = textButtonColor, onValueChange = onSliderValueChange, onValueChangeFinished = onSliderValueChangeFinished)
+
+    PlayerSlider(
+        sliderStyle = sliderStyle,
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        isPlaying = isPlaying,
+        textButtonColor = textButtonColor,
+        onValueChange = onSliderValueChange,
+        onValueChangeFinished = onSliderValueChangeFinished
+    )
+
     Spacer(Modifier.height(4.dp))
-    PlayerTimeLabel(sliderPosition = sliderPosition, position = position, duration = duration, textBackgroundColor = textBackgroundColor, currentFormat = currentFormat, playerDesignStyle = playerDesignStyle)
+
+    PlayerTimeLabel(
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        textBackgroundColor = textBackgroundColor,
+        currentFormat = currentFormat,
+        playerDesignStyle = playerDesignStyle
+    )
+
     Spacer(Modifier.height(12.dp))
-    PlayerPlaybackControls(playerDesignStyle = playerDesignStyle, playbackState = playbackState, isPlaying = isPlaying, isLoading = isLoading, repeatMode = repeatMode, canSkipPrevious = canSkipPrevious, canSkipNext = canSkipNext, textButtonColor = textButtonColor, iconButtonColor = iconButtonColor, textBackgroundColor = textBackgroundColor, icBackgroundColor = icBackgroundColor, playPauseRoundness = playPauseRoundness, playerConnection = playerConnection, currentSongLiked = currentSongLiked)
+
+    PlayerPlaybackControls(
+        playerDesignStyle = playerDesignStyle,
+        playbackState = playbackState,
+        isPlaying = isPlaying,
+        isLoading = isLoading,
+        repeatMode = repeatMode,
+        canSkipPrevious = canSkipPrevious,
+        canSkipNext = canSkipNext,
+        textButtonColor = textButtonColor,
+        iconButtonColor = iconButtonColor,
+        textBackgroundColor = textBackgroundColor,
+        icBackgroundColor = icBackgroundColor,
+        playPauseRoundness = playPauseRoundness,
+        playerConnection = playerConnection,
+        currentSongLiked = currentSongLiked
+    )
 }
 
 @Composable
 fun PlayerBackground(
-    playerBackground: PlayerBackgroundStyle, mediaMetadata: MediaMetadata?, gradientColors: List<Color>,
-    disableBlur: Boolean, playerCustomImageUri: String, playerCustomBlur: Float, playerCustomContrast: Float, playerCustomBrightness: Float
+    playerBackground: PlayerBackgroundStyle,
+    mediaMetadata: MediaMetadata?,
+    gradientColors: List<Color>,
+    disableBlur: Boolean,
+    playerCustomImageUri: String,
+    playerCustomBlur: Float,
+    playerCustomContrast: Float,
+    playerCustomBrightness: Float
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when (playerBackground) {
-            PlayerBackgroundStyle.BLUR -> { AnimatedContent(targetState = mediaMetadata?.thumbnailUrl, transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) }, label = "") { thumbnailUrl -> if (thumbnailUrl != null) { Box(modifier = Modifier.fillMaxSize()) { AsyncImage(model = thumbnailUrl, contentDescription = "Blurred background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().let { if (disableBlur) it else it.blur(radius = 60.dp) }); val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors); Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = overlayStops))); Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.08f))) } } } }
-            PlayerBackgroundStyle.GRADIENT -> { AnimatedContent(targetState = gradientColors, transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) }, label = "") { colors -> if (colors.isNotEmpty()) { Box(modifier = Modifier.fillMaxSize()) { val gradientColorStops = if (colors.size >= 3) { arrayOf(0.0f to colors[0].copy(alpha = 0.92f), 0.5f to colors[1].copy(alpha = 0.75f), 1.0f to colors[2].copy(alpha = 0.65f)) } else { arrayOf(0.0f to colors[0].copy(alpha = 0.9f), 0.6f to colors[0].copy(alpha = 0.55f), 1.0f to Color.Black.copy(alpha = 0.7f)) }; Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops))); Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.18f))) } } } }
-            PlayerBackgroundStyle.COLORING -> { AnimatedContent(targetState = gradientColors, transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) }, label = "") { colors -> if (colors.isNotEmpty()) { val baseColor = PlayerBackgroundColorUtils.ensureComfortableColor(colors.first()); val gradientStops = PlayerBackgroundColorUtils.buildColoringStops(baseColor); Box(modifier = Modifier.fillMaxSize()) { Box(modifier = Modifier.fillMaxSize().background(baseColor)); Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientStops))); Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f))) } } } }
-            PlayerBackgroundStyle.BLUR_GRADIENT -> { AnimatedContent(targetState = mediaMetadata?.thumbnailUrl, transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) }, label = "") { thumbnailUrl -> if (thumbnailUrl != null) { Box(modifier = Modifier.fillMaxSize()) { AsyncImage(model = thumbnailUrl, contentDescription = "Blurred background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().let { if (disableBlur) it else it.blur(radius = 65.dp) }); val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors); Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = gradientColorStops))); Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.05f))) } } } }
-            PlayerBackgroundStyle.CUSTOM -> { AnimatedContent(targetState = playerCustomImageUri, transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) }, label = "") { uri -> if (uri.isNotBlank()) { Box(modifier = Modifier.fillMaxSize()) { val blurPx = playerCustomBlur; val contrastVal = playerCustomContrast; val brightnessVal = playerCustomBrightness; val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f; val matrix = floatArrayOf(contrastVal, 0f, 0f, 0f, t, 0f, contrastVal, 0f, 0f, t, 0f, 0f, contrastVal, 0f, t, 0f, 0f, 0f, 1f, 0f); val cm = ColorMatrix(matrix); AsyncImage(model = Uri.parse(uri), contentDescription = "Custom background", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().let { if (disableBlur) it else it.blur(radius = blurPx.dp) }, colorFilter = ColorFilter.colorMatrix(cm)); Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) } } } }
-            PlayerBackgroundStyle.GLOW -> { AnimatedContent(targetState = gradientColors, transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) }, label = "") { colors -> if (colors.isNotEmpty()) { Box(modifier = Modifier.fillMaxSize().drawWithCache { val width = size.width; val height = size.height; val baseColor = Color(0xFF050505); val color1 = colors.getOrElse(0) { Color.DarkGray }; val color2 = colors.getOrElse(1) { color1 }; val color3 = colors.getOrElse(2) { color2 }; val color4 = colors.getOrElse(3) { color1 }; val color5 = colors.getOrElse(4) { color2 }; val color6 = colors.getOrElse(5) { color3 }; val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.8f), color1.copy(alpha = 0.5f), Color.Transparent), center = Offset(width * 0.2f, height * 0.25f), radius = width * 1.2f); val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.75f), color2.copy(alpha = 0.45f), Color.Transparent), center = Offset(width * 0.85f, height * 0.8f), radius = width * 1.1f); val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.7f), color3.copy(alpha = 0.4f), Color.Transparent), center = Offset(width * 0.9f, height * 0.15f), radius = width * 1.0f); val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.65f), color4.copy(alpha = 0.35f), Color.Transparent), center = Offset(width * 0.1f, height * 0.9f), radius = width * 1.0f); val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.6f), color5.copy(alpha = 0.3f), Color.Transparent), center = Offset(width * 0.5f, height * 0.1f), radius = width * 0.9f); val brush6 = Brush.radialGradient(colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent), center = Offset(width * 0.5f, height * 0.95f), radius = width * 0.9f); onDrawBehind { drawRect(color = baseColor); drawRect(brush = brush1); drawRect(brush = brush2); drawRect(brush = brush3); drawRect(brush = brush4); drawRect(brush = brush5); drawRect(brush = brush6) } }) } } }
-            PlayerBackgroundStyle.GLOW_ANIMATED -> { AnimatedContent(targetState = gradientColors, transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) }, label = "GlowAnimatedContent") { colors -> if (colors.isNotEmpty()) { val infiniteTransition = rememberInfiniteTransition(label = "GlowAnimation"); val progress by infiniteTransition.animateFloat(initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(animation = tween(20000, easing = LinearEasing), repeatMode = RepeatMode.Restart), label = "glowProgress"); fun rotatedColorAt(index: Int): Color { val size = colors.size; val idx = index.toFloat() + progress * size; val a = kotlin.math.floor(idx).toInt() % size; val b = (a + 1) % size; val frac = idx - kotlin.math.floor(idx); return androidx.compose.ui.graphics.lerp(colors.getOrElse(a) { Color.DarkGray }, colors.getOrElse(b) { Color.DarkGray }, frac) }; fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float { val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat(); return min + (max - min) * ((v + 1f) * 0.5f) }; val color1 = rotatedColorAt(0); val color2 = rotatedColorAt(1); val color3 = rotatedColorAt(2); val color4 = rotatedColorAt(3); val color5 = rotatedColorAt(4); val color6 = rotatedColorAt(5); val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f); val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f); val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f); val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f); val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f); val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f); val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f); val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f); val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f); val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f); val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f); val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f); val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f); val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f); val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f); val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f); val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f); val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f); Box(modifier = Modifier.fillMaxSize().drawWithCache { val width = size.width; val height = size.height; val baseColor = Color(0xFF050505); val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.85f), color1.copy(alpha = 0.5f), Color.Transparent), center = Offset(width * o1x, height * o1y), radius = width * r1); val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.8f), color2.copy(alpha = 0.45f), Color.Transparent), center = Offset(width * o2x, height * o2y), radius = width * r2); val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.75f), color3.copy(alpha = 0.4f), Color.Transparent), center = Offset(width * o3x, height * o3y), radius = width * r3); val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.7f), color4.copy(alpha = 0.35f), Color.Transparent), center = Offset(width * o4x, height * o4y), radius = width * r4); val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.65f), color5.copy(alpha = 0.3f), Color.Transparent), center = Offset(width * o5x, height * o5y), radius = width * r5); val brush6 = Brush.radialGradient(colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent), center = Offset(width * o6x, height * o6y), radius = width * r6); onDrawBehind { drawRect(color = baseColor); drawRect(brush = brush1); drawRect(brush = brush2); drawRect(brush = brush3); drawRect(brush = brush4); drawRect(brush = brush5); drawRect(brush = brush6) } }) } } }
-            else -> {}
+            PlayerBackgroundStyle.BLUR -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = ""
+                ) { thumbnailUrl ->
+                    if (thumbnailUrl != null) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = thumbnailUrl,
+                                contentDescription = "Blurred background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (disableBlur) it else it.blur(radius = 60.dp)
+                                }
+                            )
+                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Brush.verticalGradient(colorStops = overlayStops))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.08f))
+                            )
+                        }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.GRADIENT -> {
+                AnimatedContent(
+                    targetState = gradientColors,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = ""
+                ) { colors ->
+                    if (colors.isNotEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val gradientColorStops = if (colors.size >= 3) {
+                                arrayOf(
+                                    0.0f to colors[0].copy(alpha = 0.92f), // Top: primary vibrant color
+                                    0.5f to colors[1].copy(alpha = 0.75f), // Middle: darker variant
+                                    1.0f to colors[2].copy(alpha = 0.65f)  // Bottom: black-ish
+                                )
+                            } else {
+                                arrayOf(
+                                    0.0f to colors[0].copy(alpha = 0.9f), // Top: primary color
+                                    0.6f to colors[0].copy(alpha = 0.55f), // Middle: faded variant
+                                    1.0f to Color.Black.copy(alpha = 0.7f) // Bottom: black
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                            )
+                            // Keep a gentle dark overlay to ensure text contrast on bright artwork
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.18f))
+                            )
+                        }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.COLORING -> {
+                AnimatedContent(
+                    targetState = gradientColors,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = ""
+                ) { colors ->
+                    if (colors.isNotEmpty()) {
+                        val baseColor = PlayerBackgroundColorUtils.ensureComfortableColor(colors.first())
+                        val gradientStops = PlayerBackgroundColorUtils.buildColoringStops(baseColor)
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            Box(modifier = Modifier.fillMaxSize().background(baseColor))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Brush.verticalGradient(colorStops = gradientStops))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.25f))
+                            )
+                        }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.BLUR_GRADIENT -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = ""
+                ) { thumbnailUrl ->
+                    if (thumbnailUrl != null) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = thumbnailUrl,
+                                contentDescription = "Blurred background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (disableBlur) it else it.blur(radius = 65.dp)
+                                }
+                            )
+                            val gradientColorStops =
+                                PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.05f))
+                            )
+                        }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.CUSTOM -> {
+                AnimatedContent(
+                    targetState = playerCustomImageUri,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = ""
+                ) { uri ->
+                    if (uri.isNotBlank()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val blurPx = playerCustomBlur
+                            val contrastVal = playerCustomContrast
+                            val brightnessVal = playerCustomBrightness
+
+                            val t = (1f - contrastVal) * 128f + (brightnessVal - 1f) * 255f
+                            val matrix = floatArrayOf(
+                                contrastVal, 0f, 0f, 0f, t,
+                                0f, contrastVal, 0f, 0f, t,
+                                0f, 0f, contrastVal, 0f, t,
+                                0f, 0f, 0f, 1f, 0f,
+                            )
+
+                            val cm = ColorMatrix(matrix)
+
+                            AsyncImage(
+                                model = Uri.parse(uri),
+                                contentDescription = "Custom background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (disableBlur) it else it.blur(radius = blurPx.dp)
+                                },
+                                colorFilter = ColorFilter.colorMatrix(cm)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.4f))
+                            )
+                        }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.GLOW -> {
+                AnimatedContent(
+                    targetState = gradientColors,
+                    transitionSpec = {
+                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
+                    },
+                    label = ""
+                ) { colors ->
+                    if (colors.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .drawWithCache {
+                                    val width = size.width
+                                    val height = size.height
+
+                                    // Use a dark base, but the gradients will cover most of it
+                                    val baseColor = Color(0xFF050505)
+
+                                    // Extract up to 6 colors
+                                    val color1 = colors.getOrElse(0) { Color.DarkGray }
+                                    val color2 = colors.getOrElse(1) { color1 }
+                                    val color3 = colors.getOrElse(2) { color2 }
+                                    val color4 = colors.getOrElse(3) { color1 }
+                                    val color5 = colors.getOrElse(4) { color2 }
+                                    val color6 = colors.getOrElse(5) { color3 }
+
+                                    // Top-Left Large Glow (Primary)
+                                    val brush1 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color1.copy(alpha = 0.8f),
+                                            color1.copy(alpha = 0.5f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.2f, height * 0.25f),
+                                        radius = width * 1.2f
+                                    )
+
+                                    // Bottom-Right Large Glow (Secondary)
+                                    val brush2 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color2.copy(alpha = 0.75f),
+                                            color2.copy(alpha = 0.45f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.85f, height * 0.8f),
+                                        radius = width * 1.1f
+                                    )
+
+                                    // Top-Right Glow (Tertiary)
+                                    val brush3 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color3.copy(alpha = 0.7f),
+                                            color3.copy(alpha = 0.4f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.9f, height * 0.15f),
+                                        radius = width * 1.0f
+                                    )
+                                    
+                                    // Bottom-Left (Quaternary)
+                                    val brush4 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color4.copy(alpha = 0.65f),
+                                            color4.copy(alpha = 0.35f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.1f, height * 0.9f),
+                                        radius = width * 1.0f
+                                    )
+                                    
+                                    // Top-Center (Quinary)
+                                    val brush5 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color5.copy(alpha = 0.6f),
+                                            color5.copy(alpha = 0.3f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.5f, height * 0.1f),
+                                        radius = width * 0.9f
+                                    )
+                                    
+                                    // Bottom-Center (Senary)
+                                    val brush6 = Brush.radialGradient(
+                                        colors = listOf(
+                                            color6.copy(alpha = 0.6f),
+                                            color6.copy(alpha = 0.25f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(width * 0.5f, height * 0.95f),
+                                        radius = width * 0.9f
+                                    )
+
+                                    onDrawBehind {
+                                        drawRect(color = baseColor)
+                                        drawRect(brush = brush1)
+                                        drawRect(brush = brush2)
+                                        drawRect(brush = brush3)
+                                        drawRect(brush = brush4)
+                                        drawRect(brush = brush5)
+                                        drawRect(brush = brush6)
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.GLOW_ANIMATED -> {
+                AnimatedContent(
+                    targetState = gradientColors,
+                    transitionSpec = {
+                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
+                    },
+                    label = "GlowAnimatedContent"
+                ) { colors ->
+                    if (colors.isNotEmpty()) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "GlowAnimation")
+
+                        val progress by infiniteTransition.animateFloat(
+                            initialValue = 0f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(20000, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "glowProgress"
+                        )
+
+                        fun rotatedColorAt(index: Int): Color {
+                            val size = colors.size
+                            val idx = index.toFloat() + progress * size
+                            val a = kotlin.math.floor(idx).toInt() % size
+                            val b = (a + 1) % size
+                            val frac = idx - kotlin.math.floor(idx)
+                            return androidx.compose.ui.graphics.lerp(colors.getOrElse(a) { Color.DarkGray }, colors.getOrElse(b) { Color.DarkGray }, frac)
+                        }
+
+                        fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
+                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
+                            val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
+                            return min + (max - min) * ((v + 1f) * 0.5f)
+                        }
+
+                        val color1 = rotatedColorAt(0)
+                        val color2 = rotatedColorAt(1)
+                        val color3 = rotatedColorAt(2)
+                        val color4 = rotatedColorAt(3)
+                        val color5 = rotatedColorAt(4)
+                        val color6 = rotatedColorAt(5)
+
+                        val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f)
+                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f)
+                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f)
+
+                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f)
+                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f)
+                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f)
+
+                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f)
+                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f)
+                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f)
+
+                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f)
+                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f)
+                        val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
+
+                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f)
+                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f)
+                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f)
+
+                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f)
+                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f)
+                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f)
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .drawWithCache {
+                                    val width = size.width
+                                    val height = size.height
+                                    val baseColor = Color(0xFF050505)
+
+                                    val brush1 = Brush.radialGradient(
+                                        colors = listOf(color1.copy(alpha = 0.85f), color1.copy(alpha = 0.5f), Color.Transparent),
+                                        center = Offset(width * o1x, height * o1y),
+                                        radius = width * r1
+                                    )
+                                    val brush2 = Brush.radialGradient(
+                                        colors = listOf(color2.copy(alpha = 0.8f), color2.copy(alpha = 0.45f), Color.Transparent),
+                                        center = Offset(width * o2x, height * o2y),
+                                        radius = width * r2
+                                    )
+                                    val brush3 = Brush.radialGradient(
+                                        colors = listOf(color3.copy(alpha = 0.75f), color3.copy(alpha = 0.4f), Color.Transparent),
+                                        center = Offset(width * o3x, height * o3y),
+                                        radius = width * r3
+                                    )
+                                    val brush4 = Brush.radialGradient(
+                                        colors = listOf(color4.copy(alpha = 0.7f), color4.copy(alpha = 0.35f), Color.Transparent),
+                                        center = Offset(width * o4x, height * o4y),
+                                        radius = width * r4
+                                    )
+                                    val brush5 = Brush.radialGradient(
+                                        colors = listOf(color5.copy(alpha = 0.65f), color5.copy(alpha = 0.3f), Color.Transparent),
+                                        center = Offset(width * o5x, height * o5y),
+                                        radius = width * r5
+                                    )
+                                    val brush6 = Brush.radialGradient(
+                                        colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent),
+                                        center = Offset(width * o6x, height * o6y),
+                                        radius = width * r6
+                                    )
+
+                                    onDrawBehind {
+                                        drawRect(color = baseColor)
+                                        drawRect(brush = brush1)
+                                        drawRect(brush = brush2)
+                                        drawRect(brush = brush3)
+                                        drawRect(brush = brush4)
+                                        drawRect(brush = brush5)
+                                        drawRect(brush = brush6)
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                // DEFAULT or other modes - no background
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LittlePlayerContent(
+    mediaMetadata: MediaMetadata,
+    sliderPosition: Long?,
+    positionMs: Long,
+    durationMs: Long,
+    textColor: Color,
+    liked: Boolean,
+    onCollapse: () -> Unit,
+    onToggleLike: () -> Unit,
+    onExpandQueue: () -> Unit,
+    onMenuClick: () -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val titleColor = textColor.copy(alpha = 0.95f)
+        val secondaryColor = textColor.copy(alpha = 0.6f)
+        val timeColor = textColor.copy(alpha = 0.85f)
+
+        val scale =
+            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
+                .coerceIn(0.78f, 1.15f)
+
+        val titleSize = (56f * scale).sp
+        val timeSize = (44f * scale).sp
+        val iconSize = (26f * scale).dp
+        val collapseIconSize = (28f * scale).dp
+        val horizontalPadding = (18f * scale).dp
+        val verticalPadding = (10f * scale).dp
+
+        val displayPositionMs = sliderPosition ?: positionMs
+
+        val timeText = remember(displayPositionMs, durationMs) {
+            val positionText = makeTimeString(displayPositionMs)
+            val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
+            if (durationText.isBlank()) positionText else "$positionText/$durationText"
+        }
+
+        val artistsText = remember(mediaMetadata.artists) {
+            mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
+        }
+
+        Column(
+            modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+        ) {
+            Spacer(Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    AnimatedContent(
+                        targetState = mediaMetadata.title,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "little_title",
+                    ) { title ->
+                        Text(
+                            text = title,
+                            color = titleColor,
+                            fontSize = titleSize,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee(),
+                        )
+                    }
+
+                    Spacer(Modifier.height((10f * scale).dp))
+
+                    mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle ->
+                        AnimatedContent(
+                            targetState = albumTitle,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "little_album",
+                        ) { album ->
+                            Text(
+                                text = album,
+                                color = secondaryColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                        }
+                    }
+
+                    artistsText.takeIf { it.isNotBlank() }?.let { artists ->
+                        AnimatedContent(
+                            targetState = artists,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "little_artists",
+                        ) { artistLine ->
+                            Text(
+                                text = "by - $artistLine",
+                                color = secondaryColor,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.basicMarquee(),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width((16f * scale).dp))
+
+                Text(
+                    text = timeText,
+                    color = timeColor,
+                    fontSize = timeSize,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(min = (140f * scale).dp),
+                )
+            }
+
+            Spacer(Modifier.height((14f * scale).dp))
+
+            Spacer(Modifier.height((6f * scale).dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.expand_more),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.8f),
+                    modifier =
+                    Modifier
+                        .size(collapseIconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onCollapse,
+                        ),
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                Icon(
+                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
+                    contentDescription = null,
+                    tint =
+                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
+                    else textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onToggleLike,
+                        ),
+                )
+
+                Spacer(Modifier.width((18f * scale).dp))
+
+                Icon(
+                    painter = painterResource(R.drawable.queue_music),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onExpandQueue,
+                        ),
+                )
+
+                Spacer(Modifier.width((18f * scale).dp))
+
+                Icon(
+                    painter = painterResource(R.drawable.more_vert),
+                    contentDescription = null,
+                    tint = textColor.copy(alpha = 0.78f),
+                    modifier =
+                    Modifier
+                        .size(iconSize)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onMenuClick,
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LandscapeLikeBox(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(
+        content = content,
+        modifier = modifier.graphicsLayer { clip = true },
+    ) { measurables, constraints ->
+        val measurable = measurables.firstOrNull()
+        if (measurable == null) {
+            layout(constraints.minWidth, constraints.minHeight) {}
+        } else {
+            val swappedConstraints =
+                Constraints(
+                    minWidth = constraints.minHeight,
+                    maxWidth = constraints.maxHeight,
+                    minHeight = constraints.minWidth,
+                    maxHeight = constraints.maxWidth,
+                )
+
+            val placeable = measurable.measure(swappedConstraints)
+            val width = constraints.maxWidth
+            val height = constraints.maxHeight
+            val rotatedWidth = placeable.height
+            val rotatedHeight = placeable.width
+
+            val x = ((width - rotatedWidth) / 2).coerceAtLeast(0)
+            val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
+
+            layout(width, height) {
+                placeable.placeWithLayer(x, y) {
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    rotationZ = 90f
+                    translationX = placeable.height.toFloat()
+                }
+            }
+        }
+    }
+}
+
+private fun Modifier.littlePlayerOverlayGestures(
+    seekEnabled: Boolean,
+    durationMs: Long,
+    progressFraction: Float,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    onSeekToPositionMs: (Long) -> Unit,
+    onSeekFinished: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onSkipNext: () -> Unit,
+): Modifier {
+    return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
+        var lastTapUptimeMs = 0L
+        var lastTapPosition: Offset? = null
+        val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
+        val touchSlop = viewConfiguration.touchSlop
+
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = true)
+            val pointerId = down.id
+
+            var upPosition = down.position
+            val minOverlayHeightPx = 24.dp.toPx()
+            val overlayHeightPx =
+                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown =
+                seekEnabled &&
+                    durationMs > 0L &&
+                    durationMs != C.TIME_UNSET &&
+                    down.position.y <= overlayHeightPx
+
+            var isSeeking = false
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Main)
+                val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
+                upPosition = change.position
+
+                if (!change.pressed) break
+
+                if (!isSeeking && seekAllowedFromDown) {
+                    val distanceFromDown = (change.position - down.position).getDistance()
+                    if (distanceFromDown > touchSlop) isSeeking = true
+                }
+
+                if (isSeeking) {
+                    val fraction =
+                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val clampedFraction = fraction.coerceIn(0f, 1f)
+
+                    val targetMs =
+                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    onSeekToPositionMs(targetMs)
+                    change.consume()
+                }
+            }
+
+            if (isSeeking) {
+                onSeekFinished()
+                lastTapUptimeMs = 0L
+                lastTapPosition = null
+            } else {
+                val now = SystemClock.uptimeMillis()
+                val previousTapPosition = lastTapPosition
+                val isDoubleTap =
+                    previousTapPosition != null &&
+                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
+                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+
+                if (isDoubleTap) {
+                    val isTopSide = upPosition.y < size.height / 2f
+                    if (isTopSide) {
+                        if (canSkipPrevious) onSkipPrevious()
+                    } else {
+                        if (canSkipNext) onSkipNext()
+                    }
+                    lastTapUptimeMs = 0L
+                    lastTapPosition = null
+                } else {
+                    lastTapUptimeMs = now
+                    lastTapPosition = upPosition
+                }
+            }
         }
     }
 }
