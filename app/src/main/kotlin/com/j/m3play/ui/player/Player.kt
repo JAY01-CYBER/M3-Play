@@ -1,3 +1,12 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
+ */
 
 package com.j.m3play.ui.player
 
@@ -7,27 +16,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
-import android.net.Uri
 import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -46,31 +48,32 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -88,28 +91,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import android.net.Uri
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -126,16 +130,16 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
-import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import androidx.navigation.NavController
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -146,51 +150,53 @@ import com.j.m3play.LocalDownloadUtil
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
-import com.j.m3play.constants.DisableBlurKey
-import com.j.m3play.constants.PlayerBackgroundStyle
-import com.j.m3play.constants.PlayerBackgroundStyleKey
-import com.j.m3play.constants.PlayerButtonsStyle
-import com.j.m3play.constants.PlayerButtonsStyleKey
-import com.j.m3play.constants.PlayerCustomBlurKey
-import com.j.m3play.constants.PlayerCustomBrightnessKey
-import com.j.m3play.constants.PlayerCustomContrastKey
-import com.j.m3play.constants.PlayerCustomImageUriKey
 import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
-import com.j.m3play.constants.PlayerHorizontalPadding
-import com.j.m3play.constants.QueuePeekHeight
-import com.j.m3play.constants.SeekExtraSeconds
-import com.j.m3play.constants.SliderStyle
-import com.j.m3play.constants.SliderStyleKey
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
-import com.j.m3play.db.entities.FormatEntity
-import com.j.m3play.extensions.metadata
-import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.extensions.toggleRepeatMode
-import com.j.m3play.models.MediaMetadata
-import com.j.m3play.playback.PlayerConnection
-import com.j.m3play.ui.component.BottomSheet
-import com.j.m3play.ui.component.BottomSheetPageState
-import com.j.m3play.ui.component.BottomSheetState
-import com.j.m3play.ui.component.LocalBottomSheetPageState
-import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.MenuState
-import com.j.m3play.ui.component.PlayerSliderTrack
-import com.j.m3play.ui.component.rememberBottomSheetState
-import com.j.m3play.ui.menu.PlayerMenu
-import com.j.m3play.ui.screens.settings.DarkMode
+import com.j.m3play.constants.PlayerBackgroundStyle
+import com.j.m3play.constants.PlayerBackgroundStyleKey
+import com.j.m3play.constants.PlayerCustomImageUriKey
+import com.j.m3play.constants.PlayerCustomBlurKey
+import com.j.m3play.constants.PlayerCustomContrastKey
+import com.j.m3play.constants.PlayerCustomBrightnessKey
+import com.j.m3play.constants.DisableBlurKey
+import com.j.m3play.constants.PlayerButtonsStyle
+import com.j.m3play.constants.PlayerButtonsStyleKey
 import com.j.m3play.ui.theme.PlayerBackgroundColorUtils
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.theme.PlayerSliderColors
+import com.j.m3play.constants.PlayerHorizontalPadding
+import com.j.m3play.constants.QueuePeekHeight
+import com.j.m3play.constants.SliderStyle
+import com.j.m3play.constants.SliderStyleKey
+import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.extensions.toggleRepeatMode
+import com.j.m3play.db.entities.FormatEntity
+import com.j.m3play.extensions.metadata
+import com.j.m3play.models.MediaMetadata
+import com.j.m3play.ui.component.BottomSheet
+import com.j.m3play.ui.component.BigSeekBar
+import com.j.m3play.ui.component.BottomSheetState
+import com.j.m3play.ui.component.LocalBottomSheetPageState
+import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.BottomSheetPageState
+import com.j.m3play.ui.component.MenuState
+import com.j.m3play.ui.component.PlayerSliderTrack
+import com.j.m3play.ui.component.ResizableIconButton
+import com.j.m3play.ui.component.rememberBottomSheetState
+import com.j.m3play.ui.menu.PlayerMenu
+import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.saket.squiggles.SquigglySlider
+import com.j.m3play.playback.PlayerConnection
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -228,6 +234,7 @@ fun BottomSheetPlayer(
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
 
+    // Custom background preferences (image + effects)
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
@@ -235,7 +242,7 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
-    val (incrementalSeekSkipEnabled) = rememberPreference(SeekExtraSeconds, defaultValue = false)
+    val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
     var lastKeyboardTapTime by remember { mutableLongStateOf(0L) }
 
@@ -592,21 +599,13 @@ fun BottomSheetPlayer(
         initialAnchor = 1
     )
 
-    // 🔥 ACCORD STYLE: Lyrics & Queue overlay states
-    var showLyricsOverlay by remember { mutableStateOf(false) }
-    var showQueueOverlay by remember { mutableStateOf(false) }
-
     BackHandler(
         enabled =
         (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
             (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
-            showLyricsOverlay ||
-            showQueueOverlay ||
             (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
-            showLyricsOverlay -> showLyricsOverlay = false
-            showQueueOverlay -> showQueueOverlay = false
             !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
             !state.isCollapsed && !state.isDismissed -> state.collapseSoft()
@@ -625,65 +624,66 @@ fun BottomSheetPlayer(
         state = state,
         modifier = modifier
             .focusRequester(focusRequester)
+            .focusable()
             .onKeyEvent { keyEvent ->
-                if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
+            if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
 
-                when (keyEvent.key) {
-                    Key.DirectionLeft -> {
-                        val now = SystemClock.uptimeMillis()
-                        if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
-                            keyboardSkipMultiplier++
-                        } else {
-                            keyboardSkipMultiplier = 1
-                        }
-                        lastKeyboardTapTime = now
-                        val skipAmount = 5000L * keyboardSkipMultiplier
-                        playerConnection.player.seekTo((playerConnection.player.currentPosition - skipAmount).coerceAtLeast(0))
-                        true
+            when (keyEvent.key) {
+                Key.DirectionLeft -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
                     }
-                    Key.DirectionRight -> {
-                        val now = SystemClock.uptimeMillis()
-                        if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
-                            keyboardSkipMultiplier++
-                        } else {
-                            keyboardSkipMultiplier = 1
-                        }
-                        lastKeyboardTapTime = now
-                        val skipAmount = 5000L * keyboardSkipMultiplier
-                        playerConnection.player.seekTo((playerConnection.player.currentPosition + skipAmount).coerceAtMost(playerConnection.player.duration))
-                        true
-                    }
-                    Key.DirectionUp -> {
-                        playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f)
-                        true
-                    }
-                    Key.DirectionDown -> {
-                        playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f)
-                        true
-                    }
-                    Key.Spacebar -> {
-                        playerConnection.player.togglePlayPause()
-                        true
-                    }
-                    Key.N -> {
-                        if (keyEvent.isShiftPressed) {
-                            playerConnection.seekToNext()
-                            true
-                        } else false
-                    }
-                    Key.P -> {
-                        if (keyEvent.isShiftPressed) {
-                            playerConnection.seekToPrevious()
-                            true
-                        } else false
-                    }
-                    Key.L -> {
-                        playerConnection.toggleLike()
-                        true
-                    }
-                    else -> false
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition - skipAmount).coerceAtLeast(0))
+                    true
                 }
-            },
+                Key.DirectionRight -> {
+                    val now = SystemClock.uptimeMillis()
+                    if (incrementalSeekSkipEnabled && now - lastKeyboardTapTime < 1000) {
+                        keyboardSkipMultiplier++
+                    } else {
+                        keyboardSkipMultiplier = 1
+                    }
+                    lastKeyboardTapTime = now
+                    val skipAmount = 5000L * keyboardSkipMultiplier
+                    playerConnection.player.seekTo((playerConnection.player.currentPosition + skipAmount).coerceAtMost(playerConnection.player.duration))
+                    true
+                }
+                Key.DirectionUp -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value + 0.05f).coerceAtMost(1f)
+                    true
+                }
+                Key.DirectionDown -> {
+                    playerConnection.service.playerVolume.value = (playerConnection.service.playerVolume.value - 0.05f).coerceAtLeast(0f)
+                    true
+                }
+                Key.Spacebar -> {
+                    playerConnection.player.togglePlayPause()
+                    true
+                }
+                Key.N -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToNext()
+                        true
+                    } else false
+                }
+                Key.P -> {
+                    if (keyEvent.isShiftPressed) {
+                        playerConnection.seekToPrevious()
+                        true
+                    } else false
+                }
+                Key.L -> {
+                    playerConnection.toggleLike()
+                    true
+                }
+                else -> false
+            }
+        },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
                 val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
@@ -797,9 +797,7 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                currentFormat = currentFormat,
-                onLyricsClick = { showLyricsOverlay = true },
-                onQueueClick = { showQueueOverlay = true }
+                currentFormat = currentFormat
             )
         }
 
@@ -816,6 +814,8 @@ fun BottomSheetPlayer(
             )
         }
 
+// distance
+
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
@@ -830,19 +830,22 @@ fun BottomSheetPlayer(
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
 
                     Box(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .fillMaxSize()
                             .background(littleBackground),
                     ) {
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight(progressFraction)
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .fillMaxSize()
                                 .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
@@ -871,7 +874,7 @@ fun BottomSheetPlayer(
                                     liked = currentSongLiked,
                                     onCollapse = state::collapseSoft,
                                     onToggleLike = playerConnection::toggleLike,
-                                    onExpandQueue = { showQueueOverlay = true },
+                                    onExpandQueue = queueSheetState::expandSoft,
                                     onMenuClick = {
                                         menuState.show {
                                             PlayerMenu(
@@ -893,7 +896,8 @@ fun BottomSheetPlayer(
                     }
                 } else {
                     Row(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound + 48.dp),
                     ) {
@@ -911,7 +915,8 @@ fun BottomSheetPlayer(
                         }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .weight(1f)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
                         ) {
@@ -941,19 +946,22 @@ fun BottomSheetPlayer(
                     val seekEnabled = duration > 0L && duration != C.TIME_UNSET
 
                     Box(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .fillMaxSize()
                             .background(littleBackground),
                     ) {
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight(progressFraction)
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
-                            modifier = Modifier
+                            modifier =
+                            Modifier
                                 .fillMaxSize()
                                 .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
@@ -983,7 +991,7 @@ fun BottomSheetPlayer(
                                         liked = currentSongLiked,
                                         onCollapse = state::collapseSoft,
                                         onToggleLike = playerConnection::toggleLike,
-                                        onExpandQueue = { showQueueOverlay = true },
+                                        onExpandQueue = queueSheetState::expandSoft,
                                         onMenuClick = {
                                             menuState.show {
                                                 PlayerMenu(
@@ -1026,7 +1034,8 @@ fun BottomSheetPlayer(
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
@@ -1051,66 +1060,44 @@ fun BottomSheetPlayer(
             }
         }
 
-        // 🔥 ACCORD-STYLE LYRICS OVERLAY
-        enrichedMetadata?.let { metadata ->
-            AccordLyricsOverlay(
-                mediaMetadata = metadata,
-                isVisible = showLyricsOverlay,
-                onDismiss = { showLyricsOverlay = false },
-                navController = navController
-            )
-        }
-
-        // 🔥 ACCORD-STYLE QUEUE OVERLAY
         val queueOnBackgroundColor = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
-        
-        AccordQueueOverlay(
-            isVisible = showQueueOverlay,
-            onDismiss = { showQueueOverlay = false },
-            backgroundColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surface
-        ) {
-            Queue(
-                state = queueSheetState,
-                playerBottomSheetState = state,
-                navController = navController,
-                backgroundColor = Color.Transparent,
-                onBackgroundColor = queueOnBackgroundColor,
-                TextBackgroundColor = TextBackgroundColor,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                onShowLyrics = {
-                    showQueueOverlay = false
-                    showLyricsOverlay = true
-                },
-                pureBlack = pureBlack,
+        val queueSurfaceColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surface
+
+        val (queueTextButtonColor, queueIconButtonColor) = when (playerButtonsStyle) {
+            PlayerButtonsStyle.DEFAULT -> Pair(queueOnBackgroundColor, queueSurfaceColor)
+            PlayerButtonsStyle.SECONDARY -> Pair(
+                MaterialTheme.colorScheme.secondary,
+                MaterialTheme.colorScheme.onSecondary
             )
         }
 
-        // Keep original queue if overlay not showing
-        if (!showQueueOverlay) {
-            val queueOnBgCol = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
-            
-            Queue(
-                state = queueSheetState,
-                playerBottomSheetState = state,
-                navController = navController,
-                backgroundColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                onBackgroundColor = queueOnBgCol,
-                TextBackgroundColor = TextBackgroundColor,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                onShowLyrics = { lyricsSheetState.expandSoft() },
-                pureBlack = pureBlack,
-            )
-        }
+        Queue(
+            state = queueSheetState,
+            playerBottomSheetState = state,
+            navController = navController,
+            backgroundColor =
+            if (useBlackBackground) {
+                Color.Black
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            },
+            onBackgroundColor = queueOnBackgroundColor,
+            TextBackgroundColor = TextBackgroundColor,
+            textButtonColor = textButtonColor,
+            iconButtonColor = iconButtonColor,
+            onShowLyrics = { lyricsSheetState.expandSoft() },
+            pureBlack = pureBlack,
+        )
 
-        // Lyrics BottomSheet (backward compatibility)
+        // Lyrics BottomSheet - separate from Queue
         mediaMetadata?.let { metadata ->
             BottomSheet(
                 state = lyricsSheetState,
                 backgroundColor = Color.Unspecified,
-                onDismiss = { },
-                collapsedContent = { }
+                onDismiss = { /* Optional dismiss action */ },
+                collapsedContent = {
+                    // Empty collapsed content - fully hidden when collapsed
+                }
             ) {
                 Box(
                     modifier = Modifier
@@ -1132,161 +1119,6 @@ fun BottomSheetPlayer(
     }
 }
 
-// 🔥 ACCORD-STYLE LYRICS OVERLAY
-@Composable
-fun AccordLyricsOverlay(
-    mediaMetadata: MediaMetadata,
-    isVisible: Boolean,
-    onDismiss: () -> Unit,
-    navController: NavController
-) {
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(400)) + 
-                expandVertically(
-                    expandFrom = Alignment.Top,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                ),
-        exit = fadeOut(animationSpec = tween(300)) + 
-               shrinkVertically(
-                   shrinkTowards = Alignment.Top,
-                   animationSpec = tween(350)
-               )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-                )
-        ) {
-            // Close button
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(40.dp)
-                    .background(
-                        Color.Black.copy(alpha = 0.1f),
-                        RoundedCornerShape(20.dp)
-                    )
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.close),
-                    contentDescription = "Close Lyrics",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            
-            // Title
-            Text(
-                text = mediaMetadata.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 20.dp)
-            )
-            
-            // Lyrics content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 80.dp, bottom = 16.dp)
-            ) {
-                LyricsScreen(
-                    mediaMetadata = mediaMetadata,
-                    onBackClick = onDismiss,
-                    navController = navController
-                )
-            }
-        }
-    }
-}
-
-// 🔥 ACCORD-STYLE QUEUE OVERLAY
-@Composable
-fun AccordQueueOverlay(
-    isVisible: Boolean,
-    onDismiss: () -> Unit,
-    backgroundColor: Color,
-    content: @Composable () -> Unit
-) {
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = tween(
-                durationMillis = 400,
-                easing = FastOutSlowInEasing
-            )
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = tween(
-                durationMillis = 300,
-                easing = FastOutSlowInEasing
-            )
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss
-                )
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.85f)
-                    .align(Alignment.BottomCenter),
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                color = backgroundColor
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {}
-                        )
-                ) {
-                    // Drag handle
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                            )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    content()
-                }
-            }
-        }
-    }
-}
-
-// Helper function for fillMaxHeight fraction
-private fun Modifier.fillMaxHeight(fraction: Float): Modifier = this.then(
-    Modifier.graphicsLayer {
-        scaleY = fraction
-        transformOrigin = TransformOrigin(0f, 1f)
-    }
-)
-
 // Ye naya Immersive Breathing Backdrop hai
 @Composable
 fun M3ImmersiveBackdrop(
@@ -1294,6 +1126,7 @@ fun M3ImmersiveBackdrop(
     disableBlur: Boolean
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        // Breathing Animation
         val infiniteTransition = rememberInfiniteTransition(label = "breathing")
         val scale by infiniteTransition.animateFloat(
             initialValue = 1.02f,
@@ -1321,6 +1154,7 @@ fun M3ImmersiveBackdrop(
             )
         }
 
+        // Dark Frosted Gradient Overlays for perfect text contrast
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1340,6 +1174,7 @@ fun M3ImmersiveBackdrop(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
