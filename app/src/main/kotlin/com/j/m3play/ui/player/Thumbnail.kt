@@ -1,15 +1,22 @@
 /*
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
- * │   ENHANCED: ACCORD-STYLE COVER SCALE       │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.player
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -366,7 +373,6 @@ fun Thumbnail(
     val layoutDirection = LocalLayoutDirection.current
 
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val isPlaying by playerConnection.isPlaying.collectAsState()
     val error by playerConnection.error.collectAsState()
     val queueTitle by playerConnection.queueTitle.collectAsState()
     val canSkipPrevious by playerConnection.canSkipPrevious.collectAsState()
@@ -541,8 +547,7 @@ fun Thumbnail(
                                 isLandscape = isLandscape,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
-                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled,
-                                isPlaying = isPlaying
+                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled
                             )
                         }
                     }
@@ -612,7 +617,6 @@ private fun ThumbnailHeader(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ThumbnailItem(
     item: MediaItem,
@@ -627,22 +631,12 @@ private fun ThumbnailItem(
     isLandscape: Boolean = false,
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
-    archiveTuneCanvasEnabled: Boolean,
-    isPlaying: Boolean = false
+    archiveTuneCanvasEnabled: Boolean
 ) {
+    val isPlaying by playerConnection.isPlaying.collectAsState()
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
-
-    // 🔥 ACCORD-STYLE: Cover pause/play scale animation
-    val coverScale by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0.84f,
-        animationSpec = tween(
-            durationMillis = 800,
-            easing = FastOutSlowInEasing
-        ),
-        label = "coverPauseScale"
-    )
 
     Box(
         modifier = Modifier
@@ -690,10 +684,6 @@ private fun ThumbnailItem(
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
-                .graphicsLayer {
-                    scaleX = coverScale
-                    scaleY = coverScale
-                }
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
             if (hidePlayerThumbnail) {
@@ -954,5 +944,3 @@ fun SnapLayoutInfoProvider(
         return lowerBoundOffset.rangeTo(upperBoundOffset)
     }
 }
-
-private val MATCH_PARENT = android.view.ViewGroup.LayoutParams.MATCH_PARENT
