@@ -1,7 +1,10 @@
 /*
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
- * │   ENHANCED: ACCORD-STYLE CONTROLS          │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -431,6 +434,7 @@ fun PlayerTopActions(
                     }
                 }
 
+                // More menu button - cinematic glass card
                 Surface(
                     onClick = {
                         menuState.show {
@@ -472,6 +476,7 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Share - Frosted Glass
                 Surface(
                     onClick = { 
                         val intent = Intent().apply {
@@ -491,6 +496,7 @@ fun PlayerTopActions(
                     }
                 }
 
+                // More Options - Frosted Glass (FIXED)
                 Surface(
                     onClick = { 
                         menuState.show { 
@@ -756,6 +762,7 @@ fun PlayerTimeLabel(
     ) {
         Text(text = makeTimeString(sliderPosition ?: position), style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
 
+        // Exclusive Glowing Codec Badge for V1
         if (playerDesignStyle == PlayerDesignStyle.V1 && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val label = when {
@@ -1222,6 +1229,7 @@ fun PlayerPlaybackControls(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = PlayerHorizontalPadding)
             ) {
+                // Shuffle
                 Surface(
                     onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
                     shape = RoundedCornerShape(50),
@@ -1233,6 +1241,7 @@ fun PlayerPlaybackControls(
                     }
                 }
 
+                // Previous
                 Surface(
                     onClick = playerConnection::seekToPrevious,
                     enabled = canSkipPrevious,
@@ -1246,6 +1255,7 @@ fun PlayerPlaybackControls(
                     }
                 }
 
+                // Play / Pause
                 Surface(
                     onClick = { if (playbackState == STATE_ENDED) { playerConnection.player.seekTo(0, 0); playerConnection.player.playWhenReady = true } else { playerConnection.player.togglePlayPause() } },
                     shape = RoundedCornerShape(50),
@@ -1262,6 +1272,7 @@ fun PlayerPlaybackControls(
                     }
                 }
 
+                // Next
                 Surface(
                     onClick = playerConnection::seekToNext,
                     enabled = canSkipNext,
@@ -1275,6 +1286,7 @@ fun PlayerPlaybackControls(
                     }
                 }
 
+                // Repeat
                 Surface(
                     onClick = { playerConnection.player.toggleRepeatMode() },
                     shape = RoundedCornerShape(50),
@@ -1475,6 +1487,11 @@ fun PlayerPlaybackControls(
     }
 }
 
+/**
+ * Wrapper composable that combines all player control components.
+ * This replaces the large inline controlsContent lambda in BottomSheetPlayer
+ * to reduce JIT compilation overhead.
+ */
 @Composable
 fun PlayerControlsContent(
     mediaMetadata: MediaMetadata,
@@ -1502,9 +1519,7 @@ fun PlayerControlsContent(
     context: Context,
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
-    currentFormat: FormatEntity? = null,
-    onLyricsClick: (() -> Unit)? = null,  // 🔥 ADDED
-    onQueueClick: (() -> Unit)? = null     // 🔥 ADDED
+    currentFormat: FormatEntity? = null 
 ) {
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
@@ -1577,53 +1592,6 @@ fun PlayerControlsContent(
 
     Spacer(Modifier.height(12.dp))
 
-    // 🔥 ACCORD STYLE: Lyrics & Queue buttons row
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PlayerHorizontalPadding)
-    ) {
-        // Lyrics button
-        Surface(
-            onClick = { onLyricsClick?.invoke() },
-            shape = RoundedCornerShape(12.dp),
-            color = textBackgroundColor.copy(alpha = 0.08f),
-            modifier = Modifier.size(44.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    painter = painterResource(R.drawable.lyrics),
-                    contentDescription = "Lyrics",
-                    tint = textBackgroundColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Queue button
-        Surface(
-            onClick = { onQueueClick?.invoke() },
-            shape = RoundedCornerShape(12.dp),
-            color = textBackgroundColor.copy(alpha = 0.08f),
-            modifier = Modifier.size(44.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    painter = painterResource(R.drawable.queue_music),
-                    contentDescription = "Queue",
-                    tint = textBackgroundColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-    }
-
-    Spacer(Modifier.height(12.dp))
-
     PlayerPlaybackControls(
         playerDesignStyle = playerDesignStyle,
         playbackState = playbackState,
@@ -1641,8 +1609,6 @@ fun PlayerControlsContent(
         currentSongLiked = currentSongLiked
     )
 }
-
-
 
 @Composable
 fun PlayerBackground(
@@ -2397,5 +2363,3 @@ private fun Modifier.littlePlayerOverlayGestures(
         }
     }
 }
-
-         
