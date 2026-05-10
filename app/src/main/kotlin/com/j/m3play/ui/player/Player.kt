@@ -1,5 +1,4 @@
 
-
 package com.j.m3play.ui.player
 
 import android.content.ClipData
@@ -13,6 +12,7 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -128,6 +129,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toBitmap
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_BUFFERING
@@ -158,6 +160,7 @@ import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.QueuePeekHeight
+import com.j.m3play.constants.SeekExtraSeconds
 import com.j.m3play.constants.SliderStyle
 import com.j.m3play.constants.SliderStyleKey
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
@@ -233,7 +236,7 @@ fun BottomSheetPlayer(
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
-    val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
+    val (incrementalSeekSkipEnabled) = rememberPreference(SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
     var lastKeyboardTapTime by remember { mutableLongStateOf(0L) }
 
@@ -717,8 +720,7 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            //  ENHANCED MINI PLAYER WITH PROGRESS FILL
-            MiniPlayerWithProgress(
+            MiniPlayer(
                 position = position,
                 duration = duration,
                 pureBlack = pureBlack,
@@ -798,8 +800,8 @@ fun BottomSheetPlayer(
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
                 currentFormat = currentFormat,
-                onLyricsClick = { showLyricsOverlay = true },  
-                onQueueClick = { showQueueOverlay = true }     
+                onLyricsClick = { showLyricsOverlay = true },
+                onQueueClick = { showQueueOverlay = true }
             )
         }
 
@@ -1051,7 +1053,7 @@ fun BottomSheetPlayer(
             }
         }
 
-        
+        // 🔥 ACCORD-STYLE LYRICS OVERLAY
         enrichedMetadata?.let { metadata ->
             AccordLyricsOverlay(
                 mediaMetadata = metadata,
@@ -1061,15 +1063,14 @@ fun BottomSheetPlayer(
             )
         }
 
+        // 🔥 ACCORD-STYLE QUEUE OVERLAY
+        val queueOnBackgroundColor = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
         
         AccordQueueOverlay(
             isVisible = showQueueOverlay,
             onDismiss = { showQueueOverlay = false },
             backgroundColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surface
         ) {
-            val queueOnBackgroundColor = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
-            val queueSurfaceColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surface
-
             Queue(
                 state = queueSheetState,
                 playerBottomSheetState = state,
@@ -1087,14 +1088,16 @@ fun BottomSheetPlayer(
             )
         }
 
-        // Backward compatibility - Keep original bottom sheets if overlays not showing
+        // Keep original queue if overlay not showing
         if (!showQueueOverlay) {
+            val queueOnBgCol = if (useBlackBackground) Color.White else MaterialTheme.colorScheme.onSurface
+            
             Queue(
                 state = queueSheetState,
                 playerBottomSheetState = state,
                 navController = navController,
                 backgroundColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                onBackgroundColor = queueOnBackgroundColor,
+                onBackgroundColor = queueOnBgCol,
                 TextBackgroundColor = TextBackgroundColor,
                 textButtonColor = textButtonColor,
                 iconButtonColor = iconButtonColor,
@@ -1103,6 +1106,7 @@ fun BottomSheetPlayer(
             )
         }
 
+        // Lyrics BottomSheet (backward compatibility)
         mediaMetadata?.let { metadata ->
             BottomSheet(
                 state = lyricsSheetState,
@@ -1130,7 +1134,7 @@ fun BottomSheetPlayer(
     }
 }
 
-
+// 🔥 ACCORD-STYLE LYRICS OVERLAY
 @Composable
 fun AccordLyricsOverlay(
     mediaMetadata: MediaMetadata,
@@ -1156,11 +1160,6 @@ fun AccordLyricsOverlay(
                 .fillMaxSize()
                 .background(
                     MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-                )
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss
                 )
         ) {
             // Close button
@@ -1197,11 +1196,6 @@ fun AccordLyricsOverlay(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 80.dp, bottom = 16.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {} // Consume clicks to prevent dismiss
-                    )
             ) {
                 LyricsScreen(
                     mediaMetadata = mediaMetadata,
@@ -1213,7 +1207,7 @@ fun AccordLyricsOverlay(
     }
 }
 
-
+// 🔥 ACCORD-STYLE QUEUE OVERLAY
 @Composable
 fun AccordQueueOverlay(
     isVisible: Boolean,
@@ -1263,7 +1257,7 @@ fun AccordQueueOverlay(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = {} // Prevent dismiss when clicking inside
+                            onClick = {}
                         )
                 ) {
                     // Drag handle
@@ -1287,42 +1281,7 @@ fun AccordQueueOverlay(
     }
 }
 
-
-@Composable
-fun MiniPlayerWithProgress(
-    position: Long,
-    duration: Long,
-    pureBlack: Boolean,
-
-) {
-    val progress = remember(position, duration) {
-        if (duration > 0 && duration != C.TIME_UNSET) {
-            (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-        } else 0f
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Progress fill from top
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(progress)
-                .align(Alignment.TopStart)
-                .background(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                )
-        )
-        
-        // Original MiniPlayer
-        MiniPlayer(
-            position = position,
-            duration = duration,
-            pureBlack = pureBlack,
-        )
-    }
-}
-
-
+// Helper function for fillMaxHeight fraction
 private fun Modifier.fillMaxHeight(fraction: Float): Modifier = this.then(
     Modifier.graphicsLayer {
         scaleY = fraction
@@ -1330,7 +1289,7 @@ private fun Modifier.fillMaxHeight(fraction: Float): Modifier = this.then(
     }
 )
 
-
+// Ye naya Immersive Breathing Backdrop hai
 @Composable
 fun M3ImmersiveBackdrop(
     thumbnailUrl: String?,
@@ -1707,6 +1666,3 @@ private fun Modifier.littlePlayerOverlayGestures(
         }
     }
 }
-
-// Import for booleanPreferencesKey
-import androidx.datastore.preferences.core.booleanPreferencesKey
