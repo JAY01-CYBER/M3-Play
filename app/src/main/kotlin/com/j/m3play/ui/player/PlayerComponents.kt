@@ -175,7 +175,7 @@ fun PlayerTitleSection(
         mediaMetadata.artists.forEachIndexed { index, artist ->
             val tag = "artist_${artist.id.orEmpty()}"
             pushStringAnnotation(tag = tag, annotation = artist.id.orEmpty())
-            withStyle(SpanStyle(color = textBackgroundColor, fontSize = 16.sp)) {
+            withStyle(SpanStyle(color = textBackgroundColor.copy(alpha = 0.8f), fontSize = 16.sp)) {
                 append(artist.name)
             }
             pop()
@@ -193,7 +193,7 @@ fun PlayerTitleSection(
         var clickOffset by remember { mutableStateOf<Offset?>(null) }
         Text(
             text = annotatedString,
-            style = MaterialTheme.typography.titleMedium.copy(color = textBackgroundColor),
+            style = MaterialTheme.typography.titleMedium.copy(color = textBackgroundColor.copy(alpha = 0.8f)),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { layoutResult = it },
@@ -295,13 +295,13 @@ fun PlayerTopActions(
         }
 
         PlayerDesignStyle.V1 -> {
-            // --- APPLE MUSIC STYLE TOP ACTIONS ---
+            // --- V1: APPLE MUSIC PERFECT CLEAN ICONS ---
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                // Like / Star
+                // Like / Star (Circular translucent background)
                 Surface(
                     onClick = { playerConnection.toggleLike() },
                     shape = RoundedCornerShape(50),
@@ -318,7 +318,7 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Menu Button (Dots)
+                // More Menu Button (Circular translucent background)
                 Surface(
                     onClick = {
                         menuState.show {
@@ -516,12 +516,12 @@ fun PlayerPlaybackControls(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Shuffle (Small Apple Style)
+                // Shuffle
                 Icon(
                     painter = painterResource(R.drawable.shuffle),
                     contentDescription = null,
-                    tint = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 1f else 0.3f),
-                    modifier = Modifier.size(20.dp).clickable(
+                    tint = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 1f else 0.4f),
+                    modifier = Modifier.size(24.dp).clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null
                     ) { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled }
                 )
@@ -530,8 +530,8 @@ fun PlayerPlaybackControls(
                 Icon(
                     painter = painterResource(R.drawable.skip_previous),
                     contentDescription = null,
-                    tint = textBackgroundColor,
-                    modifier = Modifier.size(42.dp).clickable(
+                    tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 1f else 0.4f),
+                    modifier = Modifier.size(46.dp).clickable(
                         enabled = canSkipPrevious,
                         interactionSource = remember { MutableInteractionSource() }, indication = null
                     ) { playerConnection.seekToPrevious() }
@@ -539,7 +539,7 @@ fun PlayerPlaybackControls(
 
                 // Play / Pause (Big)
                 Box(
-                    modifier = Modifier.size(64.dp).clickable(
+                    modifier = Modifier.size(68.dp).clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null
                     ) {
                         if (playbackState == STATE_ENDED) {
@@ -549,13 +549,13 @@ fun PlayerPlaybackControls(
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp), color = textBackgroundColor, strokeWidth = 3.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(44.dp), color = textBackgroundColor, strokeWidth = 3.dp)
                     } else {
                         Icon(
                             painter = painterResource(if (playbackState == STATE_ENDED) R.drawable.replay else if (isPlaying) R.drawable.pause else R.drawable.play),
                             contentDescription = null,
                             tint = textBackgroundColor,
-                            modifier = Modifier.size(54.dp)
+                            modifier = Modifier.size(56.dp)
                         )
                     }
                 }
@@ -564,19 +564,19 @@ fun PlayerPlaybackControls(
                 Icon(
                     painter = painterResource(R.drawable.skip_next),
                     contentDescription = null,
-                    tint = textBackgroundColor,
-                    modifier = Modifier.size(42.dp).clickable(
+                    tint = textBackgroundColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                    modifier = Modifier.size(46.dp).clickable(
                         enabled = canSkipNext,
                         interactionSource = remember { MutableInteractionSource() }, indication = null
                     ) { playerConnection.seekToNext() }
                 )
 
-                // Repeat (Small Apple Style)
+                // Repeat
                 Icon(
                     painter = painterResource(when (repeatMode) { Player.REPEAT_MODE_ONE -> R.drawable.repeat_one else -> R.drawable.repeat }),
                     contentDescription = null,
-                    tint = textBackgroundColor.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.3f else 1f),
-                    modifier = Modifier.size(20.dp).clickable(
+                    tint = textBackgroundColor.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.4f else 1f),
+                    modifier = Modifier.size(24.dp).clickable(
                         interactionSource = remember { MutableInteractionSource() }, indication = null
                     ) { playerConnection.player.toggleRepeatMode() }
                 )
