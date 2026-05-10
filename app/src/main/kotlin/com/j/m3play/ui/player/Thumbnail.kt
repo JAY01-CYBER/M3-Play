@@ -170,7 +170,7 @@ private fun calculateThumbnailDimensions(
     containerWidth: Dp,
     containerHeight: Dp = containerWidth,
     horizontalPadding: Dp = PlayerHorizontalPadding,
-    cornerRadius: Dp = 16.dp,
+    cornerRadius: Dp = 12.dp, // Apple Music typical radius
     isLandscape: Boolean = false
 ): ThumbnailDimensions {
     val effectiveSize = if (isLandscape) {
@@ -389,7 +389,7 @@ fun Thumbnail(
     )
     val (thumbnailCornerRadius, _) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
-        defaultValue = 16f
+        defaultValue = 12f // Apple Music Corner Radius
     )
     
     val textBackgroundColor = getTextColor(playerBackground)
