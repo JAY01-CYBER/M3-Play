@@ -627,7 +627,6 @@ fun BottomSheetPlayer(
         state = state,
         modifier = modifier
             .focusRequester(focusRequester)
-            .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.type != KeyEventType.KeyDown || state.isCollapsed) return@onKeyEvent false
 
