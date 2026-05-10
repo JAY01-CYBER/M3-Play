@@ -137,6 +137,7 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_READY
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import androidx.compose.ui.focus.focusable
 import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.imageLoader
