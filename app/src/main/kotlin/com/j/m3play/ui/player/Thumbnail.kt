@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -77,6 +78,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -125,6 +127,8 @@ import com.j.m3play.constants.M3PlayCanvasKey
 import com.j.m3play.constants.MaxCanvasCacheSizeKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
+import com.j.m3play.constants.PlayerDesignStyle
+import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.PlayerHorizontalPadding
 import com.j.m3play.constants.SeekExtraSeconds
 import com.j.m3play.constants.SwipeThumbnailKey
@@ -170,7 +174,7 @@ private fun calculateThumbnailDimensions(
     containerWidth: Dp,
     containerHeight: Dp = containerWidth,
     horizontalPadding: Dp = PlayerHorizontalPadding,
-    cornerRadius: Dp = 12.dp, // Apple Music typical radius
+    cornerRadius: Dp = 16.dp, 
     isLandscape: Boolean = false
 ): ThumbnailDimensions {
     val effectiveSize = if (isLandscape) {
@@ -389,9 +393,15 @@ fun Thumbnail(
     )
     val (thumbnailCornerRadius, _) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
-        defaultValue = 12f // Apple Music Corner Radius
+        defaultValue = 16f
     )
     
+    val playerDesignStyle by rememberEnumPreference(
+        key = PlayerDesignStyleKey,
+        defaultValue = PlayerDesignStyle.V4
+    )
+    val isV1 = playerDesignStyle == PlayerDesignStyle.V1
+
     val textBackgroundColor = getTextColor(playerBackground)
     val thumbnailLazyGridState = rememberLazyGridState()
     
@@ -481,7 +491,8 @@ fun Thumbnail(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = if (isLandscape) Arrangement.Center else Arrangement.Top
             ) {
-                if (!isLandscape) {
+                
+                if (!isLandscape && !isV1) {
                     ThumbnailHeader(
                         queueTitle = queueTitle,
                         albumTitle = mediaMetadata?.album?.title,
@@ -547,7 +558,8 @@ fun Thumbnail(
                                 isLandscape = isLandscape,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
-                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled
+                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled,
+                                isV1 = isV1
                             )
                         }
                     }
@@ -631,7 +643,8 @@ private fun ThumbnailItem(
     isLandscape: Boolean = false,
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
-    archiveTuneCanvasEnabled: Boolean
+    archiveTuneCanvasEnabled: Boolean,
+    isV1: Boolean
 ) {
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
@@ -687,7 +700,9 @@ private fun ThumbnailItem(
                     Modifier
                         .width(dimensions.itemWidth)
                         .fillMaxSize()
-                        .then(if (!hasCanvas) Modifier.padding(horizontal = PlayerHorizontalPadding) else Modifier)
+                    
+                        .then(if (!hasCanvas && isV1) Modifier.offset(y = (-60).dp) else Modifier)
+                        .then(if (!hasCanvas && !isV1) Modifier.padding(horizontal = PlayerHorizontalPadding) else Modifier)
                 }
             )
             .pointerInput(Unit) {
@@ -713,7 +728,8 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
-        if (hasCanvas) {
+        if (hasCanvas && isV1) {
+            
             Box(modifier = Modifier.fillMaxSize()) {
                 CanvasArtworkPlayer(
                     primaryUrl = canvasArtwork!!.animated,
@@ -723,9 +739,11 @@ private fun ThumbnailItem(
                 )
             }
         } else {
+            // Normal Cover Art (V1) OR Canvas for other styles (V2-V6 default behavior)
             Box(
                 modifier = Modifier
                     .size(dimensions.thumbnailSize)
+                    .shadow(if (isV1) 24.dp else 0.dp, RoundedCornerShape(dimensions.cornerRadius))
                     .clip(RoundedCornerShape(dimensions.cornerRadius))
             ) {
                 val artworkUriToUse = if (item.mediaId == currentMediaId && !currentMediaThumbnail.isNullOrBlank()) currentMediaThumbnail else item.mediaMetadata.artworkUri?.toString()
@@ -733,6 +751,16 @@ private fun ThumbnailItem(
                     HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
                 } else {
                     ThumbnailImage(artworkUri = artworkUriToUse, cropArtwork = cropAlbumArt)
+                }
+                
+                // Original fallback logic for canvas in non-V1 players
+                if (hasCanvas && !isV1) {
+                    CanvasArtworkPlayer(
+                        primaryUrl = canvasArtwork!!.animated,
+                        fallbackUrl = canvasArtwork!!.videoUrl,
+                        isPlaying = isPlaying,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }
