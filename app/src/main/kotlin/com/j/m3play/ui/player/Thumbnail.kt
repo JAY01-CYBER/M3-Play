@@ -1,3 +1,9 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │   ENHANCED: ACCORD-STYLE COVER SCALE       │
+ * ╰────────────────────────────────────────────╯
+ */
 
 package com.j.m3play.ui.player
 
@@ -536,7 +542,7 @@ fun Thumbnail(
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
                                 archiveTuneCanvasEnabled = archiveTuneCanvasEnabled,
-                                isPlaying = isPlaying  
+                                isPlaying = isPlaying
                             )
                         }
                     }
@@ -562,6 +568,50 @@ fun Thumbnail(
     }
 }
 
+@Composable
+private fun ThumbnailHeader(
+    queueTitle: String?,
+    albumTitle: String?,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 48.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.now_playing),
+                style = MaterialTheme.typography.titleMedium,
+                color = textColor
+            )
+            val playingFrom = albumTitle ?: queueTitle ?: ""
+            AnimatedVisibility(
+                visible = playingFrom.isNotBlank(),
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = playingFrom,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = textColor.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ThumbnailItem(
@@ -578,13 +628,13 @@ private fun ThumbnailItem(
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
     archiveTuneCanvasEnabled: Boolean,
-    isPlaying: Boolean = false  
+    isPlaying: Boolean = false
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
-    
+    // 🔥 ACCORD-STYLE: Cover pause/play scale animation
     val coverScale by animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0.84f,
         animationSpec = tween(
@@ -641,8 +691,8 @@ private fun ThumbnailItem(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
                 .graphicsLayer {
-                    scaleX = coverScale  
-                    scaleY = coverScale  
+                    scaleX = coverScale
+                    scaleY = coverScale
                 }
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
