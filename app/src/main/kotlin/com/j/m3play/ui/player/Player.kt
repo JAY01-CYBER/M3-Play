@@ -641,23 +641,23 @@ fun BottomSheetPlayer(
                             .fillMaxSize()
                             .padding(bottom = queueSheetState.collapsedBound)
                     ) {
-                        // LAYER 1: Fallback Background (For Normal Artwork)
+                        // LAYER 1: Apple Default Heavy Blur Background
                         AsyncImage(
                             model = mediaMetadata?.thumbnailUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize().let { if (disableBlur) it else it.blur(60.dp) }
                         )
-                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) // Darken
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) // Darken to match iOS Glass
 
-                        // LAYER 2: Swipeable Thumbnail (Full screen if canvas, centered if not)
+                        // LAYER 2: Swipeable Thumbnail (Full screen if canvas, shifted up safely if image)
                         Thumbnail(
                             sliderPositionProvider = { sliderPosition },
                             modifier = Modifier.fillMaxSize().nestedScroll(state.preUpPostDownNestedScrollConnection),
                             isPlayerExpanded = state.isExpanded
                         )
 
-                        // LAYER 3: Dark Bottom Gradient (Taaki controls white me clear dikhe)
+                        // LAYER 3: Dark Bottom Gradient (Taaki controls hamesha white aur clear dikhein)
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -669,19 +669,17 @@ fun BottomSheetPlayer(
                                 )
                         )
 
-                        // LAYER 4: Player Controls Content
+                        
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .fillMaxSize()
+                                .align(Alignment.BottomCenter) 
+                                .fillMaxWidth()
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                         ) {
-                            Spacer(Modifier.weight(1f)) // Push controls to bottom
-                            
                             enrichedMetadata?.let {
                                 controlsContent(it)
                             }
-                            
                             Spacer(Modifier.height(32.dp))
                         }
                     }
@@ -730,7 +728,7 @@ fun BottomSheetPlayer(
     }
 }
 
-// Old M3ImmersiveBackdrop kept here just in case, but V1 now uses the integrated Apple Box
+// Old Backdrop retained for compatibility (V1 now uses built-in Apple Box)
 @Composable
 fun M3ImmersiveBackdrop(thumbnailUrl: String?, disableBlur: Boolean) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
