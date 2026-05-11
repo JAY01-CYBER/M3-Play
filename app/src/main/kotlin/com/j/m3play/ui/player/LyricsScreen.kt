@@ -125,6 +125,8 @@ import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.DisableBlurKey
+import com.j.m3play.constants.UseMetrolistLyricsKey
+import com.j.m3play.ui.component.MetrolistLyrics
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -134,8 +136,8 @@ import kotlinx.coroutines.withContext
 import kotlin.runCatching
 import com.j.m3play.utils.makeTimeString
 import androidx.compose.ui.text.style.TextAlign
-import com.j.m3play.constants.UseMetrolistLyricsKey
 import com.j.m3play.ui.component.MetrolistLyrics
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,6 +164,7 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
+    // METROLIST SETTING HOOK
     val (useMetrolist) = rememberPreference(UseMetrolistLyricsKey, defaultValue = false)
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -396,7 +399,7 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // METROLIST ANIMATION CONDITION
+                                // METROLIST ANIMATION CONDITION (LANDSCAPE)
                                 if (useMetrolist) {
                                     MetrolistLyrics(sliderPositionProvider = { sliderPosition })
                                 } else if (useLyricsV2) {
@@ -661,7 +664,7 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        // METROLIST CONDITION LOGIC
+                        // METROLIST ANIMATION CONDITION (PORTRAIT)
                         if (useMetrolist) {
                             MetrolistLyrics(sliderPositionProvider = { sliderPosition })
                         } else if (useLyricsV2) {
