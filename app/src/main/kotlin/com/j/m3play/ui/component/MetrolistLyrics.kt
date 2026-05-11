@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText // <-- YE IMPORT MISSING THA
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -151,7 +152,8 @@ fun MetrolistLyrics(
             val start = userManualOffset
             val anim = Animatable(start)
             var lastValue = start
-            anim.animateTo(0f, tween((abs(start) / 4f).toInt().coerceIn(200, 600), FastOutSlowInEasing)) {
+            // <-- FIX HERE: Added `easing =` to fix Int expectation error
+            anim.animateTo(0f, tween(durationMillis = (abs(start) / 4f).toInt().coerceIn(200, 600), easing = FastOutSlowInEasing)) {
                 userManualOffset += (value - lastValue)
                 lastValue = value
             }
@@ -302,7 +304,6 @@ fun MetrolistLyrics(
                                     // Math for exact word-by-word bounds calculation
                                     var charGlobalIndex = 0
                                     entry.words.forEach { word ->
-                                        // Space trailing mapping is already done in MetrolistLyricsUtils
                                         val wordText = word.text 
                                         val wordStartMs = (word.startTime * 1000).toLong()
                                         val wordEndMs = (word.endTime * 1000).toLong()
