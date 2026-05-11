@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Glossy Premium Home Screen Integration    │
- * │  Signature: M3PLAY::UI::GLOSSY_EXPRESSIVE  │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
@@ -15,7 +5,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,10 +25,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -65,10 +52,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,7 +68,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -95,7 +79,6 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.j.m3play.LocalDatabase
-import com.j.m3play.LocalListenTogetherManager
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -106,9 +89,7 @@ import com.j.m3play.db.entities.Song
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
-import com.j.m3play.innertube.models.EpisodeItem
 import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
@@ -133,10 +114,6 @@ import com.j.m3play.viewmodels.DailyDiscoverItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
 
-// ==========================================
-// GLOSSY CUSTOM COMPONENTS
-// ==========================================
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DailyDiscoverCard(
@@ -151,7 +128,7 @@ fun DailyDiscoverCard(
     val haptic = LocalHapticFeedback.current
 
     val song = dailyDiscover.recommendation as? SongItem
-    val playsString = stringResource(R.string.plays)
+    val playsString = "plays"
 
     Card(
         modifier = modifier
@@ -223,21 +200,15 @@ fun DailyDiscoverCard(
                     }
 
                     val messages = listOf(
-                        R.string.daily_discover_sounds_like,
-                        R.string.daily_discover_because_you_listen_to,
-                        R.string.daily_discover_similar_to,
-                        R.string.daily_discover_based_on,
-                        R.string.daily_discover_for_fans_of,
+                        "Sounds like",
+                        "Because you listen to",
+                        "Similar to",
+                        "Based on",
+                        "For fans of"
                     )
-                    val messageRes = remember(dailyDiscover.seed.id) {
-                        messages[kotlin.math.abs(dailyDiscover.seed.id.hashCode()) % messages.size]
-                    }
-
+                    
                     Text(
-                        text = stringResource(
-                            messageRes,
-                            "${dailyDiscover.seed.title} • ${dailyDiscover.seed.artists.joinToString(", ") { it.name }}",
-                        ),
+                        text = "${messages[kotlin.math.abs(dailyDiscover.seed.id.hashCode()) % messages.size]} ${dailyDiscover.seed.title} • ${dailyDiscover.seed.artists.joinToString(", ") { it.name }}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = Color.White.copy(alpha = 0.6f),
@@ -257,7 +228,6 @@ fun CommunityPlaylistCard(
     onSongClick: (SongItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
 
@@ -327,10 +297,6 @@ fun CommunityPlaylistCard(
     }
 }
 
-// ==========================================
-// MAIN HOME SCREEN
-// ==========================================
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -341,13 +307,10 @@ fun HomeScreen(
     val bottomSheetPageState = LocalBottomSheetPageState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
-    val listenTogetherManager = LocalListenTogetherManager.current
-    val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    // Original M3Play + Metrolist Datasources
     val quickPicks by viewModel.quickPicks.collectAsState()
     val dailyDiscover by viewModel.dailyDiscover.collectAsState()
     val similarRecommendations by viewModel.similarRecommendations.collectAsState()
@@ -358,10 +321,6 @@ fun HomeScreen(
     val communityPlaylists by viewModel.communityPlaylists.collectAsState(initial = emptyList())
     val homePage by viewModel.homePage.collectAsState()
     val selectedChip by viewModel.selectedChip.collectAsState()
-
-    // Official podcast API data
-    val savedPodcastShows by viewModel.savedPodcastShows.collectAsState()
-    val episodesForLater by viewModel.episodesForLater.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -380,29 +339,6 @@ fun HomeScreen(
         "SAPISID" in parseCookieString(innerTubeCookie)
     }
     val url = if (isLoggedIn) accountImageUrl else null
-
-    var cachedPodcasts by remember { mutableStateOf<List<PodcastItem>>(emptyList()) }
-
-    val featuredPodcasts = remember(homePage, selectedChip) {
-        if (selectedChip == null) {
-            cachedPodcasts = emptyList()
-            emptyList()
-        } else {
-            val newPodcasts = homePage?.sections
-                ?.flatMap { it.items }
-                ?.filterIsInstance<EpisodeItem>()
-                ?.mapNotNull { episode ->
-                    episode.podcast?.let { podcast ->
-                        PodcastItem(id = podcast.id, title = podcast.name, author = episode.author, episodeCountText = null, thumbnail = episode.thumbnail, playEndpoint = null, shuffleEndpoint = null)
-                    }
-                }?.distinctBy { it.id }?.shuffled()?.take(10) ?: emptyList()
-
-            if (newPodcasts.isNotEmpty()) {
-                cachedPodcasts = newPodcasts
-            }
-            cachedPodcasts
-        }
-    }
 
     val scope = rememberCoroutineScope()
     val lazylistState = rememberLazyListState()
@@ -553,28 +489,10 @@ fun HomeScreen(
                     }
                 }
 
-                // PODCAST SECTIONS (METROLIST)
-                if (selectedChip?.title?.contains("Podcast", ignoreCase = true) == true) {
-                    if (savedPodcastShows.isNotEmpty()) {
-                        item(key = "00_your_shows_title") { NavigationTitle(title = stringResource(R.string.your_shows), onClick = { navController.navigate("youtube_browse/FEmusic_library_non_music_audio_list") }) }
-                        item(key = "00_your_shows_list") { LazyRow(contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()) { items(savedPodcastShows) { podcast -> ytGridItem(podcast) } } }
-                    }
-
-                    if (episodesForLater.isNotEmpty()) {
-                        item(key = "00_episodes_for_later_title") { NavigationTitle(title = stringResource(R.string.episodes_for_later), onClick = { navController.navigate("online_playlist/SE") }) }
-                        item(key = "00_episodes_for_later_list") { LazyRow(contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()) { items(episodesForLater) { episode -> ytGridItem(episode) } } }
-                    }
-
-                    if (featuredPodcasts.isNotEmpty() && savedPodcastShows.isEmpty()) {
-                        item(key = "0_podcast_channels_title") { NavigationTitle(title = stringResource(R.string.podcast_channels)) }
-                        item(key = "0_podcast_channels_list") { LazyRow(contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()) { items(featuredPodcasts) { podcast -> ytGridItem(podcast) } } }
-                    }
-                }
-
                 // DAILY DISCOVER (METROLIST CAROUSEL)
                 dailyDiscover?.takeIf { it.isNotEmpty() }?.let { discoverList ->
                     item(key = "daily_discover_title") {
-                        val title = stringResource(R.string.your_daily_discover)
+                        val title = "Your Daily Discover"
                         NavigationTitle(
                             title = title, modifier = Modifier.animateItem(),
                             onPlayAllClick = {
@@ -592,11 +510,9 @@ fun HomeScreen(
                                 DailyDiscoverCard(
                                     dailyDiscover = item,
                                     onClick = {
-                                        if (!isListenTogetherGuest) {
-                                            val song = item.recommendation as? SongItem
-                                            val mediaMetadata = song?.toMediaMetadata()
-                                            if (mediaMetadata != null) playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), mediaMetadata))
-                                        }
+                                        val song = item.recommendation as? SongItem
+                                        val mediaMetadata = song?.toMediaMetadata()
+                                        if (mediaMetadata != null) playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), mediaMetadata))
                                     },
                                     navController = navController,
                                     modifier = Modifier.maskClip(MaterialTheme.shapes.extraLarge),
@@ -608,15 +524,30 @@ fun HomeScreen(
                 
                 // COMMUNITY PLAYLISTS (METROLIST)
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                    item { NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) }
                     item {
-                        CommunityPlaylistsSection(playlists = playlists, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, modifier = Modifier.animateItem())
+                        NavigationTitle(
+                            title = "From the community",
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    item {
+                        CommunityPlaylistsSection(
+                            playlists = playlists,
+                            mediaMetadata = mediaMetadata,
+                            isPlaying = isPlaying,
+                            navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
+                            haptic = haptic,
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
 
                 // QUICK PICKS (METROLIST GRID)
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                    item { NavigationTitle(title = stringResource(R.string.quick_picks), modifier = Modifier.animateItem()) }
+                    item { NavigationTitle(title = "Quick picks", modifier = Modifier.animateItem()) }
                     item {
                         QuickPicksSection(quickPicks = picks, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = quickPicksLazyGridState, snapLayoutInfoProvider = quickPicksSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, modifier = Modifier.animateItem())
                     }
@@ -624,19 +555,19 @@ fun HomeScreen(
 
                 // METRO SPEED DIAL
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
-                    item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
+                    item { NavigationTitle(title = "Speed dial", modifier = Modifier.animateItem()) }
                     item { MetroSpeedDialSection(items = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
                 // SPEED DIAL
                 speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
-                    item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
+                    item { NavigationTitle(title = "Speed dial", modifier = Modifier.animateItem()) }
                     item { SpeedDialSection(speedDialSongs = songs, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
                 // KEEP LISTENING
                 keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
-                    item { NavigationTitle(title = stringResource(R.string.keep_listening), modifier = Modifier.animateItem()) }
+                    item { NavigationTitle(title = "Keep listening", modifier = Modifier.animateItem()) }
                     item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
@@ -645,7 +576,7 @@ fun HomeScreen(
 
                 // FORGOTTEN FAVORITES
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
-                    item { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
+                    item { NavigationTitle(title = "Forgotten favorites", modifier = Modifier.animateItem()) }
                     item { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = forgottenFavoritesLazyGridState, snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
@@ -708,4 +639,50 @@ fun ActionCard(
             Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
         }
     }
+}
+
+/**
+ * Helper Wrapper for YouTube Grid Items (Local use in this file)
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun YouTubeGridItemWrapper(
+    item: YTItem,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: com.j.m3play.ui.component.MenuState,
+    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    scope: kotlinx.coroutines.CoroutineScope,
+    modifier: Modifier = Modifier
+) {
+    com.j.m3play.ui.component.YouTubeGridItem(
+        item = item,
+        isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
+        isPlaying = isPlaying,
+        coroutineScope = scope,
+        thumbnailRatio = 1f,
+        modifier = modifier.combinedClickable(
+            onClick = {
+                when (item) {
+                    is SongItem -> playerConnection.playQueue(YouTubeQueue(item.endpoint ?: WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+                    is AlbumItem -> navController.navigate("album/${item.id}")
+                    is ArtistItem -> navController.navigate("artist/${item.id}")
+                    is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                }
+            },
+            onLongClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                menuState.show {
+                    when (item) {
+                        is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = menuState::dismiss)
+                        is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
+                        is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
+                        is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                    }
+                }
+            }
+        )
+    )
 }
