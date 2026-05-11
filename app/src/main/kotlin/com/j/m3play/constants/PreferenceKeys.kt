@@ -232,7 +232,6 @@ enum class LibraryViewType {
     LIST,
     GRID,
     ;
-
     fun toggle() =
         when (this) {
             LIST -> GRID
@@ -329,7 +328,6 @@ enum class MyTopFilter {
     MONTH,
     YEAR,
     ;
-
     fun toTimeMillis(): Long =
         when (this) {
             DAY ->
@@ -407,7 +405,6 @@ val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
-
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {
     NONE,
@@ -416,6 +413,7 @@ enum class LyricsAnimationStyle {
     SLIDE,
     KARAOKE,
     APPLE,
+    METROLIST, // <-- Naya option yahan add kiya hai
 }
 
 val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
