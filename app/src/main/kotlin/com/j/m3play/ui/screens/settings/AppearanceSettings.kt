@@ -159,7 +159,7 @@ fun AppearanceSettings(
     )
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
-        defaultValue = 16f
+        defaultValue = 16f // default dp
     )
     val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(
         CropThumbnailToSquareKey,
@@ -186,16 +186,13 @@ fun AppearanceSettings(
         defaultValue = LyricsPosition.LEFT
     )
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
-        key = LyricsAnimationStyleKey,
-        defaultValue = LyricsAnimationStyle.APPLE
+    key = LyricsAnimationStyleKey,
+    defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 26f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
-    
-    // --- METROLIST OVERRIDE ---
-    val (useMetrolist, onUseMetrolistChange) = rememberPreference(com.j.m3play.constants.UseMetrolistLyricsKey, defaultValue = false)
     val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(
@@ -438,7 +435,7 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
@@ -448,6 +445,7 @@ fun AppearanceSettings(
             },
         )
 
+        // When custom background is selected, show a direct link to customize it
         if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.customized_background)) },
@@ -471,6 +469,7 @@ fun AppearanceSettings(
             checked = archiveTuneCanvasEnabled,
             onCheckedChange = onM3PlayCanvasEnabledChange
         )
+      
 
         ThumbnailCornerRadiusSelectorButton(
             modifier = Modifier.padding(16.dp),
@@ -486,6 +485,7 @@ fun AppearanceSettings(
             checked = cropThumbnailToSquare,
             onCheckedChange = onCropThumbnailToSquareChange
         )
+
 
         EnumListPreference(
             title = { Text(stringResource(R.string.player_buttons_style)) },
@@ -528,20 +528,30 @@ fun AppearanceSettings(
                         showSensitivityDialog = false 
                     },
                     buttons = {
-                        TextButton(onClick = { tempSensitivity = 0.73f }) {
+                        TextButton(
+                            onClick = { 
+                                tempSensitivity = 0.73f
+                            }
+                        ) {
                             Text(stringResource(R.string.reset))
                         }
+                        
                         Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = { 
-                            tempSensitivity = swipeSensitivity
-                            showSensitivityDialog = false 
-                        }) {
+                        
+                        TextButton(
+                            onClick = { 
+                                tempSensitivity = swipeSensitivity
+                                showSensitivityDialog = false 
+                            }
+                        ) {
                             Text(stringResource(android.R.string.cancel))
                         }
-                        TextButton(onClick = { 
-                            onSwipeSensitivityChange(tempSensitivity)
-                            showSensitivityDialog = false 
-                        }) {
+                        TextButton(
+                            onClick = { 
+                                onSwipeSensitivityChange(tempSensitivity)
+                                showSensitivityDialog = false 
+                            }
+                        ) {
                             Text(stringResource(android.R.string.ok))
                         }
                     }
@@ -555,11 +565,13 @@ fun AppearanceSettings(
                             style = MaterialTheme.typography.headlineSmall,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+    
                         Text(
                             text = stringResource(R.string.sensitivity_percentage, (tempSensitivity * 100).roundToInt()),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+    
                         Slider(
                             value = tempSensitivity,
                             onValueChange = { tempSensitivity = it },
@@ -582,44 +594,13 @@ fun AppearanceSettings(
             title = stringResource(R.string.lyrics),
         )
 
-        // --- NEW METROLIST SWITCH ---
         SwitchPreference(
-            title = { Text("Metrolist Animation Mode") },
-            description = "Premium Apple Music style word-sync and bouncy scroll (Overrides others)",
-            icon = { Icon(painterResource(R.drawable.animation), null) },
-            checked = useMetrolist,
-            onCheckedChange = onUseMetrolistChange,
+            title = { Text("Lyrics V2 (Experimental)") },
+            description = "Use the new fluid word-synced lyrics engine",
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = useLyricsV2,
+            onCheckedChange = onUseLyricsV2Change,
         )
-
-        // Hide older animation options if Metrolist is active
-        AnimatedVisibility(visible = !useMetrolist) {
-            Column {
-                SwitchPreference(
-                    title = { Text("Lyrics V2 (Experimental)") },
-                    description = "Use the new fluid word-synced lyrics engine",
-                    icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                    checked = useLyricsV2,
-                    onCheckedChange = onUseLyricsV2Change,
-                )
-
-                EnumListPreference(
-                    title = { Text(stringResource(R.string.lyrics_animation_style)) },
-                    icon = { Icon(painterResource(R.drawable.animation), null) },
-                    selectedValue = lyricsAnimation,
-                    onValueSelected = onLyricsAnimationChange,
-                    valueText = {
-                        when (it) {
-                            LyricsAnimationStyle.NONE -> stringResource(R.string.none)
-                            LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
-                            LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
-                            LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
-                            LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
-                            LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-                        }
-                    }
-                )
-            }
-        }
 
         EnumListPreference(
             title = { Text(stringResource(R.string.lyrics_text_position)) },
@@ -633,6 +614,23 @@ fun AppearanceSettings(
                     LyricsPosition.RIGHT -> stringResource(R.string.right)
                 }
             },
+        )
+
+        EnumListPreference(
+          title = { Text(stringResource(R.string.lyrics_animation_style)) },
+          icon = { Icon(painterResource(R.drawable.animation), null) },
+          selectedValue = lyricsAnimation,
+          onValueSelected = onLyricsAnimationChange,
+          valueText = {
+              when (it) {
+                  LyricsAnimationStyle.NONE -> stringResource(R.string.none)
+                  LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
+                  LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
+                  LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
+                  LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
+                  LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+              }
+          }
         )
 
         SwitchPreference(
@@ -660,20 +658,30 @@ fun AppearanceSettings(
                     showLyricsTextSizeDialog = false 
                 },
                 buttons = {
-                    TextButton(onClick = { tempTextSize = 24f }) {
+                    TextButton(
+                        onClick = { 
+                            tempTextSize = 24f
+                        }
+                    ) {
                         Text(stringResource(R.string.reset))
                     }
+                    
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { 
-                        tempTextSize = lyricsTextSize
-                        showLyricsTextSizeDialog = false 
-                    }) {
+                    
+                    TextButton(
+                        onClick = { 
+                            tempTextSize = lyricsTextSize
+                            showLyricsTextSizeDialog = false 
+                        }
+                    ) {
                         Text(stringResource(android.R.string.cancel))
                     }
-                    TextButton(onClick = { 
-                        onLyricsTextSizeChange(tempTextSize)
-                        showLyricsTextSizeDialog = false 
-                    }) {
+                    TextButton(
+                        onClick = { 
+                            onLyricsTextSizeChange(tempTextSize)
+                            showLyricsTextSizeDialog = false 
+                        }
+                    ) {
                         Text(stringResource(android.R.string.ok))
                     }
                 }
@@ -687,11 +695,13 @@ fun AppearanceSettings(
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
                     Text(
                         text = "${tempTextSize.roundToInt()} sp",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
                     Slider(
                         value = tempTextSize,
                         onValueChange = { tempTextSize = it },
@@ -721,20 +731,30 @@ fun AppearanceSettings(
                     showLyricsLineSpacingDialog = false 
                 },
                 buttons = {
-                    TextButton(onClick = { tempLineSpacing = 1.3f }) {
+                    TextButton(
+                        onClick = { 
+                            tempLineSpacing = 1.3f
+                        }
+                    ) {
                         Text(stringResource(R.string.reset))
                     }
+                    
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { 
-                        tempLineSpacing = lyricsLineSpacing
-                        showLyricsLineSpacingDialog = false 
-                    }) {
+                    
+                    TextButton(
+                        onClick = { 
+                            tempLineSpacing = lyricsLineSpacing
+                            showLyricsLineSpacingDialog = false 
+                        }
+                    ) {
                         Text(stringResource(android.R.string.cancel))
                     }
-                    TextButton(onClick = { 
-                        onLyricsLineSpacingChange(tempLineSpacing)
-                        showLyricsLineSpacingDialog = false 
-                    }) {
+                    TextButton(
+                        onClick = { 
+                            onLyricsLineSpacingChange(tempLineSpacing)
+                            showLyricsLineSpacingDialog = false 
+                        }
+                    ) {
                         Text(stringResource(android.R.string.ok))
                     }
                 }
@@ -748,11 +768,13 @@ fun AppearanceSettings(
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
                     Text(
                         text = "${String.format("%.1f", tempLineSpacing)}x",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
+
                     Slider(
                         value = tempLineSpacing,
                         onValueChange = { tempLineSpacing = it },
@@ -838,6 +860,7 @@ fun AppearanceSettings(
             checked = slimNav,
             onCheckedChange = onSlimNavChange
         )
+
 
         EnumListPreference(
             title = { Text(stringResource(R.string.grid_cell_size)) },
