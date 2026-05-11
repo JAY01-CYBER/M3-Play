@@ -1,10 +1,3 @@
-/*
- * M3Play - Modern Music Player
- *
- * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
- */
-
 package com.j.m3play.viewmodels
 
 import android.content.Context
@@ -15,7 +8,6 @@ import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.BrowseEndpoint
 import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
@@ -46,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import timber.log.Timber
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -82,10 +73,6 @@ class HomeViewModel @Inject constructor(
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
     val isRandomizing = MutableStateFlow(false)
-
-    // Official API data for podcast sections
-    val savedPodcastShows = MutableStateFlow<List<PodcastItem>>(emptyList())
-    val episodesForLater = MutableStateFlow<List<SongItem>>(emptyList())
 
     val pinnedSpeedDialItems: StateFlow<List<SpeedDialItem>> =
         database.speedDialDao.getAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -177,14 +164,10 @@ class HomeViewModel @Inject constructor(
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
-    // Account display info
     val accountName = MutableStateFlow("Guest")
     val accountImageUrl = MutableStateFlow<String?>(null)
     
-    // Track last processed cookie to avoid unnecessary updates
     private var lastProcessedCookie: String? = null
-    
-    // Track if we're currently processing account data
     private var isProcessingAccountData = false
     private var wasLoggedIn = false
 
@@ -225,11 +208,10 @@ class HomeViewModel @Inject constructor(
     private suspend fun getQuickPicks() {
         val hideVideo = context.dataStore.get(HideVideoKey, false)
         when (quickPicksEnum.first()) {
-            QuickPicks.QUICK_PICKS -> {
+            QuickPicks.QUICKPicks -> {
                 val relatedSongs = database.quickPicks().first()
                 val forgotten = database.forgottenFavorites().first().take(8)
 
-                // Get similar songs from YouTube based on recent listening
                 val recentSong = database.events().first().firstOrNull()?.song
                 val ytSimilarSongs = mutableListOf<Song>()
 
@@ -459,7 +441,7 @@ class HomeViewModel @Inject constructor(
                 launch {
                     YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
-                            chips = page.chips, // Podcasts unblocked
+                            chips = page.chips, 
                             sections = page.sections.map { section ->
                                 section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                             }
@@ -623,20 +605,6 @@ class HomeViewModel @Inject constructor(
                 }
             )
             selectedChip.value = chip
-
-            if (chip?.title?.contains("Podcast", ignoreCase = true) == true) {
-                launch {
-                    YouTube.savedPodcastShows().onSuccess { shows ->
-                        savedPodcastShows.value = shows
-                    }.onFailure { reportException(it) }
-                }
-
-                launch {
-                    YouTube.episodesForLater().onSuccess { episodes ->
-                        episodesForLater.value = episodes
-                    }.onFailure { reportException(it) }
-                }
-            }
         }
     }
 
@@ -663,7 +631,7 @@ class HomeViewModel @Inject constructor(
                         accountName.value = info.name
                         accountImageUrl.value = info.thumbnailUrl
                     }.onFailure {
-                        timber.log.Timber.w(it, "Failed to fetch account info")
+                        // ignore log
                     }
 
                     launch {
@@ -671,7 +639,7 @@ class HomeViewModel @Inject constructor(
                             val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
                             accountPlaylists.value = lists
                         }.onFailure {
-                            timber.log.Timber.w(it, "Failed to fetch playlists")
+                             // ignore log
                         }
                     }
                 } else {
@@ -699,7 +667,6 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             kotlinx.coroutines.delay(3000)
-            
             syncUtils.cleanupDuplicatePlaylists()
         }
         
@@ -722,7 +689,6 @@ class HomeViewModel @Inject constructor(
                             try {
                                 YouTube.cookie = cookie
                             } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Failed to set YouTube cookie")
                                 return@collect
                             }
 
@@ -733,7 +699,6 @@ class HomeViewModel @Inject constructor(
                                             syncUtils.performFullSync()
                                         }
                                     } catch (e: Exception) {
-                                        Timber.e(e, "Error during login-triggered sync")
                                         reportException(e)
                                     }
                                 }
@@ -745,11 +710,9 @@ class HomeViewModel @Inject constructor(
                                 YouTube.accountInfo().onSuccess { info ->
                                     accountName.value = info.name
                                     accountImageUrl.value = info.thumbnailUrl
-                                }.onFailure { e ->
-                                    timber.log.Timber.w(e, "Failed to fetch account info")
                                 }
                             } catch (e: Exception) {
-                                timber.log.Timber.e(e, "Exception fetching account info")
+                                // Ignore
                             }
 
                             launch {
@@ -757,11 +720,9 @@ class HomeViewModel @Inject constructor(
                                     YouTube.library("FEmusic_liked_playlists").completed().onSuccess {
                                         val lists = it.items.filterIsInstance<PlaylistItem>().filterNot { it.id == "SE" }
                                         accountPlaylists.value = lists
-                                    }.onFailure { e ->
-                                        timber.log.Timber.w(e, "Failed to fetch account playlists")
                                     }
                                 } catch (e: Exception) {
-                                    timber.log.Timber.e(e, "Exception fetching account playlists")
+                                    // Ignore
                                 }
                             }
                         } else {
@@ -770,7 +731,6 @@ class HomeViewModel @Inject constructor(
                             accountPlaylists.value = null
                         }
                     } catch (e: Exception) {
-                        timber.log.Timber.e(e, "Error processing cookie change")
                         accountName.value = "Guest"
                         accountImageUrl.value = null
                         accountPlaylists.value = null
