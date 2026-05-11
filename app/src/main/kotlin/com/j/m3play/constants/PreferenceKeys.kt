@@ -171,12 +171,14 @@ val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceInterv
 val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") // "ONLINE", "IDLE", "DND", "INVISIBLE"
 
 // Discord image selection keys
+// Values for type keys: "thumbnail", "artist", "appicon", "custom"
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeTextSourceKey = stringPreferencesKey("discordLargeTextSource")
 val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
 val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
 val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
 val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
+// Activity platform (discord client platform) selection
 val DiscordActivityPlatformKey = stringPreferencesKey("discordActivityPlatform")
 
 val TranslatorContextsKey = stringPreferencesKey("translatorContexts")
@@ -230,6 +232,7 @@ enum class LibraryViewType {
     LIST,
     GRID,
     ;
+
     fun toggle() =
         when (this) {
             LIST -> GRID
@@ -326,6 +329,7 @@ enum class MyTopFilter {
     MONTH,
     YEAR,
     ;
+
     fun toTimeMillis(): Long =
         when (this) {
             DAY ->
@@ -397,6 +401,7 @@ enum class PlayerBackgroundStyle {
     GLOW_ANIMATED,
 }
 
+// Keys for customized background
 val PlayerCustomImageUriKey = stringPreferencesKey("playerCustomImageUri")
 val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
@@ -428,10 +433,7 @@ val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
 val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
 val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
 val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
-
-// --- NEW METROLIST KEY ---
 val UseLyricsV2Key = booleanPreferencesKey("useLyricsV2")
-val UseMetrolistLyricsKey = booleanPreferencesKey("useMetrolistLyrics")
 
 // Queue lyrics pre-load settings
 val PreloadQueueLyricsEnabledKey = booleanPreferencesKey("preload_queue_lyrics_enabled")
@@ -553,10 +555,12 @@ val CountryCodeToName =
         "AE" to "United Arab Emirates",
     )
 
+// App rating / star prompt preferences
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
 
+// Update settings
 val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
