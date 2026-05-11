@@ -90,6 +90,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.PlayerBackgroundStyle
@@ -107,7 +108,6 @@ import com.j.m3play.ui.component.BottomSheetState
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.PlayerSliderTrack
 import com.j.m3play.ui.component.ResizableIconButton
-import com.j.m3play.ui.component.WavySlider
 import com.j.m3play.ui.menu.PlayerMenu
 import com.j.m3play.ui.theme.PlayerBackgroundColorUtils
 import com.j.m3play.ui.theme.PlayerSliderColors
@@ -117,14 +117,17 @@ import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToLong
 import kotlin.math.roundToInt
+
 
 @Composable
 fun PlayerTitleSection(
@@ -674,15 +677,17 @@ fun StyledPlaybackSlider(
         }
 
         SliderStyle.Wavy -> {
-            WavySlider(
+            SquigglySlider(
                 value = value,
                 valueRange = valueRange,
                 onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
                 colors = PlayerSliderColors.wavySliderColors(activeColor),
                 modifier = modifier,
-                isPlaying = isPlaying,
-                strokeWidth = 6.dp
+                squigglesSpec = SquigglySlider.SquigglesSpec(
+                    amplitude = if (isPlaying) 2.dp else 0.dp,
+                    strokeWidth = 6.dp
+                )
             )
         }
 
@@ -706,15 +711,17 @@ fun StyledPlaybackSlider(
         }
 
         SliderStyle.Circular -> {
-            WavySlider(
+            SquigglySlider(
                 value = value,
                 valueRange = valueRange,
                 onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
                 colors = PlayerSliderColors.circularSliderColors(activeColor),
                 modifier = modifier,
-                isPlaying = isPlaying,
-                strokeWidth = 6.dp
+                squigglesSpec = SquigglySlider.SquigglesSpec(
+                    amplitude = if (isPlaying) 2.dp else 0.dp,
+                    strokeWidth = 6.dp
+                )
             )
         }
 
