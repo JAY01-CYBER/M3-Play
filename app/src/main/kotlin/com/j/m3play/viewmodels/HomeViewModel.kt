@@ -13,7 +13,9 @@ import androidx.lifecycle.viewModelScope
 import com.j.m3play.innertube.YouTube
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
+import com.j.m3play.innertube.models.BrowseEndpoint
 import com.j.m3play.innertube.models.PlaylistItem
+import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
@@ -53,6 +55,12 @@ data class CommunityPlaylistItem(
     val songs: List<SongItem>
 )
 
+data class DailyDiscoverItem(
+    val seed: Song,
+    val recommendation: YTItem,
+    val relatedEndpoint: BrowseEndpoint?
+)
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
@@ -68,13 +76,20 @@ class HomeViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     val quickPicks = MutableStateFlow<List<Song>?>(null)
+    val dailyDiscover = MutableStateFlow<List<DailyDiscoverItem>?>(null)
     val forgottenFavorites = MutableStateFlow<List<Song>?>(null)
     val keepListening = MutableStateFlow<List<LocalItem>?>(null)
     val similarRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
     val speedDialSongs = MutableStateFlow<List<Song>>(emptyList())
     val isRandomizing = MutableStateFlow(false)
+
+    // Official API data for podcast sections
+    val savedPodcastShows = MutableStateFlow<List<PodcastItem>>(emptyList())
+    val episodesForLater = MutableStateFlow<List<SongItem>>(emptyList())
+
     val pinnedSpeedDialItems: StateFlow<List<SpeedDialItem>> =
         database.speedDialDao.getAll().stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    
     val metroSpeedDialItems: StateFlow<List<YTItem>> =
         combine(
             database.speedDialDao.getAll(),
@@ -122,35 +137,33 @@ class HomeViewModel @Inject constructor(
                     filled.addAll(available.take(needed))
                 }
             }
-if (filled.size < targetSize) {
-    quickPickSongs?.let { songs ->
-        val needed = targetSize - filled.size
-
-        val available = songs
-            .filter { song ->
-                filled.none { existing -> existing.id == song.id }
+            if (filled.size < targetSize) {
+                quickPickSongs?.let { songs ->
+                    val needed = targetSize - filled.size
+                    val available = songs
+                        .filter { song ->
+                            filled.none { existing -> existing.id == song.id }
+                        }
+                        .map { song ->
+                            SongItem(
+                                id = song.id,
+                                title = song.title,
+                                artists = song.artists.map {
+                                    com.j.m3play.innertube.models.Artist(
+                                        name = it.name,
+                                        id = it.id
+                                    )
+                                },
+                                thumbnail = song.thumbnailUrl ?: "",
+                                explicit = song.song.explicit,
+                            )
+                        }
+                    filled.addAll(available.take(needed))
+                }
             }
-            .map { song ->
-                SongItem(
-                    id = song.id,
-                    title = song.title,
-                    artists = song.artists.map {
-                        com.j.m3play.innertube.models.Artist(
-                            name = it.name,
-                            id = it.id
-                        )
-                    },
-                    thumbnail = song.thumbnailUrl ?: "",
-                    explicit = song.song.explicit,
-                )
-            }
-
-        filled.addAll(available.take(needed))
-    }
-}
-
             filled.take(targetSize)
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        
     val accountPlaylists = MutableStateFlow<List<PlaylistItem>?>(null)
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
@@ -175,13 +188,73 @@ if (filled.size < targetSize) {
     private var isProcessingAccountData = false
     private var wasLoggedIn = false
 
-    private fun filterHomeChips(chips: List<HomePage.Chip>?): List<HomePage.Chip>? {
-        return chips?.filterNot { it.title.contains("podcasts", ignoreCase = true) }
+    private suspend fun getDailyDiscover() {
+        val hideVideo = context.dataStore.get(HideVideoKey, false)
+        val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+        val likedSongs = database.likedSongsByCreateDateAsc().first()
+        if (likedSongs.isEmpty()) return
+
+        val seeds = likedSongs.shuffled().distinctBy { it.id }.take(5)
+        val items = java.util.Collections.synchronizedList(mutableListOf<DailyDiscoverItem>())
+
+        kotlinx.coroutines.coroutineScope {
+            seeds.map { seed ->
+                launch(Dispatchers.IO) {
+                    val endpoint = YouTube.next(WatchEndpoint(videoId = seed.id)).getOrNull()?.relatedEndpoint
+                    if (endpoint != null) {
+                        YouTube.related(endpoint).onSuccess { page ->
+                            val filteredSongs = page.songs
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+                                .filterIsInstance<SongItem>()
+
+                            val recommendations = filteredSongs.shuffled()
+
+                            val recommendation = recommendations.firstOrNull { rec -> rec.id != seed.id }
+                            if (recommendation != null) {
+                                items.add(DailyDiscoverItem(seed = seed, recommendation = recommendation, relatedEndpoint = endpoint))
+                            }
+                        }
+                    }
+                }
+            }.forEach { it.join() }
+        }
+        dailyDiscover.value = items.toList().distinctBy { it.recommendation.id }.shuffled()
     }
 
-    private suspend fun getQuickPicks(){
+    private suspend fun getQuickPicks() {
+        val hideVideo = context.dataStore.get(HideVideoKey, false)
         when (quickPicksEnum.first()) {
-            QuickPicks.QUICK_PICKS -> quickPicks.value = database.quickPicks().first().shuffled().take(20)
+            QuickPicks.QUICK_PICKS -> {
+                val relatedSongs = database.quickPicks().first()
+                val forgotten = database.forgottenFavorites().first().take(8)
+
+                // Get similar songs from YouTube based on recent listening
+                val recentSong = database.events().first().firstOrNull()?.song
+                val ytSimilarSongs = mutableListOf<Song>()
+
+                if (recentSong != null) {
+                    val endpoint = YouTube.next(WatchEndpoint(videoId = recentSong.id)).getOrNull()?.relatedEndpoint
+                    if (endpoint != null) {
+                        YouTube.related(endpoint).onSuccess { page ->
+                            page.songs.take(10).forEach { ytSong ->
+                                database.song(ytSong.id).first()?.let { localSong ->
+                                    if (!hideVideo || !localSong.song.isVideo) {
+                                        ytSimilarSongs.add(localSong)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val combined = (relatedSongs + forgotten + ytSimilarSongs)
+                    .distinctBy { it.id }
+                    .shuffled()
+                    .take(20)
+
+                quickPicks.value = combined.ifEmpty { relatedSongs.shuffled().take(20) }
+            }
             QuickPicks.LAST_LISTEN -> songLoad()
         }
     }
@@ -280,7 +353,6 @@ if (filled.size < targetSize) {
     }
 
     private suspend fun getCommunityPlaylists() {
-
         val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
         val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
             .filter { it.artist.isYouTubeArtist }
@@ -370,6 +442,7 @@ if (filled.size < targetSize) {
                 launch { loadSpeedDialSongs() }
                 launch { forgottenFavorites.value = database.forgottenFavorites().first().shuffled().take(20) }
                 launch { getCommunityPlaylists() }
+                launch { getDailyDiscover() }
                 
                 launch {
                     val keepListeningSongs = database.mostPlayedSongs(fromTimeStamp, limit = 15, offset = 5)
@@ -386,7 +459,7 @@ if (filled.size < targetSize) {
                 launch {
                     YouTube.home().onSuccess { page ->
                         homePage.value = page.copy(
-                            chips = filterHomeChips(page.chips),
+                            chips = page.chips, // Podcasts unblocked
                             sections = page.sections.map { section ->
                                 section.copy(items = section.items.filterExplicit(hideExplicit).filterVideo(hideVideo))
                             }
@@ -550,6 +623,20 @@ if (filled.size < targetSize) {
                 }
             )
             selectedChip.value = chip
+
+            if (chip?.title?.contains("Podcast", ignoreCase = true) == true) {
+                launch {
+                    YouTube.savedPodcastShows().onSuccess { shows ->
+                        savedPodcastShows.value = shows
+                    }.onFailure { reportException(it) }
+                }
+
+                launch {
+                    YouTube.episodesForLater().onSuccess { episodes ->
+                        episodesForLater.value = episodes
+                    }.onFailure { reportException(it) }
+                }
+            }
         }
     }
 
