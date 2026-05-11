@@ -26,6 +26,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -1023,6 +1027,11 @@ class MainActivity : ComponentActivity() {
                         com.j.m3play.ui.component.LocalBottomSheetPageState provides bottomSheetPageState,
                         com.j.m3play.ui.component.LocalMenuState provides menuState,
                     ) {
+                        @OptIn(ExperimentalSharedTransitionApi::class)
+                        SharedTransitionLayout {
+                            CompositionLocalProvider(
+                                LocalSharedTransitionScope provides this@SharedTransitionLayout
+                            ) {
                         Row {
                             AnimatedVisibility(useRail && shouldShowNavigationBar) {
                                 NavigationRail(
@@ -1668,6 +1677,8 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                            }
+                        }
                     }
 
                     LaunchedEffect(shouldShowSearchBar, openSearchImmediately) {
@@ -1792,6 +1803,12 @@ class MainActivity : ComponentActivity() {
         const val ACTION_LIBRARY = "com.j.m3play.action.LIBRARY"
     }
 }
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+val LocalAnimatedVisibilityScope = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
 val LocalDatabase = staticCompositionLocalOf<MusicDatabase> { error("No database provided") }
 val LocalPlayerConnection =
