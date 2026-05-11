@@ -22,8 +22,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.j.m3play.LocalPlayerConnection
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
-// ViewModel Models: Line aur Indicator (Instrumental Break) ke liye
 sealed class MetroLyricItem {
     abstract val startTimeMs: Long
     abstract val durationMs: Long
@@ -46,9 +47,9 @@ fun MetrolistLyrics(
     modifier: Modifier = Modifier
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
+    val player = playerConnection.player
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     
-    // LyricsViewModel ka pura Parse aur Merging Logic yahan hai
     val parsedLyrics = remember(currentLyrics) {
         val lyricsText = currentLyrics?.toString() ?: ""
         if (lyricsText.isBlank()) emptyList()
@@ -67,13 +68,13 @@ fun MetrolistLyrics(
                 val current = rawLines[i]
                 val nextTime = if (i < rawLines.size - 1) rawLines[i + 1].startTimeMs else current.startTimeMs + 5000L
                 
-                // Line duration calculation for Karaoke Fill
-                val actualDuration = minOf(nextTime - current.startTimeMs, 4500L)
+                // Line duration calculation for Karaoke Wipe
+                val actualDuration = minOf(nextTime - current.startTimeMs, 4000L)
                 mergedList.add(current.copy(durationMs = actualDuration))
                 
-                // LyricsViewModel: Instrumental Gap Logic (• • •)
+                // Apple Music Style: Instrumental Gap Logic (• • •)
                 val gap = nextTime - (current.startTimeMs + actualDuration)
-                if (gap > 3500L) { // Agar agle bol aane me 3.5 sec se zyada gap hai toh dots dikhao
+                if (gap > 3500L) {
                     mergedList.add(MetroLyricItem.Indicator(current.startTimeMs + actualDuration, gap))
                 }
             }
@@ -81,18 +82,43 @@ fun MetrolistLyrics(
         }
     }
 
-    val position = sliderPositionProvider() ?: playerConnection.player.currentPosition
+    // 🚀 THE FIX: 60 FPS Smooth Time Tracker (No ViewModel needed!)
+    var currentPositionMs by remember { mutableLongStateOf(0L) }
     
-    val activeIndex by remember(position, parsedLyrics) {
+    LaunchedEffect(parsedLyrics, playerConnection.playbackState) {
+        var lastPlayerPos = player.currentPosition
+        var lastUpdateTime = System.currentTimeMillis()
+        
+        while (isActive) {
+            delay(16) // 16ms = ~60 FPS update
+            val sliderPos = sliderPositionProvider()
+            if (sliderPos != null) {
+                currentPositionMs = sliderPos
+                lastPlayerPos = sliderPos
+                lastUpdateTime = System.currentTimeMillis()
+            } else {
+                val now = System.currentTimeMillis()
+                val playerPos = player.currentPosition
+                if (playerPos != lastPlayerPos) {
+                    lastPlayerPos = playerPos
+                    lastUpdateTime = now
+                }
+                val elapsed = now - lastUpdateTime
+                currentPositionMs = lastPlayerPos + (if (player.isPlaying) elapsed else 0)
+            }
+        }
+    }
+    
+    val activeIndex by remember(currentPositionMs, parsedLyrics) {
         derivedStateOf {
-            val idx = parsedLyrics.indexOfLast { it.startTimeMs <= position + 200L }
+            val idx = parsedLyrics.indexOfLast { it.startTimeMs <= currentPositionMs + 200L }
             if (idx != -1) idx else 0
         }
     }
 
     val listState = rememberLazyListState()
 
-    // Smooth Scroll Offset to keep active line centered
+    // Smooth Scroll Auto-Centering
     LaunchedEffect(activeIndex) {
         if (parsedLyrics.isNotEmpty() && activeIndex >= 0) {
             listState.animateScrollToItem(index = maxOf(0, activeIndex), scrollOffset = -450)
@@ -116,14 +142,12 @@ fun MetrolistLyrics(
             val isActive = index == activeIndex
             val isPassed = index < activeIndex
             
-            // EXACT Metrolist Alpha Animation
             val alpha by animateFloatAsState(
                 targetValue = if (isActive) 1f else if (isPassed) 0.3f else 0.45f,
                 animationSpec = tween(400, easing = LinearOutSlowInEasing),
                 label = "alpha"
             )
 
-            // EXACT Metrolist Bouncy Scale Animation
             val scale by animateFloatAsState(
                 targetValue = if (isActive) 1.08f else 0.95f,
                 animationSpec = spring(
@@ -133,9 +157,8 @@ fun MetrolistLyrics(
                 label = "scale"
             )
 
-            // Progress for Karaoke Fill & Indicator Dots
             val itemProgress = if (isActive) {
-                ((position - item.startTimeMs).toFloat() / item.durationMs.toFloat()).coerceIn(0f, 1f)
+                ((currentPositionMs - item.startTimeMs).toFloat() / item.durationMs.toFloat()).coerceIn(0f, 1f)
             } else if (isPassed) 1f else 0f
 
             Box(
@@ -145,7 +168,7 @@ fun MetrolistLyrics(
                         scaleX = scale
                         scaleY = scale
                         this.alpha = alpha
-                        transformOrigin = TransformOrigin(0f, 0.5f) // Zoom from Left
+                        transformOrigin = TransformOrigin(0f, 0.5f)
                     }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() }, 
@@ -156,7 +179,6 @@ fun MetrolistLyrics(
                 contentAlignment = Alignment.CenterStart
             ) {
                 when (item) {
-                    // Normal Lyrics Line
                     is MetroLyricItem.Line -> {
                         Text(
                             text = item.text,
@@ -166,7 +188,6 @@ fun MetrolistLyrics(
                             lineHeight = 44.sp,
                             textAlign = TextAlign.Start,
                             style = TextStyle(
-                                // EXACT Metrolist Glow
                                 shadow = if (isActive) Shadow(
                                     color = Color.White.copy(alpha = 0.5f),
                                     offset = Offset.Zero,
@@ -178,7 +199,7 @@ fun MetrolistLyrics(
                                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                                     .drawWithContent {
                                         drawContent()
-                                        // Simulated `LyricsLine.kt` wipe effect (Karaoke Fill)
+                                        // THE APPLE MUSIC WIPE / KARAOKE FILL EFFECT
                                         val currentX = size.width * itemProgress
                                         val edgeWidth = 36.dp.toPx()
                                         drawRect(
@@ -194,14 +215,12 @@ fun MetrolistLyrics(
                         )
                     }
                     
-                    // Instrumental Break Indicator (Apple Music Style Dots)
                     is MetroLyricItem.Indicator -> {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.padding(vertical = 12.dp)
                         ) {
                             repeat(3) { dotIndex ->
-                                // Har ek dot gaane ki timing ke hisaab se dheere dheere glow karega
                                 val dotActive = isActive && itemProgress > (dotIndex * 0.33f)
                                 Box(
                                     modifier = Modifier
