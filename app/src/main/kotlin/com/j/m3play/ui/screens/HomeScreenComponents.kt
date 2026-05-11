@@ -1,29 +1,10 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  YT Music Premium Home Components          │
- * │  Signature: M3PLAY::UI::YTM_PREMIUM_V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -50,7 +30,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -64,12 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -80,13 +54,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -114,9 +86,7 @@ import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
-import com.j.m3play.innertube.models.EpisodeItem
 import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
@@ -133,7 +103,6 @@ import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
 import com.j.m3play.ui.component.SongListItem
-import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
@@ -165,7 +134,7 @@ fun YTPremiumDiscoverCard(
     navController: NavController,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     Card(
         modifier = modifier
@@ -407,7 +376,7 @@ fun SpeedDialSection(
                         )
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painter = painterResource(R.drawable.casino), contentDescription = stringResource(R.string.speed_dial_random), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
+                        Icon(painter = painterResource(R.drawable.casino), contentDescription = "Random Speed Dial", tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -583,8 +552,6 @@ fun YouTubeGridItemWrapper(
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is ArtistItem -> navController.navigate("artist/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                    is PodcastItem -> navController.navigate("online_podcast/${item.id}")
-                    is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
                 }
             },
             onLongClick = {
@@ -595,8 +562,6 @@ fun YouTubeGridItemWrapper(
                         is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                         is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                         is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
-                        is PodcastItem -> YouTubePlaylistMenu(playlist = item.asPlaylistItem(), coroutineScope = scope, onDismiss = menuState::dismiss)
-                        is EpisodeItem -> YouTubeSongMenu(song = item.asSongItem(), navController = navController, onDismiss = menuState::dismiss)
                     }
                 }
             }
@@ -723,7 +688,7 @@ fun CommunityPlaylistsSection(playlists: List<CommunityPlaylistItem>, mediaMetad
     LazyRow(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(playlists, key = { it.playlist.id }) { item ->
             CommunityPlaylistCard(
-                item = item, onClick = { navController.navigate("online_playlist/${item.playlist.id}") },
+                item = item, onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") },
                 onSongClick = { song -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, modifier = Modifier
             )
         }
@@ -749,8 +714,6 @@ fun MetroSpeedDialSection(items: List<YTItem>, mediaMetadata: MediaMetadata?, is
             is AlbumItem -> navController.navigate("album/${item.id}")
             is ArtistItem -> navController.navigate("artist/${item.id}")
             is PlaylistItem -> { val rawType = pinnedEntries.find { it.id == item.id }?.type; if (rawType == "LOCAL_PLAYLIST") navController.navigate("local_playlist/${item.id}") else navController.navigate("online_playlist/${item.id}") }
-            is PodcastItem -> navController.navigate("online_podcast/${item.id}")
-            is EpisodeItem -> playerConnection.playQueue(ListQueue(title = item.title, items = listOf(item.toMediaMetadata().toMediaItem())))
         }
     }
 
@@ -761,8 +724,6 @@ fun MetroSpeedDialSection(items: List<YTItem>, mediaMetadata: MediaMetadata?, is
                 is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                 is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                 is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
-                is PodcastItem -> YouTubePlaylistMenu(playlist = item.asPlaylistItem(), coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
-                is EpisodeItem -> YouTubeSongMenu(song = item.asSongItem(), navController = navController, onDismiss = menuState::dismiss)
             }
         }
     }
