@@ -125,9 +125,6 @@ import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.DisableBlurKey
-// NEW IMPORT
-import com.j.m3play.constants.UseMetrolistLyricsKey
-import com.j.m3play.ui.component.MetrolistLyrics
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -137,6 +134,8 @@ import kotlinx.coroutines.withContext
 import kotlin.runCatching
 import com.j.m3play.utils.makeTimeString
 import androidx.compose.ui.text.style.TextAlign
+import com.j.m3play.constants.UseMetrolistLyricsKey
+import com.j.m3play.ui.component.MetrolistLyrics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -163,7 +162,6 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
-    // NEW METROLIST STATE
     val (useMetrolist) = rememberPreference(UseMetrolistLyricsKey, defaultValue = false)
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -180,9 +178,7 @@ fun LyricsScreen(
                     database.query {
                         upsert(LyricsEntity(mediaMetadata.id, lyrics))
                     }
-                } catch (e: Exception) {
-                    // Handle error silently
-                }
+                } catch (e: Exception) { }
             }
         }
     }
@@ -400,7 +396,7 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                // METROLIST CONDITION LOGIC
+                                // METROLIST ANIMATION CONDITION
                                 if (useMetrolist) {
                                     MetrolistLyrics(sliderPositionProvider = { sliderPosition })
                                 } else if (useLyricsV2) {
