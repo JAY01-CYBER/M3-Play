@@ -68,7 +68,7 @@ fun MetrolistLyrics(
                 val current = rawLines[i]
                 val nextTime = if (i < rawLines.size - 1) rawLines[i + 1].startTimeMs else current.startTimeMs + 5000L
                 
-                // Line duration calculation for Karaoke Wipe
+                // Line duration calculation for EXACT Karaoke Wipe speed
                 val actualDuration = minOf(nextTime - current.startTimeMs, 4000L)
                 mergedList.add(current.copy(durationMs = actualDuration))
                 
@@ -82,7 +82,7 @@ fun MetrolistLyrics(
         }
     }
 
-    // 🚀 THE FIX: 60 FPS Smooth Time Tracker (No ViewModel needed!)
+    // 🚀 EXACT 60 FPS Time Tracker for buttery smooth wipe
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     
     LaunchedEffect(parsedLyrics, playerConnection.playbackState) {
@@ -90,7 +90,7 @@ fun MetrolistLyrics(
         var lastUpdateTime = System.currentTimeMillis()
         
         while (isActive) {
-            delay(16) // 16ms = ~60 FPS update
+            delay(16) // ~60 FPS update
             val sliderPos = sliderPositionProvider()
             if (sliderPos != null) {
                 currentPositionMs = sliderPos
@@ -118,7 +118,7 @@ fun MetrolistLyrics(
 
     val listState = rememberLazyListState()
 
-    // Smooth Scroll Auto-Centering
+    // Smooth Scroll Auto-Centering (Metrolist Bouncy Scroll)
     LaunchedEffect(activeIndex) {
         if (parsedLyrics.isNotEmpty() && activeIndex >= 0) {
             listState.animateScrollToItem(index = maxOf(0, activeIndex), scrollOffset = -450)
@@ -157,6 +157,7 @@ fun MetrolistLyrics(
                 label = "scale"
             )
 
+            // Linear progress for Canvas Wipe
             val itemProgress = if (isActive) {
                 ((currentPositionMs - item.startTimeMs).toFloat() / item.durationMs.toFloat()).coerceIn(0f, 1f)
             } else if (isPassed) 1f else 0f
@@ -168,7 +169,7 @@ fun MetrolistLyrics(
                         scaleX = scale
                         scaleY = scale
                         this.alpha = alpha
-                        transformOrigin = TransformOrigin(0f, 0.5f)
+                        transformOrigin = TransformOrigin(0f, 0.5f) // Bounce from left like the video
                     }
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() }, 
@@ -182,12 +183,14 @@ fun MetrolistLyrics(
                     is MetroLyricItem.Line -> {
                         Text(
                             text = item.text,
+                            // Dimmed base text just like Metrolist
                             color = Color.White.copy(alpha = if (isActive) 0.25f else 0.8f),
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
                             lineHeight = 44.sp,
                             textAlign = TextAlign.Start,
                             style = TextStyle(
+                                // The Video's signature Glow
                                 shadow = if (isActive) Shadow(
                                     color = Color.White.copy(alpha = 0.5f),
                                     offset = Offset.Zero,
@@ -199,7 +202,7 @@ fun MetrolistLyrics(
                                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                                     .drawWithContent {
                                         drawContent()
-                                        // THE APPLE MUSIC WIPE / KARAOKE FILL EFFECT
+                                        // EXACT WIPE FILL LOGIC
                                         val currentX = size.width * itemProgress
                                         val edgeWidth = 36.dp.toPx()
                                         drawRect(
