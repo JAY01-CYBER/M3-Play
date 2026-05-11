@@ -21,7 +21,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.lerp
 import kotlin.math.floor
 import androidx.compose.foundation.background
@@ -113,7 +112,10 @@ import com.j.m3play.lyrics.LyricsHelper
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.component.Lyrics
 import com.j.m3play.ui.component.LyricsV2
+import com.j.m3play.ui.component.MetrolistLyrics 
 import com.j.m3play.constants.UseLyricsV2Key
+import com.j.m3play.constants.LyricsAnimationStyle 
+import com.j.m3play.constants.LyricsAnimationStyleKey 
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.BigSeekBar
 import androidx.navigation.NavController
@@ -126,6 +128,7 @@ import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.DisableBlurKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -160,7 +163,10 @@ fun LyricsScreen(
     // slider style preference
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    
+    // Preferences for Lyrics
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
+    val (lyricsAnimation) = rememberEnumPreference(LyricsAnimationStyleKey, defaultValue = LyricsAnimationStyle.APPLE)
 
     // Auto-fetch lyrics when no lyrics found (same logic as refetch)
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
@@ -417,14 +423,13 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center  // Center lyrics in landscape
                             ) {
-                                if (useLyricsV2) {
-                                    LyricsV2(
-                                        sliderPositionProvider = { sliderPosition }
-                                    )
+                                // METROLIST ANIMATION CONDITION
+                                if (lyricsAnimation == LyricsAnimationStyle.METROLIST) {
+                                    MetrolistLyrics(sliderPositionProvider = { sliderPosition })
+                                } else if (useLyricsV2) {
+                                    LyricsV2(sliderPositionProvider = { sliderPosition })
                                 } else {
-                                    Lyrics(
-                                        sliderPositionProvider = { sliderPosition }
-                                    )
+                                    Lyrics(sliderPositionProvider = { sliderPosition })
                                 }
                             }
                         }
@@ -713,14 +718,13 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        if (useLyricsV2) {
-                            LyricsV2(
-                                sliderPositionProvider = { sliderPosition }
-                            )
+                        // METROLIST ANIMATION CONDITION
+                        if (lyricsAnimation == LyricsAnimationStyle.METROLIST) {
+                            MetrolistLyrics(sliderPositionProvider = { sliderPosition })
+                        } else if (useLyricsV2) {
+                            LyricsV2(sliderPositionProvider = { sliderPosition })
                         } else {
-                            Lyrics(
-                                sliderPositionProvider = { sliderPosition }
-                            )
+                            Lyrics(sliderPositionProvider = { sliderPosition })
                         }
                     }
 
