@@ -435,7 +435,7 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
@@ -517,7 +517,7 @@ fun AppearanceSettings(
         )
 
         AnimatedVisibility(swipeThumbnail) {
-            var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
+             var showSensitivityDialog by rememberSaveable { mutableStateOf(false) }
             
             if (showSensitivityDialog) {
                 var tempSensitivity by remember { mutableFloatStateOf(swipeSensitivity) }
@@ -629,6 +629,7 @@ fun AppearanceSettings(
                   LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                   LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                   LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                  LyricsAnimationStyle.METROLIST -> "Metrolist" // <-- Naya option yahan add kiya hai
               }
           }
         )
