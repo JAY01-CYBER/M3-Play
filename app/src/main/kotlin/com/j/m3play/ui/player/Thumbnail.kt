@@ -709,7 +709,7 @@ private fun ThumbnailItem(
                 if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
                         imageModifier = Modifier.sharedElement(
-                            state = rememberSharedContentState(key = "image_${item.mediaId}"),
+                            sharedContentState = rememberSharedContentState(key = "image_${item.mediaId}"),
                             animatedVisibilityScope = animatedVisibilityScope,
                             boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
                         )
