@@ -692,11 +692,34 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            MiniPlayer(
-                position = position,
-                duration = duration,
-                pureBlack = pureBlack,
-            )
+            // 🔥 YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    val range = state.expandedBound - state.collapsedBound
+                    val expandProgressRaw = if (range != 0f) {
+                        (state.value - state.collapsedBound) / range
+                    } else 0f
+                    // collapseProgress 1 = pura mini player, 0 = pura full player
+                    val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
+                    
+                    // Mini player dheere se scale hoke aayega (85% se 100%)
+                    val scale = 0.85f + (0.15f * collapseProgress)
+                    scaleX = scale
+                    scaleY = scale
+                    
+                    // Mini player neeche se slide hoke aayega (100 pixels up)
+                    translationY = (1f - collapseProgress) * 100.dp.toPx()
+                    
+                    // Fade In
+                    alpha = collapseProgress
+                }
+            ) {
+                MiniPlayer(
+                    position = position,
+                    duration = duration,
+                    pureBlack = pureBlack,
+                )
+            }
         },
     ) {
         val onSliderValueChange: (Long) -> Unit = {
@@ -1046,8 +1069,6 @@ fun BottomSheetPlayer(
                             )
                         }
 
-                        // 🔥 YAHAN FIX HUA HAI 🔥
-                        // Box ki jagah Column kar diya taaki ColumnScope mil sake
                         Column(
                             modifier = Modifier.graphicsLayer {
                                 // 🌸 CONTROLS FOLLOW WITH SLIGHTLY DIFFERENT TIMING 🌸
