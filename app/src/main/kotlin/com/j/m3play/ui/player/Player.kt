@@ -1046,7 +1046,9 @@ fun BottomSheetPlayer(
                             )
                         }
 
-                        Box(
+                        // 🔥 YAHAN FIX HUA HAI 🔥
+                        // Box ki jagah Column kar diya taaki ColumnScope mil sake
+                        Column(
                             modifier = Modifier.graphicsLayer {
                                 // 🌸 CONTROLS FOLLOW WITH SLIGHTLY DIFFERENT TIMING 🌸
                                 // Slides up from further down for a dynamic staggered effect
