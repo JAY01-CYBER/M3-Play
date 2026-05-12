@@ -1,20 +1,23 @@
 package com.j.m3play.ui.component
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.j.m3play.ui.screens.Screens
 
@@ -28,94 +31,124 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
-    val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
-    val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
+    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh
+    val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
 
     val home = items.firstOrNull { it.route == Screens.Home.route }
     val library = items.firstOrNull { it.route == Screens.Library.route }
     val search = items.firstOrNull { it.route == Screens.Search.route }
 
     Surface(
-        color = mainContainerColor,
-        shape = RoundedCornerShape(32.dp),
-        tonalElevation = 3.dp,
-        shadowElevation = 12.dp,
-        modifier = modifier.widthIn(max = if (slim) 260.dp else 300.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        shape = CircleShape,
+        shadowElevation = 8.dp,
+        tonalElevation = 4.dp,
+        modifier = modifier.widthIn(max = if (slim) 260.dp else 300.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             home?.let {
-                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+                ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
             }
             library?.let {
-                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+                ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
             }
             search?.let {
-                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+                ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
             }
         }
     }
 }
 
 @Composable
-private fun AppleNavItem(
+private fun ExpressiveFloatingNavItem(
     screen: Screens,
     selected: Boolean,
     accentColor: Color,
     onClick: () -> Unit,
 ) {
-    val bg by animateColorAsState(
-        if (selected) lerp(MaterialTheme.colorScheme.surface, accentColor, 0.7f) else Color.Transparent,
-        spring(stiffness = Spring.StiffnessMedium),
-        label = "bg"
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    // Bouncy scale effect for expressive feel
+    val scale by animateFloatAsState(
+        targetValue = when {
+            isPressed -> 0.88f
+            selected -> 1f
+            else -> 0.92f
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "floating_nav_item_scale"
     )
 
-    val color by animateColorAsState(
-        if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        spring(stiffness = Spring.StiffnessMedium),
-        label = "color"
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "container_color"
     )
 
-    val pad by animateDpAsState(
-        if (selected) 15.dp else 12.dp,
-        spring(stiffness = Spring.StiffnessMedium),
-        label = "pad"
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "content_color"
     )
 
     Surface(
-        onClick = onClick,
-        color = bg,
-        contentColor = color,
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.defaultMinSize(minHeight = 50.dp),
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null, // No ripple needed, the bouncy scale provides feedback
+                onClick = onClick
+            ),
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = pad, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(
+                horizontal = if (selected) 16.dp else 12.dp,
+                vertical = 12.dp
+            ),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-                contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(18.dp),
-            )
-            if (selected) {
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    stringResource(screen.titleId),
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.labelLarge
+            Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                Icon(
+                    painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
+                    contentDescription = stringResource(screen.titleId),
+                    modifier = Modifier.size(20.dp)
                 )
+            }
+
+            // Smoothly expand and fade label
+            AnimatedVisibility(
+                visible = selected,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Row {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(screen.titleId),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
-}
-
-@Composable
-private fun rememberSoftAccent(accent: Color, surface: Color): Color {
-    val safe = if (accent.alpha == 0f) MaterialTheme.colorScheme.primary else accent
-    return lerp(surface, safe, 0.7f)
 }
