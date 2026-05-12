@@ -17,12 +17,14 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -113,7 +115,9 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 
+import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.LocalPlayerConnection
+import com.j.m3play.LocalSharedTransitionScope
 import com.j.m3play.R
 import com.j.m3play.canvas.CanvasArtwork
 import com.j.m3play.canvas.MonochromeAlbumCanvas
@@ -617,6 +621,7 @@ private fun ThumbnailHeader(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun ThumbnailItem(
     item: MediaItem,
@@ -637,6 +642,10 @@ private fun ThumbnailItem(
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+
+    
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
 
     Box(
         modifier = Modifier
@@ -695,9 +704,22 @@ private fun ThumbnailItem(
                     item.mediaMetadata.artworkUri?.toString()
                 }
 
+            
+                var imageModifier: Modifier = Modifier
+                if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                    with(sharedTransitionScope) {
+                        imageModifier = Modifier.sharedElement(
+                            state = rememberSharedContentState(key = "image_${item.mediaId}"),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
+                        )
+                    }
+                }
+
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
+                    cropArtwork = cropAlbumArt,
+                    modifier = imageModifier
                 )
             }
             
