@@ -39,6 +39,7 @@ fun FloatingNavigationToolbar(
     slim: Boolean,
     pureBlack: Boolean,
     modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary, // Ye parameter add kiya hai
     onShuffleClick: (() -> Unit)? = null,
     shuffleIconRes: Int? = null,
     shuffleContentDescription: String = "",
@@ -76,6 +77,7 @@ fun FloatingNavigationToolbar(
                     CherryNavItem(
                         screen = screen,
                         selected = isSelected(screen),
+                        accentColor = accentColor,
                         onClick = { onItemClick(screen, isSelected(screen)) },
                         modifier = Modifier.weight(1f, fill = true),
                     )
@@ -88,6 +90,7 @@ fun FloatingNavigationToolbar(
                 iconRes = searchScreen.iconIdActive,
                 contentDescription = stringResource(searchScreen.titleId),
                 selected = isSelected(searchScreen),
+                accentColor = accentColor,
                 onClick = { onItemClick(searchScreen, isSelected(searchScreen)) },
                 pureBlack = pureBlack,
             )
@@ -98,6 +101,7 @@ fun FloatingNavigationToolbar(
                 iconRes = R.drawable.mic,
                 contentDescription = musicRecognitionContentDescription,
                 selected = false,
+                accentColor = accentColor,
                 onClick = onMusicRecognitionClick,
                 pureBlack = pureBlack,
             )
@@ -106,6 +110,7 @@ fun FloatingNavigationToolbar(
                 iconRes = shuffleIconRes,
                 contentDescription = shuffleContentDescription,
                 selected = false,
+                accentColor = accentColor,
                 onClick = onShuffleClick,
                 pureBlack = pureBlack,
                 roundedSquare = true,
@@ -118,22 +123,21 @@ fun FloatingNavigationToolbar(
 private fun CherryNavItem(
     screen: Screens,
     selected: Boolean,
+    accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Applied Spring Animation for Colors
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        targetValue = if (selected) accentColor.copy(alpha = 0.14f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "nav_item_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "nav_item_content",
     )
     
-    // Applied Spring Animation for the Sliding/Expanding Padding Effect
     val horizontalPadding by animateDpAsState(
         targetValue = if (selected) 16.dp else 12.dp,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
@@ -176,6 +180,7 @@ private fun DetachedCircleButton(
     iconRes: Int,
     contentDescription: String,
     selected: Boolean,
+    accentColor: Color,
     onClick: () -> Unit,
     pureBlack: Boolean,
     roundedSquare: Boolean = false,
@@ -184,13 +189,13 @@ private fun DetachedCircleButton(
     val containerColor by animateColorAsState(
         targetValue = when {
             pureBlack -> Color.White.copy(alpha = 0.08f)
-            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+            selected -> accentColor.copy(alpha = 0.14f)
             else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
         },
         label = "detached_button_container",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "detached_button_content",
     )
 
