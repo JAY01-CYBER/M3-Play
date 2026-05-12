@@ -1,6 +1,9 @@
 package com.j.m3play.ui.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -118,13 +121,23 @@ private fun CherryNavItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Applied Spring Animation for Colors
     val containerColor by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "nav_item_container",
     )
     val contentColor by animateColorAsState(
         targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "nav_item_content",
+    )
+    
+    // Applied Spring Animation for the Sliding/Expanding Padding Effect
+    val horizontalPadding by animateDpAsState(
+        targetValue = if (selected) 16.dp else 12.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "nav_item_padding"
     )
 
     Surface(
@@ -136,7 +149,7 @@ private fun CherryNavItem(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
