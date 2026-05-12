@@ -16,6 +16,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -87,9 +88,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
+import com.j.m3play.LocalSharedTransitionScope
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.InnerTubeCookieKey
@@ -300,7 +303,7 @@ fun CommunityPlaylistCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun GlossyCarouselCard(
     song: Song,
@@ -310,6 +313,9 @@ fun GlossyCarouselCard(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
 
     Card(
         modifier = modifier
@@ -328,6 +334,18 @@ fun GlossyCarouselCard(
         shape = RoundedCornerShape(28.dp),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+
+            var imageModifier: Modifier = Modifier.fillMaxSize()
+            if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                with(sharedTransitionScope) {
+                    imageModifier = imageModifier.sharedElement(
+                        sharedContentState = rememberSharedContentState(key = "image_${song.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
+                    )
+                }
+            }
+
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.song.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
@@ -335,7 +353,7 @@ fun GlossyCarouselCard(
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = imageModifier,
             )
 
             if (maxWidth > 200.dp) {
