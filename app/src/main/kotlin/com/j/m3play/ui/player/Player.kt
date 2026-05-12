@@ -227,7 +227,6 @@ fun BottomSheetPlayer(
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
 
-    // Custom background preferences (image + effects)
     val (playerCustomImageUri) = rememberPreference(PlayerCustomImageUriKey, "")
     val (playerCustomBlur) = rememberPreference(PlayerCustomBlurKey, 0f)
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
@@ -702,26 +701,24 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            // full Player to Mini Player Return Animation
+            // 🔥 YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation Fixed!
             Box(
                 modifier = Modifier.graphicsLayer {
                     val range = state.expandedBound - state.collapsedBound
                     val expandProgressRaw = if (range.value != 0f) {
                         (state.value - state.collapsedBound) / range
                     } else 0f
-                    // collapseProgress 1
+                    // collapseProgress 1 = pura mini player dikhega, 0 = pura hide rahega
                     val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
                     
-                    
+                    // Mini player chote se bada hoga (0.85x to 1.0x) taaki lage wo screen mein emerge ho raha hai
                     val scale = 0.85f + (0.15f * collapseProgress)
                     scaleX = scale
                     scaleY = scale
                     
-                    
-                    translationY = (1f - collapseProgress) * 100.dp.toPx()
-                    
-                    // Fade In
-                    alpha = collapseProgress
+                    // NOTE: Translation Y yahan se hata diya gaya hai kyunki ye aur BottomSheet ka
+                    // movement clash karke mini-player ko screen se bahar dhakel deta tha!
+                    // Ab sirf Smooth Scale aur BottomSheet ka native fade hoga.
                 }
             ) {
                 MiniPlayer(
@@ -821,7 +818,6 @@ fun BottomSheetPlayer(
         }
 
         // 🔥 MAGIC HAPPENS HERE: Spring Reveal Animation Progress
-        // Note: Using raw progress to allow overshoot physical spring bounce
         val mainRange = state.expandedBound - state.collapsedBound
         val expandProgressRaw = if (mainRange.value != 0f) {
             (state.value - state.collapsedBound) / mainRange
@@ -851,7 +847,8 @@ fun BottomSheetPlayer(
                                 val scale = 0.85f + (0.15f * expandProgressRaw)
                                 scaleX = scale
                                 scaleY = scale
-                                translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                // Yahan bhi 150dp ko kam karke 60dp kar diya taaki offscreen na jaaye
+                                translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                 alpha = expandProgressSafeAlpha
                             },
                     ) {
@@ -926,11 +923,11 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    // Animated Slide and Scale for Thumbnail
                                     val scale = 0.8f + (0.2f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    translationX = -(1f - expandProgressRaw) * 100.dp.toPx()
+                                    // 100dp ko 50dp kiya taaki control mein rahe
+                                    translationX = -(1f - expandProgressRaw) * 50.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
@@ -948,8 +945,7 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
                                 .graphicsLayer {
-                                    // Animated slide for controls
-                                    translationX = (1f - expandProgressRaw) * 100.dp.toPx()
+                                    translationX = (1f - expandProgressRaw) * 50.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
@@ -988,7 +984,7 @@ fun BottomSheetPlayer(
                                 val scale = 0.85f + (0.15f * expandProgressRaw)
                                 scaleX = scale
                                 scaleY = scale
-                                translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                 alpha = expandProgressSafeAlpha
                             },
                     ) {
@@ -1070,8 +1066,8 @@ fun BottomSheetPlayer(
                                     val scale = 0.75f + (0.25f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    // Slide up from 150 pixels below
-                                    translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                    // Slide up distance kam kiya (150dp se 60dp) taaki smooth lage!
+                                    translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
@@ -1085,8 +1081,8 @@ fun BottomSheetPlayer(
                         Column(
                             modifier = Modifier.graphicsLayer {
                                 // 🌸 CONTROLS FOLLOW WITH SLIGHTLY DIFFERENT TIMING 🌸
-                                // Slides up from further down for a dynamic staggered effect
-                                translationY = (1f - expandProgressRaw) * 250.dp.toPx()
+                                // Yahan bhi 250dp se 80dp kar diya taaki controls gayab na ho jayein
+                                translationY = (1f - expandProgressRaw) * 80.dp.toPx()
                                 alpha = expandProgressSafeAlpha
                             }
                         ) {
