@@ -42,13 +42,16 @@ fun FloatingNavigationToolbar(
         color = containerColor,
         contentColor = contentColor,
         shape = CircleShape,
-        shadowElevation = 8.dp,
+        shadowElevation = 12.dp,
         tonalElevation = 4.dp,
-        modifier = modifier.widthIn(max = if (slim) 260.dp else 300.dp)
+        modifier = modifier
+            .widthIn(max = if (slim) 260.dp else 300.dp)
+            
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) 
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             home?.let {
@@ -74,12 +77,11 @@ private fun ExpressiveFloatingNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Bouncy scale effect for expressive feel
     val scale by animateFloatAsState(
         targetValue = when {
             isPressed -> 0.88f
             selected -> 1f
-            else -> 0.92f
+            else -> 0.95f
         },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -89,14 +91,14 @@ private fun ExpressiveFloatingNavItem(
     )
 
     val containerColor by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        targetValue = if (selected) accentColor.copy(alpha = 0.15f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "container_color"
     )
 
     val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "content_color"
     )
 
@@ -109,9 +111,11 @@ private fun ExpressiveFloatingNavItem(
             .clip(CircleShape)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // No ripple needed, the bouncy scale provides feedback
+                indication = null, 
                 onClick = onClick
-            ),
+            )
+            // Yahan bhi animateContentSize lagaya hai taaki individual pill smoothly stretch ho
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
         shape = CircleShape,
         color = containerColor,
         contentColor = contentColor,
@@ -132,18 +136,24 @@ private fun ExpressiveFloatingNavItem(
                 )
             }
 
-            // Smoothly expand and fade label
+            
             AnimatedVisibility(
                 visible = selected,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = expandHorizontally(
+                    expandFrom = Alignment.Start, 
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkHorizontally(
+                    shrinkTowards = Alignment.Start, 
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                ) + fadeOut(animationSpec = tween(200))
             ) {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = stringResource(screen.titleId),
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
