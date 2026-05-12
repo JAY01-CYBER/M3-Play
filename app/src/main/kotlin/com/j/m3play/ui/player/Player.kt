@@ -20,12 +20,6 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -141,7 +135,6 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.palette.graphics.Palette
 import androidx.navigation.NavController
 import coil3.ImageLoader
-import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -327,7 +320,6 @@ fun BottomSheetPlayer(
     
     var previousThumbnailUrl by remember { mutableStateOf<String?>(null) }
     var previousGradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
     if (!canSkipNext && automix.isNotEmpty()) {
@@ -399,29 +391,31 @@ fun BottomSheetPlayer(
 
     val changeBound = state.expandedBound / 3
 
-    val TextBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.White else when (playerBackground) {
-        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR -> Color.White
-        PlayerBackgroundStyle.GRADIENT -> Color.White
-        PlayerBackgroundStyle.COLORING -> Color.White
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
-        PlayerBackgroundStyle.GLOW -> Color.White
-        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
-        PlayerBackgroundStyle.CUSTOM -> Color.White
-    }
+    val TextBackgroundColor =
+        when (playerBackground) {
+            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
+            PlayerBackgroundStyle.BLUR -> Color.White
+            PlayerBackgroundStyle.GRADIENT -> Color.White
+            PlayerBackgroundStyle.COLORING -> Color.White
+            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
+            PlayerBackgroundStyle.GLOW -> Color.White
+            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
+            PlayerBackgroundStyle.CUSTOM -> Color.White
+        }
 
-    val icBackgroundColor = if (playerDesignStyle == PlayerDesignStyle.V1) Color.Black else when (playerBackground) {
-        PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-        PlayerBackgroundStyle.BLUR -> Color.Black
-        PlayerBackgroundStyle.GRADIENT -> Color.Black
-        PlayerBackgroundStyle.COLORING -> Color.Black
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
-        PlayerBackgroundStyle.GLOW -> Color.Black
-        PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
-        PlayerBackgroundStyle.CUSTOM -> Color.Black
-    }
+    val icBackgroundColor =
+        when (playerBackground) {
+            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
+            PlayerBackgroundStyle.BLUR -> Color.Black
+            PlayerBackgroundStyle.GRADIENT -> Color.Black
+            PlayerBackgroundStyle.COLORING -> Color.Black
+            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
+            PlayerBackgroundStyle.GLOW -> Color.Black
+            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
+            PlayerBackgroundStyle.CUSTOM -> Color.Black
+        }
 
-    val (textButtonColor, iconButtonColor) = if (playerDesignStyle == PlayerDesignStyle.V1) Pair(Color.White, Color.Black) else when (playerButtonsStyle) {
+    val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
         PlayerButtonsStyle.DEFAULT -> Pair(TextBackgroundColor, icBackgroundColor)
         PlayerButtonsStyle.SECONDARY -> Pair(
             MaterialTheme.colorScheme.secondary,
@@ -458,13 +452,9 @@ fun BottomSheetPlayer(
         }
     }
 
-    var showSleepTimerDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var sleepTimerValue by remember {
-        mutableFloatStateOf(30f)
-    }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var sleepTimerValue by remember { mutableFloatStateOf(30f) }
+    
     if (showSleepTimerDialog) {
         AlertDialog(
             properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -524,9 +514,7 @@ fun BottomSheetPlayer(
         )
     }
 
-    var showChoosePlaylistDialog by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var showChoosePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(mediaMetadata?.id, playbackState) {
         val startTime = SystemClock.elapsedRealtime()
@@ -686,27 +674,13 @@ fun BottomSheetPlayer(
         },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                    .coerceIn(0f, 1f)
-                
-                val fadeProgress = if (progress < 0.2f) {
-                    ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-                
+                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                    .coerceIn(0f, 1f)
-                
-                val fadeProgress = if (progress < 0.2f) {
-                    ((0.2f - progress) / 0.2f).coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-                
+                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 if (useBlackBackground) {
                     Color.Black.copy(alpha = 1f - fadeProgress)
                 } else {
@@ -770,9 +744,9 @@ fun BottomSheetPlayer(
             }
         }
 
-        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { metadata ->
+        val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
-                mediaMetadata = metadata,
+                mediaMetadata = mediaMetadata,
                 playerDesignStyle = playerDesignStyle,
                 sliderStyle = sliderStyle,
                 playbackState = playbackState,
@@ -797,11 +771,10 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
-                currentFormat = currentFormat
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.V1) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -814,7 +787,10 @@ fun BottomSheetPlayer(
             )
         }
 
-// distance
+        // 🔥 MAGIC HAPPENS HERE: Spring Reveal Animation Progress
+        // Note: Using raw progress to allow overshoot physical spring bounce
+        val expandProgressRaw = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
+        val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
@@ -833,7 +809,15 @@ fun BottomSheetPlayer(
                         modifier =
                         Modifier
                             .fillMaxSize()
-                            .background(littleBackground),
+                            .background(littleBackground)
+                            // Animated Reveal
+                            .graphicsLayer {
+                                val scale = 0.85f + (0.15f * expandProgressRaw)
+                                scaleX = scale
+                                scaleY = scale
+                                translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                alpha = expandProgressSafeAlpha
+                            },
                     ) {
                         Box(
                             modifier =
@@ -903,7 +887,16 @@ fun BottomSheetPlayer(
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .graphicsLayer {
+                                    // Animated Slide and Scale for Thumbnail
+                                    val scale = 0.8f + (0.2f * expandProgressRaw)
+                                    scaleX = scale
+                                    scaleY = scale
+                                    translationX = -(1f - expandProgressRaw) * 100.dp.toPx()
+                                    alpha = expandProgressSafeAlpha
+                                },
                         ) {
                             val screenWidth = LocalConfiguration.current.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
@@ -915,10 +908,14 @@ fun BottomSheetPlayer(
                         }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .weight(1f)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                                .graphicsLayer {
+                                    // Animated slide for controls
+                                    translationX = (1f - expandProgressRaw) * 100.dp.toPx()
+                                    alpha = expandProgressSafeAlpha
+                                },
                         ) {
                             Spacer(Modifier.weight(1f))
 
@@ -949,7 +946,15 @@ fun BottomSheetPlayer(
                         modifier =
                         Modifier
                             .fillMaxSize()
-                            .background(littleBackground),
+                            .background(littleBackground)
+                            // Animated Reveal
+                            .graphicsLayer {
+                                val scale = 0.85f + (0.15f * expandProgressRaw)
+                                scaleX = scale
+                                scaleY = scale
+                                translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                alpha = expandProgressSafeAlpha
+                            },
                     ) {
                         Box(
                             modifier =
@@ -1012,36 +1017,27 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                } else if (playerDesignStyle == PlayerDesignStyle.V1) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        M3ImmersiveBackdrop(
-                            thumbnailUrl = mediaMetadata?.thumbnailUrl,
-                            disableBlur = disableBlur
-                        )
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = queueSheetState.collapsedBound)
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
-                        ) {
-                            enrichedMetadata?.let { controlsContent(it) }
-                            Spacer(Modifier.height(24.dp))
-                        }
-                    }
                 } else {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                        Modifier
+                        modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
                             .padding(bottom = queueSheetState.collapsedBound),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .graphicsLayer {
+                                    // 🌸 BEAUTIFUL SPRING REVEAL FOR ALBUM ART 🌸
+                                    // Scale from 75% to 100% with physical bottom sheet bounce
+                                    val scale = 0.75f + (0.25f * expandProgressRaw)
+                                    scaleX = scale
+                                    scaleY = scale
+                                    // Slide up from 150 pixels below
+                                    translationY = (1f - expandProgressRaw) * 150.dp.toPx()
+                                    alpha = expandProgressSafeAlpha
+                                },
                         ) {
                             Thumbnail(
                                 sliderPositionProvider = { sliderPosition },
@@ -1050,8 +1046,17 @@ fun BottomSheetPlayer(
                             )
                         }
 
-                        enrichedMetadata?.let {
-                            controlsContent(it)
+                        Box(
+                            modifier = Modifier.graphicsLayer {
+                                // 🌸 CONTROLS FOLLOW WITH SLIGHTLY DIFFERENT TIMING 🌸
+                                // Slides up from further down for a dynamic staggered effect
+                                translationY = (1f - expandProgressRaw) * 250.dp.toPx()
+                                alpha = expandProgressSafeAlpha
+                            }
+                        ) {
+                            enrichedMetadata?.let {
+                                controlsContent(it)
+                            }
                         }
 
                         Spacer(Modifier.height(30.dp))
@@ -1116,61 +1121,6 @@ fun BottomSheetPlayer(
                 }
             }
         }
-    }
-}
-
-// Ye naya Immersive Breathing Backdrop hai
-@Composable
-fun M3ImmersiveBackdrop(
-    thumbnailUrl: String?,
-    disableBlur: Boolean
-) {
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        // Breathing Animation
-        val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 1.02f,
-            targetValue = 1.10f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(15000, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "scale"
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-        ) {
-            AsyncImage(
-                model = thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        // Dark Frosted Gradient Overlays for perfect text contrast
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color.Black.copy(alpha = 0.2f),
-                            0.2f to Color.Transparent,
-                            0.5f to Color.Transparent,
-                            0.7f to Color.Black.copy(alpha = 0.6f),
-                            0.9f to Color.Black.copy(alpha = 0.95f),
-                            1.0f to Color.Black.copy(alpha = 1.0f)
-                        )
-                    )
-                )
-        )
     }
 }
 
