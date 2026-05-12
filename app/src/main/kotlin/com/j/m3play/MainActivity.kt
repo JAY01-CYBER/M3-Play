@@ -1215,7 +1215,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 bottomBar = {
                                     Box {
-                                        // 1. EXTRA ICONS FLOATING ABOVE MINI PLAYER (FIXED AnimatedVisibility scope issue)
+                                        // 1. EXTRA ICONS FLOATING ABOVE MINI PLAYER
                                         FloatingIconsVisibility(
                                             visible = navBackStackEntry?.destination?.route == Screens.Home.route && !active && playerBottomSheetState.isCollapsed,
                                             modifier = Modifier
