@@ -1,199 +1,207 @@
-/*
- * M3Play Component Module
- *
- * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1
- */
-
 package com.j.m3play.ui.component
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FloatingToolbarDefaults
-import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.j.m3play.R
 import com.j.m3play.ui.screens.Screens
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FloatingNavigationToolbar(
     items: List<Screens>,
     slim: Boolean,
+    pureBlack: Boolean,
     modifier: Modifier = Modifier,
     onShuffleClick: (() -> Unit)? = null,
     shuffleIconRes: Int? = null,
     shuffleContentDescription: String = "",
+    onMusicRecognitionClick: (() -> Unit)? = null,
+    musicRecognitionContentDescription: String = "",
     isSelected: (Screens) -> Boolean,
-    onItemClick: (Screens) -> Unit,
+    onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    HorizontalFloatingToolbar(
-        expanded = !slim,
-        floatingActionButton = {
-            if (onShuffleClick != null && shuffleIconRes != null) {
-                Box(
-                    modifier = Modifier
-                        .size(FloatingToolbarDefaults.FabSize)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(16.dp),
-                        )
-                        .clickable(role = Role.Button, onClick = onShuffleClick),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(shuffleIconRes),
-                        contentDescription = shuffleContentDescription,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp),
+    val toolbarShape = RoundedCornerShape(32.dp)
+    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+    val borderColor = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f)
+
+    val searchScreen = items.firstOrNull { it.route == Screens.Search.route }
+    val primaryScreens = items.filter { it.route != Screens.Search.route }.take(if (slim) 2 else 3)
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            color = containerColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = toolbarShape,
+            border = BorderStroke(1.dp, borderColor),
+            shadowElevation = 10.dp,
+            modifier = Modifier.weight(1f, fill = false).widthIn(max = if (slim) 330.dp else 430.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                primaryScreens.forEach { screen ->
+                    CherryNavItem(
+                        screen = screen,
+                        selected = isSelected(screen),
+                        onClick = { onItemClick(screen, isSelected(screen)) },
+                        modifier = Modifier.weight(1f, fill = true),
                     )
                 }
             }
-        },
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f),
-    ) {
-        items.forEach { screen ->
-            val selected = isSelected(screen)
+        }
 
-            NavItem(
-                screen = screen,
-                selected = selected,
-                slim = slim,
-                onClick = { onItemClick(screen) },
+        if (searchScreen != null) {
+            DetachedCircleButton(
+                iconRes = searchScreen.iconIdActive,
+                contentDescription = stringResource(searchScreen.titleId),
+                selected = isSelected(searchScreen),
+                onClick = { onItemClick(searchScreen, isSelected(searchScreen)) },
+                pureBlack = pureBlack,
+            )
+        }
+
+        if (onMusicRecognitionClick != null) {
+            DetachedCircleButton(
+                iconRes = R.drawable.mic,
+                contentDescription = musicRecognitionContentDescription,
+                selected = false,
+                onClick = onMusicRecognitionClick,
+                pureBlack = pureBlack,
+            )
+        } else if (onShuffleClick != null && shuffleIconRes != null) {
+            DetachedCircleButton(
+                iconRes = shuffleIconRes,
+                contentDescription = shuffleContentDescription,
+                selected = false,
+                onClick = onShuffleClick,
+                pureBlack = pureBlack,
+                roundedSquare = true,
             )
         }
     }
 }
 
 @Composable
-private fun NavItem(
+private fun CherryNavItem(
     screen: Screens,
     selected: Boolean,
-    slim: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    // 🌸 Premium Bounce Animation 🌸
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow,
-        ),
-        label = "scale",
-    )
-
-    // Pill background color (Peeche ka highlight)
     val containerColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "containerColor",
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        label = "nav_item_container",
     )
-
-    // Icon aur Text ka rang
     val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "contentColor",
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "nav_item_content",
     )
 
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = modifier
-            .scale(scale)
-            .animateContentSize()
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null, // Custom smooth bounce ke liye default ripple hata diya
-                role = Role.Tab,
-                onClick = onClick,
-            )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    Surface(
+        onClick = onClick,
+        color = containerColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
     ) {
-        // ✨ Material 3 Standard Pill (Goli) Design ✨
-        Box(
-            modifier = Modifier
-                .width(56.dp)
-                .height(32.dp)
-                .background(color = containerColor, shape = CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
+                    contentDescription = stringResource(screen.titleId),
+                    modifier = Modifier.size(22.dp),
+                )
+                if (selected) {
+                    Text(
+                        text = stringResource(screen.titleId),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetachedCircleButton(
+    iconRes: Int,
+    contentDescription: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    pureBlack: Boolean,
+    roundedSquare: Boolean = false,
+) {
+    val shape = if (roundedSquare) RoundedCornerShape(24.dp) else CircleShape
+    val containerColor by animateColorAsState(
+        targetValue = when {
+            pureBlack -> Color.White.copy(alpha = 0.08f)
+            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+        },
+        label = "detached_button_container",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "detached_button_content",
+    )
+
+    Surface(
+        onClick = onClick,
+        color = containerColor,
+        contentColor = contentColor,
+        shape = shape,
+        border = BorderStroke(
+            1.dp,
+            if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.16f),
+        ),
+        shadowElevation = 10.dp,
+        modifier = Modifier
+            .size(if (roundedSquare) 72.dp else 64.dp)
+            .clip(shape)
+            .shadow(10.dp, shape, clip = false),
+    ) {
+        IconButton(onClick = onClick) {
             Icon(
-                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-                contentDescription = stringResource(screen.titleId),
-                tint = contentColor,
-                modifier = Modifier.size(24.dp)
+                painter = painterResource(iconRes),
+                contentDescription = contentDescription,
+                modifier = Modifier.size(24.dp),
             )
-        }
-
-        // 🌟 Text HAMESHA visible rahega (No Layout Shift) 🌟
-        if (!slim) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = stringResource(screen.titleId),
-                color = contentColor,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(text = { Text("Menu") }, onClick = { expanded = false })
         }
     }
 }
