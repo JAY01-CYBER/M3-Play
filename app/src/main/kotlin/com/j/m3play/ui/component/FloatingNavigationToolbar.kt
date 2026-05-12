@@ -30,45 +30,32 @@ fun FloatingNavigationToolbar(
 ) {
     val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
     val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
-
     val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
 
     val home = items.firstOrNull { it.route == Screens.Home.route }
     val library = items.firstOrNull { it.route == Screens.Library.route }
     val search = items.firstOrNull { it.route == Screens.Search.route }
 
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        color = mainContainerColor,
+        shape = RoundedCornerShape(32.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 12.dp,
+        modifier = modifier.widthIn(max = if (slim) 260.dp else 300.dp),
     ) {
-        Surface(
-            color = mainContainerColor,
-            shape = RoundedCornerShape(32.dp),
-            tonalElevation = 3.dp,
-            shadowElevation = 12.dp,
-            modifier = Modifier.widthIn(max = if (slim) 260.dp else 300.dp),
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                home?.let {
-                    AppleNavItem(it, isSelected(it), softenedAccent) {
-                        onItemClick(it, isSelected(it))
-                    }
-                }
-                library?.let {
-                    AppleNavItem(it, isSelected(it), softenedAccent) {
-                        onItemClick(it, isSelected(it))
-                    }
-                }
-                search?.let {
-                    AppleNavItem(it, isSelected(it), softenedAccent) {
-                        onItemClick(it, isSelected(it))
-                    }
-                }
+            home?.let {
+                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+            }
+            library?.let {
+                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+            }
+            search?.let {
+                AppleNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
             }
         }
     }
@@ -82,19 +69,21 @@ private fun AppleNavItem(
     onClick: () -> Unit,
 ) {
     val bg by animateColorAsState(
-        if (selected) lerp(MaterialTheme.colorScheme.surface, accentColor, 0.7f)
-        else Color.Transparent,
-        spring(stiffness = Spring.StiffnessMedium)
+        if (selected) lerp(MaterialTheme.colorScheme.surface, accentColor, 0.7f) else Color.Transparent,
+        spring(stiffness = Spring.StiffnessMedium),
+        label = "bg"
     )
 
     val color by animateColorAsState(
         if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        spring(stiffness = Spring.StiffnessMedium)
+        spring(stiffness = Spring.StiffnessMedium),
+        label = "color"
     )
 
     val pad by animateDpAsState(
         if (selected) 15.dp else 12.dp,
-        spring(stiffness = Spring.StiffnessMedium)
+        spring(stiffness = Spring.StiffnessMedium),
+        label = "pad"
     )
 
     Surface(
@@ -109,9 +98,7 @@ private fun AppleNavItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(
-                    if (selected) screen.iconIdActive else screen.iconIdInactive
-                ),
+                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                 contentDescription = stringResource(screen.titleId),
                 modifier = Modifier.size(18.dp),
             )
