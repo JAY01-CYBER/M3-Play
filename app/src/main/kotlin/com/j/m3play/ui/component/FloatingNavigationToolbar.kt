@@ -53,7 +53,7 @@ fun FloatingNavigationToolbar(
     ) {
         onMusicRecognitionClick?.let {
             DetachedCircleButton(
-                iconRes = R.drawable.music_recognition, // Yeh icon name apne hisaab se check kar lena
+                iconRes = R.drawable.music_recognition, // Apne icon ka naam check kar lena
                 contentDescription = musicRecognitionContentDescription,
                 onClick = it,
                 containerColor = toolbarColor
@@ -62,15 +62,15 @@ fun FloatingNavigationToolbar(
         }
 
         Surface(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp), // Thoda modern roundness
             color = toolbarColor,
             tonalElevation = 4.dp,
             shadowElevation = 8.dp,
             modifier = Modifier.weight(1f, fill = false)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEach { screen ->
@@ -78,7 +78,8 @@ fun FloatingNavigationToolbar(
                     BarItem(
                         screen = screen,
                         selected = selected,
-                        accentColor = softAccent,
+                        accentColor = accentColor,
+                        pillColor = softAccent,
                         onClick = { onItemClick(screen, selected) }
                     )
                 }
@@ -102,26 +103,27 @@ private fun BarItem(
     screen: Screens,
     selected: Boolean,
     accentColor: Color,
+    pillColor: Color,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // 🌸 Premium Bounce Animation 🌸
+    // Bounce Animation on Press
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.85f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
-    // Smooth Pill Background Color Animation
+    // Pill Indicator Color Transition
     val indicatorColor by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.25f) else Color.Transparent,
+        targetValue = if (selected) pillColor.copy(alpha = 0.35f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "indicator"
     )
     
-    // Icon aur Text ka rang
+    // Icon & Text Color Transition
     val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         label = "content"
@@ -131,34 +133,36 @@ private fun BarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
+            .weight(1f) // Ensures equal spacing between items
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Default ganda ripple hata diya, ab sirf bounce hoga
+                indication = null, // Custom bounce instead of default ripple
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(vertical = 6.dp)
     ) {
-        // ✨ Yahan Pill Indicator banaya gaya hai ✨
+        // ✨ Material 3 Pill Highlight ✨
+        // Width constant rakhi hai (64dp) taaki select hone par baaki icons hilein nahi
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .height(32.dp)
-                .width(56.dp)
-                .background(indicatorColor, RoundedCornerShape(16.dp))
+                .width(64.dp)
+                .background(indicatorColor, CircleShape) // CircleShape automatically pill bana deta hai
         ) {
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                 contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(24.dp),
                 tint = contentColor
             )
         }
         
         Spacer(Modifier.height(4.dp))
         
-        // Text ab hamesha dikhega
+        // Text Always Visible
         Text(
             text = stringResource(screen.titleId),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
@@ -184,7 +188,6 @@ private fun DetachedCircleButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
-    // Side buttons ke liye bhi Premium Bounce
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.85f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
