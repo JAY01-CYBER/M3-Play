@@ -43,90 +43,110 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surfaceContainerHigh
-    val toolbarColor = baseSurface.copy(alpha = 0.85f)
-    val softAccent = rememberSoftAccent(accentColor, baseSurface)
+    [span_6](start_span)[span_7](start_span)// Theme matching logic[span_6](end_span)[span_7](end_span)
+    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
+    val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
+
+    val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
+    val detachedContainerColor = lerp(MaterialTheme.colorScheme.surfaceVariant, accentColor, 0.08f)
+
+    val home = items.firstOrNull { it.route == Screens.Home.route }
+    val library = items.firstOrNull { it.route == Screens.Library.route }
+    val search = items.firstOrNull { it.route == Screens.Search.route }
+    val mood = items.firstOrNull { it.route == Screens.MoodAndGenres.route }
 
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        onMusicRecognitionClick?.let {
+        if (onMusicRecognitionClick != null) {
             DetachedCircleButton(
-                iconRes = R.drawable.music_recognition, // Yeh icon name aapke purane code se liya hai
+                iconRes = R.drawable.mic, 
                 contentDescription = musicRecognitionContentDescription,
-                onClick = it,
-                containerColor = toolbarColor
+                onClick = onMusicRecognitionClick,
+                containerColor = detachedContainerColor
             )
-            Spacer(Modifier.width(12.dp))
         }
 
         Surface(
-            shape = RoundedCornerShape(24.dp), // Thoda aur modern roundness (pill jaisa)
-            color = toolbarColor,
-            tonalElevation = 4.dp,
-            shadowElevation = 8.dp,
-            modifier = Modifier.weight(1f, fill = false)
+            color = mainContainerColor,
+            shape = RoundedCornerShape(32.dp),
+            tonalElevation = 3.dp,
+            shadowElevation = 12.dp,
+            modifier = Modifier.widthIn(max = if (slim) 260.dp else 300.dp),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                items.forEach { screen ->
-                    val selected = isSelected(screen)
-                    BarItem(
-                        screen = screen,
-                        selected = selected,
-                        accentColor = accentColor,
-                        pillColor = softAccent,
-                        onClick = { onItemClick(screen, selected) }
-                    )
+                home?.let {
+                    BarItem(it, isSelected(it), accentColor, softenedAccent) {
+                        onItemClick(it, isSelected(it))
+                    }
+                }
+                library?.let {
+                    BarItem(it, isSelected(it), accentColor, softenedAccent) {
+                        onItemClick(it, isSelected(it))
+                    }
+                }
+                search?.let {
+                    BarItem(it, isSelected(it), accentColor, softenedAccent) {
+                        onItemClick(it, isSelected(it))
+                    }
                 }
             }
         }
 
         if (onShuffleClick != null && shuffleIconRes != null) {
-            Spacer(Modifier.width(12.dp))
             DetachedCircleButton(
                 iconRes = shuffleIconRes,
                 contentDescription = shuffleContentDescription,
                 onClick = onShuffleClick,
-                containerColor = toolbarColor
+                containerColor = detachedContainerColor
+            )
+        }
+
+        mood?.let {
+            DetachedCircleButton(
+                iconRes = it.iconIdActive,
+                contentDescription = stringResource(it.titleId),
+                onClick = { onItemClick(it, isSelected(it)) },
+                containerColor = detachedContainerColor
             )
         }
     }
 }
 
 @Composable
-private fun BarItem(
+private fun RowScope.BarItem(
     screen: Screens,
     selected: Boolean,
     accentColor: Color,
     pillColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // 🌸 Smooth Bounce Animation on Press 🌸
+    [span_8](start_span)[span_9](start_span)// 🌸 Premium Bounce Animation[span_8](end_span)[span_9](end_span)
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
+        targetValue = if (isPressed) 0.88f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
-    // Pill Indicator Color Transition
+    [span_10](start_span)// Pill background color matching theme[span_10](end_span)
     val indicatorColor by animateColorAsState(
         targetValue = if (selected) pillColor.copy(alpha = 0.35f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "indicator"
     )
     
-    // Icon & Text Color Transition
+    [span_11](start_span)// Icon & Text matching theme[span_11](end_span)
     val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         label = "content"
@@ -136,16 +156,16 @@ private fun BarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .weight(1f) // YAHAN FIX HAI: Isse items ek dusre ki jagah nahi lenge aur apni fix jagah par rahenge
+            .weight(1f)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Custom bounce instead of default ripple
+                indication = null, 
                 onClick = onClick
             )
     ) {
-        // ✨ Material 3 Pill Highlight ✨
+        [span_12](start_span)// ✨ Theme-based Pill Highlight[span_12](end_span)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -163,7 +183,7 @@ private fun BarItem(
         
         Spacer(Modifier.height(4.dp))
         
-        // Text Always Visible (No Layout Shift)
+        [span_13](start_span)// Label hamesha visible rahega[span_13](end_span)
         Text(
             text = stringResource(screen.titleId),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
@@ -200,8 +220,8 @@ private fun DetachedCircleButton(
     Surface(
         shape = CircleShape,
         color = containerColor,
-        tonalElevation = 4.dp,
-        shadowElevation = 8.dp,
+        tonalElevation = 3.dp,
+        shadowElevation = 10.dp,
         modifier = Modifier
             .size(54.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
@@ -215,7 +235,7 @@ private fun DetachedCircleButton(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
