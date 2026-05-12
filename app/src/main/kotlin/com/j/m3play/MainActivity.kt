@@ -1215,11 +1215,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 bottomBar = {
                                     Box {
-                                        // 1. EXTRA ICONS FLOATING ABOVE MINI PLAYER
-                                        AnimatedVisibility(
+                                        // 1. EXTRA ICONS FLOATING ABOVE MINI PLAYER (FIXED AnimatedVisibility scope issue)
+                                        FloatingIconsVisibility(
                                             visible = navBackStackEntry?.destination?.route == Screens.Home.route && !active && playerBottomSheetState.isCollapsed,
-                                            enter = fadeIn(),
-                                            exit = fadeOut(),
                                             modifier = Modifier
                                                 .align(Alignment.BottomEnd)
                                                 .padding(
@@ -1578,3 +1576,19 @@ val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { error(
 val LocalPlayerAwareWindowInsets = compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
+
+@Composable
+private fun FloatingIconsVisibility(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(),
+        exit = androidx.compose.animation.fadeOut(),
+        modifier = modifier
+    ) {
+        content()
+    }
+}
