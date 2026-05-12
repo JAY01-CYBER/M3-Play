@@ -32,9 +32,11 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
-    val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
-    val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
+    // FIX: Base color ko 'surfaceVariant' kar diya taaki ye app theme aur baaki buttons se perfect match kare
+    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surfaceVariant
+    
+    // Direct accentColor ke sath blend kar diya jisse proper tint aaye
+    val mainContainerColor = lerp(baseSurface, accentColor, 0.12f)
 
     val home = items.firstOrNull { it.route == Screens.Home.route }
     val library = items.firstOrNull { it.route == Screens.Library.route }
@@ -45,34 +47,33 @@ fun FloatingNavigationToolbar(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-    
+        // 1. Home aur Library ka Mota Pill
         Surface(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 14.dp, 
+            shadowElevation = 14.dp,
             tonalElevation = 6.dp,
         ) {
             Row(
                 modifier = Modifier
                     .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-                    
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
                 }
                 library?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
+                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
                 }
             }
         }
 
         Spacer(Modifier.width(14.dp))
 
-        
+        // 2. Search ka Circular Button
         search?.let {
             Surface(
                 color = mainContainerColor,
@@ -80,13 +81,13 @@ fun FloatingNavigationToolbar(
                 shape = CircleShape,
                 shadowElevation = 14.dp,
                 tonalElevation = 6.dp,
-                modifier = Modifier.size(72.dp) 
+                modifier = Modifier.size(72.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     ExpressiveFloatingNavItem(
                         screen = it,
                         selected = isSelected(it),
-                        accentColor = softenedAccent,
+                        accentColor = accentColor,
                         isDetached = true
                     ) { onItemClick(it, isSelected(it)) }
                 }
@@ -116,8 +117,9 @@ private fun ExpressiveFloatingNavItem(
         label = "scale"
     )
 
+    // Active tab ka background color
     val bg by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.18f) else Color.Transparent,
+        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "bg_color"
     )
@@ -140,10 +142,9 @@ private fun ExpressiveFloatingNavItem(
         Row(
             modifier = Modifier
                 .then(if (!isDetached) Modifier.animateContentSize() else Modifier)
-                
                 .padding(
                     horizontal = if (selected && !isDetached) 20.dp else 16.dp,
-                    vertical = 16.dp 
+                    vertical = 16.dp
                 ),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -151,7 +152,7 @@ private fun ExpressiveFloatingNavItem(
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                 contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(24.dp) 
+                modifier = Modifier.size(24.dp)
             )
 
             if (selected && !isDetached) {
@@ -174,10 +175,4 @@ private fun ExpressiveFloatingNavItem(
             }
         }
     }
-}
-
-@Composable
-private fun rememberSoftAccent(accent: Color, surface: Color): Color {
-    val safe = if (accent.alpha == 0f) MaterialTheme.colorScheme.primary else accent
-    return lerp(surface, safe, 0.7f)
 }
