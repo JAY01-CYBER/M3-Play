@@ -43,7 +43,6 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    [span_6](start_span)[span_7](start_span)// Theme matching logic[span_6](end_span)[span_7](end_span)
     val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
     val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
 
@@ -132,21 +131,18 @@ private fun RowScope.BarItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    [span_8](start_span)[span_9](start_span)// 🌸 Premium Bounce Animation[span_8](end_span)[span_9](end_span)
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.88f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
-    [span_10](start_span)// Pill background color matching theme[span_10](end_span)
     val indicatorColor by animateColorAsState(
         targetValue = if (selected) pillColor.copy(alpha = 0.35f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "indicator"
     )
     
-    [span_11](start_span)// Icon & Text matching theme[span_11](end_span)
     val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
         label = "content"
@@ -165,7 +161,6 @@ private fun RowScope.BarItem(
                 onClick = onClick
             )
     ) {
-        [span_12](start_span)// ✨ Theme-based Pill Highlight[span_12](end_span)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -183,7 +178,6 @@ private fun RowScope.BarItem(
         
         Spacer(Modifier.height(4.dp))
         
-        [span_13](start_span)// Label hamesha visible rahega[span_13](end_span)
         Text(
             text = stringResource(screen.titleId),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
