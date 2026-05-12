@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,10 +32,10 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh
-    val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surface
+    val softenedAccent = rememberSoftAccent(accentColor, baseSurface)
+    val mainContainerColor = lerp(baseSurface, softenedAccent, 0.12f)
 
-    // Screens ko filter kar rahe hain
     val home = items.firstOrNull { it.route == Screens.Home.route }
     val library = items.firstOrNull { it.route == Screens.Library.route }
     val search = items.firstOrNull { it.route == Screens.Search.route }
@@ -44,47 +45,48 @@ fun FloatingNavigationToolbar(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 1. Home aur Library ka Pill
+    
         Surface(
-            color = containerColor,
-            contentColor = contentColor,
+            color = mainContainerColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 12.dp,
-            tonalElevation = 4.dp,
-            modifier = Modifier
-                .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+            shadowElevation = 14.dp, 
+            tonalElevation = 6.dp,
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+                    
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    ExpressiveFloatingNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
                 }
                 library?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    ExpressiveFloatingNavItem(it, isSelected(it), softenedAccent) { onItemClick(it, isSelected(it)) }
                 }
             }
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
 
-        // 2. Search ka Detached Circular Button
+        
         search?.let {
             Surface(
-                color = containerColor,
-                contentColor = contentColor,
+                color = mainContainerColor,
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = CircleShape,
-                shadowElevation = 12.dp,
-                tonalElevation = 4.dp,
-                modifier = Modifier.size(64.dp)
+                shadowElevation = 14.dp,
+                tonalElevation = 6.dp,
+                modifier = Modifier.size(72.dp) 
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     ExpressiveFloatingNavItem(
                         screen = it,
                         selected = isSelected(it),
-                        accentColor = accentColor,
+                        accentColor = softenedAccent,
                         isDetached = true
                     ) { onItemClick(it, isSelected(it)) }
                 }
@@ -104,7 +106,6 @@ private fun ExpressiveFloatingNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Bouncy scale animation
     val scale by animateFloatAsState(
         targetValue = when {
             isPressed -> 0.88f
@@ -116,37 +117,41 @@ private fun ExpressiveFloatingNavItem(
     )
 
     val bg by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.15f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        targetValue = if (selected) accentColor.copy(alpha = 0.18f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "bg_color"
     )
 
     val color by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "content_color"
     )
 
     Surface(
         modifier = Modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(CircleShape)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-            .then(if (!isDetached) Modifier.animateContentSize() else Modifier),
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         shape = CircleShape,
         color = bg,
         contentColor = color,
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = if (selected && !isDetached) 16.dp else 12.dp,
-                vertical = 12.dp
-            ),
+            modifier = Modifier
+                .then(if (!isDetached) Modifier.animateContentSize() else Modifier)
+                
+                .padding(
+                    horizontal = if (selected && !isDetached) 20.dp else 16.dp,
+                    vertical = 16.dp 
+                ),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                 contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp) 
             )
 
             if (selected && !isDetached) {
@@ -156,11 +161,11 @@ private fun ExpressiveFloatingNavItem(
                     exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
                 ) {
                     Row {
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(10.dp))
                         Text(
                             text = stringResource(screen.titleId),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -169,4 +174,10 @@ private fun ExpressiveFloatingNavItem(
             }
         }
     }
+}
+
+@Composable
+private fun rememberSoftAccent(accent: Color, surface: Color): Color {
+    val safe = if (accent.alpha == 0f) MaterialTheme.colorScheme.primary else accent
+    return lerp(surface, safe, 0.7f)
 }
