@@ -265,12 +265,16 @@ fun BottomSheetPlayer(
         }
     val backgroundColor = if (useNewMiniPlayerDesign) {
         if (useBlackBackground && state.value > state.collapsedBound) {
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
+            val bgRange = state.expandedBound - state.collapsedBound
+            val progress = if (bgRange.value != 0f) {
+                ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
+            } else 0f
             Color.Black.copy(alpha = progress)
         } else {
-            val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
-                .coerceIn(0f, 1f)
+            val bgRange = state.expandedBound - state.collapsedBound
+            val progress = if (bgRange.value != 0f) {
+                ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
+            } else 0f
             MaterialTheme.colorScheme.surfaceContainer.copy(alpha = progress)
         }
     } else {
@@ -674,12 +678,18 @@ fun BottomSheetPlayer(
         },
         backgroundColor = when (playerBackground) {
             PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val bgRange = state.expandedBound - state.collapsedBound
+                val progress = if (bgRange.value != 0f) {
+                    ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
+                } else 0f
                 val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
-                val progress = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound)).coerceIn(0f, 1f)
+                val bgRange = state.expandedBound - state.collapsedBound
+                val progress = if (bgRange.value != 0f) {
+                    ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
+                } else 0f
                 val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 if (useBlackBackground) {
                     Color.Black.copy(alpha = 1f - fadeProgress)
@@ -692,22 +702,22 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            // 🔥 YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation
+            // full Player to Mini Player Return Animation
             Box(
                 modifier = Modifier.graphicsLayer {
                     val range = state.expandedBound - state.collapsedBound
-                    val expandProgressRaw = if (range != 0f) {
+                    val expandProgressRaw = if (range.value != 0f) {
                         (state.value - state.collapsedBound) / range
                     } else 0f
-                    // collapseProgress 1 = pura mini player, 0 = pura full player
+                    // collapseProgress 1
                     val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
                     
-                    // Mini player dheere se scale hoke aayega (85% se 100%)
+                    
                     val scale = 0.85f + (0.15f * collapseProgress)
                     scaleX = scale
                     scaleY = scale
                     
-                    // Mini player neeche se slide hoke aayega (100 pixels up)
+                    
                     translationY = (1f - collapseProgress) * 100.dp.toPx()
                     
                     // Fade In
@@ -812,7 +822,10 @@ fun BottomSheetPlayer(
 
         // 🔥 MAGIC HAPPENS HERE: Spring Reveal Animation Progress
         // Note: Using raw progress to allow overshoot physical spring bounce
-        val expandProgressRaw = ((state.value - state.collapsedBound) / (state.expandedBound - state.collapsedBound))
+        val mainRange = state.expandedBound - state.collapsedBound
+        val expandProgressRaw = if (mainRange.value != 0f) {
+            (state.value - state.collapsedBound) / mainRange
+        } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
         when (LocalConfiguration.current.orientation) {
