@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider // <-- Added
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.j.m3play.LocalAnimatedVisibilityScope // <-- Added
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
 import com.j.m3play.constants.PureBlackKey
@@ -101,7 +103,11 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
 ) {
     composable(Screens.Home.route) {
-        HomeScreen(navController)
+        CompositionLocalProvider(
+            LocalAnimatedVisibilityScope provides this@composable
+        ) {
+            HomeScreen(navController)
+        }
     }
     composable(
         Screens.Library.route,
