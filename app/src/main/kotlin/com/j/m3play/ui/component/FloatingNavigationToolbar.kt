@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.j.m3play.R
@@ -53,7 +54,7 @@ fun FloatingNavigationToolbar(
     ) {
         onMusicRecognitionClick?.let {
             DetachedCircleButton(
-                iconRes = R.drawable.music_recognition, // Apne icon ka naam check kar lena
+                iconRes = R.drawable.music_recognition, // Yeh icon name aapke purane code se liya hai
                 contentDescription = musicRecognitionContentDescription,
                 onClick = it,
                 containerColor = toolbarColor
@@ -62,15 +63,17 @@ fun FloatingNavigationToolbar(
         }
 
         Surface(
-            shape = RoundedCornerShape(24.dp), // Thoda modern roundness
+            shape = RoundedCornerShape(24.dp), // Thoda aur modern roundness (pill jaisa)
             color = toolbarColor,
             tonalElevation = 4.dp,
             shadowElevation = 8.dp,
             modifier = Modifier.weight(1f, fill = false)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEach { screen ->
@@ -109,7 +112,7 @@ private fun BarItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Bounce Animation on Press
+    // 🌸 Smooth Bounce Animation on Press 🌸
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.85f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
@@ -133,7 +136,7 @@ private fun BarItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .weight(1f) // Ensures equal spacing between items
+            .weight(1f) // YAHAN FIX HAI: Isse items ek dusre ki jagah nahi lenge aur apni fix jagah par rahenge
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .clip(RoundedCornerShape(16.dp))
             .clickable(
@@ -141,16 +144,14 @@ private fun BarItem(
                 indication = null, // Custom bounce instead of default ripple
                 onClick = onClick
             )
-            .padding(vertical = 6.dp)
     ) {
         // ✨ Material 3 Pill Highlight ✨
-        // Width constant rakhi hai (64dp) taaki select hone par baaki icons hilein nahi
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .height(32.dp)
                 .width(64.dp)
-                .background(indicatorColor, CircleShape) // CircleShape automatically pill bana deta hai
+                .background(indicatorColor, CircleShape)
         ) {
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
@@ -162,12 +163,14 @@ private fun BarItem(
         
         Spacer(Modifier.height(4.dp))
         
-        // Text Always Visible
+        // Text Always Visible (No Layout Shift)
         Text(
             text = stringResource(screen.titleId),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = contentColor
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
