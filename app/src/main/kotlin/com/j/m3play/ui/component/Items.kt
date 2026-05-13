@@ -55,8 +55,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,7 +72,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -96,7 +93,6 @@ import androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
 import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
-import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.j.m3play.innertube.YouTube
@@ -111,7 +107,6 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.GridThumbnailCornerRadius
-import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.GridThumbnailHeight
 import com.j.m3play.constants.ListThumbnailSize
@@ -119,13 +114,11 @@ import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.constants.SwipeToSongKey
 import com.j.m3play.db.entities.Song
 import com.j.m3play.db.entities.Album
-import com.j.m3play.db.entities.AlbumEntity
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.Playlist
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.queues.LocalAlbumRadio
-import com.j.m3play.ui.theme.extractThemeColor
 import com.j.m3play.utils.joinByBullet
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberPreference
@@ -137,19 +130,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.logging.Logger
 import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
-// 🌟 PREMIUM GROUPING SHAPE 🌟
+// 🌟 ORIGINAL VIVI GROUPING SHAPE 🌟
 @Composable
-fun getPremiumGroupedShape(index: Int, size: Int): Shape {
+fun getViviGroupedShape(index: Int, size: Int): Shape {
     return when {
-        size <= 1 -> RoundedCornerShape(16.dp)
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-        else -> RoundedCornerShape(2.dp)
+        size <= 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 }
 
@@ -165,52 +157,33 @@ inline fun ListItem(
     totalSize: Int = -1
 ) {
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp) // Premium spacing
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // 1dp gap jaise ViVi mein hota hai
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .then(modifier)
+            .height(ListItemHeight)
+            .padding(horizontal = 8.dp)
+            .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(shape)
-                // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        )
-                    )
-                )
-                .then(modifier)
-                .fillMaxWidth()
-                .height(ListItemHeight)
-                .padding(horizontal = 12.dp)
-                .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), RoundedCornerShape(12.dp)) else Modifier)
-        ) {
-            Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(
-                    text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                if (subtitle != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
-                }
-            }
-            trailingContent()
-        }
-        if (isGrouped && index < totalSize - 1) {
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 32.dp),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+            Text(
+                text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
             )
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+            }
         }
+        trailingContent()
     }
 }
 
@@ -280,7 +253,6 @@ fun GridItem(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             badges()
-
             subtitle()
         }
     }
@@ -333,15 +305,9 @@ fun SongListItem(
     showInLibraryIcon: Boolean = false,
     showDownloadIcon: Boolean = true,
     badges: @Composable RowScope.() -> Unit = {
-        if (showLikedIcon && song.song.liked) {
-            Icon.Favorite()
-        }
-        if (song.song.explicit) {
-            Icon.Explicit()
-        }
-        if (showInLibraryIcon && song.song.inLibrary != null) {
-            Icon.Library()
-        }
+        if (showLikedIcon && song.song.liked) Icon.Favorite()
+        if (song.song.explicit) Icon.Explicit()
+        if (showInLibraryIcon && song.song.inLibrary != null) Icon.Library()
         if (showDownloadIcon) {
             val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
             Icon.Download(download?.state)
@@ -357,91 +323,72 @@ fun SongListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .then(modifier)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .clip(shape)
-                    // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        )
-                    )
-                    .then(modifier)
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .then(
-                        if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            RoundedCornerShape(12.dp)
-                        ) else Modifier
+            ItemThumbnail(
+                thumbnailUrl = song.song.thumbnailUrl,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.song.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp
                     ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ItemThumbnail(
-                    thumbnailUrl = song.song.thumbnailUrl,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.size(48.dp)
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = song.song.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        ),
-                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    badges()
+
+                    val subtitleText = joinByBullet(
+                        song.artists.joinToString { it.name },
+                        makeTimeString(song.song.duration * 1000L),
+                        viewCountText
                     )
 
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        badges()
-
-                        val subtitleText = joinByBullet(
-                            song.artists.joinToString { it.name },
-                            makeTimeString(song.song.duration * 1000L),
-                            viewCountText
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-
-                        if (!subtitleText.isNullOrEmpty()) {
-                            Text(
-                                text = subtitleText,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
                     }
                 }
-                trailingContent()
             }
-            if (isGrouped && index < totalSize - 1) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 32.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                )
-            }
+            trailingContent()
         }
     }
 
@@ -449,9 +396,7 @@ fun SongListItem(
         SwipeToSongBox(
             mediaItem = song.toMediaItem(),
             modifier = Modifier.fillMaxWidth()
-        ) {
-            content()
-        }
+        ) { content() }
     } else {
         content()
     }
@@ -465,12 +410,8 @@ fun SongGridItem(
     showInLibraryIcon: Boolean = false,
     showDownloadIcon: Boolean = true,
     badges: @Composable RowScope.() -> Unit = {
-        if (showLikedIcon && song.song.liked) {
-            Icon.Favorite()
-        }
-        if (showInLibraryIcon && song.song.inLibrary != null) {
-            Icon.Library()
-        }
+        if (showLikedIcon && song.song.liked) Icon.Favorite()
+        if (showInLibraryIcon && song.song.inLibrary != null) Icon.Library()
         if (showDownloadIcon) {
             val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
             Icon.Download(download?.state)
@@ -511,11 +452,7 @@ fun SongGridItem(
             shape = RoundedCornerShape(GridThumbnailCornerRadius),
             modifier = Modifier.size(GridThumbnailHeight)
         )
-        if (!isActive) {
-            OverlayPlayButton(
-                visible = true
-            )
-        }
+        if (!isActive) OverlayPlayButton(visible = true)
     },
     fillMaxWidth = fillMaxWidth,
     modifier = modifier
@@ -564,9 +501,7 @@ fun ArtistGridItem(
     artist: Artist,
     modifier: Modifier = Modifier,
     badges: @Composable RowScope.() -> Unit = {
-        if (artist.artist.bookmarkedAt != null) {
-            Icon.Favorite()
-        }
+        if (artist.artist.bookmarkedAt != null) Icon.Favorite()
     },
     fillMaxWidth: Boolean = false,
 ) = GridItem(
@@ -595,19 +530,13 @@ fun AlbumListItem(
     badges: @Composable RowScope.() -> Unit = {
         val database = LocalDatabase.current
         val downloadUtil = LocalDownloadUtil.current
-        var songs by remember {
-            mutableStateOf(emptyList<Song>())
-        }
+        var songs by remember { mutableStateOf(emptyList<Song>()) }
 
         LaunchedEffect(Unit) {
-            database.albumSongs(album.id).collect {
-                songs = it
-            }
+            database.albumSongs(album.id).collect { songs = it }
         }
 
-        var downloadState by remember {
-             mutableStateOf(Download.STATE_STOPPED)
-        }
+        var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
 
         LaunchedEffect(songs) {
             if (songs.isEmpty()) return@LaunchedEffect
@@ -620,12 +549,8 @@ fun AlbumListItem(
             }
         }
 
-        if (showLikedIcon && album.album.bookmarkedAt != null) {
-            Icon.Favorite()
-        }
-        if (album.album.explicit) {
-            Icon.Explicit()
-        }
+        if (showLikedIcon && album.album.bookmarkedAt != null) Icon.Favorite()
+        if (album.album.explicit) Icon.Explicit()
         Icon.Download(downloadState)
     },
     isActive: Boolean = false,
@@ -684,12 +609,8 @@ fun AlbumGridItem(
             }
         }
 
-        if (album.album.bookmarkedAt != null) {
-            Icon.Favorite()
-        }
-        if (album.album.explicit) {
-            Icon.Explicit()
-        }
+        if (album.album.bookmarkedAt != null) Icon.Favorite()
+        if (album.album.explicit) Icon.Explicit()
         Icon.Download(downloadState)
     },
     isActive: Boolean = false,
@@ -757,17 +678,9 @@ fun PlaylistListItem(
         ""
     } else {
         if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
-            pluralStringResource(
-                R.plurals.n_song,
-                playlist.playlist.remoteSongCount,
-                playlist.playlist.remoteSongCount
-            )
+            pluralStringResource(R.plurals.n_song, playlist.playlist.remoteSongCount, playlist.playlist.remoteSongCount)
         } else {
-            pluralStringResource(
-                R.plurals.n_song,
-                playlist.songCount,
-                playlist.songCount
-            )
+            pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount)
         }
     },
     badges = badges,
@@ -1067,92 +980,73 @@ fun YouTubeListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        Column(modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .then(modifier)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .clip(shape)
-                    // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        )
-                    )
-                    .then(modifier)
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .then(
-                        if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                            RoundedCornerShape(12.dp)
-                        ) else Modifier
+            ItemThumbnail(
+                thumbnailUrl = item.thumbnail,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp
                     ),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ItemThumbnail(
-                    thumbnailUrl = item.thumbnail,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
-                    modifier = Modifier.size(48.dp)
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        ),
-                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    badges()
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    val subtitleText = when (item) {
+                        is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
+                        is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
+                        is ArtistItem -> null
+                        is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+                    }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        badges()
-
-                        val subtitleText = when (item) {
-                            is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
-                            is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
-                            is ArtistItem -> null
-                            is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
-                        }
-
-                        if (!subtitleText.isNullOrEmpty()) {
-                            Text(
-                                text = subtitleText,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
-                trailingContent()
             }
-            if (isGrouped && index < totalSize - 1) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 32.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                )
-            }
+            trailingContent()
         }
     }
 
@@ -1160,9 +1054,7 @@ fun YouTubeListItem(
         SwipeToSongBox(
             mediaItem = item.toMediaItem(),
             modifier = Modifier.fillMaxWidth()
-        ) {
-            content()
-        }
+        ) { content() }
     } else {
         content()
     }
