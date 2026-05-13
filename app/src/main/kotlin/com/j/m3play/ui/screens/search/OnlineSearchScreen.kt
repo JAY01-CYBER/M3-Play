@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -123,41 +113,6 @@ fun OnlineSearchScreen(
                 onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
                 pureBlack = pureBlack
             )
-        }
-
-        if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
-            item(key = "history_suggestion_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
-        }
-
-        // --- Suggestions Section ---
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_header") {
-                Text(
-                    text = stringResource(R.string.suggestions),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { index, query ->
-            SuggestionItem(
-                query = query,
-                online = true,
-                shape = getGroupedSuggestionShape(index, viewState.suggestions.size),
-                onClick = {
-                    onSearch(query)
-                    onDismiss()
-                },
-                onFillTextField = { onQueryChange(TextFieldValue(query, TextRange(query.length))) },
-                pureBlack = pureBlack
-            )
-        }
-
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_bottom_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
         }
 
         // --- Top Results Section ---
@@ -283,7 +238,7 @@ fun SuggestionItem(
 }
 
 @Composable
-private fun getGroupedSuggestionShape(index: Int, size: Int): Shape {
+fun getGroupedSuggestionShape(index: Int, size: Int): Shape {
     return when {
         size == 1 -> RoundedCornerShape(16.dp)
         index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
