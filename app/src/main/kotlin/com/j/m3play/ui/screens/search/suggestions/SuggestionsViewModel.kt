@@ -18,6 +18,7 @@ import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.playback.PlayerConnection
 import com.j.m3play.playback.queues.YouTubeQueue
 import androidx.navigation.NavController
+import com.j.m3play.models.toMediaMetadata // FIX: Added missing import
 
 @HiltViewModel
 class SuggestionsViewModel @Inject constructor() : ViewModel() {
@@ -42,25 +43,18 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
     val isManualLoading: StateFlow<Boolean> = _isManualLoading
 
     fun refresh(countryCode: String = "in", force: Boolean = false) {
-        val resolvedCode = if (countryCode == "system") {
-            java.util.Locale.getDefault().country.lowercase()
-        } else {
-            countryCode.lowercase()
-        }
-
+        val resolvedCode = if (countryCode == "system") java.util.Locale.getDefault().country.lowercase() else countryCode.lowercase()
         if (_isLoading.value && !force && currentLoadedRegion == resolvedCode) return
         
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             if (force) _isManualLoading.value = true
-            
             if (currentLoadedRegion != resolvedCode || force) {
                 _suggestionTracks.value = null
                 _suggestionArtists.value = null
                 _suggestionAlbums.value = null
                 _suggestionVideos.value = null
             }
-
             try {
                 coroutineScope {
                     launch {
@@ -100,17 +94,9 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
             val query = "${track.title} ${track.artist}"
             YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).onSuccess { searchResult ->
                 val songs = searchResult.items.filterIsInstance<SongItem>()
-                val bestMatch = songs.firstOrNull { s ->
-                    s.title.equals(track.title, ignoreCase = true) &&
-                    s.artists.any { a -> track.artist.contains(a.name, ignoreCase = true) }
-                } ?: songs.firstOrNull { s ->
-                    s.artists.any { a -> track.artist.contains(a.name, ignoreCase = true) }
-                } ?: songs.firstOrNull()
-
+                val bestMatch = songs.firstOrNull { s -> s.title.equals(track.title, ignoreCase = true) && s.artists.any { a -> track.artist.contains(a.name, ignoreCase = true) } } ?: songs.firstOrNull { s -> s.artists.any { a -> track.artist.contains(a.name, ignoreCase = true) } } ?: songs.firstOrNull()
                 if (bestMatch != null) {
-                    withContext(Dispatchers.Main) {
-                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = bestMatch.id), bestMatch.toMediaMetadata()))
-                    }
+                    withContext(Dispatchers.Main) { playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = bestMatch.id), bestMatch.toMediaMetadata())) }
                 }
             }
         }
@@ -120,9 +106,7 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.search(artist.name, YouTube.SearchFilter.FILTER_ARTIST).onSuccess { searchResult ->
                 val firstArtist = searchResult.items.filterIsInstance<ArtistItem>().firstOrNull()
-                if (firstArtist != null) {
-                    withContext(Dispatchers.Main) { navController.navigate("artist/${firstArtist.id}") }
-                }
+                if (firstArtist != null) withContext(Dispatchers.Main) { navController.navigate("artist/${firstArtist.id}") }
             }
         }
     }
@@ -132,9 +116,7 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
             val query = "${album.title} ${album.artist}"
             YouTube.search(query, YouTube.SearchFilter.FILTER_ALBUM).onSuccess { searchResult ->
                 val firstAlbum = searchResult.items.filterIsInstance<com.j.m3play.innertube.models.AlbumItem>().firstOrNull()
-                if (firstAlbum != null) {
-                    withContext(Dispatchers.Main) { navController.navigate("album/${firstAlbum.id}") }
-                }
+                if (firstAlbum != null) withContext(Dispatchers.Main) { navController.navigate("album/${firstAlbum.id}") }
             }
         }
     }
@@ -146,9 +128,7 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
                 val songs = searchResult.items.filterIsInstance<SongItem>()
                 val bestMatch = songs.firstOrNull { s -> s.title.equals(video.title, ignoreCase = true) } ?: songs.firstOrNull()
                 if (bestMatch != null) {
-                    withContext(Dispatchers.Main) {
-                        playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = bestMatch.id), bestMatch.toMediaMetadata()))
-                    }
+                    withContext(Dispatchers.Main) { playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = bestMatch.id), bestMatch.toMediaMetadata())) }
                 }
             }
         }
