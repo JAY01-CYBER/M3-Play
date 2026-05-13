@@ -23,7 +23,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +41,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue // <--- FIXED: Import Added
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,7 +56,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.*
 import com.j.m3play.db.entities.SearchHistory
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.screens.search.suggestions.SuggestionsTabContent
@@ -168,9 +167,9 @@ fun SearchScreen(
                             }
                         }
                     ) {
-                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") })
-                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") })
-                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Albums") })
+                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Albums") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -181,6 +180,7 @@ fun SearchScreen(
             if (!searchActive) {
                 val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
                 val tabPadding = PaddingValues(bottom = bottomPadding + 80.dp)
+                
                 when (selectedTabIndex) {
                     0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
                     1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
@@ -202,6 +202,9 @@ fun SearchScreen(
     }
 }
 
+// -----------------------------------------------------------------
+// EXPLORE TAB (FIXED: Uses LazyVerticalGrid correctly for Items)
+// -----------------------------------------------------------------
 @Composable
 fun ExploreTabContent(
     navController: NavController, 
@@ -215,44 +218,44 @@ fun ExploreTabContent(
             CircularProgressIndicator() 
         } 
     } else {
-        // FIXED: Using LazyVerticalGrid correctly maps item types for compiler
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = contentPadding,
+            contentPadding = PaddingValues(
+                start = 6.dp, 
+                top = 12.dp, 
+                end = 6.dp, 
+                bottom = 12.dp + contentPadding.calculateBottomPadding()
+            ),
             modifier = Modifier.fillMaxSize()
         ) {
-            moodAndGenresList?.forEach { section ->
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    NavigationTitle(title = section.title)
-                }
-                
-                items(section.items) { item ->
-                    Box(
-                        contentAlignment = Alignment.CenterStart, 
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .height(64.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable { 
-                                navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
-                            }
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Text(
-                            text = item.title, 
-                            style = MaterialTheme.typography.labelLarge, 
-                            maxLines = 2, 
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+            items(items = moodAndGenresList!!) { item ->
+                Box(
+                    contentAlignment = Alignment.CenterStart, 
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .height(64.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .clickable { 
+                            navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
+                        }
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        text = item.title, 
+                        style = MaterialTheme.typography.labelLarge, 
+                        maxLines = 2, 
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
-            item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
 
+// -----------------------------------------------------------------
+// ALBUMS TAB
+// -----------------------------------------------------------------
 @Composable
 fun AlbumsTabContent(
     navController: NavController, 
