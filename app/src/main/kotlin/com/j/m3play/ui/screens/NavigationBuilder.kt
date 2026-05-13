@@ -68,7 +68,7 @@ import com.j.m3play.ui.screens.playlist.OnlinePlaylistScreen
 import com.j.m3play.ui.screens.playlist.TopPlaylistScreen
 import com.j.m3play.ui.screens.playlist.CachePlaylistScreen
 import com.j.m3play.ui.screens.search.OnlineSearchResult
-import com.j.m3play.ui.screens.search.SearchScreen // <-- Added SearchScreen
+import com.j.m3play.ui.screens.search.SearchScreen
 import com.j.m3play.ui.screens.settings.AboutScreen
 import com.j.m3play.ui.screens.settings.AccountSettings
 import com.j.m3play.ui.screens.settings.AppearanceSettings
@@ -115,10 +115,19 @@ fun NavGraphBuilder.navigationBuilder(
     ) {
         LibraryScreen(navController)
     }
-    // ADDED VIVI SEARCH SCREEN HERE
+    
+    // ----------------------------------------------------
+    // FIXED: Passed pureBlack to SearchScreen
+    // ----------------------------------------------------
     composable(Screens.Search.route) {
-        SearchScreen(navController)
+        val (pureBlackEnabled) = rememberPreference(PureBlackKey, defaultValue = false)
+        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+        val isSystemInDarkTheme = isSystemInDarkTheme()
+        val pureBlack = pureBlackEnabled && (if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON)
+        
+        SearchScreen(navController = navController, pureBlack = pureBlack)
     }
+    
     composable("history") {
         HistoryScreen(navController)
     }
@@ -186,7 +195,15 @@ fun NavGraphBuilder.navigationBuilder(
             fadeOut(tween(200))
         },
     ) {
-        OnlineSearchResult(navController)
+        // ----------------------------------------------------
+        // FIXED: Passed pureBlack to OnlineSearchResult
+        // ----------------------------------------------------
+        val (pureBlackEnabled) = rememberPreference(PureBlackKey, defaultValue = false)
+        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+        val isSystemInDarkTheme = isSystemInDarkTheme()
+        val pureBlack = pureBlackEnabled && (if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON)
+        
+        OnlineSearchResult(navController = navController, pureBlack = pureBlack)
     }
     composable(
         route = "album/{albumId}",
