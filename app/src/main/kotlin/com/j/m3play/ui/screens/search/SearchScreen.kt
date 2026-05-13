@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.animation.AnimatedVisibility
@@ -42,6 +52,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalIsPlayerExpanded
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -56,6 +67,7 @@ import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.ExploreViewModel
 import com.j.m3play.viewmodels.MoodAndGenresViewModel
+import com.j.m3play.innertube.pages.MoodAndGenres // Added for type casting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -219,8 +231,12 @@ fun ExploreTabContent(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .clickable { 
-                                    // FIXED: Using variables directly from your MoodAndGenresViewModel logic
-                                    navController.navigate("youtube_browse/${item.browseId}?params=${item.params}") 
+                                    // SMART CAST: Explicitly tell Kotlin this is a MoodAndGenres.Item
+                                    val browseId = (item as? MoodAndGenres.Item)?.browseId
+                                    val params = (item as? MoodAndGenres.Item)?.params
+                                    if (browseId != null) {
+                                        navController.navigate("youtube_browse/$browseId?params=$params") 
+                                    }
                                 }
                                 .padding(horizontal = 16.dp)
                         ) {
@@ -245,7 +261,7 @@ fun AlbumsTabContent(
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current
     val mediaMetadata by (playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) })
-    val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
+    val isPlaying by (playerConnection?.isEffectivelyPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
     val coroutineScope = rememberCoroutineScope()
     
     val explorePage by viewModel.explorePage.collectAsState()
