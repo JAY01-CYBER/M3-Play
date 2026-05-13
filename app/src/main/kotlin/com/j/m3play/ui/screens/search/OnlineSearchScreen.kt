@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -7,7 +17,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -42,7 +51,7 @@ import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.menu.*
 import com.j.m3play.viewmodels.OnlineSearchSuggestionViewModel
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -72,22 +81,26 @@ fun OnlineSearchScreen(
     LaunchedEffect(Unit) {
         snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
             .drop(1)
-            .collect { keyboardController?.hide() }
+            .collect {
+                keyboardController?.hide()
+            }
     }
 
-    LaunchedEffect(query) { viewModel.query.value = query }
+    LaunchedEffect(query) {
+        viewModel.query.value = query
+    }
 
     LazyColumn(
         state = lazyListState,
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp 
+            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
         ),
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // --- Search History Section ---
+        // --- History Section ---
         if (viewState.history.isNotEmpty()) {
             item(key = "history_header") {
                 Row(
@@ -101,20 +114,27 @@ fun OnlineSearchScreen(
             }
         }
 
-        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { _, history ->
+        items(viewState.history, key = { "history_${it.query}" }) { history ->
             SuggestionItem(
                 query = history.query,
                 online = false,
-                onClick = { onSearch(history.query); onDismiss() },
-                onDelete = { database.query { delete(history) } },
-                onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
+                onClick = {
+                    onSearch(history.query)
+                    onDismiss()
+                },
+                onDelete = {
+                    database.query { delete(history) }
+                },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(history.query, TextRange(history.query.length)))
+                },
                 modifier = Modifier.animateItem(),
                 pureBlack = pureBlack
             )
         }
 
         if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
-            item(key = "history_suggestion_spacer") { Spacer(modifier = Modifier.height(16.dp).animateItem()) }
+            item { Spacer(modifier = Modifier.height(16.dp).animateItem()) }
         }
 
         // --- Suggestions Section ---
@@ -131,18 +151,94 @@ fun OnlineSearchScreen(
             }
         }
 
-        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { _, query ->
+        items(viewState.suggestions, key = { "suggestion_$it" }) { query ->
             SuggestionItem(
                 query = query,
                 online = true,
-                onClick = { onSearch(query); onDismiss() },
-                onFillTextField = { onQueryChange(TextFieldValue(query, TextRange(query.length))) },
+                onClick = {
+                    onSearch(query)
+                    onDismiss()
+                },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(query, TextRange(query.length)))
+                },
                 modifier = Modifier.animateItem(),
                 pureBlack = pureBlack
             )
         }
-        
-        // ... (Keep your existing Top Results logic here for viewState.items)
+
+        // --- Top Results Section ---
+        if (viewState.items.isNotEmpty() && viewState.history.size + viewState.suggestions.size > 0) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).animateItem()
+                ) {
+                    Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
+                    Spacer(Modifier.width(10.dp))
+                    Text(text = stringResource(R.string.top_results), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        items(viewState.items.distinctBy { it.id }, key = { "item_${it.id}" }) { item ->
+            YouTubeListItem(
+                item = item,
+                isActive = when (item) {
+                    is SongItem -> mediaMetadata?.id == item.id
+                    is AlbumItem -> mediaMetadata?.album?.id == item.id
+                    else -> false
+                },
+                isPlaying = isPlaying,
+                trailingContent = {
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                when (item) {
+                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
+                    }
+                },
+                modifier = Modifier
+                    .combinedClickable(
+                        onClick = {
+                            when (item) {
+                                is SongItem -> {
+                                    if (item.id == mediaMetadata?.id) {
+                                        playerConnection.player.togglePlayPause()
+                                    } else {
+                                        playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
+                                        onDismiss()
+                                    }
+                                }
+                                is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
+                                is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
+                                is PlaylistItem -> { navController.navigate("online_playlist/${item.id}"); onDismiss() }
+                            }
+                        },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show {
+                                when (item) {
+                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = { menuState.dismiss(); onDismiss() })
+                                }
+                            }
+                        }
+                    )
+                    .animateItem()
+            )
+        }
     }
 }
 
@@ -164,20 +260,20 @@ fun SuggestionItem(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
     ) {
-        
+        // ViVi style surfaced icon container
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(42.dp)
                 .background(
-                    color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant,
+                    color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(12.dp)
                 )
         ) {
             Icon(
                 painterResource(if (online) R.drawable.search else R.drawable.history),
                 contentDescription = null,
-                tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
         }
