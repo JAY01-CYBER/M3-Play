@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.extensions.togglePlayPause
@@ -83,60 +85,99 @@ fun OnlineSearchScreen(
             .collect { keyboardController?.hide() }
     }
 
-    LaunchedEffect(query) { viewModel.query.value = query }
+    LaunchedEffect(query) {
+        viewModel.query.value = query
+    }
 
     LazyColumn(
         state = lazyListState,
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp 
+            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
         ),
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // --- Search History Section ---
+        // --- History Section ---
         if (viewState.history.isNotEmpty()) {
             item(key = "history_header") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Text(
+                    text = stringResource(R.string.search_history),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                ) {
-                    Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                    Spacer(Modifier.width(10.dp))
-                    Text(text = stringResource(R.string.search_history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
+                )
             }
         }
 
-        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { _, history ->
+        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { index, history ->
             SuggestionItem(
                 query = history.query,
                 online = false,
-                onClick = { onSearch(history.query); onDismiss() },
+                shape = getGroupedShape(index, viewState.history.size),
+                onClick = {
+                    onSearch(history.query)
+                    onDismiss()
+                },
                 onDelete = { database.query { delete(history) } },
                 onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
-                modifier = Modifier.animateItem(),
                 pureBlack = pureBlack
             )
         }
 
-        // --- Top Results Section ---
-        if (viewState.items.isNotEmpty() && viewState.history.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                ) {
-                    Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                    Spacer(Modifier.width(10.dp))
-                    Text(text = stringResource(R.string.top_results), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
+            item(key = "history_suggestion_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+
+        // --- Suggestions Section ---
+        if (viewState.suggestions.isNotEmpty()) {
+            item(key = "suggestions_header") {
+                Text(
+                    text = stringResource(R.string.suggestions),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+                )
             }
         }
 
-        itemsIndexed(viewState.items.distinctBy { it.id }, key = { _, it -> "item_${it.id}" }) { _, item ->
+        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { index, query ->
+            SuggestionItem(
+                query = query,
+                online = true,
+                shape = getGroupedShape(index, viewState.suggestions.size),
+                onClick = {
+                    onSearch(query)
+                    onDismiss()
+                },
+                onFillTextField = { onQueryChange(TextFieldValue(query, TextRange(query.length))) },
+                pureBlack = pureBlack
+            )
+        }
+
+        if (viewState.suggestions.isNotEmpty()) {
+            item(key = "suggestions_bottom_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
+        }
+
+        // --- Top Results Section ---
+        if (viewState.items.isNotEmpty()) {
+            item(key = "search_divider") {
+                Text(
+                    text = stringResource(R.string.top_results),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
+                )
+            }
+            item(key = "search_divider_spacer") { Spacer(modifier = Modifier.height(8.dp)) }
+        }
+
+        itemsIndexed(viewState.items.distinctBy { it.id }, key = { _, it -> "item_${it.id}" }) { index, item ->
+            val shape = getGroupedShape(index, viewState.items.distinctBy { it.id }.size)
             YouTubeListItem(
                 item = item,
                 isActive = when (item) {
@@ -157,21 +198,18 @@ fun OnlineSearchScreen(
                                 }
                             }
                         }
-                    ) {
-                        Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-                    }
+                    ) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
                 },
                 modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 1.dp)
+                    .clip(shape)
+                    .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                     .combinedClickable(
                         onClick = {
                             when (item) {
                                 is SongItem -> {
-                                    if (item.id == mediaMetadata?.id) {
-                                        playerConnection.player.togglePlayPause()
-                                    } else {
-                                        playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata()))
-                                        onDismiss()
-                                    }
+                                    if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else { playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())); onDismiss() }
                                 }
                                 is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
                                 is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
@@ -190,7 +228,6 @@ fun OnlineSearchScreen(
                             }
                         }
                     )
-                    .animateItem()
             )
         }
     }
@@ -201,6 +238,7 @@ fun SuggestionItem(
     modifier: Modifier = Modifier,
     query: String,
     online: Boolean,
+    shape: Shape,
     onClick: () -> Unit,
     onDelete: () -> Unit = {},
     onFillTextField: () -> Unit,
@@ -209,29 +247,20 @@ fun SuggestionItem(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 1.dp)
             .fillMaxWidth()
+            .height(56.dp) // Exact Vivi Height
+            .clip(shape)
+            .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(42.dp)
-                .background(
-                    color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(12.dp)
-                )
-        ) {
-            Icon(
-                painterResource(if (online) R.drawable.search else R.drawable.history),
-                contentDescription = null,
-                tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(Modifier.width(14.dp))
+        Icon(
+            painterResource(if (online) R.drawable.search else R.drawable.history),
+            contentDescription = null,
+            modifier = Modifier.padding(horizontal = 16.dp).alpha(0.5f),
+            tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+        )
 
         Text(
             text = query,
@@ -243,13 +272,24 @@ fun SuggestionItem(
         )
 
         if (!online) {
-            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.6f)) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null, modifier = Modifier.size(20.dp))
+            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.5f)) {
+                Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
-        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.6f)) {
-            Icon(painter = painterResource(R.drawable.arrow_top_left), contentDescription = null, modifier = Modifier.size(20.dp))
+        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.5f)) {
+            Icon(painter = painterResource(R.drawable.arrow_top_left), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+// Function to handle Vivi-style grouped rounded corners
+@Composable
+fun getGroupedShape(index: Int, size: Int): Shape {
+    return when {
+        size == 1 -> RoundedCornerShape(16.dp)
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 }
