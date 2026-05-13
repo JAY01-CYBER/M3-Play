@@ -55,6 +55,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider // Added for premium grouping
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
@@ -141,31 +142,60 @@ import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
+// 🌟 PREMIUM GROUPING SHAPE 🌟
 @Composable
-inline fun ListItem(
+fun getPremiumGroupedShape(index: Int, size: Int): Shape {
+    return when {
+        size <= 1 -> RoundedCornerShape(24.dp)
+        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+        else -> RoundedCornerShape(2.dp)
+    }
+}
+
+@Composable
+fun ListItem(
     modifier: Modifier = Modifier,
     title: String,
-    noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
+    subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    isActive: Boolean = false
+    isActive: Boolean = false,
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .height(ListItemHeight)
-            .padding(horizontal = 8.dp)
-            .then(if (isActive) Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.secondaryContainer) else Modifier)
-    ) {
-        Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
-            Text(
-                text = title, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            if (subtitle != null) Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
+                .padding(horizontal = if (shape != null) 16.dp else 8.dp)
+                .height(ListItemHeight)
+                .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
+        ) {
+            Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+            Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+                Text(
+                    text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                if (subtitle != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) { subtitle() }
+                }
+            }
+            trailingContent()
         }
-        trailingContent()
+        if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 32.dp),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+            )
+        }
     }
 }
 
@@ -177,7 +207,9 @@ fun ListItem(
     badges: @Composable RowScope.() -> Unit = {},
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    isActive: Boolean = false
+    isActive: Boolean = false,
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = title,
     modifier = modifier,
@@ -189,7 +221,9 @@ fun ListItem(
         }
     },
     thumbnailContent = thumbnailContent,
-    trailingContent = trailingContent
+    trailingContent = trailingContent,
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -304,77 +338,83 @@ fun SongListItem(
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
 
     val content: @Composable () -> Unit = {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp) // Premium spacing
-                .then(
-                    if (isActive) Modifier.background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        RoundedCornerShape(8.dp)
-                    ) else Modifier
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 1. Album Art (Rounded Square with Play Indicator)
-            ItemThumbnail(
-                thumbnailUrl = song.song.thumbnailUrl,
-                albumIndex = albumIndex,
-                isSelected = isSelected,
-                isActive = isActive,
-                isPlaying = isPlaying,
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.size(48.dp)
-            )
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // 2. Texts and Icons (Stacked vertically)
-            Column(modifier = Modifier.weight(1f)) {
-                // Title
-                Text(
-                    text = song.song.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
+        Column(modifier = modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .then(
+                        if (isActive) Modifier.background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            RoundedCornerShape(8.dp)
+                        ) else Modifier
                     ),
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ItemThumbnail(
+                    thumbnailUrl = song.song.thumbnailUrl,
+                    albumIndex = albumIndex,
+                    isSelected = isSelected,
+                    isActive = isActive,
+                    isPlaying = isPlaying,
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.size(48.dp)
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-                // Subtitle Row (Heart -> Check -> Artist • Time)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    
-                    // Automatically renders your Red Heart, Explicit 'E', and Download Checkbox
-                    badges()
-
-                    val subtitleText = joinByBullet(
-                        song.artists.joinToString { it.name },
-                        makeTimeString(song.song.duration * 1000L),
-                        viewCountText
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = song.song.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        ),
+                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    if (!subtitleText.isNullOrEmpty()) {
-                        Text(
-                            text = subtitleText,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        badges()
+
+                        val subtitleText = joinByBullet(
+                            song.artists.joinToString { it.name },
+                            makeTimeString(song.song.duration * 1000L),
+                            viewCountText
                         )
+
+                        if (!subtitleText.isNullOrEmpty()) {
+                            Text(
+                                text = subtitleText,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
-            }
 
-            // 3. Three Dots / Custom Trailing Content
-            trailingContent()
+                trailingContent()
+            }
+            if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                )
+            }
         }
     }
 
@@ -471,6 +511,8 @@ fun ArtistListItem(
         }
     },
     trailingContent: @Composable RowScope.() -> Unit = {},
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = artist.artist.name,
     subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
@@ -486,6 +528,8 @@ fun ArtistListItem(
     },
     trailingContent = trailingContent,
     modifier = modifier,
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -535,7 +579,7 @@ fun AlbumListItem(
         }
 
         var downloadState by remember {
-            mutableStateOf(Download.STATE_STOPPED)
+             mutableStateOf(Download.STATE_STOPPED)
         }
 
         LaunchedEffect(songs) {
@@ -560,6 +604,8 @@ fun AlbumListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = album.album.title,
     subtitle = joinByBullet(
@@ -578,7 +624,10 @@ fun AlbumListItem(
         )
     },
     trailingContent = trailingContent,
-    modifier = modifier
+    modifier = modifier,
+    isActive = isActive,
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -672,7 +721,9 @@ fun PlaylistListItem(
     modifier: Modifier = Modifier,
     autoPlaylist: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {},
-    trailingContent: @Composable RowScope.() -> Unit = {}
+    trailingContent: @Composable RowScope.() -> Unit = {},
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = playlist.playlist.name,
     subtitle = if (autoPlaylist) {
@@ -715,7 +766,9 @@ fun PlaylistListItem(
         )
     },
     trailingContent = trailingContent,
-    modifier = modifier
+    modifier = modifier,
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -922,6 +975,8 @@ fun MediaMetadataListItem(
     isPlaying: Boolean = false,
     shouldLoadImage: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     ListItem(
         title = mediaMetadata.title,
@@ -943,7 +998,9 @@ fun MediaMetadataListItem(
         },
         trailingContent = trailingContent,
         modifier = modifier,
-        isActive = isActive
+        isActive = isActive,
+        index = index,
+        totalSize = totalSize
     )
 }
 
@@ -978,70 +1035,83 @@ fun YouTubeListItem(
             Icon.Download(downloads[item.id]?.state)
         }
     },
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
 
     val content: @Composable () -> Unit = {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp) // Premium spacing
-                .then(
-                    if (isActive) Modifier.background(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        RoundedCornerShape(8.dp)
-                    ) else Modifier
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ItemThumbnail(
-                thumbnailUrl = item.thumbnail,
-                albumIndex = albumIndex,
-                isSelected = isSelected,
-                isActive = isActive,
-                isPlaying = isPlaying,
-                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
-                modifier = Modifier.size(48.dp)
-            )
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
+        Column(modifier = modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .then(
+                        if (isActive) Modifier.background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            RoundedCornerShape(8.dp)
+                        ) else Modifier
                     ),
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ItemThumbnail(
+                    thumbnailUrl = item.thumbnail,
+                    albumIndex = albumIndex,
+                    isSelected = isSelected,
+                    isActive = isActive,
+                    isPlaying = isPlaying,
+                    shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
+                    modifier = Modifier.size(48.dp)
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    badges()
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp
+                        ),
+                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                    val subtitleText = when (item) {
-                        is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
-                        is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
-                        is ArtistItem -> null
-                        is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                    if (!subtitleText.isNullOrEmpty()) {
-                        Text(
-                            text = subtitleText,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        badges()
+
+                        val subtitleText = when (item) {
+                            is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
+                            is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
+                            is ArtistItem -> null
+                            is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+                        }
+
+                        if (!subtitleText.isNullOrEmpty()) {
+                            Text(
+                                text = subtitleText,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
+                trailingContent()
             }
-            trailingContent()
+            if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                )
+            }
         }
     }
 
