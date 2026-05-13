@@ -60,13 +60,13 @@ import com.j.m3play.db.entities.SearchHistory
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.YouTubeGridItem
-import com.j.m3play.ui.component.CircularWavyProgressIndicator
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.screens.search.suggestions.SuggestionsTabContent
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.ExploreViewModel
 import com.j.m3play.viewmodels.MoodAndGenresViewModel
+import com.j.m3play.innertube.pages.MoodAndGenres // Import for casting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -88,7 +88,7 @@ fun SearchScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
     
-    var selectedTabIndex by rememberSaveable { mutableStateOf(1) } // Default: Suggestions
+    var selectedTabIndex by rememberSaveable { mutableStateOf(1) } 
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
 
@@ -171,9 +171,9 @@ fun SearchScreen(
                             }
                         }
                     ) {
-                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text(stringResource(R.string.tab_explore)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text(stringResource(R.string.tab_Suggestions)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text(stringResource(R.string.tab_album)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") })
+                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") })
+                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Albums") })
                     }
                 }
             }
@@ -212,15 +212,14 @@ fun ExploreTabContent(
     viewModel: MoodAndGenresViewModel = hiltViewModel(), 
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-    [span_8](start_span)val moodAndGenresList by viewModel.moodAndGenres.collectAsState() //[span_8](end_span)
+    val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
     
     if (moodAndGenresList == null) { 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularWavyProgressIndicator() 
+            CircularProgressIndicator() 
         } 
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            [span_9](start_span)// Hum section define nahi kar rahe kyunki ViewModel direct items de raha hai[span_9](end_span)
             val rows = moodAndGenresList!!.chunked(2)
             items(rows) { row ->
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
@@ -233,7 +232,12 @@ fun ExploreTabContent(
                                 .height(64.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                [span_10](start_span).clickable { navController.navigate("youtube_browse/${item.browseId}?params=${item.params}") } //[span_10](end_span)
+                                .clickable { 
+                                    // FIXED: Proper casting to access M3-Play model fields
+                                    val browseId = (item as? MoodAndGenres.Item)?.browseId
+                                    val params = (item as? MoodAndGenres.Item)?.params
+                                    navController.navigate("youtube_browse/$browseId?params=$params") 
+                                }
                                 .padding(horizontal = 16.dp)
                         ) {
                             Text(text = item.title, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -260,13 +264,13 @@ fun AlbumsTabContent(
     val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
     val coroutineScope = rememberCoroutineScope()
     
-    [span_11](start_span)val explorePage by viewModel.explorePage.collectAsState() //[span_11](end_span)
-    [span_12](start_span)val newReleaseAlbums = explorePage?.newReleaseAlbums //[span_12](end_span)
+    val explorePage by viewModel.explorePage.collectAsState()
+    val newReleaseAlbums = explorePage?.newReleaseAlbums
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
     if (newReleaseAlbums == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularWavyProgressIndicator() 
+            CircularProgressIndicator() 
         }
     } else {
         LazyVerticalGrid(
@@ -279,7 +283,8 @@ fun AlbumsTabContent(
             ),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(items = newReleaseAlbums!!, key = { it.id }) { album ->
+            // FIXED: Using standard items() instead of experimental ones
+            items(newReleaseAlbums, key = { it.id }) { album ->
                 YouTubeGridItem(
                     item = album, 
                     isActive = mediaMetadata?.album?.id == album.id, 
