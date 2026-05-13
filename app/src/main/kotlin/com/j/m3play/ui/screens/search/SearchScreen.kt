@@ -1,15 +1,23 @@
 package com.j.m3play.ui.screens.search
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -47,6 +55,8 @@ fun SearchScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
     
+    // Tab State
+    var selectedTabIndex by rememberSaveable { mutableStateOf(1) } // 1 means Suggestions by default
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
 
@@ -117,14 +127,46 @@ fun SearchScreen(
                         }
                     }
                 }
+
+                // Vivi-style Tabs visible when search is not active
+                AnimatedVisibility(
+                    visible = !searchActive,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    SecondaryTabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = Color.Transparent,
+                        indicator = {
+                            Box(
+                                modifier = Modifier.tabIndicatorOffset(selectedTabIndex).fillMaxWidth(),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                Box(
+                                    modifier = Modifier.width(32.dp).height(3.dp)
+                                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                    ) {
+                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") })
+                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") })
+                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Album") })
+                    }
+                }
             }
         },
         containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding()).fillMaxSize()) {
-            if (!searchActive && searchSource == SearchSource.ONLINE) {
+            if (!searchActive) {
                 val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-                SuggestionsTabContent(navController = navController, contentPadding = PaddingValues(bottom = bottomPadding))
+                when (selectedTabIndex) {
+                    0 -> Text("Explore Content (Coming Soon)", modifier = Modifier.align(Alignment.Center)) // Replace with ExploreTabContent if ready
+                    1 -> SuggestionsTabContent(navController = navController, contentPadding = PaddingValues(bottom = bottomPadding))
+                    2 -> Text("Album Content (Coming Soon)", modifier = Modifier.align(Alignment.Center)) // Replace with AlbumsTabContent if ready
+                }
             }
         }
     }
