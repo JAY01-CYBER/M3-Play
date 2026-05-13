@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,7 +67,6 @@ import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.ExploreViewModel
 import com.j.m3play.viewmodels.MoodAndGenresViewModel
-import com.j.m3play.innertube.pages.MoodAndGenres
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -217,34 +217,39 @@ fun ExploreTabContent(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } 
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            val rows = moodAndGenresList!!.chunked(2)
-            items(rows) { row ->
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
-                    row.forEach { item ->
-                        Box(
-                            contentAlignment = Alignment.CenterStart, 
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(6.dp)
-                                .height(64.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                .clickable { 
-                                    // To ensure zero compiler errors, we temporarily ignore clicks here.
-                                    // We will restore the exact M3-Play navigation path once the UI is verified working.
-                                }
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            // Smart cast to correctly extract the title for display
-                            Text(
-                                text = (item as? MoodAndGenres.Item)?.title ?: "Unknown", 
-                                style = MaterialTheme.typography.labelLarge, 
-                                maxLines = 2, 
-                                overflow = TextOverflow.Ellipsis
-                            )
+            // FIXED: Pehle section par loop chalao, fir uske items nikalo!
+            moodAndGenresList!!.forEach { section ->
+                item {
+                    NavigationTitle(title = section.title)
+                }
+                val rows = section.items.chunked(2)
+                items(rows) { row ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+                        row.forEach { item ->
+                            Box(
+                                contentAlignment = Alignment.CenterStart, 
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(6.dp)
+                                    .height(64.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable { 
+                                        // FIXED: Ab item M3-Play ka perfect MoodAndGenres.Item hai!
+                                        navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
+                                    }
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                Text(
+                                    text = item.title, 
+                                    style = MaterialTheme.typography.labelLarge, 
+                                    maxLines = 2, 
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
-                    if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
             item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -262,10 +267,7 @@ fun AlbumsTabContent(
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current
     val mediaMetadata by (playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) })
-    
-    // FIXED: Changed isEffectivelyPlaying -> isPlaying for M3-Play compatibility
     val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
-    
     val coroutineScope = rememberCoroutineScope()
     
     val explorePage by viewModel.explorePage.collectAsState()
