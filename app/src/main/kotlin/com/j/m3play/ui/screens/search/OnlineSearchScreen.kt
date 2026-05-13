@@ -16,7 +16,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -51,7 +51,6 @@ import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.menu.*
 import com.j.m3play.viewmodels.OnlineSearchSuggestionViewModel
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -81,31 +80,27 @@ fun OnlineSearchScreen(
     LaunchedEffect(Unit) {
         snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
             .drop(1)
-            .collect {
-                keyboardController?.hide()
-            }
+            .collect { keyboardController?.hide() }
     }
 
-    LaunchedEffect(query) {
-        viewModel.query.value = query
-    }
+    LaunchedEffect(query) { viewModel.query.value = query }
 
     LazyColumn(
         state = lazyListState,
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
+            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp 
         ),
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // --- History Section ---
+        // --- Search History Section ---
         if (viewState.history.isNotEmpty()) {
             item(key = "history_header") {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp).animateItem()
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
                 ) {
                     Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
                     Spacer(Modifier.width(10.dp))
@@ -114,66 +109,25 @@ fun OnlineSearchScreen(
             }
         }
 
-        items(viewState.history, key = { "history_${it.query}" }) { history ->
+        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { _, history ->
             SuggestionItem(
                 query = history.query,
                 online = false,
-                onClick = {
-                    onSearch(history.query)
-                    onDismiss()
-                },
-                onDelete = {
-                    database.query { delete(history) }
-                },
-                onFillTextField = {
-                    onQueryChange(TextFieldValue(history.query, TextRange(history.query.length)))
-                },
-                modifier = Modifier.animateItem(),
-                pureBlack = pureBlack
-            )
-        }
-
-        if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
-            item { Spacer(modifier = Modifier.height(16.dp).animateItem()) }
-        }
-
-        // --- Suggestions Section ---
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_header") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp).animateItem()
-                ) {
-                    Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                    Spacer(Modifier.width(10.dp))
-                    Text(text = stringResource(R.string.suggestions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-
-        items(viewState.suggestions, key = { "suggestion_$it" }) { query ->
-            SuggestionItem(
-                query = query,
-                online = true,
-                onClick = {
-                    onSearch(query)
-                    onDismiss()
-                },
-                onFillTextField = {
-                    onQueryChange(TextFieldValue(query, TextRange(query.length)))
-                },
+                onClick = { onSearch(history.query); onDismiss() },
+                onDelete = { database.query { delete(history) } },
+                onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
                 modifier = Modifier.animateItem(),
                 pureBlack = pureBlack
             )
         }
 
         // --- Top Results Section ---
-        if (viewState.items.isNotEmpty() && viewState.history.size + viewState.suggestions.size > 0) {
+        if (viewState.items.isNotEmpty() && viewState.history.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(12.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).animateItem()
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
                     Box(modifier = Modifier.width(3.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
                     Spacer(Modifier.width(10.dp))
@@ -182,7 +136,7 @@ fun OnlineSearchScreen(
             }
         }
 
-        items(viewState.items.distinctBy { it.id }, key = { "item_${it.id}" }) { item ->
+        itemsIndexed(viewState.items.distinctBy { it.id }, key = { _, it -> "item_${it.id}" }) { _, item ->
             YouTubeListItem(
                 item = item,
                 isActive = when (item) {
@@ -260,20 +214,19 @@ fun SuggestionItem(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
     ) {
-        // ViVi style surfaced icon container
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(42.dp)
                 .background(
-                    color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    color = if (pureBlack) Color.White.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp)
                 )
         ) {
             Icon(
                 painterResource(if (online) R.drawable.search else R.drawable.history),
                 contentDescription = null,
-                tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary,
+                tint = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
