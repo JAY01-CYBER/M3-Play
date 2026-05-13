@@ -165,26 +165,35 @@ inline fun ListItem(
     totalSize: Int = -1
 ) {
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
 
     Column(modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+        .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp) // Premium spacing
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    )
+                )
                 .then(modifier)
+                .fillMaxWidth()
                 .height(ListItemHeight)
-                .padding(horizontal = 8.dp)
-                .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
+                .padding(horizontal = 12.dp)
+                .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), RoundedCornerShape(12.dp)) else Modifier)
         ) {
-            Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-            Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+            Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(
-                    text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    text = title, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
@@ -348,24 +357,32 @@ fun SongListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
 
     val content: @Composable () -> Unit = {
         Column(modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp)
         ) {
             Row(
                 modifier = Modifier
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
                     .then(modifier)
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(12.dp)
                         ) else Modifier
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -387,7 +404,7 @@ fun SongListItem(
                         text = song.song.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp
+                            fontSize = 16.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -578,7 +595,9 @@ fun AlbumListItem(
     badges: @Composable RowScope.() -> Unit = {
         val database = LocalDatabase.current
         val downloadUtil = LocalDownloadUtil.current
-        var songs by remember { mutableStateOf(emptyList<Song>()) }
+        var songs by remember {
+            mutableStateOf(emptyList<Song>())
+        }
 
         LaunchedEffect(Unit) {
             database.albumSongs(album.id).collect {
@@ -586,7 +605,9 @@ fun AlbumListItem(
             }
         }
 
-        var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
+        var downloadState by remember {
+             mutableStateOf(Download.STATE_STOPPED)
+        }
 
         LaunchedEffect(songs) {
             if (songs.isEmpty()) return@LaunchedEffect
@@ -1046,24 +1067,32 @@ fun YouTubeListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(16.dp)
 
     val content: @Composable () -> Unit = {
         Column(modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp)
         ) {
             Row(
                 modifier = Modifier
                     .clip(shape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    // 🔥 PREMIUM GLASSMORPHISM GRADIENT 🔥
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
                     .then(modifier)
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(12.dp)
                         ) else Modifier
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -1085,7 +1114,7 @@ fun YouTubeListItem(
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp
+                            fontSize = 16.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
