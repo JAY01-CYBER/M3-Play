@@ -10,13 +10,14 @@
 
 package com.j.m3play.ui.screens.search
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,6 +52,7 @@ import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
@@ -62,11 +65,12 @@ import kotlinx.coroutines.launch
 fun OnlineSearchResult(
     navController: NavController,
     viewModel: OnlineSearchViewModel = hiltViewModel(),
+    pureBlack: Boolean = false
 ) {
     val menuState = LocalMenuState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
-    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
@@ -79,10 +83,11 @@ fun OnlineSearchResult(
     }
 
     LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }.collect { shouldLoadMore ->
-            if (!shouldLoadMore) return@collect
-            viewModel.loadMore()
-        }
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
+            .collect { shouldLoadMore ->
+                if (!shouldLoadMore) return@collect
+                viewModel.loadMore()
+            }
     }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem) -> Unit = { item: YTItem ->
@@ -106,35 +111,39 @@ fun OnlineSearchResult(
             },
             isPlaying = isPlaying,
             trailingContent = {
-                IconButton(onClick = longClick) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
+                IconButton(onClick = longClick) {
+                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
+                }
             },
-            modifier = Modifier.combinedClickable(
-                onClick = {
-                    when (item) {
-                        is SongItem -> {
-                            if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                            else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = {
+                        when (item) {
+                            is SongItem -> {
+                                if (item.id == mediaMetadata?.id) playerConnection.togglePlayPause()
+                                else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+                            }
+                            is AlbumItem -> navController.navigate("album/${item.id}")
+                            is ArtistItem -> navController.navigate("artist/${item.id}")
+                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
                         }
-                        is AlbumItem -> navController.navigate("album/${item.id}")
-                        is ArtistItem -> navController.navigate("artist/${item.id}")
-                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                    }
-                },
-                onLongClick = longClick,
-            ).animateItem(),
+                    },
+                    onLongClick = longClick,
+                ).animateItem(),
         )
     }
 
     LazyColumn(
         state = lazyListState,
         contentPadding = LocalPlayerAwareWindowInsets.current.add(WindowInsets(top = SearchFilterHeight + 8.dp)).asPaddingValues(),
+        modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         if (searchFilter == null) {
             searchSummary?.summaries?.forEachIndexed { index, summary ->
                 if (index > 0) {
                     item(key = "divider_$index") {
                         HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                             thickness = 0.5.dp,
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                         )
@@ -146,21 +155,33 @@ fun OnlineSearchResult(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                     ) {
-                        Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
+                        Box(
+                            modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)
+                        )
                         Spacer(Modifier.width(10.dp))
-                        Text(text = summary.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = summary.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
 
-                items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }, itemContent = ytItemContent)
-                item { Spacer(Modifier.height(8.dp)) }
+                items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { item ->
+                    ytItemContent(item)
+                }
+
+                item { Spacer(Modifier.height(4.dp)) }
             }
 
             if (searchSummary?.summaries?.isEmpty() == true) {
                 item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
             }
         } else {
-            items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
+            items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }) { item ->
+                ytItemContent(item)
+            }
 
             if (itemsPage?.continuation != null) {
                 item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
@@ -179,8 +200,10 @@ fun OnlineSearchResult(
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        shadowElevation = 2.dp,
-        modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight))).fillMaxWidth()
+        shadowElevation = 1.dp,
+        modifier = Modifier
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
+            .fillMaxWidth()
     ) {
         ChipsRow(
             chips = listOf(
