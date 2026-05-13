@@ -55,7 +55,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider // Added for premium grouping
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
@@ -146,40 +146,46 @@ const val ActiveBoxAlpha = 0.6f
 @Composable
 fun getPremiumGroupedShape(index: Int, size: Int): Shape {
     return when {
-        size <= 1 -> RoundedCornerShape(24.dp)
-        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+        size <= 1 -> RoundedCornerShape(16.dp)
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
         else -> RoundedCornerShape(2.dp)
     }
 }
 
 @Composable
-fun ListItem(
+inline fun ListItem(
     modifier: Modifier = Modifier,
     title: String,
-    subtitle: (@Composable RowScope.() -> Unit)? = null,
+    noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
     isActive: Boolean = false,
     index: Int = -1,
     totalSize: Int = -1
 ) {
-    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
-                .padding(horizontal = if (shape != null) 16.dp else 8.dp)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .then(modifier)
                 .height(ListItemHeight)
+                .padding(horizontal = 8.dp)
                 .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
         ) {
             Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
             Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
                 Text(
-                    text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                    text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 if (subtitle != null) {
@@ -189,7 +195,7 @@ fun ListItem(
             }
             trailingContent()
         }
-        if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+        if (isGrouped && index < totalSize - 1) {
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 32.dp),
                 thickness = 0.5.dp,
@@ -217,7 +223,7 @@ fun ListItem(
     subtitle = {
         badges()
         if (!subtitle.isNullOrEmpty()) {
-            Text(text = subtitle, color = MaterialTheme.colorScheme.secondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = subtitle, color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     },
     thumbnailContent = thumbnailContent,
@@ -328,8 +334,7 @@ fun SongListItem(
             Icon.Library()
         }
         if (showDownloadIcon) {
-            val download by LocalDownloadUtil.current.getDownload(song.id)
-                .collectAsState(initial = null)
+            val download by LocalDownloadUtil.current.getDownload(song.id).collectAsState(initial = null)
             Icon.Download(download?.state)
         }
     },
@@ -342,18 +347,24 @@ fun SongListItem(
     totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
-    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        Column(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+        ) {
             Row(
                 modifier = Modifier
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .then(modifier)
                     .fillMaxWidth()
-                    .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                             RoundedCornerShape(8.dp)
                         ) else Modifier
                     ),
@@ -376,7 +387,7 @@ fun SongListItem(
                         text = song.song.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
+                            fontSize = 15.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -405,10 +416,9 @@ fun SongListItem(
                         }
                     }
                 }
-
                 trailingContent()
             }
-            if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+            if (isGrouped && index < totalSize - 1) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 32.dp),
                     thickness = 0.5.dp,
@@ -568,9 +578,7 @@ fun AlbumListItem(
     badges: @Composable RowScope.() -> Unit = {
         val database = LocalDatabase.current
         val downloadUtil = LocalDownloadUtil.current
-        var songs by remember {
-            mutableStateOf(emptyList<Song>())
-        }
+        var songs by remember { mutableStateOf(emptyList<Song>()) }
 
         LaunchedEffect(Unit) {
             database.albumSongs(album.id).collect {
@@ -578,9 +586,7 @@ fun AlbumListItem(
             }
         }
 
-        var downloadState by remember {
-             mutableStateOf(Download.STATE_STOPPED)
-        }
+        var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
 
         LaunchedEffect(songs) {
             if (songs.isEmpty()) return@LaunchedEffect
@@ -1039,18 +1045,24 @@ fun YouTubeListItem(
     totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
-    val shape = if (index != -1 && totalSize != -1) getPremiumGroupedShape(index, totalSize) else null
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getPremiumGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        Column(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = if (isGrouped) 0.dp else 4.dp)
+        ) {
             Row(
                 modifier = Modifier
+                    .clip(shape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .then(modifier)
                     .fillMaxWidth()
-                    .then(if (shape != null) Modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.8f)) else Modifier)
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                             RoundedCornerShape(8.dp)
                         ) else Modifier
                     ),
@@ -1073,7 +1085,7 @@ fun YouTubeListItem(
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
+                            fontSize = 15.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -1105,7 +1117,7 @@ fun YouTubeListItem(
                 }
                 trailingContent()
             }
-            if (index != -1 && totalSize != -1 && index < totalSize - 1) {
+            if (isGrouped && index < totalSize - 1) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 32.dp),
                     thickness = 0.5.dp,
