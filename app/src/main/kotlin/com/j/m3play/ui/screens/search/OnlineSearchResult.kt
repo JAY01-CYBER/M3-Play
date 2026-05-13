@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import androidx.activity.compose.BackHandler
@@ -20,34 +10,29 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
-import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.constants.*
+import com.j.m3play.constants.AppBarHeight
+import com.j.m3play.constants.PauseSearchHistoryKey
+import com.j.m3play.constants.SearchFilterHeight
 import com.j.m3play.db.entities.SearchHistory
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
@@ -62,12 +47,10 @@ import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.menu.*
-import com.j.m3play.utils.listItemShape
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.Dispatchers
@@ -92,47 +75,10 @@ fun OnlineSearchResult(
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    val focusRequester = remember { FocusRequester() }
-
-    var isSearchFocused by remember { mutableStateOf(false) }
-    val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
-
-    BackHandler(enabled = isSearchFocused) {
-        isSearchFocused = false
-        focusManager.clearFocus()
-    }
-
-    val encodedQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
-    val decodedQuery = remember(encodedQuery) { try { URLDecoder.decode(encodedQuery, "UTF-8") } catch (e: Exception) { encodedQuery } }
-    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(decodedQuery, TextRange(decodedQuery.length))) }
-
-    LaunchedEffect(decodedQuery) { query = TextFieldValue(decodedQuery, TextRange(decodedQuery.length)) }
-
-    val onSearch: (String) -> Unit = remember {
-        { searchQuery ->
-            if (searchQuery.isNotEmpty()) {
-                isSearchFocused = false
-                focusManager.clearFocus()
-                navController.navigate("search/${URLEncoder.encode(searchQuery, "UTF-8")}") {
-                    popUpTo("search/${URLEncoder.encode(decodedQuery, "UTF-8")}") { inclusive = true }
-                }
-                if (!pauseSearchHistory) {
-                    coroutineScope.launch(Dispatchers.IO) { database.query { insert(SearchHistory(query = searchQuery)) } }
-                }
-            }
-        }
-    }
 
     val searchFilter by viewModel.filter.collectAsState()
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) { derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } } }
-
-    LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }.collect { shouldLoadMore ->
-            if (!shouldLoadMore) return@collect
-            viewModel.loadMore()
-        }
-    }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem, Int, Int) -> Unit = { item: YTItem, index: Int, size: Int ->
         val longClick = {
@@ -146,6 +92,7 @@ fun OnlineSearchResult(
                 }
             }
         }
+        
         YouTubeListItem(
             item = item,
             isActive = when (item) {
@@ -154,114 +101,61 @@ fun OnlineSearchResult(
                 else -> false
             },
             isPlaying = isPlaying,
-            shape = listItemShape(index, size),
             trailingContent = { IconButton(onClick = longClick) { Icon(painterResource(R.drawable.more_vert), null) } },
-            modifier = Modifier.combinedClickable(
-                onClick = {
-                    when (item) {
-                        is SongItem -> {
-                            if (item.id == mediaMetadata?.id) playerConnection.togglePlayPause()
-                            else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 1.dp)
+                .clip(getGroupedShape(index, size))
+                .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
+                .combinedClickable(
+                    onClick = {
+                        when (item) {
+                            is SongItem -> {
+                                if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+                            }
+                            is AlbumItem -> navController.navigate("album/${item.id}")
+                            is ArtistItem -> navController.navigate("artist/${item.id}")
+                            is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
                         }
-                        is AlbumItem -> navController.navigate("album/${item.id}")
-                        is ArtistItem -> navController.navigate("artist/${item.id}")
-                        is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                    }
-                },
-                onLongClick = longClick,
-            ).animateItem(),
+                    },
+                    onLongClick = longClick,
+                )
         )
     }
 
-    // MAGICAL FIX: Bulletproof Top Padding for Status Bar
-    val topPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
-            .padding(top = topPadding) 
-    ) {
-        // 1. Search Bar Header (with safe padding)
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text(stringResource(R.string.search_yt_music), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(painterResource(R.drawable.arrow_back), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } },
-            trailingIcon = { if (query.text.isNotEmpty()) IconButton(onClick = { query = TextFieldValue("") }) { Icon(painterResource(R.drawable.close), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSearch(query.text) }),
-            singleLine = true,
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = if (pureBlack) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = if (pureBlack) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .focusRequester(focusRequester)
-                .onFocusChanged { if (it.isFocused) isSearchFocused = true }
-        )
-
-        // 2. Main Content Area
-        Box(modifier = Modifier.weight(1f)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                ChipsRow(
-                    chips = listOf(
-                        null to stringResource(R.string.filter_all),
-                        FILTER_SONG to stringResource(R.string.filter_songs),
-                        FILTER_VIDEO to stringResource(R.string.filter_videos),
-                        FILTER_ALBUM to stringResource(R.string.filter_albums),
-                        FILTER_ARTIST to stringResource(R.string.filter_artists),
-                        FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                        FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                    ),
-                    currentValue = searchFilter,
-                    onValueUpdate = {
-                        if (viewModel.filter.value != it) viewModel.filter.value = it
-                        coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                LazyColumn(
-                    state = lazyListState,
-                    contentPadding = PaddingValues(bottom = 120.dp), // Leaves safe space for Mini Player
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (searchFilter == null) {
-                        searchSummary?.summaries?.forEach { summary ->
-                            item { NavigationTitle(summary.title) }
-                            itemsIndexed(summary.items, key = { index, item -> "${summary.title}/${item.id}/$index" }) { index, item ->
-                                ytItemContent(item, index, summary.items.size)
-                            }
-                        }
-                        if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(R.drawable.search, stringResource(R.string.no_results_found)) }
-                    } else {
-                        itemsIndexed(itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { index, item ->
-                            ytItemContent(item, index, itemsPage?.items.orEmpty().distinctBy { it.id }.size)
-                        }
-                        if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
-                        if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(R.drawable.search, stringResource(R.string.no_results_found)) }
-                    }
-                    if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
-                }
+    LazyColumn(state = lazyListState, contentPadding = PaddingValues(top = SearchFilterHeight + AppBarHeight + 16.dp, bottom = 140.dp), modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
+        if (searchFilter == null) {
+            searchSummary?.summaries?.forEachIndexed { index, summary ->
+                if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
+                item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
+                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
+                item { Spacer(Modifier.height(4.dp)) }
             }
-
-            // 3. Search Suggestions Layer
-            if (isSearchFocused) {
-                OnlineSearchScreen(
-                    query = query.text,
-                    onQueryChange = { query = it },
-                    navController = navController,
-                    onSearch = onSearch,
-                    onDismiss = { isSearchFocused = false; focusManager.clearFocus() },
-                    pureBlack = pureBlack
-                )
-            }
+            if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+        } else {
+            itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size) }
+            if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
+            if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         }
+        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
+    }
+
+    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))) {
+        ChipsRow(
+            chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
+            currentValue = searchFilter,
+            onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
+        )
+    }
+}
+
+// Function to handle Vivi-style grouped rounded corners
+@Composable
+fun getGroupedShape(index: Int, size: Int): Shape {
+    return when {
+        size == 1 -> RoundedCornerShape(16.dp)
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 }
