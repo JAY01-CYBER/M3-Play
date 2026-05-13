@@ -549,14 +549,13 @@ class MainActivity : ComponentActivity() {
                 seedPalette = if (!enableDynamicTheme) customThemeSeedPalette else null,
                 useSystemFont = useSystemFont,
             ) {
-                    BoxWithConstraints(
-                        modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(
-                                if(pureBlack) Color.Black else MaterialTheme.colorScheme.surface
-                            )
-                    ) {
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface
+                        )
+                ) {
                     val focusManager = LocalFocusManager.current
                     val density = LocalDensity.current
                     val windowsInsets = WindowInsets.systemBars
@@ -644,13 +643,15 @@ class MainActivity : ComponentActivity() {
 
                     val shouldShowSearchBar =
                         remember(active, navBackStackEntry) {
-                            active || navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
+                            active ||
+                                    navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
                                     navBackStackEntry?.destination?.route?.startsWith("search/") == true
                         }
 
                     val shouldShowNavigationBar =
                         remember(navBackStackEntry, active) {
-                            navBackStackEntry?.destination?.route == null || navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } &&
+                            navBackStackEntry?.destination?.route == null ||
+                                    navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } &&
                                     !active
                         }
 
@@ -733,6 +734,7 @@ class MainActivity : ComponentActivity() {
                                         else -> COLLAPSED_ANCHOR
                                     }
                             }
+
                             if (!playerBottomSheetState.isDismissed) {
                                 playerBottomSheetState.dismiss()
                             }
@@ -799,7 +801,8 @@ class MainActivity : ComponentActivity() {
                         val wasOnNonTopLevelScreen = previousRoute != null &&
                             previousRoute !in topLevelScreens &&
                             previousRoute?.startsWith("search/") != true
-                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route || currentRoute == Screens.Library.route
+                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route ||
+                            currentRoute == Screens.Library.route
 
                         if (wasOnNonTopLevelScreen && isReturningToHomeOrLibrary) {
                             searchBarScrollBehavior.state.resetHeightOffset()
@@ -887,8 +890,12 @@ class MainActivity : ComponentActivity() {
                     var shouldShowTopBar by rememberSaveable { mutableStateOf(false) }
 
                     LaunchedEffect(navBackStackEntry) {
+                        val route = navBackStackEntry?.destination?.route
+                        // ----------------------------------------------------
+                        // FIXED: Hide default TopBar if we are on SearchScreen
+                        // ----------------------------------------------------
                         shouldShowTopBar =
-                            !active && navBackStackEntry?.destination?.route in topLevelScreens && navBackStackEntry?.destination?.route != "settings"
+                            !active && route in topLevelScreens && route != "settings" && route != Screens.Search.route
                     }
 
                     val coroutineScope = rememberCoroutineScope()
@@ -1023,9 +1030,11 @@ class MainActivity : ComponentActivity() {
                                             onClick = {
                                                 val wasPlayerActive = playerBottomSheetState.isExpanded
                                                 if(wasPlayerActive) { playerBottomSheetState.collapse(spring()) }
-                                                if (screen.route == Screens.Search.route) {
-                                                    onActiveChange(true)
-                                                } else if (isSelected) {
+                                                
+                                                // ----------------------------------------------------
+                                                // FIXED: Rail Nav behavior
+                                                // ----------------------------------------------------
+                                                if (isSelected) {
                                                     if(wasPlayerActive) return@NavigationRailItem
                                                     navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
                                                     coroutineScope.launch { searchBarScrollBehavior.state.resetHeightOffset() }
@@ -1123,8 +1132,12 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                     }
+                                    
+                                    // ----------------------------------------------------
+                                    // FIXED: TopSearch visibility updated
+                                    // ----------------------------------------------------
                                     AnimatedVisibility(
-                                        visible = active || navBackStackEntry?.destination?.route?.startsWith("search/") == true,
+                                        visible = active,
                                         enter = fadeIn(animationSpec = tween(durationMillis = 300)),
                                         exit = fadeOut(animationSpec = tween(durationMillis = 200))
                                     ) {
@@ -1340,10 +1353,12 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     .height(navVisibleHeight),
                                                 isSelected = { screen -> navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true },
+                                                
+                                                // ----------------------------------------------------
+                                                // FIXED: Floating Nav Behavior
+                                                // ----------------------------------------------------
                                                 onItemClick = { screen, isSelected ->
-                                                    if (screen.route == Screens.Search.route) {
-                                                        onActiveChange(true)
-                                                    } else if (isSelected) {
+                                                    if (isSelected) {
                                                         navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
                                                         coroutineScope.launch { searchBarScrollBehavior.state.resetHeightOffset() }
                                                     } else {
@@ -1472,14 +1487,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(shouldShowSearchBar, openSearchImmediately) {
-                        if (shouldShowSearchBar && openSearchImmediately) {
-                            onActiveChange(true)
-                            try {
-                                delay(100)
-                                searchBarFocusRequester.requestFocus()
-                            } catch (_: Exception) {
-                            }
+                    // ----------------------------------------------------
+                    // FIXED: Handle openSearchImmediately cleanly
+                    // ----------------------------------------------------
+                    LaunchedEffect(openSearchImmediately) {
+                        if (openSearchImmediately) {
+                            navController.navigate(Screens.Search.route)
                             openSearchImmediately = false
                         }
                     }
