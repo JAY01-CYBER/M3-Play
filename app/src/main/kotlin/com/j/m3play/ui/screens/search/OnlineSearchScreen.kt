@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -75,40 +65,22 @@ fun OnlineSearchScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    val coroutineScope = rememberCoroutineScope()
     val viewState by viewModel.viewState.collectAsState()
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
-            .drop(1)
-            .collect { keyboardController?.hide() }
+        snapshotFlow { lazyListState.firstVisibleItemScrollOffset }.drop(1).collect { keyboardController?.hide() }
     }
-
-    LaunchedEffect(query) {
-        viewModel.query.value = query
-    }
+    LaunchedEffect(query) { viewModel.query.value = query }
 
     LazyColumn(
         state = lazyListState,
-        contentPadding = PaddingValues(
-            top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
-        ),
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+        contentPadding = PaddingValues(top = 8.dp, bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp),
+        modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // --- History Section ---
         if (viewState.history.isNotEmpty()) {
             item(key = "history_header") {
-                Text(
-                    text = stringResource(R.string.search_history),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                )
+                Text(text = stringResource(R.string.search_history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp))
             }
         }
 
@@ -117,61 +89,16 @@ fun OnlineSearchScreen(
                 query = history.query,
                 online = false,
                 shape = getGroupedShape(index, viewState.history.size),
-                onClick = {
-                    onSearch(history.query)
-                    onDismiss()
-                },
+                onClick = { onSearch(history.query); onDismiss() },
                 onDelete = { database.query { delete(history) } },
                 onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
                 pureBlack = pureBlack
             )
         }
 
-        if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
-            item(key = "history_suggestion_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
-        }
-
-        // --- Suggestions Section ---
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_header") {
-                Text(
-                    text = stringResource(R.string.suggestions),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { index, query ->
-            SuggestionItem(
-                query = query,
-                online = true,
-                shape = getGroupedShape(index, viewState.suggestions.size),
-                onClick = {
-                    onSearch(query)
-                    onDismiss()
-                },
-                onFillTextField = { onQueryChange(TextFieldValue(query, TextRange(query.length))) },
-                pureBlack = pureBlack
-            )
-        }
-
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_bottom_spacer") { Spacer(modifier = Modifier.height(16.dp)) }
-        }
-
-        // --- Top Results Section ---
         if (viewState.items.isNotEmpty()) {
             item(key = "search_divider") {
-                Text(
-                    text = stringResource(R.string.top_results),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
-                )
+                Text(text = stringResource(R.string.top_results), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 16.dp, top = 16.dp))
             }
             item(key = "search_divider_spacer") { Spacer(modifier = Modifier.height(8.dp)) }
         }
@@ -187,18 +114,12 @@ fun OnlineSearchScreen(
                 },
                 isPlaying = isPlaying,
                 trailingContent = {
-                    IconButton(
-                        onClick = {
-                            menuState.show {
-                                when (item) {
-                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
-                                }
-                            }
-                        }
-                    ) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
+                    IconButton(onClick = { menuState.show { when (item) {
+                        is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                        is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                        is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
+                        is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                    } } }) { Icon(painterResource(R.drawable.more_vert), null) }
                 },
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 1.dp)
@@ -218,14 +139,12 @@ fun OnlineSearchScreen(
                         },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                when (item) {
-                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = { menuState.dismiss(); onDismiss() })
-                                }
-                            }
+                            menuState.show { when (item) {
+                                is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
+                                is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                            } }
                         }
                     )
             )
@@ -249,41 +168,21 @@ fun SuggestionItem(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 1.dp)
             .fillMaxWidth()
-            .height(56.dp) // Exact Vivi Height
+            .height(56.dp)
             .clip(shape)
             .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
     ) {
-        Icon(
-            painterResource(if (online) R.drawable.search else R.drawable.history),
-            contentDescription = null,
-            modifier = Modifier.padding(horizontal = 16.dp).alpha(0.5f),
-            tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
-        )
-
-        Text(
-            text = query,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-
+        Icon(painterResource(if (online) R.drawable.search else R.drawable.history), null, modifier = Modifier.padding(horizontal = 16.dp).alpha(0.5f), tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface)
+        Text(text = query, style = MaterialTheme.typography.bodyLarge, color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (!online) {
-            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.5f)) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.5f)) { Icon(painterResource(R.drawable.close), null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-
-        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.5f)) {
-            Icon(painter = painterResource(R.drawable.arrow_top_left), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.5f)) { Icon(painterResource(R.drawable.arrow_top_left), null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
-// Function to handle Vivi-style grouped rounded corners
 @Composable
 fun getGroupedShape(index: Int, size: Int): Shape {
     return when {
