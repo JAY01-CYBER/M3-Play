@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -146,12 +147,15 @@ fun LocalSearchScreen(
                 }
             }
 
-            // FIX: Removed .distinctBy{ it.id } to fix compilation error
+            // FIX: Filter items pehle karlo taki type inference fail na ho aur size fix rahe
+            val distinctItems = items.distinctBy { it.id }
+
             itemsIndexed(
-                items = items,
-                contentType = { CONTENT_TYPE_LIST }
+                items = distinctItems,
+                key = { _, item -> item.id },
+                contentType = { _, _ -> CONTENT_TYPE_LIST }
             ) { index, item ->
-                val shape = getLocalGroupedShape(index, items.size)
+                val shape = getLocalGroupedShape(index, distinctItems.size)
                 val modifierBase = Modifier
                     .padding(horizontal = 16.dp, vertical = 1.dp)
                     .clip(shape)
