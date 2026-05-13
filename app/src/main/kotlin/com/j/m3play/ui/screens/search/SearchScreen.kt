@@ -22,11 +22,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -43,8 +42,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -214,45 +211,44 @@ fun ExploreTabContent(
     val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
     
     if (moodAndGenresList == null) { 
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } 
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
+            CircularProgressIndicator() 
+        } 
     } else {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            // FIXED: Pehle section par loop chalao, fir uske items nikalo!
-            moodAndGenresList!!.forEach { section ->
-                item {
+        // FIXED: Using LazyVerticalGrid correctly maps item types for compiler
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = contentPadding,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            moodAndGenresList?.forEach { section ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     NavigationTitle(title = section.title)
                 }
-                val rows = section.items.chunked(2)
-                items(rows) { row ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
-                        row.forEach { item ->
-                            Box(
-                                contentAlignment = Alignment.CenterStart, 
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(6.dp)
-                                    .height(64.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                    .clickable { 
-                                        // FIXED: Ab item M3-Play ka perfect MoodAndGenres.Item hai!
-                                        navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
-                                    }
-                                    .padding(horizontal = 16.dp)
-                            ) {
-                                Text(
-                                    text = item.title, 
-                                    style = MaterialTheme.typography.labelLarge, 
-                                    maxLines = 2, 
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                
+                items(section.items) { item ->
+                    Box(
+                        contentAlignment = Alignment.CenterStart, 
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .height(64.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .clickable { 
+                                navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
                             }
-                        }
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Text(
+                            text = item.title, 
+                            style = MaterialTheme.typography.labelLarge, 
+                            maxLines = 2, 
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
