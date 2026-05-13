@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import android.content.res.Configuration
@@ -17,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,29 +70,18 @@ fun LocalSearchScreen(
     LaunchedEffect(Unit) {
         snapshotFlow { lazyListState.firstVisibleItemScrollOffset }.drop(1).collect { keyboardController?.hide() }
     }
-    
-    LaunchedEffect(query) { 
-        viewModel.query.value = query 
-    }
+    LaunchedEffect(query) { viewModel.query.value = query }
 
     LazyColumn(
         state = lazyListState,
-        contentPadding = PaddingValues(
-            top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
-        ),
+        contentPadding = PaddingValues(bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp),
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
             .let { base -> if (isLandscape) base.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)) else base }
     ) {
-        // Exact Vivi Style Sticky Header for Chips
         stickyHeader {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
                 ChipsRow(
                     chips = listOf(
                         LocalFilter.ALL to stringResource(R.string.filter_all),
@@ -122,11 +102,7 @@ fun LocalSearchScreen(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp)
-                            .clickable { viewModel.filter.value = filter }
-                            .padding(start = 12.dp, end = 18.dp),
+                        modifier = Modifier.fillMaxWidth().height(64.dp).clickable { viewModel.filter.value = filter }.padding(start = 12.dp, end = 18.dp),
                     ) {
                         Text(
                             text = stringResource(
@@ -146,13 +122,13 @@ fun LocalSearchScreen(
                 }
             }
 
-            itemsIndexed(items = items.distinctBy { it.id }, key = { _, it -> it.id }, contentType = { CONTENT_TYPE_LIST }) { index, item ->
-                // Applying the Grouped Shape just like Vivi
+            itemsIndexed(
+                items = items.distinctBy { it.id },
+                key = { _, listItem -> listItem.id },
+                contentType = { CONTENT_TYPE_LIST }
+            ) { index, item ->
                 val shape = getLocalGroupedShape(index, items.distinctBy { it.id }.size)
-                val modifierBase = Modifier
-                    .padding(horizontal = 16.dp, vertical = 1.dp)
-                    .clip(shape)
-                    .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
+                val modifierBase = Modifier.padding(horizontal = 16.dp, vertical = 1.dp).clip(shape).background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                 
                 when (item) {
                     is Song -> SongListItem(
@@ -160,17 +136,7 @@ fun LocalSearchScreen(
                         showInLibraryIcon = true,
                         isActive = item.id == mediaMetadata?.id,
                         isPlaying = isPlaying,
-                        trailingContent = {
-                            IconButton(
-                                onClick = { 
-                                    menuState.show { 
-                                        SongMenu(originalSong = item, navController = navController, onDismiss = { onDismiss(); menuState.dismiss() }, isFromCache = isFromCache) 
-                                    } 
-                                }
-                            ) {
-                                Icon(painterResource(R.drawable.more_vert), null)
-                            }
-                        },
+                        trailingContent = { IconButton(onClick = { menuState.show { SongMenu(originalSong = item, navController = navController, onDismiss = { onDismiss(); menuState.dismiss() }, isFromCache = isFromCache) } }) { Icon(painterResource(R.drawable.more_vert), null) } },
                         modifier = modifierBase.combinedClickable(
                             onClick = {
                                 if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
@@ -179,40 +145,22 @@ fun LocalSearchScreen(
                                     playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_searched_songs), items = songs, startIndex = songs.indexOfFirst { it.mediaId == item.id }))
                                 }
                             },
-                            onLongClick = { 
-                                menuState.show { 
-                                    SongMenu(originalSong = item, navController = navController, onDismiss = { onDismiss(); menuState.dismiss() }, isFromCache = isFromCache) 
-                                } 
-                            }
+                            onLongClick = { menuState.show { SongMenu(originalSong = item, navController = navController, onDismiss = { onDismiss(); menuState.dismiss() }, isFromCache = isFromCache) } }
                         )
                     )
-                    is Album -> AlbumListItem(
-                        album = item,
-                        isActive = item.id == mediaMetadata?.album?.id,
-                        isPlaying = isPlaying,
-                        modifier = modifierBase.clickable { onDismiss(); navController.navigate("album/${item.id}") }
-                    )
-                    is Artist -> ArtistListItem(
-                        artist = item,
-                        modifier = modifierBase.clickable { onDismiss(); navController.navigate("artist/${item.id}") }
-                    )
-                    is Playlist -> PlaylistListItem(
-                        playlist = item,
-                        modifier = modifierBase.clickable { onDismiss(); navController.navigate("local_playlist/${item.id}") }
-                    )
+                    is Album -> AlbumListItem(album = item, isActive = item.id == mediaMetadata?.album?.id, isPlaying = isPlaying, modifier = modifierBase.clickable { onDismiss(); navController.navigate("album/${item.id}") })
+                    is Artist -> ArtistListItem(artist = item, modifier = modifierBase.clickable { onDismiss(); navController.navigate("artist/${item.id}") })
+                    is Playlist -> PlaylistListItem(playlist = item, modifier = modifierBase.clickable { onDismiss(); navController.navigate("local_playlist/${item.id}") })
                 }
             }
         }
 
         if (result.query.isNotEmpty() && result.map.isEmpty()) {
-            item(key = "no_result") { 
-                EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) 
-            }
+            item(key = "no_result") { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         }
     }
 }
 
-// Function to handle Vivi-style grouped rounded corners for Local lists
 @Composable
 fun getLocalGroupedShape(index: Int, size: Int): Shape {
     return when {
