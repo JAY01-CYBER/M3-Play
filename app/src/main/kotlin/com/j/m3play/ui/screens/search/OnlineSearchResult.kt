@@ -7,36 +7,27 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
-import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
@@ -84,47 +75,10 @@ fun OnlineSearchResult(
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    val focusRequester = remember { FocusRequester() }
-
-    var isSearchFocused by remember { mutableStateOf(false) }
-    val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
-
-    BackHandler(enabled = isSearchFocused) {
-        isSearchFocused = false
-        focusManager.clearFocus()
-    }
-
-    val encodedQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
-    val decodedQuery = remember(encodedQuery) { try { URLDecoder.decode(encodedQuery, "UTF-8") } catch (e: Exception) { encodedQuery } }
-    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue(decodedQuery, TextRange(decodedQuery.length))) }
-
-    val onSearch: (String) -> Unit = remember {
-        { searchQuery ->
-            if (searchQuery.isNotEmpty()) {
-                isSearchFocused = false
-                focusManager.clearFocus()
-                navController.navigate("search/${URLEncoder.encode(searchQuery, "UTF-8")}") {
-                    popUpTo("search/${URLEncoder.encode(decodedQuery, "UTF-8")}") { inclusive = true }
-                }
-                if (!pauseSearchHistory) {
-                    coroutineScope.launch(Dispatchers.IO) { database.query { insert(SearchHistory(query = searchQuery)) } }
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(decodedQuery) { query = TextFieldValue(decodedQuery, TextRange(decodedQuery.length)) }
 
     val searchFilter by viewModel.filter.collectAsState()
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) { derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } } }
-
-    LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }.collect { shouldLoadMore ->
-            if (!shouldLoadMore) return@collect
-            viewModel.loadMore()
-        }
-    }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem, Int, Int) -> Unit = { item: YTItem, index: Int, size: Int ->
         val longClick = {
@@ -138,7 +92,6 @@ fun OnlineSearchResult(
                 }
             }
         }
-        val shape = getGroupedShape(index, size)
         
         YouTubeListItem(
             item = item,
@@ -151,7 +104,7 @@ fun OnlineSearchResult(
             trailingContent = { IconButton(onClick = longClick) { Icon(painterResource(R.drawable.more_vert), null) } },
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 1.dp)
-                .clip(shape)
+                .clip(getGroupedShape(index, size))
                 .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                 .combinedClickable(
                     onClick = {
@@ -170,79 +123,39 @@ fun OnlineSearchResult(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text(text = stringResource(R.string.search_yt_music), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { IconButton(onClick = { navController.navigateUp() }) { Icon(painterResource(R.drawable.arrow_back), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } },
-            trailingIcon = { if (query.text.isNotEmpty()) IconButton(onClick = { query = TextFieldValue("") }) { Icon(painterResource(R.drawable.close), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onSearch(query.text) }),
-            singleLine = true,
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = if (pureBlack) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = if (pureBlack) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).focusRequester(focusRequester).onFocusChanged { if (it.isFocused) isSearchFocused = true }
-        )
-
-        Box(modifier = Modifier.weight(1f)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                ChipsRow(
-                    chips = listOf(
-                        null to stringResource(R.string.filter_all),
-                        FILTER_SONG to stringResource(R.string.filter_songs),
-                        FILTER_VIDEO to stringResource(R.string.filter_videos),
-                        FILTER_ALBUM to stringResource(R.string.filter_albums),
-                        FILTER_ARTIST to stringResource(R.string.filter_artists),
-                        FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                        FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                    ),
-                    currentValue = searchFilter,
-                    onValueUpdate = {
-                        if (viewModel.filter.value != it) viewModel.filter.value = it
-                        coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                LazyColumn(state = lazyListState, contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues(), modifier = Modifier.fillMaxWidth()) {
-                    if (searchFilter == null) {
-                        searchSummary?.summaries?.forEachIndexed { index, summary ->
-                            if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
-                            item {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                                    Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                            itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item ->
-                                ytItemContent(item, idx, summary.items.size)
-                            }
-                            item { Spacer(Modifier.height(4.dp)) }
-                        }
-                        if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-                    } else {
-                        itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item ->
-                            ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size)
-                        }
-                        if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
-                        if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-                    }
-                    if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
-                        item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
-                    }
-                    item(key = "bottom_spacer") { Spacer(modifier = Modifier.height(140.dp)) } 
-                }
+    LazyColumn(state = lazyListState, contentPadding = PaddingValues(top = SearchFilterHeight + AppBarHeight + 16.dp, bottom = 140.dp), modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
+        if (searchFilter == null) {
+            searchSummary?.summaries?.forEachIndexed { index, summary ->
+                if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
+                item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
+                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
+                item { Spacer(Modifier.height(4.dp)) }
             }
-            if (isSearchFocused) {
-                OnlineSearchScreen(query = query.text, onQueryChange = { query = it }, navController = navController, onSearch = onSearch, onDismiss = { isSearchFocused = false; focusManager.clearFocus() }, pureBlack = pureBlack)
-            }
+            if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+        } else {
+            itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size) }
+            if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
+            if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         }
+        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
+    }
+
+    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))) {
+        ChipsRow(
+            chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
+            currentValue = searchFilter,
+            onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
+        )
+    }
+}
+
+// Function to handle Vivi-style grouped rounded corners
+@Composable
+fun getGroupedShape(index: Int, size: Int): Shape {
+    return when {
+        size == 1 -> RoundedCornerShape(16.dp)
+        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 }
