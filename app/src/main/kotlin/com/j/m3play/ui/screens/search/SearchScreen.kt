@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.animation.AnimatedVisibility
@@ -9,7 +19,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -19,23 +36,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalIsPlayerExpanded
 import com.j.m3play.LocalPlayerAwareWindowInsets
+import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.*
 import com.j.m3play.db.entities.SearchHistory
+import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.innertube.utils.YouTubeUrlParser
+import com.j.m3play.playback.queues.YouTubeQueue
+import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.NavigationTitle
+import com.j.m3play.ui.component.YouTubeGridItem
+import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.screens.search.suggestions.SuggestionsTabContent
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import com.j.m3play.viewmodels.ExploreViewModel
+import com.j.m3play.viewmodels.MoodAndGenresViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -50,13 +84,16 @@ fun SearchScreen(
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isPlayerExpanded = LocalIsPlayerExpanded.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val playerConnection = LocalPlayerConnection.current
 
     var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
     
-    // Tab State
-    var selectedTabIndex by rememberSaveable { mutableStateOf(1) } // 1 means Suggestions by default
+    // Default tab 1 matlab 'Suggestions' (Apple Music wala tab) khulega pehle
+    var selectedTabIndex by rememberSaveable { mutableStateOf(1) } 
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
 
@@ -67,6 +104,7 @@ fun SearchScreen(
         } else {
             showSearchContent = false
             keyboardController?.hide()
+            focusManager.clearFocus()
         }
     }
 
@@ -77,7 +115,11 @@ fun SearchScreen(
         { searchQuery ->
             if (searchQuery.isNotEmpty()) {
                 focusManager.clearFocus()
-                navController.navigate("search/${URLEncoder.encode(searchQuery, "UTF-8")}")
+                when (val parsedUrl = YouTubeUrlParser.parse(searchQuery)) {
+                    is YouTubeUrlParser.ParsedUrl.Video -> playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = parsedUrl.id)))
+                    is YouTubeUrlParser.ParsedUrl.Artist -> navController.navigate("artist/${parsedUrl.id}")
+                    null -> navController.navigate("search/${URLEncoder.encode(searchQuery, "UTF-8")}")
+                }
                 if (!pauseSearchHistory) {
                     coroutineScope.launch(Dispatchers.IO) { database.query { insert(SearchHistory(query = searchQuery)) } }
                 }
@@ -113,7 +155,7 @@ fun SearchScreen(
                                 IconButton(onClick = { query = TextFieldValue("") }) { Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface) }
                             }
                             IconButton(onClick = { searchSource = if (searchSource == SearchSource.ONLINE) SearchSource.LOCAL else SearchSource.ONLINE }) {
-                                Icon(painter = painterResource(if (searchSource == SearchSource.LOCAL) R.drawable.library_music else R.drawable.search), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                                Icon(painter = painterResource(if (searchSource == SearchSource.LOCAL) R.drawable.library_music else R.drawable.globe_search), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     },
@@ -128,31 +170,20 @@ fun SearchScreen(
                     }
                 }
 
-                // Vivi-style Tabs visible when search is not active
-                AnimatedVisibility(
-                    visible = !searchActive,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
+                // Vivi jaise tabs (Explore | Suggestions | Album)
+                AnimatedVisibility(visible = !searchActive, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                     SecondaryTabRow(
                         selectedTabIndex = selectedTabIndex,
                         containerColor = Color.Transparent,
                         indicator = {
-                            Box(
-                                modifier = Modifier.tabIndicatorOffset(selectedTabIndex).fillMaxWidth(),
-                                contentAlignment = Alignment.BottomCenter
-                            ) {
-                                Box(
-                                    modifier = Modifier.width(32.dp).height(3.dp)
-                                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                        .background(MaterialTheme.colorScheme.primary)
-                                )
+                            Box(modifier = Modifier.tabIndicatorOffset(selectedTabIndex).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                                Box(modifier = Modifier.width(32.dp).height(3.dp).clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)).background(MaterialTheme.colorScheme.primary))
                             }
                         }
                     ) {
-                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") })
-                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") })
-                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Album") })
+                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text(stringResource(R.string.tab_explore)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text(stringResource(R.string.tab_Suggestions)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text(stringResource(R.string.tab_album)) }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -162,11 +193,97 @@ fun SearchScreen(
         Box(modifier = Modifier.padding(top = paddingValues.calculateTopPadding()).fillMaxSize()) {
             if (!searchActive) {
                 val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                val tabPadding = PaddingValues(bottom = bottomPadding + 80.dp)
+                
                 when (selectedTabIndex) {
-                    0 -> Text("Explore Content (Coming Soon)", modifier = Modifier.align(Alignment.Center)) // Replace with ExploreTabContent if ready
-                    1 -> SuggestionsTabContent(navController = navController, contentPadding = PaddingValues(bottom = bottomPadding))
-                    2 -> Text("Album Content (Coming Soon)", modifier = Modifier.align(Alignment.Center)) // Replace with AlbumsTabContent if ready
+                    0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
+                    1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
+                    2 -> AlbumsTabContent(navController = navController, contentPadding = tabPadding)
                 }
+            }
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, isPlayerExpanded) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (isPlayerExpanded) {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+// -----------------------------------------------------------------
+// EXPLORE TAB
+// -----------------------------------------------------------------
+@Composable
+fun ExploreTabContent(navController: NavController, viewModel: MoodAndGenresViewModel = hiltViewModel(), contentPadding: PaddingValues = PaddingValues(0.dp)) {
+    val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
+    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
+        moodAndGenresList?.forEach { section ->
+            item { NavigationTitle(title = section.title) }
+            val rows = section.items.chunked(2)
+            items(rows) { row ->
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+                    row.forEach { item ->
+                        Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.weight(1f).padding(6.dp).height(64.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceContainer).clickable { navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") }.padding(horizontal = 14.dp)) {
+                            Text(text = item.title, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    repeat(2 - row.size) { Spacer(modifier = Modifier.weight(1f)) }
+                }
+            }
+        }
+        if (moodAndGenresList == null) { item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } } }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+    }
+}
+
+// -----------------------------------------------------------------
+// ALBUMS TAB
+// -----------------------------------------------------------------
+@Composable
+fun AlbumsTabContent(navController: NavController, viewModel: ExploreViewModel = hiltViewModel(), contentPadding: PaddingValues = PaddingValues(0.dp)) {
+    val menuState = LocalMenuState.current
+    val haptic = LocalHapticFeedback.current
+    val playerConnection = LocalPlayerConnection.current
+    val mediaMetadata by (playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) })
+    val isPlaying by (playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) })
+    val coroutineScope = rememberCoroutineScope()
+    val explorePage by viewModel.explorePage.collectAsState()
+    val newReleaseAlbums = explorePage?.newReleaseAlbums
+    val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
+
+    if (newReleaseAlbums == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+    } else {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp),
+            contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp + contentPadding.calculateBottomPadding()),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(items = newReleaseAlbums.distinctBy { it.id }, key = { it.id }) { album ->
+                YouTubeGridItem(
+                    item = album, 
+                    isActive = mediaMetadata?.album?.id == album.id, 
+                    isPlaying = isPlaying, 
+                    coroutineScope = coroutineScope, 
+                    fillMaxWidth = true, 
+                    modifier = Modifier.combinedClickable(
+                        onClick = { navController.navigate("album/${album.id}") }, 
+                        onLongClick = { 
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            menuState.show { YouTubeAlbumMenu(albumItem = album, navController = navController, onDismiss = menuState::dismiss) } 
+                        }
+                    )
+                )
             }
         }
     }
