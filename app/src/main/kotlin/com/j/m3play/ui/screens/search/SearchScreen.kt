@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.animation.AnimatedVisibility
@@ -66,7 +56,6 @@ import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.ExploreViewModel
 import com.j.m3play.viewmodels.MoodAndGenresViewModel
-import com.j.m3play.innertube.pages.MoodAndGenres // Import for casting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -184,7 +173,6 @@ fun SearchScreen(
             if (!searchActive) {
                 val bottomPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
                 val tabPadding = PaddingValues(bottom = bottomPadding + 80.dp)
-                
                 when (selectedTabIndex) {
                     0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
                     1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
@@ -215,9 +203,7 @@ fun ExploreTabContent(
     val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
     
     if (moodAndGenresList == null) { 
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularProgressIndicator() 
-        } 
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } 
     } else {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
             val rows = moodAndGenresList!!.chunked(2)
@@ -233,10 +219,8 @@ fun ExploreTabContent(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .clickable { 
-                                    // FIXED: Proper casting to access M3-Play model fields
-                                    val browseId = (item as? MoodAndGenres.Item)?.browseId
-                                    val params = (item as? MoodAndGenres.Item)?.params
-                                    navController.navigate("youtube_browse/$browseId?params=$params") 
+                                    // FIXED: Using variables directly from your MoodAndGenresViewModel logic
+                                    navController.navigate("youtube_browse/${item.browseId}?params=${item.params}") 
                                 }
                                 .padding(horizontal = 16.dp)
                         ) {
@@ -266,25 +250,16 @@ fun AlbumsTabContent(
     
     val explorePage by viewModel.explorePage.collectAsState()
     val newReleaseAlbums = explorePage?.newReleaseAlbums
-    val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
     if (newReleaseAlbums == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularProgressIndicator() 
-        }
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
     } else {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 160.dp),
-            contentPadding = PaddingValues(
-                start = 12.dp, 
-                top = 12.dp, 
-                end = 12.dp, 
-                bottom = 12.dp + contentPadding.calculateBottomPadding()
-            ),
+            contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 12.dp + contentPadding.calculateBottomPadding()),
             modifier = Modifier.fillMaxSize()
         ) {
-            // FIXED: Using standard items() instead of experimental ones
-            items(newReleaseAlbums, key = { it.id }) { album ->
+            items(items = newReleaseAlbums, key = { it.id }) { album ->
                 YouTubeGridItem(
                     item = album, 
                     isActive = mediaMetadata?.album?.id == album.id, 
