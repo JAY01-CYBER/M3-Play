@@ -72,7 +72,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -135,13 +134,13 @@ import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
-// 🌟 ORIGINAL VIVI GROUPING SHAPE 🌟
+// 🌟 MATERIAL 3 EXPRESSIVE PREMIUM SHAPE (ViVi spacing style) 🌟
 @Composable
-fun getViviGroupedShape(index: Int, size: Int): Shape {
+fun getM3ExpressiveGroupedShape(index: Int, size: Int): Shape {
     return when {
-        size <= 1 -> RoundedCornerShape(12.dp)
-        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        size <= 1 -> RoundedCornerShape(24.dp)
+        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
         else -> RoundedCornerShape(4.dp)
     }
 }
@@ -158,19 +157,19 @@ inline fun ListItem(
     totalSize: Int = -1
 ) {
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getM3ExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // 1dp gap jaise ViVi mein hota hai
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Tight 1dp ViVi spacing
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .then(modifier)
             .height(ListItemHeight)
             .padding(horizontal = 8.dp)
-            .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
+            .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(12.dp)) else Modifier)
     ) {
         Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
@@ -324,7 +323,7 @@ fun SongListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getM3ExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
     val content: @Composable () -> Unit = {
         Row(
@@ -727,7 +726,7 @@ fun OverlayPlaylistListItem(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick?.invoke() }
@@ -744,12 +743,7 @@ fun OverlayPlaylistListItem(
                 )
                 Box(modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
-                            startY = 40f
-                        )
-                    )
+                    .background(Color.Black.copy(alpha = 0.45f))
                 )
             } else {
                 Box(modifier = Modifier
@@ -981,7 +975,7 @@ fun YouTubeListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+    val shape = if (isGrouped) getM3ExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
     val content: @Composable () -> Unit = {
         Row(
