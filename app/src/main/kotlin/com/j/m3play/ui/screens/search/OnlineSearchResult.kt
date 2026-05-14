@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -31,9 +30,7 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
-import com.j.m3play.constants.PauseSearchHistoryKey
 import com.j.m3play.constants.SearchFilterHeight
-import com.j.m3play.db.entities.SearchHistory
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
@@ -51,12 +48,8 @@ import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.menu.*
-import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.OnlineSearchViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.URLDecoder
-import java.net.URLEncoder
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +58,6 @@ fun OnlineSearchResult(
     viewModel: OnlineSearchViewModel = hiltViewModel(),
     pureBlack: Boolean = false
 ) {
-    val database = LocalDatabase.current
     val menuState = LocalMenuState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
@@ -122,22 +114,47 @@ fun OnlineSearchResult(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+    ) {
         
-        
-        val topMargin = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight
+    
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                
+                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
+        ) {
+            ChipsRow(
+                chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
+                currentValue = searchFilter,
+                onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
+            )
+        }
+
         
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(top = topMargin + SearchFilterHeight + 8.dp, bottom = 140.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 140.dp),
             modifier = Modifier
-                .fillMaxSize()
-                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+                .fillMaxWidth()
+                .weight(1f) 
         ) {
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
                     if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
-                    item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
+                    item { 
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { 
+                            Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
+                            Spacer(Modifier.width(10.dp))
+                            Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) 
+                        } 
+                    }
                     itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
                     item { Spacer(Modifier.height(4.dp)) }
                 }
@@ -149,21 +166,6 @@ fun OnlineSearchResult(
                 if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
             }
             if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
-        }
-
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(top = topMargin) 
-        ) {
-            ChipsRow(
-                chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
-                currentValue = searchFilter,
-                onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
-            )
         }
     }
 }
