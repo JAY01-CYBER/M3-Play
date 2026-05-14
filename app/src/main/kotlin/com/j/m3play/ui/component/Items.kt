@@ -56,6 +56,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +74,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -94,6 +96,7 @@ import androidx.media3.exoplayer.offline.Download.STATE_COMPLETED
 import androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING
 import androidx.media3.exoplayer.offline.Download.STATE_QUEUED
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.j.m3play.innertube.YouTube
@@ -108,6 +111,7 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.GridThumbnailCornerRadius
+import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.GridThumbnailHeight
 import com.j.m3play.constants.ListThumbnailSize
@@ -115,11 +119,13 @@ import com.j.m3play.constants.ThumbnailCornerRadius
 import com.j.m3play.constants.SwipeToSongKey
 import com.j.m3play.db.entities.Song
 import com.j.m3play.db.entities.Album
+import com.j.m3play.db.entities.AlbumEntity
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.Playlist
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.queues.LocalAlbumRadio
+import com.j.m3play.ui.theme.extractThemeColor
 import com.j.m3play.utils.joinByBullet
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberPreference
@@ -131,19 +137,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.logging.Logger
 import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
-
+// 🌟 PREMIUM EXPRESSIVE GROUPING SHAPE 🌟 (Midnight Romance Style)
 @Composable
-fun getSolidBlockShape(index: Int, size: Int): Shape {
-    val radius = 24.dp
+fun getPremiumExpressiveGroupedShape(index: Int, size: Int): Shape {
     return when {
-        size <= 1 -> RoundedCornerShape(radius) 
-        index == 0 -> RoundedCornerShape(topStart = radius, topEnd = radius, bottomStart = 0.dp, bottomEnd = 0.dp) 
-        index == size - 1 -> RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = radius, bottomEnd = radius) 
-        else -> RoundedCornerShape(0.dp) 
+        size <= 1 -> RoundedCornerShape(24.dp)
+        index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+        else -> RoundedCornerShape(4.dp)
     }
 }
 
@@ -159,29 +165,43 @@ inline fun ListItem(
     totalSize: Int = -1
 ) {
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getSolidBlockShape(index, totalSize) else RoundedCornerShape(24.dp)
+    // Pro logic: contiguous seamless block on grouping, premium expressive separated carts on fallback
+    val shape = if (isGrouped) getPremiumExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            
-            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 4.dp) 
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp) // Premium spacing
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape) 
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                .clip(shape)
+                .background(
+                    if (isGrouped) // Seamless block background
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    else // Floating glass card default look
+                        Brush.linearGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            )
+                        )
+                )
                 .then(modifier)
+                .fillMaxWidth()
                 .height(ListItemHeight)
-                .padding(horizontal = 8.dp)
-                .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(12.dp)) else Modifier)
+                .padding(horizontal = if (isGrouped) 8.dp else 12.dp)
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                        RoundedCornerShape(12.dp)
+                    ) else Modifier
+                )
         ) {
-            Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-            Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+            Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(
-                    text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    text = title, fontSize = 16.sp, FontWeight.SemiBold,
                     color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
@@ -193,12 +213,12 @@ inline fun ListItem(
             trailingContent()
         }
         
-        // Exact White/Grey Divider 
+        // Exact White/Grey Divider (like screenshot) between items in contiguous list
         if (isGrouped && index < totalSize - 1) {
             HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 0.dp), // Full width of the card
+                modifier = Modifier.padding(horizontal = 0.dp), // Full contiguous width
                 thickness = 1.dp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f) 
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f) // Subtle grey divider
             )
         }
     }
@@ -340,25 +360,34 @@ fun SongListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getSolidBlockShape(index, totalSize) else RoundedCornerShape(24.dp)
+    val shape = if (isGrouped) getPremiumExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
     val content: @Composable () -> Unit = {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 4.dp) // 0dp for seamless block
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp) // Pro layout
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape) // Solid block corners
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .clip(shape)
+                    .background(
+                        if (isGrouped)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        else
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+                    )
                     .then(modifier)
+                    .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(12.dp)
                         ) else Modifier
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -379,8 +408,8 @@ fun SongListItem(
                     Text(
                         text = song.song.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp
+                            FontWeight.SemiBold,
+                            fontSize = 16.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -411,8 +440,7 @@ fun SongListItem(
                 }
                 trailingContent()
             }
-            
-            // Divider for seamless look
+            // Divider for seamless look in contiguous block
             if (isGrouped && index < totalSize - 1) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 0.dp),
@@ -757,7 +785,7 @@ fun OverlayPlaylistListItem(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(24.dp), // Premium separated cards look
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick?.invoke() }
@@ -879,17 +907,9 @@ fun PlaylistGridItem(
             ""
         } else {
             if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
-                pluralStringResource(
-                    R.plurals.n_song,
-                    playlist.playlist.remoteSongCount,
-                    playlist.playlist.remoteSongCount
-                )
+                pluralStringResource(R.plurals.n_song, playlist.playlist.remoteSongCount, playlist.playlist.remoteSongCount)
             } else {
-                pluralStringResource(
-                    R.plurals.n_song,
-                    playlist.songCount,
-                    playlist.songCount
-                )
+                pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount)
             }
         }
         Text(
@@ -1006,25 +1026,34 @@ fun YouTubeListItem(
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
     val isGrouped = index != -1 && totalSize != -1
-    val shape = if (isGrouped) getSolidBlockShape(index, totalSize) else RoundedCornerShape(24.dp)
+    val shape = if (isGrouped) getPremiumExpressiveGroupedShape(index, totalSize) else RoundedCornerShape(24.dp)
 
     val content: @Composable () -> Unit = {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 4.dp) // 0dp for seamless block
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 0.dp else 6.dp) // Pro layout
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape) // Solid block corners
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .clip(shape)
+                    .background(
+                        if (isGrouped)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        else
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+                    )
                     .then(modifier)
+                    .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .then(
                         if (isActive) Modifier.background(
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                            RoundedCornerShape(8.dp)
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(12.dp)
                         ) else Modifier
                     ),
                 verticalAlignment = Alignment.CenterVertically
@@ -1045,8 +1074,8 @@ fun YouTubeListItem(
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 15.sp
+                            FontWeight.SemiBold,
+                            fontSize = 16.sp
                         ),
                         color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -1078,8 +1107,7 @@ fun YouTubeListItem(
                 }
                 trailingContent()
             }
-            
-            // Divider for seamless look
+            // Divider for seamless look in contiguous block
             if (isGrouped && index < totalSize - 1) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 0.dp),
