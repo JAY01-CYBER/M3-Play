@@ -72,7 +72,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -135,6 +134,17 @@ import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
+// 🌟 ORIGINAL VIVI GROUPING SHAPE 🌟
+@Composable
+fun getViviGroupedShape(index: Int, size: Int): Shape {
+    return when {
+        size <= 1 -> RoundedCornerShape(12.dp)
+        index == 0 -> RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 12.dp, bottomEnd = 12.dp)
+        else -> RoundedCornerShape(4.dp)
+    }
+}
+
 @Composable
 inline fun ListItem(
     modifier: Modifier = Modifier,
@@ -142,30 +152,28 @@ inline fun ListItem(
     noinline subtitle: (@Composable RowScope.() -> Unit)? = null,
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    isSelected: Boolean? = false,
     isActive: Boolean = false,
-    shape: Shape = RoundedCornerShape(12.dp),
-    drawHighlight: Boolean = true,
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape) 
-            .background(
-                color = when {
-                    isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                    isSelected == true && drawHighlight -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                }
-            )
+            .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             .height(ListItemHeight)
             .padding(horizontal = 8.dp)
+            .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
     ) {
         Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(
-                text = title, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
                 color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
@@ -187,16 +195,12 @@ fun ListItem(
     thumbnailContent: @Composable () -> Unit,
     trailingContent: @Composable RowScope.() -> Unit = {},
     isActive: Boolean = false,
-    isSelected: Boolean? = false,
-    shape: Shape = RoundedCornerShape(12.dp),
-    drawHighlight: Boolean = true
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = title,
     modifier = modifier,
     isActive = isActive,
-    isSelected = isSelected,
-    shape = shape,
-    drawHighlight = drawHighlight,
     subtitle = {
         badges()
         if (!subtitle.isNullOrEmpty()) {
@@ -204,7 +208,9 @@ fun ListItem(
         }
     },
     thumbnailContent = thumbnailContent,
-    trailingContent = trailingContent
+    trailingContent = trailingContent,
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -311,49 +317,77 @@ fun SongListItem(
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    shape: Shape = RoundedCornerShape(12.dp),
-    drawHighlight: Boolean = true
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        ListItem(
-            title = song.song.title,
-            subtitle = {
-                badges()
-                val subtitleText = joinByBullet(
-                    song.artists.joinToString { it.name },
-                    makeTimeString(song.song.duration * 1000L),
-                    viewCountText
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ItemThumbnail(
+                thumbnailUrl = song.song.thumbnailUrl,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.size(48.dp)
+            )
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.song.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp
+                    ),
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                if (!subtitleText.isNullOrEmpty()) {
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    badges()
+
+                    val subtitleText = joinByBullet(
+                        song.artists.joinToString { it.name },
+                        makeTimeString(song.song.duration * 1000L),
+                        viewCountText
                     )
+
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-            },
-            thumbnailContent = {
-                ItemThumbnail(
-                    thumbnailUrl = song.song.thumbnailUrl,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.size(48.dp)
-                )
-            },
-            trailingContent = trailingContent,
-            modifier = modifier,
-            isActive = isActive,
-            isSelected = isSelected,
-            shape = shape,
-            drawHighlight = drawHighlight
-        )
+            }
+            trailingContent()
+        }
     }
 
     if (isSwipeable && swipeEnabled) {
@@ -439,7 +473,8 @@ fun ArtistListItem(
         }
     },
     trailingContent: @Composable RowScope.() -> Unit = {},
-    shape: Shape = RoundedCornerShape(12.dp)
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = artist.artist.name,
     subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
@@ -455,7 +490,8 @@ fun ArtistListItem(
     },
     trailingContent = trailingContent,
     modifier = modifier,
-    shape = shape
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -518,7 +554,8 @@ fun AlbumListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    shape: Shape = RoundedCornerShape(12.dp)
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = album.album.title,
     subtitle = joinByBullet(
@@ -539,7 +576,8 @@ fun AlbumListItem(
     trailingContent = trailingContent,
     modifier = modifier,
     isActive = isActive,
-    shape = shape
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -630,7 +668,8 @@ fun PlaylistListItem(
     autoPlaylist: Boolean = false,
     badges: @Composable RowScope.() -> Unit = {},
     trailingContent: @Composable RowScope.() -> Unit = {},
-    shape: Shape = RoundedCornerShape(12.dp)
+    index: Int = -1,
+    totalSize: Int = -1
 ) = ListItem(
     title = playlist.playlist.name,
     subtitle = if (autoPlaylist) {
@@ -666,7 +705,8 @@ fun PlaylistListItem(
     },
     trailingContent = trailingContent,
     modifier = modifier,
-    shape = shape
+    index = index,
+    totalSize = totalSize
 )
 
 @Composable
@@ -683,7 +723,7 @@ fun OverlayPlaylistListItem(
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
             .fillMaxWidth()
@@ -806,9 +846,17 @@ fun PlaylistGridItem(
             ""
         } else {
             if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
-                pluralStringResource(R.plurals.n_song, playlist.playlist.remoteSongCount, playlist.playlist.remoteSongCount)
+                pluralStringResource(
+                    R.plurals.n_song,
+                    playlist.playlist.remoteSongCount,
+                    playlist.playlist.remoteSongCount
+                )
             } else {
-                pluralStringResource(R.plurals.n_song, playlist.songCount, playlist.songCount)
+                pluralStringResource(
+                    R.plurals.n_song,
+                    playlist.songCount,
+                    playlist.songCount
+                )
             }
         }
         Text(
@@ -860,7 +908,8 @@ fun MediaMetadataListItem(
     isPlaying: Boolean = false,
     shouldLoadImage: Boolean = true,
     trailingContent: @Composable RowScope.() -> Unit = {},
-    shape: Shape = RoundedCornerShape(12.dp)
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     ListItem(
         title = mediaMetadata.title,
@@ -883,7 +932,8 @@ fun MediaMetadataListItem(
         trailingContent = trailingContent,
         modifier = modifier,
         isActive = isActive,
-        shape = shape
+        index = index,
+        totalSize = totalSize
     )
 }
 
@@ -918,51 +968,78 @@ fun YouTubeListItem(
             Icon.Download(downloads[item.id]?.state)
         }
     },
-    shape: Shape = RoundedCornerShape(12.dp),
-    drawHighlight: Boolean = true
+    index: Int = -1,
+    totalSize: Int = -1
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val isGrouped = index != -1 && totalSize != -1
+    val shape = if (isGrouped) getViviGroupedShape(index, totalSize) else RoundedCornerShape(12.dp)
 
     val content: @Composable () -> Unit = {
-        ListItem(
-            title = item.title,
-            subtitle = {
-                badges()
-                val subtitleText = when (item) {
-                    is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
-                    is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
-                    is ArtistItem -> null
-                    is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
-                }
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .then(
+                    if (isActive) Modifier.background(
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    ) else Modifier
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ItemThumbnail(
+                thumbnailUrl = item.thumbnail,
+                albumIndex = albumIndex,
+                isSelected = isSelected,
+                isActive = isActive,
+                isPlaying = isPlaying,
+                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
+                modifier = Modifier.size(48.dp)
+            )
 
-                if (!subtitleText.isNullOrEmpty()) {
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            thumbnailContent = {
-                ItemThumbnail(
-                    thumbnailUrl = item.thumbnail,
-                    albumIndex = albumIndex,
-                    isSelected = isSelected,
-                    isActive = isActive,
-                    isPlaying = isPlaying,
-                    shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
-                    modifier = Modifier.size(48.dp)
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 15.sp
+                    ),
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-            },
-            trailingContent = trailingContent,
-            modifier = modifier,
-            isActive = isActive,
-            isSelected = isSelected,
-            shape = shape,
-            drawHighlight = drawHighlight
-        )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    badges()
+
+                    val subtitleText = when (item) {
+                        is SongItem -> joinByBullet(item.artists.joinToString { it.name }, makeTimeString(item.duration?.times(1000L)), viewCountText)
+                        is AlbumItem -> joinByBullet(item.artists?.joinToString { it.name }, item.year?.toString())
+                        is ArtistItem -> null
+                        is PlaylistItem -> joinByBullet(item.author?.name, item.songCountText)
+                    }
+
+                    if (!subtitleText.isNullOrEmpty()) {
+                        Text(
+                            text = subtitleText,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            trailingContent()
+        }
     }
 
     if (item is SongItem && isSwipeable && swipeEnabled) {
