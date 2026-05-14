@@ -103,9 +103,6 @@ fun OnlineSearchResult(
             isPlaying = isPlaying,
             trailingContent = { IconButton(onClick = longClick) { Icon(painterResource(R.drawable.more_vert), null) } },
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 1.dp)
-                .clip(getGroupedShape(index, size))
-                .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                 .combinedClickable(
                     onClick = {
                         when (item) {
@@ -119,7 +116,9 @@ fun OnlineSearchResult(
                         }
                     },
                     onLongClick = longClick,
-                )
+                ),
+            index = index,
+            totalSize = size
         )
     }
 
@@ -128,12 +127,20 @@ fun OnlineSearchResult(
             searchSummary?.summaries?.forEachIndexed { index, summary ->
                 if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
                 item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
-                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
+                
+                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> 
+                    ytItemContent(item, idx, summary.items.size) 
+                }
+                
                 item { Spacer(Modifier.height(4.dp)) }
             }
             if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         } else {
-            itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size) }
+            val filteredItems = itemsPage?.items.orEmpty().distinctBy { it.id }
+            itemsIndexed(items = filteredItems, key = { _, it -> "filtered_${it.id}" }) { idx, item -> 
+                ytItemContent(item, idx, filteredItems.size) 
+            }
+            
             if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
             if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         }
@@ -146,16 +153,5 @@ fun OnlineSearchResult(
             currentValue = searchFilter,
             onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
         )
-    }
-}
-
-// Function to handle Vivi-style grouped rounded corners
-@Composable
-fun getGroupedShape(index: Int, size: Int): Shape {
-    return when {
-        size == 1 -> RoundedCornerShape(16.dp)
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-        else -> RoundedCornerShape(4.dp)
     }
 }
