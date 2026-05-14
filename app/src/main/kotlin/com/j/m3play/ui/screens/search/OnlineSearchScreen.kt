@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -6,19 +16,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -30,11 +37,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.j.m3play.innertube.models.*
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.innertube.models.*
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.LocalMenuState
@@ -42,6 +49,9 @@ import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.menu.*
 import com.j.m3play.viewmodels.OnlineSearchSuggestionViewModel
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -60,17 +70,22 @@ fun OnlineSearchScreen(
     val playerConnection = LocalPlayerConnection.current ?: return
 
     val scope = rememberCoroutineScope()
+
     val haptic = LocalHapticFeedback.current
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
+    val coroutineScope = rememberCoroutineScope()
     val viewState by viewModel.viewState.collectAsState()
+
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
             .drop(1)
-            .collect { keyboardController?.hide() }
+            .collect {
+                keyboardController?.hide()
+            }
     }
 
     LaunchedEffect(query) {
@@ -86,52 +101,71 @@ fun OnlineSearchScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+            .imePadding() // FIX: Yeh keyboard aane par list ko cut hone se rokega
     ) {
-        // --- History Section ---
-        if (viewState.history.isNotEmpty()) {
-            item(key = "history_header") {
-                Text(
-                    text = stringResource(R.string.search_history),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { index, history ->
+        items(viewState.history, key = { "history_${it.query}" }) { history ->
             SuggestionItem(
                 query = history.query,
                 online = false,
-                shape = getGroupedSuggestionShape(index, viewState.history.size),
                 onClick = {
                     onSearch(history.query)
                     onDismiss()
                 },
-                onDelete = { database.query { delete(history) } },
-                onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
+                onDelete = {
+                    database.query {
+                        delete(history)
+                    }
+                },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(history.query, TextRange(history.query.length)))
+                },
+                modifier = Modifier.animateItem(),
                 pureBlack = pureBlack
             )
         }
 
-        // --- Top Results Section ---
-        if (viewState.items.isNotEmpty()) {
-            item(key = "search_divider") {
-                Text(
-                    text = stringResource(R.string.top_results),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
-                )
-            }
-            item(key = "search_divider_spacer") { Spacer(modifier = Modifier.height(8.dp)) }
+        items(viewState.suggestions, key = { "suggestion_$it" }) { query ->
+            SuggestionItem(
+                query = query,
+                online = true,
+                onClick = {
+                    onSearch(query)
+                    onDismiss()
+                },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(query, TextRange(query.length)))
+                },
+                modifier = Modifier.animateItem(),
+                pureBlack = pureBlack
+            )
         }
 
-        val distinctItems = viewState.items.distinctBy { it.id }
-        itemsIndexed(distinctItems, key = { _, it -> "item_${it.id}" }) { index, item ->
-            val shape = getGroupedSuggestionShape(index, distinctItems.size)
+        if (viewState.items.isNotEmpty() && viewState.history.size + viewState.suggestions.size > 0) {
+            item {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.top_results),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (pureBlack) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        items(viewState.items.distinctBy { it.id }, key = { "item_${it.id}" }) { item ->
             YouTubeListItem(
                 item = item,
                 isActive = when (item) {
@@ -145,43 +179,116 @@ fun OnlineSearchScreen(
                         onClick = {
                             menuState.show {
                                 when (item) {
-                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is SongItem -> YouTubeSongMenu(
+                                        song = item,
+                                        navController = navController,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is AlbumItem -> YouTubeAlbumMenu(
+                                        albumItem = item,
+                                        navController = navController,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is ArtistItem -> YouTubeArtistMenu(
+                                        artist = item,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is PlaylistItem -> YouTubePlaylistMenu(
+                                        playlist = item,
+                                        coroutineScope = scope,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
                                 }
                             }
                         }
-                    ) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.more_vert),
+                            contentDescription = null
+                        )
+                    }
                 },
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 1.dp)
-                    .clip(shape)
-                    .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .fillMaxWidth() // FIX: Yeh list items ko left-right side se cut hone se rokega
                     .combinedClickable(
                         onClick = {
                             when (item) {
                                 is SongItem -> {
-                                    if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else { playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())); onDismiss() }
+                                    if (item.id == mediaMetadata?.id) {
+                                        playerConnection.player.togglePlayPause()
+                                    } else {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue.radio(item.toMediaMetadata())
+                                        )
+                                        onDismiss()
+                                    }
                                 }
-                                is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
-                                is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
-                                is PlaylistItem -> { navController.navigate("online_playlist/${item.id}"); onDismiss() }
+                                is AlbumItem -> {
+                                    navController.navigate("album/${item.id}")
+                                    onDismiss()
+                                }
+                                is ArtistItem -> {
+                                    navController.navigate("artist/${item.id}")
+                                    onDismiss()
+                                }
+                                is PlaylistItem -> {
+                                    navController.navigate("online_playlist/${item.id}")
+                                    onDismiss()
+                                }
                             }
                         },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             menuState.show {
                                 when (item) {
-                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is SongItem -> YouTubeSongMenu(
+                                        song = item,
+                                        navController = navController,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is AlbumItem -> YouTubeAlbumMenu(
+                                        albumItem = item,
+                                        navController = navController,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is ArtistItem -> YouTubeArtistMenu(
+                                        artist = item,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
+                                    is PlaylistItem -> YouTubePlaylistMenu(
+                                        playlist = item,
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = {
+                                            menuState.dismiss()
+                                            onDismiss()
+                                        }
+                                    )
                                 }
                             }
                         }
                     )
+                    .animateItem()
             )
         }
     }
@@ -192,29 +299,48 @@ fun SuggestionItem(
     modifier: Modifier = Modifier,
     query: String,
     online: Boolean,
-    shape: Shape,
     onClick: () -> Unit,
     onDelete: () -> Unit = {},
     onFillTextField: () -> Unit,
     pureBlack: Boolean
 ) {
+    val iconContainerColor = if (pureBlack) {
+        Color.White.copy(alpha = 0.08f)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+    }
+
+    val iconTint = if (pureBlack) {
+        Color.White.copy(alpha = 0.7f)
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 1.dp)
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(shape)
-            .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick)
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
-        Icon(
-            painterResource(if (online) R.drawable.search else R.drawable.history),
-            contentDescription = null,
-            modifier = Modifier.padding(horizontal = 16.dp).alpha(0.5f),
-            tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = iconContainerColor,
+                    shape = RoundedCornerShape(12.dp)
+                )
+        ) {
+            Icon(
+                painterResource(if (online) R.drawable.search else R.drawable.history),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
 
         Text(
             text = query,
@@ -226,23 +352,23 @@ fun SuggestionItem(
         )
 
         if (!online) {
-            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.5f)) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+            IconButton(onClick = onDelete) {
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = null,
+                    tint = if (pureBlack) Color.White.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
 
-        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.5f)) {
-            Icon(painter = painterResource(R.drawable.arrow_top_left), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+        IconButton(onClick = onFillTextField) {
+            Icon(
+                painter = painterResource(R.drawable.arrow_top_left),
+                contentDescription = null,
+                tint = if (pureBlack) Color.White.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
         }
-    }
-}
-
-@Composable
-fun getGroupedSuggestionShape(index: Int, size: Int): Shape {
-    return when {
-        size == 1 -> RoundedCornerShape(16.dp)
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-        else -> RoundedCornerShape(4.dp)
     }
 }
