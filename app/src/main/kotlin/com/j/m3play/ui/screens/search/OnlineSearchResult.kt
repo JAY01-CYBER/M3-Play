@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -51,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -96,6 +98,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnlineSearchResult(
     navController: NavController,
+    pureBlack: Boolean,
     viewModel: OnlineSearchViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -210,6 +213,9 @@ fun OnlineSearchResult(
 
     LazyColumn(
         state = lazyListState,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background),
         contentPadding =
         LocalPlayerAwareWindowInsets.current
             .add(WindowInsets(top = SearchFilterHeight + 8.dp))
