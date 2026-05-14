@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalPlayerAwareWindowInsets // 🌟 Ye missing tha jisse issue aaya!
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
@@ -122,28 +123,40 @@ fun OnlineSearchResult(
         )
     }
 
-    LazyColumn(state = lazyListState, contentPadding = PaddingValues(top = SearchFilterHeight + AppBarHeight + 16.dp, bottom = 140.dp), modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
-        if (searchFilter == null) {
-            searchSummary?.summaries?.forEachIndexed { index, summary ->
-                if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
-                item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
-                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
-                item { Spacer(Modifier.height(4.dp)) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = lazyListState,
+            // 🌟 FIXED: Ab exact ChipsRow ke theek neeche se list chalu hogi
+            contentPadding = LocalPlayerAwareWindowInsets.current
+                .add(WindowInsets(top = SearchFilterHeight + 16.dp))
+                .asPaddingValues(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+        ) {
+            if (searchFilter == null) {
+                searchSummary?.summaries?.forEachIndexed { index, summary ->
+                    if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
+                    item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
+                    itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
+                    item { Spacer(Modifier.height(4.dp)) }
+                }
+                if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+            } else {
+                val filteredItems = itemsPage?.items.orEmpty().distinctBy { it.id }
+                itemsIndexed(items = filteredItems, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, filteredItems.size) }
+                if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
+                if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
             }
-            if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-        } else {
-            itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size) }
-            if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
-            if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+            if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
         }
-        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
-    }
 
-    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))) {
-        ChipsRow(
-            chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
-            currentValue = searchFilter,
-            onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
-        )
+        Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))) {
+            ChipsRow(
+                chips = listOf(null to stringResource(R.string.filter_all), FILTER_SONG to stringResource(R.string.filter_songs), FILTER_VIDEO to stringResource(R.string.filter_videos), FILTER_ALBUM to stringResource(R.string.filter_albums), FILTER_ARTIST to stringResource(R.string.filter_artists), FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists), FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists)),
+                currentValue = searchFilter,
+                onValueUpdate = { if (viewModel.filter.value != it) viewModel.filter.value = it; coroutineScope.launch { lazyListState.animateScrollToItem(0) } },
+            )
+        }
     }
 }
