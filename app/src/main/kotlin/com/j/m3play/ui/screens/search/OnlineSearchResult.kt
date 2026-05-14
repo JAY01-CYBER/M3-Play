@@ -127,20 +127,12 @@ fun OnlineSearchResult(
             searchSummary?.summaries?.forEachIndexed { index, summary ->
                 if (index > 0) item(key = "divider_$index") { HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)) }
                 item { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) { Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary)); Spacer(Modifier.width(10.dp)); Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) } }
-                
-                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> 
-                    ytItemContent(item, idx, summary.items.size) 
-                }
-                
+                itemsIndexed(items = summary.items, key = { _, it -> "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }) { idx, item -> ytItemContent(item, idx, summary.items.size) }
                 item { Spacer(Modifier.height(4.dp)) }
             }
             if (searchSummary?.summaries?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         } else {
-            val filteredItems = itemsPage?.items.orEmpty().distinctBy { it.id }
-            itemsIndexed(items = filteredItems, key = { _, it -> "filtered_${it.id}" }) { idx, item -> 
-                ytItemContent(item, idx, filteredItems.size) 
-            }
-            
+            itemsIndexed(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { _, it -> "filtered_${it.id}" }) { idx, item -> ytItemContent(item, idx, itemsPage?.items.orEmpty().distinctBy { it.id }.size) }
             if (itemsPage?.continuation != null) item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
             if (itemsPage?.items?.isEmpty() == true) item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
         }
