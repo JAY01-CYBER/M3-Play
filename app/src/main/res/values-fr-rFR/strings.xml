@@ -19,7 +19,7 @@
     <!-- Home -->
     <string name="history">Historique</string>
     <string name="stats">Statistiques</string>
-    <string name="mood_and_genres">Mood &amp; Genres</string>
+    <string name="mood_and_genres">Ambiance &amp; Genres</string>
     <string name="account">Compte</string>
     <string name="quick_picks">Quick picks</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
