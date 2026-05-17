@@ -96,12 +96,11 @@ fun OnlineSearchScreen(
         state = lazyListState,
         contentPadding = PaddingValues(
             top = 8.dp,
-            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
+            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
         ),
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
-            .imePadding() // FIX: Yeh keyboard aane par list ko cut hone se rokega
     ) {
         items(viewState.history, key = { "history_${it.query}" }) { history ->
             SuggestionItem(
@@ -221,7 +220,6 @@ fun OnlineSearchScreen(
                     }
                 },
                 modifier = Modifier
-                    .fillMaxWidth() // FIX: Yeh list items ko left-right side se cut hone se rokega
                     .combinedClickable(
                         onClick = {
                             when (item) {

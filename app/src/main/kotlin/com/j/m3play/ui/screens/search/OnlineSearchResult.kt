@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -52,7 +51,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -98,7 +96,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnlineSearchResult(
     navController: NavController,
-    pureBlack: Boolean, // <--- Ye miss ho gaya tha
     viewModel: OnlineSearchViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -134,34 +131,72 @@ fun OnlineSearchResult(
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             menuState.show {
                 when (item) {
-                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = menuState::dismiss)
-                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
-                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
-                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
+                    is SongItem ->
+                        YouTubeSongMenu(
+                            song = item,
+                            navController = navController,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is AlbumItem ->
+                        YouTubeAlbumMenu(
+                            albumItem = item,
+                            navController = navController,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is ArtistItem ->
+                        YouTubeArtistMenu(
+                            artist = item,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is PlaylistItem ->
+                        YouTubePlaylistMenu(
+                            playlist = item,
+                            coroutineScope = coroutineScope,
+                            onDismiss = menuState::dismiss,
+                        )
                 }
             }
         }
         YouTubeListItem(
             item = item,
-            isActive = when (item) {
+            isActive =
+            when (item) {
                 is SongItem -> mediaMetadata?.id == item.id
                 is AlbumItem -> mediaMetadata?.album?.id == item.id
                 else -> false
             },
             isPlaying = isPlaying,
             trailingContent = {
-                IconButton(onClick = longClick) {
-                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
+                IconButton(
+                    onClick = longClick,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert),
+                        contentDescription = null,
+                    )
                 }
             },
-            modifier = Modifier
+            modifier =
+            Modifier
                 .combinedClickable(
                     onClick = {
                         when (item) {
                             is SongItem -> {
-                                if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+                                if (item.id == mediaMetadata?.id) {
+                                    playerConnection.player.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue(
+                                            WatchEndpoint(videoId = item.id),
+                                            item.toMediaMetadata()
+                                        )
+                                    )
+                                }
                             }
+
                             is AlbumItem -> navController.navigate("album/${item.id}")
                             is ArtistItem -> navController.navigate("artist/${item.id}")
                             is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
@@ -175,17 +210,10 @@ fun OnlineSearchResult(
 
     LazyColumn(
         state = lazyListState,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background), // <--- Isse result list cut nahi hogi
-        contentPadding = PaddingValues(
-    top = WindowInsets.statusBars
-        .asPaddingValues()
-        .calculateTopPadding() + SearchFilterHeight + 8.dp,
-    bottom = LocalPlayerAwareWindowInsets.current
-        .asPaddingValues()
-        .calculateBottomPadding()
-)
+        contentPadding =
+        LocalPlayerAwareWindowInsets.current
+            .add(WindowInsets(top = SearchFilterHeight + 8.dp))
+            .asPaddingValues(),
     ) {
         if (searchFilter == null) {
             searchSummary?.summaries?.forEachIndexed { index, summary ->
@@ -227,11 +255,18 @@ fun OnlineSearchResult(
                     itemContent = ytItemContent,
                 )
 
-                item { Spacer(Modifier.height(4.dp)) }
+                item {
+                    Spacer(Modifier.height(4.dp))
+                }
             }
 
             if (searchSummary?.summaries?.isEmpty() == true) {
-                item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+                item {
+                    EmptyPlaceholder(
+                        icon = R.drawable.search,
+                        text = stringResource(R.string.no_results_found),
+                    )
+                }
             }
         } else {
             items(
@@ -241,16 +276,33 @@ fun OnlineSearchResult(
             )
 
             if (itemsPage?.continuation != null) {
-                item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
+                item(key = "loading") {
+                    ShimmerHost {
+                        repeat(3) {
+                            ListItemPlaceHolder()
+                        }
+                    }
+                }
             }
 
             if (itemsPage?.items?.isEmpty() == true) {
-                item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+                item {
+                    EmptyPlaceholder(
+                        icon = R.drawable.search,
+                        text = stringResource(R.string.no_results_found),
+                    )
+                }
             }
         }
 
         if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
-            item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
+            item {
+                ShimmerHost {
+                    repeat(8) {
+                        ListItemPlaceHolder()
+                    }
+                }
+            }
         }
     }
 
@@ -263,7 +315,8 @@ fun OnlineSearchResult(
             .fillMaxWidth()
     ) {
         ChipsRow(
-            chips = listOf(
+            chips =
+            listOf(
                 null to stringResource(R.string.filter_all),
                 FILTER_SONG to stringResource(R.string.filter_songs),
                 FILTER_VIDEO to stringResource(R.string.filter_videos),
@@ -274,8 +327,12 @@ fun OnlineSearchResult(
             ),
             currentValue = searchFilter,
             onValueUpdate = {
-                if (viewModel.filter.value != it) viewModel.filter.value = it
-                coroutineScope.launch { lazyListState.animateScrollToItem(0) }
+                if (viewModel.filter.value != it) {
+                    viewModel.filter.value = it
+                }
+                coroutineScope.launch {
+                    lazyListState.animateScrollToItem(0)
+                }
             },
             icons = mapOf(
                 null to R.drawable.search,
