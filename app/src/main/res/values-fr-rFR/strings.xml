@@ -21,7 +21,7 @@
     <string name="stats">Statistiques</string>
     <string name="mood_and_genres">Ambiance &amp; Genres</string>
     <string name="account">Compte</string>
-    <string name="quick_picks">Quick picks</string>
+    <string name="quick_picks">Sélection Rapide</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
     <string name="speed_dial">Speed dial</string>
     <string name="speed_dial_random">Play random speed dial song</string>
