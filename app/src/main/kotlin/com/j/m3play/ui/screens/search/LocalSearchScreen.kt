@@ -92,8 +92,10 @@ fun LocalSearchScreen(
             bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
         ),
         modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+    .fillMaxSize()
+    .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+    .statusBarsPadding()
+    .imePadding()
             .let { base -> if (isLandscape) base.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)) else base }
     ) {
         // Exact Vivi Style Sticky Header for Chips
