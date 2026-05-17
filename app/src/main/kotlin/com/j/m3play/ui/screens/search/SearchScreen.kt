@@ -115,7 +115,8 @@ fun SearchScreen(
     }
 
     Scaffold(
-        topBar = {
+    modifier = Modifier.statusBarsPadding(),
+    topBar = {
             Column(modifier = Modifier.background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)) {
                 SearchBar(
                     query = query.text,
