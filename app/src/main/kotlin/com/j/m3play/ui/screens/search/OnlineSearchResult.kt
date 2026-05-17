@@ -178,7 +178,14 @@ fun OnlineSearchResult(
         modifier = Modifier
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background), // <--- Isse result list cut nahi hogi
-        contentPadding = LocalPlayerAwareWindowInsets.current.add(WindowInsets(top = SearchFilterHeight + 8.dp)).asPaddingValues(),
+        contentPadding = PaddingValues(
+    top = WindowInsets.statusBars
+        .asPaddingValues()
+        .calculateTopPadding() + SearchFilterHeight + 8.dp,
+    bottom = LocalPlayerAwareWindowInsets.current
+        .asPaddingValues()
+        .calculateBottomPadding()
+)
     ) {
         if (searchFilter == null) {
             searchSummary?.summaries?.forEachIndexed { index, summary ->
