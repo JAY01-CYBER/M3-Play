@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
 import com.j.m3play.constants.PureBlackKey
@@ -66,6 +68,7 @@ import com.j.m3play.ui.screens.playlist.OnlinePlaylistScreen
 import com.j.m3play.ui.screens.playlist.TopPlaylistScreen
 import com.j.m3play.ui.screens.playlist.CachePlaylistScreen
 import com.j.m3play.ui.screens.search.OnlineSearchResult
+import com.j.m3play.ui.screens.search.SearchScreen
 import com.j.m3play.ui.screens.settings.AboutScreen
 import com.j.m3play.ui.screens.settings.AccountSettings
 import com.j.m3play.ui.screens.settings.AppearanceSettings
@@ -101,13 +104,30 @@ fun NavGraphBuilder.navigationBuilder(
     latestVersionName: String,
 ) {
     composable(Screens.Home.route) {
-        HomeScreen(navController)
+        CompositionLocalProvider(
+            LocalAnimatedVisibilityScope provides this@composable
+        ) {
+            HomeScreen(navController)
+        }
     }
     composable(
         Screens.Library.route,
     ) {
         LibraryScreen(navController)
     }
+    
+    // ----------------------------------------------------
+    // FIXED: Passed pureBlack to SearchScreen
+    // ----------------------------------------------------
+    composable(Screens.Search.route) {
+        val (pureBlackEnabled) = rememberPreference(PureBlackKey, defaultValue = false)
+        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+        val isSystemInDarkTheme = isSystemInDarkTheme()
+        val pureBlack = pureBlackEnabled && (if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON)
+        
+        SearchScreen(navController = navController, pureBlack = pureBlack)
+    }
+    
     composable("history") {
         HistoryScreen(navController)
     }
@@ -175,7 +195,15 @@ fun NavGraphBuilder.navigationBuilder(
             fadeOut(tween(200))
         },
     ) {
-        OnlineSearchResult(navController)
+        // ----------------------------------------------------
+        // FIXED: Passed pureBlack to OnlineSearchResult
+        // ----------------------------------------------------
+        val (pureBlackEnabled) = rememberPreference(PureBlackKey, defaultValue = false)
+        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+        val isSystemInDarkTheme = isSystemInDarkTheme()
+        val pureBlack = pureBlackEnabled && (if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON)
+        
+        OnlineSearchResult(navController = navController, pureBlack = pureBlack)
     }
     composable(
         route = "album/{albumId}",
