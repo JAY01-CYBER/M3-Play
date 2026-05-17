@@ -1,35 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Upstream InnerTune strings -->
+<!-- Do not add new features here -->
+<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
+<!-- "InnerTune" is replaced with "M3Play" -->
+<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
+    <!-- Bottom navigation -->
     <string name="home">Início</string>
     <string name="songs">Músicas</string>
     <string name="artists">Artistas</string>
     <string name="albums">Álbuns</string>
     <string name="playlists">Playlists</string>
+    <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="one">%d selecionado</item>
-        <item quantity="many">%d selecionados</item>
         <item quantity="other">%d selecionados</item>
     </plurals>
+    <!-- Home -->
     <string name="history">Histórico</string>
     <string name="stats">Estatísticas</string>
     <string name="mood_and_genres">Humor e Gêneros</string>
     <string name="account">Conta</string>
     <string name="quick_picks">Escolhas Rápidas</string>
     <string name="quick_picks_empty">Ouça músicas para gerar suas escolhas rápidas</string>
+    <string name="speed_dial">Speed dial</string>
+    <string name="speed_dial_random">Play random speed dial song</string>
+    <string name="speed_dial_mix">Speed dial mix</string>
     <string name="forgotten_favorites">Favoritos esquecidos</string>
     <string name="keep_listening">Continue ouvindo</string>
+    <string name="from_the_community">From the community</string>
     <string name="your_youtube_playlists">Suas playlists do YouTube</string>
     <string name="similar_to">Parecido com</string>
     <string name="new_release_albums">Lançamentos</string>
     <string name="select_playlist_to_sync">Selecione a playlist para sincronizar</string>
     <string name="integration">Integrações</string>
+    <string name="integrations">Integrations</string>
+    <string name="internal_subcategory_settings">Internal &amp; subcategory settings</string>
+    <string name="search_try_different">Try a different search term</string>
+    <!-- History -->
     <string name="today">Hoje</string>
     <string name="yesterday">Ontem</string>
     <string name="this_week">Essa semana</string>
     <string name="last_week">Semana passada</string>
+    <!-- Stats -->
     <string name="most_played_songs">Músicas mais ouvidas</string>
     <string name="most_played_artists">Artistas mais ouvidos</string>
     <string name="most_played_albums">Álbuns mais ouvidos</string>
+    <!-- Search -->
     <string name="search">Pesquisar</string>
     <string name="search_yt_music">Pesquisar no YouTube Music…</string>
     <string name="search_library">Pesquisar na biblioteca…</string>
@@ -47,21 +64,31 @@
     <string name="filter_featured_playlists">Playlists em destaque</string>
     <string name="filter_bookmarked">Adicionado aos favoritos</string>
     <string name="no_results_found">Sem resultados</string>
+    <string name="top_results">Top Results</string>
+    <!-- Library -->
     <string name="library_song_empty">Músicas da biblioteca aparecerão aqui</string>
     <string name="library_artist_empty">Artistas da biblioteca aparecerão aqui</string>
     <string name="library_album_empty">Álbuns da biblioteca aparecerão aqui</string>
     <string name="library_playlist_empty">Suas playlists aparecerão aqui</string>
+    <!-- Artist screen -->
     <string name="from_your_library">Da sua biblioteca</string>
+    <!-- Album screen -->
     <string name="other_versions">Outras versões</string>
+    <!-- Playlist -->
     <string name="liked_songs">Músicas curtidas</string>
     <string name="downloaded_songs">Músicas baixadas</string>
     <string name="playlist_is_empty">A playlist está vazia</string>
     <string name="remove_download_playlist_confirm">Você tem certeza que quer remover todas as \"%s\" músicas da lista de reprodução do armazenamento de músicas baixadas?</string>
     <string name="delete_playlist_confirm">Você tem certeza que quer excluir a playlist \"%s\"?</string>
+    <string name="change_playlist_cover">Change playlist cover</string>
+    <string name="remove_playlist_cover">Remove Cover</string>
+    <!-- Button -->
     <string name="retry">Tentar novamente</string>
     <string name="radio">Rádio</string>
     <string name="shuffle">Embaralhar</string>
+    <string name="music_recognition">Music Recognition</string>
     <string name="reset">Reiniciar</string>
+    <!-- Menu -->
     <string name="details">Detalhes</string>
     <string name="edit">Editar</string>
     <string name="start_radio">Iniciar rádio</string>
@@ -79,6 +106,8 @@
     <string name="import_failed">A importação falhou</string>
     <string name="update_button">Atualizar</string>
     <string name="add_to_playlist">Adicionar à playlist</string>
+    <string name="pin_to_speed_dial">Pin to speed dial</string>
+    <string name="remove_from_speed_dial">Remove from speed dial</string>
     <string name="view_artist">Ver artista</string>
     <string name="view_album">Ver álbum</string>
     <string name="view_all">Ver tudo</string>
@@ -86,6 +115,19 @@
     <string name="refetch">Buscar novamente</string>
     <string name="share">Compartilhar</string>
     <string name="delete">Excluir</string>
+    <string name="together_participants">Participants</string>
+    <string name="together_connected_count">%1$d connected</string>
+    <string name="together_role_host">Host</string>
+    <string name="together_role_guest">Guest</string>
+    <string name="together_pending_approval">Pending approval</string>
+    <string name="together_waiting_approval">Waiting Approval</string>
+    <string name="together_host_left_session">Host Leaved Sessions</string>
+    <string name="together_kick">Kick</string>
+    <string name="together_ban">Ban</string>
+    <string name="together_kick_confirm">Kick %1$s?</string>
+    <string name="together_ban_confirm">Ban %1$s?</string>
+    <string name="together_requesting_song_change">Requesting host to change the song\u2026</string>
+    <string name="together_song_change_failed">Song change not applied. Please try again.</string>
     <string name="remove_from_history">Remover do histórico</string>
     <string name="remove_from_playlist">Remover da playlist</string>
     <string name="remove_from_queue">Remover da fila</string>
@@ -93,6 +135,11 @@
     <string name="action_sync">Sincronizar</string>
     <string name="advanced">Avançado</string>
     <string name="tempo_and_pitch">Velocidade e Tom</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Pitch</string>
+    <string name="pitch_mode_semitones_short">st</string>
+    <string name="pitch_mode_multiplier_short">x</string>
+    <!-- Sort menu -->
     <string name="sort_by_create_date">Data de adição</string>
     <string name="sort_by_name">Nome</string>
     <string name="sort_by_artist">Artista</string>
@@ -101,6 +148,7 @@
     <string name="sort_by_length">Duração</string>
     <string name="sort_by_play_time">Tempo de reprodução</string>
     <string name="sort_by_custom">Ordem customizada</string>
+    <!-- Dialog -->
     <string name="media_id">ID da mídia</string>
     <string name="mime_type">Tipo MIME</string>
     <string name="codecs">Codecs</string>
@@ -132,41 +180,36 @@
     <string name="add_anyway">Adicionar mesmo assim</string>
     <string name="duplicates_description_single">A música já está na sua playlist</string>
     <string name="duplicates_description_multiple">%d músicas já estão na sua playlist</string>
+    <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d música</item>
-        <item quantity="many">%d músicas</item>
         <item quantity="other">%d músicas</item>
     </plurals>
     <plurals name="n_artist">
         <item quantity="one">%d artista</item>
-        <item quantity="many">%d artistas</item>
         <item quantity="other">%d artistas</item>
     </plurals>
     <plurals name="n_album">
         <item quantity="one">%d álbum</item>
-        <item quantity="many">%d álbuns</item>
         <item quantity="other">%d álbuns</item>
     </plurals>
     <plurals name="n_playlist">
         <item quantity="one">%d playlist</item>
-        <item quantity="many">%d playlists</item>
         <item quantity="other">%d playlists</item>
     </plurals>
     <plurals name="n_week">
         <item quantity="one">%d semana</item>
-        <item quantity="many">%d semanas</item>
         <item quantity="other">%d semanas</item>
     </plurals>
     <plurals name="n_month">
         <item quantity="one">%d mês</item>
-        <item quantity="many">%d meses</item>
         <item quantity="other">%d meses</item>
     </plurals>
     <plurals name="n_year">
         <item quantity="one">%d ano</item>
-        <item quantity="many">%d anos</item>
         <item quantity="other">%d anos</item>
     </plurals>
+    <!-- Snackbar -->
     <string name="added_to_playlist">Adicionado em %s</string>
     <string name="added_n_songs_to_playlist">Adicionadas %1$d músicas em %2$s</string>
     <string name="added_to_n_playlists">Adicionadas em %d playlists</string>
@@ -175,18 +218,19 @@
     <string name="removed_song_from_playlist">\"%s\" removido da playlist</string>
     <string name="playlist_synced">Playlist sincronizada</string>
     <string name="undo">Desfazer</string>
+    <!-- Player -->
     <string name="lyrics_not_found">Letras não encontradas</string>
     <string name="sleep_timer">Temporizador</string>
     <string name="end_of_song">Fim da música</string>
     <plurals name="minute">
         <item quantity="one">1 minuto</item>
-        <item quantity="many">%d minutos</item>
         <item quantity="other">%d minutos</item>
     </plurals>
     <string name="error_no_stream">Nenhuma transmissão disponível</string>
     <string name="error_no_internet">Sem conexão à internet</string>
     <string name="error_timeout">Tempo esgotado</string>
     <string name="error_unknown">Erro desconhecido</string>
+    <!-- Player action -->
     <string name="action_like">Curtir</string>
     <string name="action_like_all">Curtir tudo</string>
     <string name="action_remove_like">Remover curtida</string>
@@ -196,30 +240,39 @@
     <string name="repeat_mode_off">Repetição desativada</string>
     <string name="repeat_mode_one">Repetir música atual</string>
     <string name="repeat_mode_all">Repetir fila</string>
+    <!-- Queue Title -->
     <string name="queue_all_songs">Todas as músicas</string>
     <string name="queue_searched_songs">Músicas pesquisadas</string>
     <string name="queue_continue_playing">Continue Ouvindo</string>
     <string name="queue_autoplaying_similar">Reproduzindo músicas semelhantes automaticamente</string>
+    <!-- Notification name -->
     <string name="music_player">Nome da notificação</string>
+    <!-- Settings -->
     <string name="settings">Configurações</string>
     <string name="appearance">Aparência</string>
     <string name="theme">Tema</string>
     <string name="enable_dynamic_theme">Habilitar tema dinâmico</string>
+    <string name="random_theme_on_startup">Random theme on startup</string>
+    <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="use_system_font">Usar fonte do sistema</string>
     <string name="use_system_font_desc">Usar a fonte do dispositivo em vez da fonte do app</string>
+    <!-- Color Palette -->
     <string name="color_palette">Paleta de cores</string>
     <string name="customize_theme_colors">Escolha as cores do tema do seu app</string>
     <string name="selected_theme_color">Cor do tema selecionada</string>
     <string name="theme_preview">Pré-visualização do tema</string>
     <string name="select_palette">Selecione uma paleta de cores</string>
     <string name="palette_applied">Paleta aplicada</string>
+    <!-- Palette Names -->
     <string name="palette_default">Padrão</string>
+    <!-- Blues -->
     <string name="palette_ocean_blue">Azul Oceano</string>
     <string name="palette_arctic_blue">Ártico</string>
     <string name="palette_midnight_navy">Meia-noite</string>
     <string name="palette_sky_blue">Azul Celeste</string>
     <string name="palette_cobalt_blue">Cobalto</string>
     <string name="palette_electric_blue">Elétrico</string>
+    <!-- Greens -->
     <string name="palette_emerald_green">Esmeralda</string>
     <string name="palette_teal_wave">Onda Azul-petróleo</string>
     <string name="palette_forest_green">Floresta</string>
@@ -227,18 +280,21 @@
     <string name="palette_mint_fresh">Menta</string>
     <string name="palette_olive_garden">Azeitona</string>
     <string name="palette_sage_green">Sábio</string>
+    <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Pôr do sol</string>
     <string name="palette_golden_hour">Dourado</string>
     <string name="palette_warm_amber">Âmbar</string>
     <string name="palette_tangerine_blast">Tangerina</string>
     <string name="palette_peach">Pêssego</string>
     <string name="palette_mango">Manga</string>
+    <!-- Purples -->
     <string name="palette_royal_purple">Roxo Real</string>
     <string name="palette_lavender_dream">Lavanda</string>
     <string name="palette_grape_purple">Uva</string>
     <string name="palette_violet">Violeta</string>
     <string name="palette_amethyst">Ametista</string>
     <string name="palette_ultra_violet">Ultra Violeta</string>
+    <!-- Pinks -->
     <string name="palette_cherry_blossom">Sakura</string>
     <string name="palette_rose_quartz">Quartzo rosa</string>
     <string name="palette_magenta_pop">Magenta</string>
@@ -246,31 +302,37 @@
     <string name="palette_blush">Corar</string>
     <string name="palette_coral">Coral</string>
     <string name="palette_bubblegum">Chiclete</string>
+    <!-- Reds -->
     <string name="palette_crimson_red">Carmesim</string>
     <string name="palette_youtube_red">YouTube</string>
     <string name="palette_wine_red">Vinho</string>
     <string name="palette_ruby_red">Rubí</string>
     <string name="palette_scarlet">Escarlate</string>
+    <!-- Neutrals -->
     <string name="palette_charcoal">Carvão</string>
     <string name="palette_silver">Prata</string>
     <string name="palette_slate">Ardósia</string>
     <string name="palette_graphite">Grafite</string>
+    <!-- Earth Tones -->
     <string name="palette_terracotta">Terracota</string>
     <string name="palette_coffee">Café</string>
     <string name="palette_mocha">Mocha</string>
     <string name="palette_sand">Areia</string>
     <string name="palette_clay">Argila</string>
+    <!-- Pastels -->
     <string name="palette_pastel_pink">Rosa pastel</string>
     <string name="palette_pastel_blue">Azul Pastel</string>
     <string name="palette_pastel_green">Verde Pastel</string>
     <string name="palette_pastel_yellow">Amarelo Pastel</string>
     <string name="palette_pastel_purple">Roxo Pastel</string>
+    <!-- Neon & Vibrant -->
     <string name="palette_neon_green">Verde Neon</string>
     <string name="palette_neon_pink">Rosa Neon</string>
     <string name="palette_neon_blue">Azul Neon</string>
     <string name="palette_neon_orange">Laranja Neon</string>
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
+    <!-- Special & Themed -->
     <string name="palette_ocean">Oceano</string>
     <string name="palette_forest">Floresta Profunda</string>
     <string name="palette_autumn">Outono</string>
@@ -281,6 +343,7 @@
     <string name="palette_aurora">Aurora</string>
     <string name="palette_candy">Doce</string>
     <string name="palette_rainbow">Arco-íris</string>
+    <!-- Additional Palettes -->
     <string name="palette_aquamarine">Água-marinha</string>
     <string name="palette_coral_reef">Recife de coral</string>
     <string name="palette_cotton_candy">Algodão doce</string>
@@ -293,6 +356,7 @@
     <string name="palette_slate_gray">Cinza ardósia</string>
     <string name="palette_sunset_beach">Praia do Pôr do Sol</string>
     <string name="palette_turquoise">Turquesa</string>
+    <!-- End of Color Palette -->
     <string name="dark_theme">Tema escuro</string>
     <string name="dark_theme_on">Ligado</string>
     <string name="dark_theme_off">Desligado</string>
@@ -312,14 +376,16 @@
     <string name="custom_value">Valor personalizado</string>
     <string name="new_library_design">Novo design da biblioteca</string>
     <string name="new_library_design_description">Ativar o novo design da biblioteca (pode ser instável)</string>
+    <string name="m3play_canvas">M3Play Canvas</string>
+    <string name="m3play_canvas_desc">Animate album artwork while playing (Powered by BetterLyrics)</string>
     <string name="show_button1_description">Alternar a visibilidade do botão 1 no Discord Rich Presence</string>
     <string name="show_button2_description">Alternar a visibilidade do botão 2 no Discord Rich Presence</string>
     <string name="discord_activity_type">Tipo de atividade</string>
     <string name="dark_theme_follow_system">Seguir sistema</string>
     <string name="pure_black">Preto AMOLED</string>
     <string name="disable_blur">Desativar efeitos de borrão</string>
-    <string name="customize_navigation_tabs">Personalizar abas de navegação</string>
     <string name="disable_blur_desc">Desativar os efeitos de desfoque em todo o aplicativo</string>
+    <string name="customize_navigation_tabs">Personalizar abas de navegação</string>
     <string name="player">Tela de Reprodução</string>
     <string name="player_text_alignment">Alinhamento do texto do player</string>
     <string name="lyrics_text_position">Posição do texto das letras</string>
@@ -328,6 +394,11 @@
     <string name="center">Centro</string>
     <string name="right">Direita</string>
     <string name="player_slider_style">Estilo do controle deslizante do player</string>
+    <string name="slider_style_standard">Standard</string>
+    <string name="slider_style_wavy">Wavy</string>
+    <string name="slider_style_thick">Thick</string>
+    <string name="slider_style_circular">Circular</string>
+    <string name="slider_style_simple">Simple</string>
     <string name="default_">Padrão</string>
     <string name="squiggly">Ondulado</string>
     <string name="misc">Diverso</string>
@@ -335,12 +406,15 @@
     <string name="grid_cell_size">Tamanho da célula da grade</string>
     <string name="small">Pequeno</string>
     <string name="big">Grande</string>
+    <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Estilo da animação das letras</string>
+    <!-- Animation options -->
     <string name="none">Nenhuma</string>
     <string name="fade">Desvanecimento</string>
     <string name="slide">Deslize</string>
     <string name="karaoke">Karaokê</string>
     <string name="apple_music_style">Apple Music</string>
+    <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Espaçamento entre linhas das letras</string>
     <string name="content">Conteúdo</string>
     <string name="action_logout">Sair</string>
@@ -348,12 +422,15 @@
     <string name="login">Entrar</string>
     <string name="not_logged_in">Não logado</string>
     <string name="login_failed">Falha no login</string>
+    <string name="playback_requires_youtube_music_confirmation">Confirm playback in YouTube Music, then return to M3Play.</string>
     <string name="content_language">Idioma padrão do conteúdo</string>
     <string name="content_country">País de conteúdo padrão</string>
     <string name="system_default">Padrão do sistema</string>
     <string name="enable_proxy">Ativar proxy</string>
     <string name="proxy_type">Tipo de proxy</string>
     <string name="proxy_url">URL do proxy</string>
+    <string name="stream_bypass_proxy">Bypass proxy for streams</string>
+    <string name="stream_bypass_proxy_desc">Use your direct IP for stream playback to avoid IP mismatch</string>
     <string name="restart_to_take_effect">Reinicie o app para aplicar as alterações</string>
     <string name="enable_betterlyrics">Ativar BetterLyrics</string>
     <string name="enable_simpmusic_lyrics">Ativar letras da SimpMusic</string>
@@ -367,18 +444,59 @@
     <string name="queue">Fila</string>
     <string name="persistent_queue">Fila persistente</string>
     <string name="persistent_queue_desc">Restaure sua última fila quando o aplicativo iniciar</string>
+    <string name="permanent_shuffle">Permanent shuffle mode</string>
+    <string name="permanent_shuffle_desc">Keep shuffle enabled when you start a new song</string>
     <string name="auto_load_more">Carregar mais músicas automaticamente</string>
     <string name="auto_load_more_desc">Adiciona automaticamente mais músicas quando o final da fila for atingido. Desativado quando o modo de repetição está ativo</string>
     <string name="skip_silence">Pular silêncio</string>
     <string name="audio_normalization">Normalização do áudio</string>
+    <string name="audio_offload">Audio offload</string>
+    <string name="audio_offload_desc">Let supported devices play audio using low-power hardware decoding. Some audio processing features are disabled.</string>
+    <string name="pause_on_device_mute">Pause when device volume is 0</string>
+    <string name="pause_on_device_mute_desc">Automatically pause music when muted and resume when unmuted</string>
     <string name="auto_skip_next_on_error">Avançar automaticamente para a próxima música quando ocorrer um erro</string>
     <string name="auto_skip_next_on_error_desc">Garanta uma experiência de reprodução contínua</string>
     <string name="stop_music_on_task_clear">Parar música ao concluir a tarefa</string>
+    <string name="wakelock">Keep CPU awake during playback</string>
+    <string name="wakelock_desc">Prevents the system from interrupting music by holding a CPU wake lock</string>
+    <string name="auto_start_on_bluetooth">Auto-start on Bluetooth connect</string>
+    <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
     <string name="artist_separators">Símbolos para dividir artistas</string>
     <string name="artist_separators_desc">Símbolos usados para dividir vários artistas</string>
+    <string name="external_downloader">External Downloader</string>
+    <string name="external_downloader_desc">Download songs through an external app by package name</string>
+    <string name="external_downloader_package">Downloader App Package</string>
+    <string name="external_downloader_package_desc">Package name of the external downloader app (e.g. com.deniscerri.ytdl)</string>
+    <string name="open_with_downloader">Open with Downloader</string>
+    <string name="external_downloader_not_installed">External downloader app is not installed</string>
+    <string name="external_downloader_not_configured">No external downloader configured. Set one in Settings → Player.</string>
     <string name="add_symbol">Adicionar símbolo</string>
     <string name="enter_symbol">Insira o símbolo</string>
     <string name="equalizer">Equalizador</string>
+    <string name="eq_waiting_for_audio_session">Waiting for audio session…</string>
+    <string name="eq_open_system_equalizer">Open system equalizer</string>
+    <string name="eq_presets">Presets</string>
+    <string name="eq_system">System</string>
+    <string name="eq_flat">Flat</string>
+    <string name="eq_profiles">Profiles</string>
+    <string name="eq_manage">Manage</string>
+    <string name="eq_system_preset">System preset</string>
+    <string name="eq_manual">Manual</string>
+    <string name="eq_profile_hint">Apply a profile or save your current settings</string>
+    <string name="eq_save">Save</string>
+    <string name="eq_save_profile">Save profile</string>
+    <string name="eq_profile_name">Profile name</string>
+    <string name="eq_custom_profile">Custom profile</string>
+    <string name="eq_import">Import</string>
+    <string name="eq_import_profiles">Import profiles</string>
+    <string name="eq_import_profiles_placeholder">Paste equalizer profiles JSON</string>
+    <string name="eq_import_failed">Invalid profile data</string>
+    <string name="eq_imported_profile">Imported</string>
+    <string name="eq_import_success">Imported %1$d profiles</string>
+    <string name="eq_bands">Bands</string>
+    <string name="eq_output_gain">Output gain</string>
+    <string name="eq_bass_boost">Bass boost</string>
+    <string name="eq_virtualizer">Virtualizer</string>
     <string name="storage">Armazenamento</string>
     <string name="smart_trimmer">Aparador Inteligente</string>
     <string name="smart_trimmer_description">O aparador inteligente gerencia dinamicamente o cache de imagens e o cache de músicas, removendo entradas antigas para economizar espaço em disco.</string>
@@ -408,6 +526,8 @@
     <string name="disable_screenshot_desc">Quando essa opção está ativada, as capturas de tela e a visualização do aplicativo na tela de Recentes são desativadas.</string>
     <string name="enable_lrclib">Ativar o provedor de letras LrcLib</string>
     <string name="enable_kugou">Ativar o provedor de letras KuGou</string>
+    <string name="preload_queue_lyrics">Preload queue lyrics</string>
+    <string name="queue_lyrics_preload_count">Number of songs to preload</string>
     <string name="hide_explicit">Ocultar conteúdo explícito</string>
     <string name="hide_video">Ocultar vídeos musicais</string>
     <string name="backup_restore">Backup e restauração</string>
@@ -416,13 +536,14 @@
     <string name="imported_playlist">Playlist importada</string>
     <string name="backup_create_success">Backup criado com sucesso</string>
     <string name="backup_create_failed">Não foi possível criar o backup</string>
+    <string name="restore_success">Backup restored successfully</string>
     <string name="restore_failed">Falha ao restaurar o backup</string>
     <string name="discord_integration">Integração com o Discord</string>
     <string name="discord_information">O M3Play usa a biblioteca KizzyRPC para definir o status da sua conta do Discord. Isso envolve o uso da conexão do Discord Gateway, o que pode ser considerado uma violação dos Termos de Serviço do Discord. No entanto, não há casos conhecidos de contas de usuário suspensas por esse motivo. Use por sua conta e risco. O M3Play extrairá apenas o seu token, e todo o resto será armazenado localmente.</string>
-    <string name="dismiss">Dispensar</string>
     <string name="options">Opções</string>
     <string name="preview">Pré-visualização</string>
     <string name="enable_discord_rpc">Ativar Rich Presence</string>
+    <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Integração com o Last.fm</string>
     <string name="enable_scrobbling">Ativar Scrobbling</string>
@@ -434,10 +555,12 @@
     <string name="username">Nome de usuário</string>
     <string name="password">Senha</string>
     <string name="logging_in">Logando…</string>
+    <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">Scrobbling do ListenBrainz</string>
     <string name="listenbrainz_scrobbling_description">Ative o envio de reproduções em tempo real e reproduções finalizadas para o ListenBrainz</string>
     <string name="set_listenbrainz_token">Definir token do ListenBrainz</string>
     <string name="edit_listenbrainz_token">Editar token do ListenBrainz</string>
+    <!-- Discord activity customization -->
     <string name="discord_activity_name">Nome da atividade</string>
     <string name="discord_activity_details">Detalhes da atividade</string>
     <string name="discord_activity_state">Estado da atividade</string>
@@ -456,6 +579,7 @@
     <string name="activity_status">Status da atividade</string>
     <string name="platform_status">Plataforma</string>
     <string name="update_interval">Intervalo de atualização da Presença</string>
+    <!--Discord Tranalstor Settings-->
     <string name="translator_options">Opções do Tradutor</string>
     <string name="enable_translator">Ativar Tradutor</string>
     <string name="enable_translator_desc">Traduzir os campos selecionados antes de enviar para o RPC do Discord</string>
@@ -466,14 +590,17 @@
     <string name="close_dialog">Fechar</string>
     <string name="select_dialog">Selecionar</string>
     <string name="support_github">Dê uma estrela para o M3Play!</string>
+    <!-- Update dialog -->
     <string name="new_update_available">Nova atualização disponível</string>
     <string name="release_notes_unavailable">As notas de lançamento não estão disponíveis</string>
     <string name="update_text">Atualizar</string>
+    <!-- Translate UI strings -->
     <string name="translate">Traduzir</string>
     <string name="language_label">Idioma</string>
     <string name="lyrics">Letras</string>
     <string name="translation_success">Tradução salva</string>
     <string name="translation_failed">Falha na tradução</string>
+    <!-- Discord settings additions -->
     <string name="discord_button_options">Opções do botão</string>
     <string name="discord_image_options">Opções da imagem</string>
     <string name="refresh">Atualizar</string>
@@ -487,6 +614,7 @@
     <string name="logout_confirm_message">Tem certeza que quer sair da sua conta do Discord?.</string>
     <string name="logout_confirm_yes">Sair</string>
     <string name="logout_confirm_no">Cancelar</string>
+    <!--Misc settings additions-->
     <string name="experiment_settings">Opções experimentais</string>
     <string name="show_discord_debug_ui">Exibir Interface de Depuração</string>
     <string name="enable_discord_debug_lines">Ativar linhas de configurações de depuração</string>
@@ -520,6 +648,28 @@
     <string name="playback_speed_label">Velocidade de reprodução</string>
     <string name="state_label">Estado</string>
     <string name="media_id_label">ID da mídia</string>
+    <string name="status_active">ACTIVE</string>
+    <string name="status_inactive">INACTIVE</string>
+    <string name="last_start">Last Start</string>
+    <string name="last_end">Last End</string>
+    <string name="debug_logs">Debug Logs</string>
+    <string name="log_level_verbose">Verbose</string>
+    <string name="log_level_debug">Debug</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_warning">Warning</string>
+    <string name="log_level_error">Error</string>
+    <string name="filter_discord_only">Discord</string>
+    <string name="filter_all_logs">All</string>
+    <string name="clear">Clear</string>
+    <string name="logs_empty_message">Logs will appear here when available</string>
+    <string name="real_time_playback_stats">Real-time playback statistics</string>
+    <string name="copied_to_clipboard">Copied log to clipboard</string>
+    <string name="playback_state_idle">IDLE</string>
+    <string name="playback_state_buffering">BUFFERING</string>
+    <string name="playback_state_ready">READY</string>
+    <string name="playback_state_ended">ENDED</string>
+    <string name="playback_state_unknown">UNKNOWN</string>
+    <string name="share_logs">Share logs</string>
     <string name="about">Sobre</string>
     <string name="app_version">Versão do app</string>
     <string name="new_version_available">Nova versão disponível</string>
@@ -536,6 +686,10 @@
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Desenvolvimento</string>
     <string name="recent_commits">Compromissos Recentes</string>
+    <string name="changelog">Changelog</string>
+    <string name="view_changelog">View Changelog</string>
+    <string name="error_loading_changelog">Error loading changelog</string>
+    <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">Atualizações do App</string>
     <string name="update_notification_channel_desc">Notificações para novas atualizações do app</string>
     <string name="update_notification_title">Atualização Disponível</string>
@@ -551,5 +705,98 @@
     <string name="permission_status_all_granted">Todas as permissões necessárias foram concedidas. Você está pronto para começar.</string>
     <string name="permission_status_required">Por favor, conceda todas as permissões necessárias para continuar.</string>
     <string name="next">Próximo</string>
+    <string name="next_song">Next Song</string>
     <string name="allow">Permitir</string>
+    <!-- Playlist Suggestions -->
+    <string name="you_might_like">You might like</string>
+    <string name="refresh_suggestions">Refresh suggestions</string>
+    <string name="music_together">M3Play Music Together</string>
+    <string name="together_display_name">Display name</string>
+    <string name="together_display_name_placeholder">Your name</string>
+    <string name="together_port">Session port</string>
+    <string name="together_allow_guests_add">Guests can add songs</string>
+    <string name="together_allow_guests_control">Guests can control playback</string>
+    <string name="together_require_approval">Require approval</string>
+    <string name="together_lan">LAN</string>
+    <string name="together_online">Online</string>
+    <string name="together_join_link">Link</string>
+    <string name="together_join_code">Code</string>
+    <string name="together_join_link_hint">Paste a join link or code</string>
+    <string name="together_join_code_hint">Enter a session code</string>
+    <string name="start_session">Start session</string>
+    <string name="end_session">End session</string>
+    <string name="join_session">Join session</string>
+    <string name="session_link">Session link</string>
+    <string name="session_code">Session code</string>
+    <string name="participants">Participants</string>
+    <string name="pending_requests">Join requests</string>
+    <string name="waiting_for_approval">Waiting for approval</string>
+    <string name="host">Host</string>
+    <string name="session_settings">Session settings</string>
+    <string name="add_current_song">Add current song</string>
+    <string name="playback_controls">Playback controls</string>
+    <string name="approve">Approve</string>
+    <string name="deny">Deny</string>
+    <string name="dismiss">Dispensar</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="invalid_link">Invalid link</string>
+    <string name="invalid_code">Invalid code</string>
+    <string name="not_allowed">Not allowed</string>
+    <string name="network_unavailable">Network unavailable</string>
+    <string name="together_online_not_configured">Online sessions aren\'t configured</string>
+    <string name="together_token_missing">Online sessions aren\'t available in this build</string>
+    <string name="together_server_unreachable">Server unreachable</string>
+    <string name="together_connection_timed_out">Connection timed out</string>
+    <string name="together_session_not_found">Session not found</string>
+    <string name="together_server_error">Server error, please try again later</string>
+    <string name="leave">Leave</string>
+    <string name="join">Join</string>
+    <string name="joined">Joined</string>
+    <string name="loading">Loading</string>
+    <string name="connecting">Connecting…</string>
+    <string name="copy_link">Copy link</string>
+    <string name="together_host_section">Host</string>
+    <string name="together_join_section">Join</string>
+    <string name="together_status">Status</string>
+    <string name="together_idle">Not in a session</string>
+    <string name="together_hosting">Hosting session</string>
+    <string name="together_joining">Joining session</string>
+    <string name="together_connected">Connected</string>
+    <string name="together_error_state">Error</string>
+    <string name="got_it">Got it</string>
+    <string name="together_dont_show_again">Don\'t show this again</string>
+    <string name="together_welcome_title">Welcome to M3Play Music Together</string>
+    <string name="together_welcome_body">Music Together lets multiple devices share a live session with a synced queue and playback.</string>
+    <string name="together_welcome_host_title">Host a session</string>
+    <string name="together_welcome_host_body">Tap Start session, then share the session link. Keep M3Play open in the background while hosting.</string>
+    <string name="together_welcome_join_title">Join from another device</string>
+    <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
+    <string name="together_welcome_permissions_title">Permissions and safety</string>
+    <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
+    <string name="po_token_generation">PO Token Generation</string>
+    <string name="po_token_generation_subtitle">Generate and manage web client PO tokens</string>
+    <string name="web_client_po_token">Web Client PO Token</string>
+    <string name="web_client_po_token_desc">Enable PO token generation for web-based player clients</string>
+    <string name="po_token_gvs">PO Token (GVS)</string>
+    <string name="po_token_player">PO Token (Player)</string>
+    <string name="visitor_data">Visitor Data</string>
+    <string name="supported_clients">Supported Clients</string>
+    <string name="generated_tokens">Generated Tokens</string>
+    <string name="token_settings">Token Settings</string>
+    <string name="use_visitor_data">Use Visitor Data</string>
+    <string name="use_visitor_data_desc">Use visitor data for token generation. Requires cookies to be disabled.</string>
+    <string name="cookies_must_be_disabled">Cookies must be disabled to use visitor data</string>
+    <string name="regenerate">Re-generate</string>
+    <string name="regenerate_token">Regenerate Token</string>
+    <string name="regenerate_desc">Refresh all tokens</string>
+    <string name="source_url">Source URL</string>
+    <string name="source_url_placeholder">https://youtube.com/account</string>
+    <string name="generating_tokens">Generating tokens…</string>
+    <string name="tokens_generated">Tokens generated successfully</string>
+    <string name="token_generation_failed">Token generation failed</string>
+    <string name="open_account_before_extract">Open and sign in on youtube.com/account before extracting</string>
+    <string name="token_copied">Token copied to clipboard</string>
+    <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
+    <string name="extracting_from_url">Extracting tokens from URL…</string>
 </resources>
