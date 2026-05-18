@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -179,15 +180,15 @@ fun OnlineSearchResult(
             .fillMaxSize()
             .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // 1. MAIN LIST
+        
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            // FIX: Added System Bars padding and AppBarHeight so list doesn't get hidden behind the header
-            contentPadding = LocalPlayerAwareWindowInsets.current
-                .add(WindowInsets.systemBars.only(WindowInsetsSides.Top))
-                .add(WindowInsets(top = AppBarHeight + SearchFilterHeight + 8.dp))
-                .asPaddingValues(),
+            
+            contentPadding = PaddingValues(
+                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            )
         ) {
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
@@ -256,7 +257,7 @@ fun OnlineSearchResult(
             }
         }
 
-        // 2. CHIPS ROW (Placed exactly below the Top Bar)
+        
         Surface(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
