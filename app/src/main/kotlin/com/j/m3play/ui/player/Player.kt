@@ -476,7 +476,7 @@ fun BottomSheetPlayer(
             onDismissRequest = { showSleepTimerDialog = false },
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.ic_bedtime_rounded), // UPDATED ICON
+                    painter = painterResource(R.drawable.bedtime),
                     contentDescription = null
                 )
             },
@@ -1299,7 +1299,7 @@ private fun LittlePlayerContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_expand_more_rounded), // UPDATED ICON
+                    painter = painterResource(R.drawable.expand_more),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.8f),
                     modifier =
@@ -1315,7 +1315,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.weight(1f))
 
                 Icon(
-                    painter = painterResource(if (liked) R.drawable.ic_favorite_rounded else R.drawable.ic_favorite_border_rounded), // UPDATED ICON
+                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
                     contentDescription = null,
                     tint =
                     if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
@@ -1333,7 +1333,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.ic_queue_music_rounded), // UPDATED ICON
+                    painter = painterResource(R.drawable.queue_music),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
@@ -1349,7 +1349,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.ic_more_vert_rounded), // UPDATED ICON
+                    painter = painterResource(R.drawable.more_vert),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
