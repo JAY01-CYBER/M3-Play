@@ -233,6 +233,7 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
+   
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -308,6 +309,7 @@ fun BottomSheetPlayer(
     var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
+  
     var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
     }
@@ -341,7 +343,13 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
+            playerBackground == PlayerBackgroundStyle.COLORING || 
+            playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || 
+            playerBackground == PlayerBackgroundStyle.GLOW ||
+            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
+            playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || 
+            playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -397,25 +405,29 @@ fun BottomSheetPlayer(
     val TextBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-            PlayerBackgroundStyle.BLUR -> Color.White
-            PlayerBackgroundStyle.GRADIENT -> Color.White
-            PlayerBackgroundStyle.COLORING -> Color.White
-            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
-            PlayerBackgroundStyle.GLOW -> Color.White
-            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
-            PlayerBackgroundStyle.CUSTOM -> Color.White
+            PlayerBackgroundStyle.BLUR,
+            PlayerBackgroundStyle.GRADIENT,
+            PlayerBackgroundStyle.COLORING,
+            PlayerBackgroundStyle.BLUR_GRADIENT,
+            PlayerBackgroundStyle.GLOW,
+            PlayerBackgroundStyle.GLOW_ANIMATED,
+            PlayerBackgroundStyle.CUSTOM,
+            PlayerBackgroundStyle.APPLE_MUSIC,
+            PlayerBackgroundStyle.LIVE_MESH -> Color.White
         }
 
     val icBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-            PlayerBackgroundStyle.BLUR -> Color.Black
-            PlayerBackgroundStyle.GRADIENT -> Color.Black
-            PlayerBackgroundStyle.COLORING -> Color.Black
-            PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
-            PlayerBackgroundStyle.GLOW -> Color.Black
-            PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
-            PlayerBackgroundStyle.CUSTOM -> Color.Black
+            PlayerBackgroundStyle.BLUR,
+            PlayerBackgroundStyle.GRADIENT,
+            PlayerBackgroundStyle.COLORING,
+            PlayerBackgroundStyle.BLUR_GRADIENT,
+            PlayerBackgroundStyle.GLOW,
+            PlayerBackgroundStyle.GLOW_ANIMATED,
+            PlayerBackgroundStyle.CUSTOM,
+            PlayerBackgroundStyle.APPLE_MUSIC,
+            PlayerBackgroundStyle.LIVE_MESH -> Color.Black.copy(alpha = 0.2f)
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -464,7 +476,7 @@ fun BottomSheetPlayer(
             onDismissRequest = { showSleepTimerDialog = false },
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.bedtime),
+                    painter = painterResource(R.drawable.ic_bedtime_rounded), // UPDATED ICON
                     contentDescription = null
                 )
             },
@@ -593,7 +605,7 @@ fun BottomSheetPlayer(
     BackHandler(
         enabled =
         (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
-            (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+        (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
             (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
@@ -1287,7 +1299,7 @@ private fun LittlePlayerContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.expand_more),
+                    painter = painterResource(R.drawable.ic_expand_more_rounded), // UPDATED ICON
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.8f),
                     modifier =
@@ -1303,7 +1315,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.weight(1f))
 
                 Icon(
-                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
+                    painter = painterResource(if (liked) R.drawable.ic_favorite_rounded else R.drawable.ic_favorite_border_rounded), // UPDATED ICON
                     contentDescription = null,
                     tint =
                     if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
@@ -1321,7 +1333,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.queue_music),
+                    painter = painterResource(R.drawable.ic_queue_music_rounded), // UPDATED ICON
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
@@ -1337,7 +1349,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.more_vert),
+                    painter = painterResource(R.drawable.ic_more_vert_rounded), // UPDATED ICON
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
