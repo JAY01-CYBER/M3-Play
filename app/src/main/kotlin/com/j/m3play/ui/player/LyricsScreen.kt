@@ -21,7 +21,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.lerp
 import kotlin.math.floor
 import androidx.compose.foundation.background
@@ -213,7 +212,7 @@ fun LyricsScreen(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED || playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
             if (mediaMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[mediaMetadata.id]
                 if (cachedColors != null) {
@@ -271,6 +270,8 @@ fun LyricsScreen(
         PlayerBackgroundStyle.GLOW -> Color.White
         PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
         PlayerBackgroundStyle.CUSTOM -> Color.White
+        PlayerBackgroundStyle.APPLE_MUSIC -> Color.White
+        PlayerBackgroundStyle.LIVE_MESH -> Color.White
     }
 
     val icBackgroundColor = when (playerBackground) {
@@ -282,6 +283,8 @@ fun LyricsScreen(
         PlayerBackgroundStyle.GLOW -> Color.Black
         PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
         PlayerBackgroundStyle.CUSTOM -> Color.Black
+        PlayerBackgroundStyle.APPLE_MUSIC -> Color.Black
+        PlayerBackgroundStyle.LIVE_MESH -> Color.Black
     }
 
     LaunchedEffect(playbackState) {
