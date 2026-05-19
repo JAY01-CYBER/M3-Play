@@ -90,6 +90,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.size.Size
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -117,17 +119,17 @@ import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToLong
-import kotlin.math.roundToInt
-
 
 @Composable
 fun PlayerTitleSection(
@@ -291,7 +293,7 @@ fun PlayerTopActions(
                         }
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.share),
+                        painter = painterResource(R.drawable.ic_share_rounded), // UPDATED ICON
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(iconButtonColor),
                         modifier = Modifier
@@ -312,8 +314,8 @@ fun PlayerTopActions(
                     Image(
                         painter = painterResource(
                             if (currentSongLiked)
-                                R.drawable.favorite
-                            else R.drawable.favorite_border
+                                R.drawable.ic_favorite_rounded // UPDATED ICON
+                            else R.drawable.ic_favorite_border_rounded // UPDATED ICON
                         ),
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(iconButtonColor),
@@ -348,7 +350,7 @@ fun PlayerTopActions(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.share),
+                        painter = painterResource(R.drawable.ic_share_rounded), // UPDATED ICON
                         contentDescription = null,
                         tint = textBackgroundColor.copy(alpha = 0.7f),
                         modifier = Modifier.size(20.dp)
@@ -363,8 +365,8 @@ fun PlayerTopActions(
                 ) {
                     Icon(
                         painter = painterResource(
-                            if (currentSongLiked) R.drawable.favorite
-                            else R.drawable.favorite_border
+                            if (currentSongLiked) R.drawable.ic_favorite_rounded
+                            else R.drawable.ic_favorite_border_rounded
                         ),
                         contentDescription = null,
                         tint = if (currentSongLiked)
@@ -401,7 +403,7 @@ fun PlayerTopActions(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            painter = painterResource(R.drawable.share),
+                            painter = painterResource(R.drawable.ic_share_rounded),
                             contentDescription = null,
                             tint = textBackgroundColor,
                             modifier = Modifier.size(22.dp)
@@ -422,8 +424,8 @@ fun PlayerTopActions(
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             painter = painterResource(
-                                if (currentSongLiked) R.drawable.favorite
-                                else R.drawable.favorite_border
+                                if (currentSongLiked) R.drawable.ic_favorite_rounded
+                                else R.drawable.ic_favorite_border_rounded
                             ),
                             contentDescription = null,
                             tint = if (currentSongLiked)
@@ -434,7 +436,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More menu button - cinematic glass card
                 Surface(
                     onClick = {
                         menuState.show {
@@ -461,7 +462,7 @@ fun PlayerTopActions(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            painter = painterResource(R.drawable.more_horiz),
+                            painter = painterResource(R.drawable.ic_more_horiz_rounded), // UPDATED
                             contentDescription = null,
                             tint = textBackgroundColor,
                             modifier = Modifier.size(22.dp)
@@ -476,7 +477,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share - Frosted Glass
                 Surface(
                     onClick = { 
                         val intent = Intent().apply {
@@ -492,11 +492,10 @@ fun PlayerTopActions(
                     modifier = Modifier.size(42.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(R.drawable.share), null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Icon(painterResource(R.drawable.ic_share_rounded), null, tint = Color.White, modifier = Modifier.size(20.dp))
                     }
                 }
 
-                // More Options - Frosted Glass (FIXED)
                 Surface(
                     onClick = { 
                         menuState.show { 
@@ -517,7 +516,7 @@ fun PlayerTopActions(
                     modifier = Modifier.size(42.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(R.drawable.more_horiz), null, tint = Color.White, modifier = Modifier.size(22.dp))
+                        Icon(painterResource(R.drawable.ic_more_horiz_rounded), null, tint = Color.White, modifier = Modifier.size(22.dp))
                     }
                 }
             }
@@ -551,7 +550,7 @@ fun PlayerTopActions(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            painter = painterResource(R.drawable.share),
+                            painter = painterResource(R.drawable.ic_share_rounded),
                             contentDescription = null,
                             tint = textBackgroundColor,
                             modifier = Modifier.size(20.dp)
@@ -572,8 +571,8 @@ fun PlayerTopActions(
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             painter = painterResource(
-                                if (currentSongLiked) R.drawable.favorite
-                                else R.drawable.favorite_border
+                                if (currentSongLiked) R.drawable.ic_favorite_rounded
+                                else R.drawable.ic_favorite_border_rounded
                             ),
                             contentDescription = null,
                             tint = if (currentSongLiked)
@@ -613,7 +612,7 @@ fun PlayerTopActions(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
-                            painter = painterResource(R.drawable.more_horiz),
+                            painter = painterResource(R.drawable.ic_more_horiz_rounded),
                             contentDescription = null,
                             tint = textBackgroundColor,
                             modifier = Modifier.size(20.dp)
@@ -762,7 +761,6 @@ fun PlayerTimeLabel(
     ) {
         Text(text = makeTimeString(sliderPosition ?: position), style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
 
-        // Exclusive Glowing Codec Badge for V1
         if (playerDesignStyle == PlayerDesignStyle.V1 && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val label = when {
@@ -837,7 +835,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.skip_previous),
+                            painter = painterResource(R.drawable.ic_skip_previous_rounded), // UPDATED ICON
                             contentDescription = null,
                             modifier = Modifier.size(32.dp)
                         )
@@ -872,9 +870,9 @@ fun PlayerPlaybackControls(
                             Icon(
                                 painter = painterResource(
                                     when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
+                                        playbackState == STATE_ENDED -> R.drawable.ic_replay_rounded
+                                        isPlaying -> R.drawable.ic_pause_rounded
+                                        else -> R.drawable.ic_play_rounded
                                     }
                                 ),
                                 contentDescription = null,
@@ -897,7 +895,7 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.skip_next),
+                            painter = painterResource(R.drawable.ic_skip_next_rounded), // UPDATED ICON
                             contentDescription = null,
                             modifier = Modifier.size(32.dp)
                         )
@@ -928,7 +926,7 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.shuffle),
+                            painter = painterResource(R.drawable.ic_shuffle_rounded), // UPDATED
                             contentDescription = null,
                             tint = textBackgroundColor.copy(
                                 alpha = if (shuffleModeEnabled) 1f else 0.4f
@@ -948,7 +946,7 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.skip_previous),
+                            painter = painterResource(R.drawable.ic_skip_previous_rounded), // UPDATED
                             contentDescription = null,
                             tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 0.9f else 0.4f),
                             modifier = Modifier.size(26.dp)
@@ -980,9 +978,9 @@ fun PlayerPlaybackControls(
                             Icon(
                                 painter = painterResource(
                                     when {
-                                        playbackState == STATE_ENDED -> R.drawable.replay
-                                        isPlaying -> R.drawable.pause
-                                        else -> R.drawable.play
+                                        playbackState == STATE_ENDED -> R.drawable.ic_replay_rounded
+                                        isPlaying -> R.drawable.ic_pause_rounded
+                                        else -> R.drawable.ic_play_rounded
                                     }
                                 ),
                                 contentDescription = null,
@@ -1003,7 +1001,7 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.skip_next),
+                            painter = painterResource(R.drawable.ic_skip_next_rounded), // UPDATED
                             contentDescription = null,
                             tint = textBackgroundColor.copy(alpha = if (canSkipNext) 0.9f else 0.4f),
                             modifier = Modifier.size(26.dp)
@@ -1020,9 +1018,9 @@ fun PlayerPlaybackControls(
                         Icon(
                             painter = painterResource(
                                 when (repeatMode) {
-                                    Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                    Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                    else -> R.drawable.repeat
+                                    Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.ic_repeat_rounded // UPDATED
+                                    Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one_rounded // UPDATED
+                                    else -> R.drawable.ic_repeat_rounded
                                 }
                             ),
                             contentDescription = null,
@@ -1052,8 +1050,7 @@ fun PlayerPlaybackControls(
                 val centerSize = 88.dp
                 val centerPadding = 40.dp
                 val sideTotal = (maxWidth - centerSize - centerPadding) / 2f
-                val scale =
-                    ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f)
+                val scale = ((sideTotal - baseGap) / (baseLarge + baseSmall)).coerceAtMost(1f).coerceAtLeast(0.6f)
                 val large = baseLarge * scale
                 val small = baseSmall * scale
                 val gap = baseGap * scale
@@ -1081,16 +1078,11 @@ fun PlayerPlaybackControls(
                             ),
                             modifier = Modifier.size(small)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    painter = painterResource(R.drawable.shuffle),
+                                    painter = painterResource(R.drawable.ic_shuffle_rounded), // UPDATED
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (shuffleModeEnabled) 1f else 0.6f
-                                    ),
+                                    tint = textBackgroundColor.copy(alpha = if (shuffleModeEnabled) 1f else 0.6f),
                                     modifier = Modifier.size(smallIcon)
                                 )
                             }
@@ -1105,16 +1097,11 @@ fun PlayerPlaybackControls(
                             color = textBackgroundColor.copy(alpha = 0.15f),
                             modifier = Modifier.size(large)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_previous),
+                                    painter = painterResource(R.drawable.ic_skip_previous_rounded), // UPDATED
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (canSkipPrevious) 1f else 0.4f
-                                    ),
+                                    tint = textBackgroundColor.copy(alpha = if (canSkipPrevious) 1f else 0.4f),
                                     modifier = Modifier.size(largeIcon)
                                 )
                             }
@@ -1136,10 +1123,7 @@ fun PlayerPlaybackControls(
                             .padding(horizontal = 20.dp)
                             .size(88.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             if (isLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(40.dp),
@@ -1150,9 +1134,9 @@ fun PlayerPlaybackControls(
                                 Icon(
                                     painter = painterResource(
                                         when {
-                                            playbackState == STATE_ENDED -> R.drawable.replay
-                                            isPlaying -> R.drawable.pause
-                                            else -> R.drawable.play
+                                            playbackState == STATE_ENDED -> R.drawable.ic_replay_rounded
+                                            isPlaying -> R.drawable.ic_pause_rounded
+                                            else -> R.drawable.ic_play_rounded
                                         }
                                     ),
                                     contentDescription = null,
@@ -1174,16 +1158,11 @@ fun PlayerPlaybackControls(
                             color = textBackgroundColor.copy(alpha = 0.15f),
                             modifier = Modifier.size(large)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_next),
+                                    painter = painterResource(R.drawable.ic_skip_next_rounded), // UPDATED
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (canSkipNext) 1f else 0.4f
-                                    ),
+                                    tint = textBackgroundColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
                                     modifier = Modifier.size(largeIcon)
                                 )
                             }
@@ -1194,26 +1173,19 @@ fun PlayerPlaybackControls(
                         Surface(
                             onClick = { playerConnection.player.toggleRepeatMode() },
                             shape = RoundedCornerShape(smallRadius),
-                            color = textBackgroundColor.copy(
-                                alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f
-                            ),
+                            color = textBackgroundColor.copy(alpha = if (repeatMode != Player.REPEAT_MODE_OFF) 0.2f else 0.08f),
                             modifier = Modifier.size(small)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
                                     painter = painterResource(
                                         when (repeatMode) {
-                                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                            else -> R.drawable.repeat
+                                            Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one_rounded
+                                            else -> R.drawable.ic_repeat_rounded
                                         }
                                     ),
                                     contentDescription = null,
-                                    tint = textBackgroundColor.copy(
-                                        alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.6f else 1f
-                                    ),
+                                    tint = textBackgroundColor.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.6f else 1f),
                                     modifier = Modifier.size(smallIcon)
                                 )
                             }
@@ -1237,7 +1209,7 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(R.drawable.shuffle), null, tint = Color.White.copy(alpha = if (shuffleModeEnabled) 1f else 0.5f), modifier = Modifier.size(24.dp))
+                        Icon(painterResource(R.drawable.ic_shuffle_rounded), null, tint = Color.White.copy(alpha = if (shuffleModeEnabled) 1f else 0.5f), modifier = Modifier.size(24.dp))
                     }
                 }
 
@@ -1251,7 +1223,7 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.size(56.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(R.drawable.skip_previous), null, tint = Color.White.copy(alpha = if (canSkipPrevious) 1f else 0.4f), modifier = Modifier.size(32.dp))
+                        Icon(painterResource(R.drawable.ic_skip_previous_rounded), null, tint = Color.White.copy(alpha = if (canSkipPrevious) 1f else 0.4f), modifier = Modifier.size(32.dp))
                     }
                 }
 
@@ -1267,7 +1239,7 @@ fun PlayerPlaybackControls(
                         if (isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(36.dp), color = Color.White, strokeWidth = 3.dp)
                         } else {
-                            Icon(painterResource(if (playbackState == STATE_ENDED) R.drawable.replay else if (isPlaying) R.drawable.pause else R.drawable.play), null, tint = Color.White, modifier = Modifier.size(40.dp))
+                            Icon(painterResource(if (playbackState == STATE_ENDED) R.drawable.ic_replay_rounded else if (isPlaying) R.drawable.ic_pause_rounded else R.drawable.ic_play_rounded), null, tint = Color.White, modifier = Modifier.size(40.dp))
                         }
                     }
                 }
@@ -1282,7 +1254,7 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.size(56.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(R.drawable.skip_next), null, tint = Color.White.copy(alpha = if (canSkipNext) 1f else 0.4f), modifier = Modifier.size(32.dp))
+                        Icon(painterResource(R.drawable.ic_skip_next_rounded), null, tint = Color.White.copy(alpha = if (canSkipNext) 1f else 0.4f), modifier = Modifier.size(32.dp))
                     }
                 }
 
@@ -1294,7 +1266,7 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painterResource(when (repeatMode) { Player.REPEAT_MODE_ONE -> R.drawable.repeat_one else -> R.drawable.repeat }), null, tint = Color.White.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f), modifier = Modifier.size(24.dp))
+                        Icon(painterResource(when (repeatMode) { Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one_rounded else -> R.drawable.ic_repeat_rounded }), null, tint = Color.White.copy(alpha = if (repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f), modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -1313,34 +1285,22 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(6.dp),
+                        modifier = Modifier.fillMaxWidth().padding(6.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             onClick = { playerConnection.seekToPrevious() },
                             enabled = canSkipPrevious,
-                            shape = RoundedCornerShape(
-                                topStart = 22.dp, bottomStart = 22.dp,
-                                topEnd = 8.dp, bottomEnd = 8.dp
-                            ),
+                            shape = RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp, topEnd = 8.dp, bottomEnd = 8.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
+                            modifier = Modifier.weight(1f).height(56.dp)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_previous),
+                                    painter = painterResource(R.drawable.ic_skip_previous_rounded),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(
-                                        alpha = if (canSkipPrevious) 1f else 0.4f
-                                    ),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (canSkipPrevious) 1f else 0.4f),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -1359,26 +1319,18 @@ fun PlayerPlaybackControls(
                             },
                             shape = RoundedCornerShape(28.dp),
                             color = textButtonColor,
-                            modifier = Modifier
-                                .size(width = 88.dp, height = 80.dp)
+                            modifier = Modifier.size(width = 88.dp, height = 80.dp)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(40.dp),
-                                        color = iconButtonColor,
-                                        strokeWidth = 3.dp
-                                    )
+                                    CircularProgressIndicator(modifier = Modifier.size(40.dp), color = iconButtonColor, strokeWidth = 3.dp)
                                 } else {
                                     Icon(
                                         painter = painterResource(
                                             when {
-                                                playbackState == STATE_ENDED -> R.drawable.replay
-                                                isPlaying -> R.drawable.pause
-                                                else -> R.drawable.play
+                                                playbackState == STATE_ENDED -> R.drawable.ic_replay_rounded
+                                                isPlaying -> R.drawable.ic_pause_rounded
+                                                else -> R.drawable.ic_play_rounded
                                             }
                                         ),
                                         contentDescription = null,
@@ -1394,25 +1346,15 @@ fun PlayerPlaybackControls(
                         Surface(
                             onClick = { playerConnection.seekToNext() },
                             enabled = canSkipNext,
-                            shape = RoundedCornerShape(
-                                topStart = 8.dp, bottomStart = 8.dp,
-                                topEnd = 22.dp, bottomEnd = 22.dp
-                            ),
+                            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 22.dp, bottomEnd = 22.dp),
                             color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
+                            modifier = Modifier.weight(1f).height(56.dp)
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_next),
+                                    painter = painterResource(R.drawable.ic_skip_next_rounded),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(
-                                        alpha = if (canSkipNext) 1f else 0.4f
-                                    ),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = if (canSkipNext) 1f else 0.4f),
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -1428,25 +1370,16 @@ fun PlayerPlaybackControls(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Surface(
-                        onClick = {
-                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
-                        },
+                        onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
                         shape = RoundedCornerShape(50),
-                        color = if (shuffleModeEnabled)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else textBackgroundColor.copy(alpha = 0.08f),
+                        color = if (shuffleModeEnabled) MaterialTheme.colorScheme.tertiaryContainer else textBackgroundColor.copy(alpha = 0.08f),
                         modifier = Modifier.size(40.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
-                                painter = painterResource(R.drawable.shuffle),
+                                painter = painterResource(R.drawable.ic_shuffle_rounded),
                                 contentDescription = null,
-                                tint = if (shuffleModeEnabled)
-                                    MaterialTheme.colorScheme.onTertiaryContainer
-                                else textBackgroundColor.copy(alpha = 0.5f),
+                                tint = if (shuffleModeEnabled) MaterialTheme.colorScheme.onTertiaryContainer else textBackgroundColor.copy(alpha = 0.5f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1457,26 +1390,19 @@ fun PlayerPlaybackControls(
                     Surface(
                         onClick = { playerConnection.player.toggleRepeatMode() },
                         shape = RoundedCornerShape(50),
-                        color = if (repeatMode != Player.REPEAT_MODE_OFF)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else textBackgroundColor.copy(alpha = 0.08f),
+                        color = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.tertiaryContainer else textBackgroundColor.copy(alpha = 0.08f),
                         modifier = Modifier.size(40.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Icon(
                                 painter = painterResource(
                                     when (repeatMode) {
-                                        Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                        else -> R.drawable.repeat
+                                        Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one_rounded
+                                        else -> R.drawable.ic_repeat_rounded
                                     }
                                 ),
                                 contentDescription = null,
-                                tint = if (repeatMode != Player.REPEAT_MODE_OFF)
-                                    MaterialTheme.colorScheme.onTertiaryContainer
-                                else textBackgroundColor.copy(alpha = 0.5f),
+                                tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onTertiaryContainer else textBackgroundColor.copy(alpha = 0.5f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1489,8 +1415,6 @@ fun PlayerPlaybackControls(
 
 /**
  * Wrapper composable that combines all player control components.
- * This replaces the large inline controlsContent lambda in BottomSheetPlayer
- * to reduce JIT compilation overhead.
  */
 @Composable
 fun PlayerControlsContent(
@@ -1610,6 +1534,64 @@ fun PlayerControlsContent(
     )
 }
 
+
+// --- 🌟 NAYE PREMIUM BACKGROUNDS COMPOSABLES 🌟 ---
+@Composable
+fun AppleMusicBackground(thumbnailUrl: String?, backgroundAlpha: Float = 1f) {
+    if (thumbnailUrl == null) return
+    Box(modifier = Modifier.fillMaxSize().alpha(backgroundAlpha)) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(),
+            contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().blur(150.dp)
+        )
+        Box(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.65f).graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen).drawWithContent {
+                drawContent()
+                drawRect(brush = Brush.verticalGradient(colorStops = arrayOf(0.00f to Color.Black, 0.75f to Color.Black, 0.92f to Color.Black.copy(alpha = 0.4f), 1.00f to Color.Transparent)), blendMode = BlendMode.DstIn)
+            }
+        ) {
+            AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(Size.ORIGINAL).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.05f), Color.Black.copy(alpha = 0.45f)))))
+    }
+}
+
+@Composable
+fun LiveMeshBackground(thumbnailUrl: String?, backgroundAlpha: Float = 1f) {
+    if (thumbnailUrl == null) return
+    val infiniteTransition = rememberInfiniteTransition(label = "liveMeshRotation")
+    val anchorRotation by infiniteTransition.animateFloat(initialValue = 0f, targetValue = -360f, animationSpec = infiniteRepeatable(tween(80000, easing = LinearEasing), RepeatMode.Restart), label = "anchorRotation")
+    val fastRotation by infiniteTransition.animateFloat(initialValue = 0f, targetValue = 360f, animationSpec = infiniteRepeatable(tween(40000, easing = LinearEasing), RepeatMode.Restart), label = "fastRotation")
+    val slowRotation by infiniteTransition.animateFloat(initialValue = 0f, targetValue = 360f, animationSpec = infiniteRepeatable(tween(60000, easing = LinearEasing), RepeatMode.Restart), label = "slowRotation")
+    Box(modifier = Modifier.fillMaxSize().alpha(backgroundAlpha).graphicsLayer { scaleX = 1.7f; scaleY = 1.7f }) {
+        val colorFilter = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(1.8f) }) }
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(), contentDescription = null, contentScale = ContentScale.Crop, colorFilter = colorFilter, modifier = Modifier.fillMaxSize().blur(100.dp).graphicsLayer { rotationZ = anchorRotation })
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(), contentDescription = null, contentScale = ContentScale.Crop, colorFilter = colorFilter, alignment = Alignment.TopStart, modifier = Modifier.fillMaxSize().blur(120.dp).graphicsLayer { rotationZ = fastRotation; alpha = 0.6f })
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(), contentDescription = null, contentScale = ContentScale.Crop, colorFilter = colorFilter, alignment = Alignment.BottomEnd, modifier = Modifier.fillMaxSize().blur(120.dp).graphicsLayer { rotationZ = slowRotation; alpha = 0.5f })
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f)))
+    }
+}
+
+@Composable
+fun PremiumBlurBackground(thumbnailUrl: String?, backgroundAlpha: Float = 1f) {
+    if (thumbnailUrl == null) return
+    Box(modifier = Modifier.fillMaxSize().alpha(backgroundAlpha)) {
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().blur(120.dp))
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+    }
+}
+
+@Composable
+fun PremiumBlurGradientBackground(thumbnailUrl: String?, backgroundAlpha: Float = 1f) {
+    if (thumbnailUrl == null) return
+    Box(modifier = Modifier.fillMaxSize().alpha(backgroundAlpha)) {
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(thumbnailUrl).size(128, 128).allowHardware(false).build(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().blur(120.dp))
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colorStops = arrayOf(0.0f to Color.Black.copy(alpha = 0.2f), 0.5f to Color.Black.copy(alpha = 0.4f), 1.0f to androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.9f)))))
+    }
+}
+// ----------------------------------------------
+
+
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
@@ -1626,43 +1608,15 @@ fun PlayerBackground(
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailUrl,
-                                contentDescription = "Blurred background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 60.dp)
-                                }
-                            )
-                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = overlayStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.08f))
-                            )
-                        }
-                    }
-                }
+                ) { thumbnailUrl -> PremiumBlurBackground(thumbnailUrl = thumbnailUrl) }
             }
 
             PlayerBackgroundStyle.GRADIENT -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1699,9 +1653,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.COLORING -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1727,44 +1679,15 @@ fun PlayerBackground(
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailUrl,
-                                contentDescription = "Blurred background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 65.dp)
-                                }
-                            )
-                            val gradientColorStops =
-                                PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.05f))
-                            )
-                        }
-                    }
-                }
+                ) { thumbnailUrl -> PremiumBlurGradientBackground(thumbnailUrl = thumbnailUrl) }
             }
 
             PlayerBackgroundStyle.CUSTOM -> {
                 AnimatedContent(
                     targetState = playerCustomImageUri,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { uri ->
                     if (uri.isNotBlank()) {
@@ -1805,9 +1728,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.GLOW -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
-                    },
+                    transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1818,10 +1739,8 @@ fun PlayerBackground(
                                     val width = size.width
                                     val height = size.height
 
-                                    // Use a dark base, but the gradients will cover most of it
                                     val baseColor = Color(0xFF050505)
 
-                                    // Extract up to 6 colors
                                     val color1 = colors.getOrElse(0) { Color.DarkGray }
                                     val color2 = colors.getOrElse(1) { color1 }
                                     val color3 = colors.getOrElse(2) { color2 }
@@ -1829,71 +1748,12 @@ fun PlayerBackground(
                                     val color5 = colors.getOrElse(4) { color2 }
                                     val color6 = colors.getOrElse(5) { color3 }
 
-                                    // Top-Left Large Glow (Primary)
-                                    val brush1 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color1.copy(alpha = 0.8f),
-                                            color1.copy(alpha = 0.5f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.2f, height * 0.25f),
-                                        radius = width * 1.2f
-                                    )
-
-                                    // Bottom-Right Large Glow (Secondary)
-                                    val brush2 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color2.copy(alpha = 0.75f),
-                                            color2.copy(alpha = 0.45f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.85f, height * 0.8f),
-                                        radius = width * 1.1f
-                                    )
-
-                                    // Top-Right Glow (Tertiary)
-                                    val brush3 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color3.copy(alpha = 0.7f),
-                                            color3.copy(alpha = 0.4f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.9f, height * 0.15f),
-                                        radius = width * 1.0f
-                                    )
-                                    
-                                    // Bottom-Left (Quaternary)
-                                    val brush4 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color4.copy(alpha = 0.65f),
-                                            color4.copy(alpha = 0.35f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.1f, height * 0.9f),
-                                        radius = width * 1.0f
-                                    )
-                                    
-                                    // Top-Center (Quinary)
-                                    val brush5 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color5.copy(alpha = 0.6f),
-                                            color5.copy(alpha = 0.3f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.5f, height * 0.1f),
-                                        radius = width * 0.9f
-                                    )
-                                    
-                                    // Bottom-Center (Senary)
-                                    val brush6 = Brush.radialGradient(
-                                        colors = listOf(
-                                            color6.copy(alpha = 0.6f),
-                                            color6.copy(alpha = 0.25f),
-                                            Color.Transparent
-                                        ),
-                                        center = Offset(width * 0.5f, height * 0.95f),
-                                        radius = width * 0.9f
-                                    )
+                                    val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.8f), color1.copy(alpha = 0.5f), Color.Transparent), center = Offset(width * 0.2f, height * 0.25f), radius = width * 1.2f)
+                                    val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.75f), color2.copy(alpha = 0.45f), Color.Transparent), center = Offset(width * 0.85f, height * 0.8f), radius = width * 1.1f)
+                                    val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.7f), color3.copy(alpha = 0.4f), Color.Transparent), center = Offset(width * 0.9f, height * 0.15f), radius = width * 1.0f)
+                                    val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.65f), color4.copy(alpha = 0.35f), Color.Transparent), center = Offset(width * 0.1f, height * 0.9f), radius = width * 1.0f)
+                                    val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.6f), color5.copy(alpha = 0.3f), Color.Transparent), center = Offset(width * 0.5f, height * 0.1f), radius = width * 0.9f)
+                                    val brush6 = Brush.radialGradient(colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent), center = Offset(width * 0.5f, height * 0.95f), radius = width * 0.9f)
 
                                     onDrawBehind {
                                         drawRect(color = baseColor)
@@ -1913,9 +1773,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.GLOW_ANIMATED -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
-                    },
+                    transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) },
                     label = "GlowAnimatedContent"
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1941,7 +1799,6 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
-                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
@@ -1953,29 +1810,12 @@ fun PlayerBackground(
                         val color5 = rotatedColorAt(4)
                         val color6 = rotatedColorAt(5)
 
-                        val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f)
-                        val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f)
-                        val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f)
-
-                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f)
-                        val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f)
-                        val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f)
-
-                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f)
-                        val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f)
-                        val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f)
-
-                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f)
-                        val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f)
-                        val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
-
-                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f)
-                        val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f)
-                        val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f)
-
-                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f)
-                        val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f)
-                        val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f)
+                        val o1x = oscillate(0.0f, 1.0f, 0.00f, 1.0f); val o1y = oscillate(0.0f, 0.5f, 0.07f, 1.0f); val r1 = oscillate(0.8f, 1.6f, 0.12f, 1.0f)
+                        val o2x = oscillate(1.0f, 0.0f, 0.2f, 1.0f); val o2y = oscillate(0.5f, 1.0f, 0.25f, 1.0f); val r2 = oscillate(0.7f, 1.5f, 0.18f, 1.0f)
+                        val o3x = oscillate(0.2f, 0.8f, 0.33f, 1.0f); val o3y = oscillate(0.8f, 0.2f, 0.36f, 1.0f); val r3 = oscillate(0.6f, 1.4f, 0.29f, 1.0f)
+                        val o4x = oscillate(0.3f, 0.7f, 0.44f, 1.0f); val o4y = oscillate(0.2f, 0.8f, 0.41f, 1.0f); val r4 = oscillate(0.9f, 1.7f, 0.47f, 1.0f)
+                        val o5x = oscillate(0.4f, 0.6f, 0.55f, 1.0f); val o5y = oscillate(0.0f, 1.0f, 0.51f, 1.0f); val r5 = oscillate(0.7f, 1.5f, 0.58f, 1.0f)
+                        val o6x = oscillate(0.0f, 1.0f, 0.66f, 1.0f); val o6y = oscillate(0.5f, 0.7f, 0.62f, 1.0f); val r6 = oscillate(0.8f, 1.8f, 0.69f, 1.0f)
 
                         Box(
                             modifier = Modifier
@@ -1985,36 +1825,12 @@ fun PlayerBackground(
                                     val height = size.height
                                     val baseColor = Color(0xFF050505)
 
-                                    val brush1 = Brush.radialGradient(
-                                        colors = listOf(color1.copy(alpha = 0.85f), color1.copy(alpha = 0.5f), Color.Transparent),
-                                        center = Offset(width * o1x, height * o1y),
-                                        radius = width * r1
-                                    )
-                                    val brush2 = Brush.radialGradient(
-                                        colors = listOf(color2.copy(alpha = 0.8f), color2.copy(alpha = 0.45f), Color.Transparent),
-                                        center = Offset(width * o2x, height * o2y),
-                                        radius = width * r2
-                                    )
-                                    val brush3 = Brush.radialGradient(
-                                        colors = listOf(color3.copy(alpha = 0.75f), color3.copy(alpha = 0.4f), Color.Transparent),
-                                        center = Offset(width * o3x, height * o3y),
-                                        radius = width * r3
-                                    )
-                                    val brush4 = Brush.radialGradient(
-                                        colors = listOf(color4.copy(alpha = 0.7f), color4.copy(alpha = 0.35f), Color.Transparent),
-                                        center = Offset(width * o4x, height * o4y),
-                                        radius = width * r4
-                                    )
-                                    val brush5 = Brush.radialGradient(
-                                        colors = listOf(color5.copy(alpha = 0.65f), color5.copy(alpha = 0.3f), Color.Transparent),
-                                        center = Offset(width * o5x, height * o5y),
-                                        radius = width * r5
-                                    )
-                                    val brush6 = Brush.radialGradient(
-                                        colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent),
-                                        center = Offset(width * o6x, height * o6y),
-                                        radius = width * r6
-                                    )
+                                    val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.85f), color1.copy(alpha = 0.5f), Color.Transparent), center = Offset(width * o1x, height * o1y), radius = width * r1)
+                                    val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.8f), color2.copy(alpha = 0.45f), Color.Transparent), center = Offset(width * o2x, height * o2y), radius = width * r2)
+                                    val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.75f), color3.copy(alpha = 0.4f), Color.Transparent), center = Offset(width * o3x, height * o3y), radius = width * r3)
+                                    val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.7f), color4.copy(alpha = 0.35f), Color.Transparent), center = Offset(width * o4x, height * o4y), radius = width * r4)
+                                    val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.65f), color5.copy(alpha = 0.3f), Color.Transparent), center = Offset(width * o5x, height * o5y), radius = width * r5)
+                                    val brush6 = Brush.radialGradient(colors = listOf(color6.copy(alpha = 0.6f), color6.copy(alpha = 0.25f), Color.Transparent), center = Offset(width * o6x, height * o6y), radius = width * r6)
 
                                     onDrawBehind {
                                         drawRect(color = baseColor)
@@ -2028,6 +1844,27 @@ fun PlayerBackground(
                                 }
                         )
                     }
+                }
+            }
+
+            // APPLE MUSIC & LIVE MESH STYLES
+            PlayerBackgroundStyle.APPLE_MUSIC -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
+                    label = "appleMusic"
+                ) { url ->
+                    AppleMusicBackground(thumbnailUrl = url)
+                }
+            }
+            
+            PlayerBackgroundStyle.LIVE_MESH -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = { fadeIn(tween(1500)) togetherWith fadeOut(tween(1500)) },
+                    label = "liveMesh"
+                ) { url ->
+                    LiveMeshBackground(thumbnailUrl = url)
                 }
             }
 
@@ -2161,7 +1998,6 @@ private fun LittlePlayerContent(
             }
 
             Spacer(Modifier.height((14f * scale).dp))
-
             Spacer(Modifier.height((6f * scale).dp))
 
             Row(
@@ -2169,7 +2005,7 @@ private fun LittlePlayerContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.expand_more),
+                    painter = painterResource(R.drawable.ic_expand_more_rounded), // UPDATED
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.8f),
                     modifier =
@@ -2185,7 +2021,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.weight(1f))
 
                 Icon(
-                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
+                    painter = painterResource(if (liked) R.drawable.ic_favorite_rounded else R.drawable.ic_favorite_border_rounded), // UPDATED
                     contentDescription = null,
                     tint =
                     if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
@@ -2203,7 +2039,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.queue_music),
+                    painter = painterResource(R.drawable.ic_queue_music_rounded), // UPDATED
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
@@ -2219,7 +2055,7 @@ private fun LittlePlayerContent(
                 Spacer(Modifier.width((18f * scale).dp))
 
                 Icon(
-                    painter = painterResource(R.drawable.more_vert),
+                    painter = painterResource(R.drawable.ic_more_vert_rounded), // UPDATED
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
                     modifier =
