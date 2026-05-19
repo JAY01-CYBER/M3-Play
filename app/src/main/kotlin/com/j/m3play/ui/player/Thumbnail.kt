@@ -236,7 +236,7 @@ private fun getMediaItems(
 private fun getTextColor(playerBackground: PlayerBackgroundStyle): Color {
     return when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.COLORING, PlayerBackgroundStyle.BLUR_GRADIENT, PlayerBackgroundStyle.GLOW, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.CUSTOM -> Color.White
+        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.COLORING, PlayerBackgroundStyle.BLUR_GRADIENT, PlayerBackgroundStyle.GLOW, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.CUSTOM, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH -> Color.White
     }
 }
 
@@ -675,8 +675,7 @@ private fun ThumbnailItem(
 
                         val skipAmount = 5000 * skipMultiplier
 
-                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) ||
-                                (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
+                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) || (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
 
                         if (isLeftSide) {
                             playerConnection.player.seekTo((currentPosition - skipAmount).coerceAtLeast(0))
