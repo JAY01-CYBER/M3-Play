@@ -399,6 +399,8 @@ enum class PlayerBackgroundStyle {
     BLUR_GRADIENT,
     GLOW,
     GLOW_ANIMATED,
+    APPLE_MUSIC,
+    LIVE_MESH
 }
 
 // Keys for customized background
