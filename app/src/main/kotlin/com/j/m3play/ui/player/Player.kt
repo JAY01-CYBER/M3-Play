@@ -233,7 +233,6 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
-   
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -309,7 +308,6 @@ fun BottomSheetPlayer(
     var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
-  
     var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
     }
@@ -343,13 +341,7 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
-            playerBackground == PlayerBackgroundStyle.COLORING || 
-            playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || 
-            playerBackground == PlayerBackgroundStyle.GLOW ||
-            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
-            playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || 
-            playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -427,7 +419,7 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.GLOW_ANIMATED,
             PlayerBackgroundStyle.CUSTOM,
             PlayerBackgroundStyle.APPLE_MUSIC,
-            PlayerBackgroundStyle.LIVE_MESH -> Color.Black.copy(alpha = 0.2f)
+            PlayerBackgroundStyle.LIVE_MESH -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -604,8 +596,7 @@ fun BottomSheetPlayer(
 
     BackHandler(
         enabled =
-        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) ||
-        (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) || (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
             (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
@@ -984,6 +975,7 @@ fun BottomSheetPlayer(
                             else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                         }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                
                     val seekEnabled = duration > 0L && duration != C.TIME_UNSET
 
                     Box(
