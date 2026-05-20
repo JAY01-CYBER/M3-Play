@@ -28,6 +28,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -80,7 +81,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlurEffect
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -237,15 +237,7 @@ private fun getMediaItems(
 private fun getTextColor(playerBackground: PlayerBackgroundStyle): Color {
     return when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR, 
-        PlayerBackgroundStyle.GRADIENT, 
-        PlayerBackgroundStyle.COLORING, 
-        PlayerBackgroundStyle.BLUR_GRADIENT, 
-        PlayerBackgroundStyle.GLOW, 
-        PlayerBackgroundStyle.GLOW_ANIMATED, 
-        PlayerBackgroundStyle.CUSTOM, 
-        PlayerBackgroundStyle.APPLE_MUSIC, 
-        PlayerBackgroundStyle.LIVE_MESH -> Color.White
+        PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.COLORING, PlayerBackgroundStyle.BLUR_GRADIENT, PlayerBackgroundStyle.GLOW, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.CUSTOM, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH -> Color.White
     }
 }
 
@@ -421,12 +413,12 @@ fun Thumbnail(
     val currentMediaIndex = mediaItemsData.currentIndex
 
     val thumbnailSnapLayoutInfoProvider = remember(thumbnailLazyGridState) {
-        SnapLayoutInfoProvider(
+        ThumbnailSnapLayoutInfoProvider(
             lazyGridState = thumbnailLazyGridState,
             positionInLayout = { layoutSize, itemSize ->
                 (layoutSize / 2f - itemSize / 2f)
             },
-            velocityThreshold = 500f
+            velocityThreshold = 1000f
         )
     }
 
@@ -505,18 +497,16 @@ fun Thumbnail(
                 BoxWithConstraints(
                     contentAlignment = Alignment.Center,
                     modifier = if (isLandscape) {
-                        Modifier.weight(1f, false)
+                         Modifier.weight(1f, false)
                     } else {
                         Modifier.fillMaxSize()
                     }
                 ) {
-                    val dimensions = remember(maxWidth, maxHeight, isLandscape, thumbnailCornerRadius, playerBackground) {
-                        val isAppleMusic = playerBackground == PlayerBackgroundStyle.APPLE_MUSIC
+                    val dimensions = remember(maxWidth, maxHeight, isLandscape, thumbnailCornerRadius) {
                         calculateThumbnailDimensions(
                             containerWidth = maxWidth,
                             containerHeight = maxHeight,
-                            horizontalPadding = if (isAppleMusic) 0.dp else PlayerHorizontalPadding,
-                            cornerRadius = if (isAppleMusic) 0.dp else thumbnailCornerRadius.dp,
+                            cornerRadius = thumbnailCornerRadius.dp,
                             isLandscape = isLandscape
                         )
                     }
@@ -538,7 +528,7 @@ fun Thumbnail(
                         flingBehavior = rememberSnapFlingBehavior(thumbnailSnapLayoutInfoProvider),
                         userScrollEnabled = isScrollEnabled,
                         modifier = if (isLandscape) {
-                            Modifier.size(dimensions.thumbnailSize + (if (playerBackground == PlayerBackgroundStyle.APPLE_MUSIC) 0.dp else PlayerHorizontalPadding * 2))
+                            Modifier.size(dimensions.thumbnailSize + (PlayerHorizontalPadding * 2))
                         } else {
                             Modifier.fillMaxSize()
                         }
@@ -562,8 +552,7 @@ fun Thumbnail(
                                 isLandscape = isLandscape,
                                 currentMediaId = mediaMetadata?.id,
                                 currentMediaThumbnail = mediaMetadata?.thumbnailUrl,
-                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled,
-                                playerBackground = playerBackground
+                                archiveTuneCanvasEnabled = archiveTuneCanvasEnabled
                             )
                         }
                     }
@@ -648,16 +637,13 @@ private fun ThumbnailItem(
     isLandscape: Boolean = false,
     currentMediaId: String? = null,
     currentMediaThumbnail: String? = null,
-    archiveTuneCanvasEnabled: Boolean,
-    playerBackground: PlayerBackgroundStyle
+    archiveTuneCanvasEnabled: Boolean
 ) {
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
-    
-    val isAppleMusic = playerBackground == PlayerBackgroundStyle.APPLE_MUSIC
-    val horizontalPadding = if (isAppleMusic) 0.dp else PlayerHorizontalPadding
+
     
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
@@ -666,14 +652,14 @@ private fun ThumbnailItem(
         modifier = Modifier
             .then(
                 if (isLandscape) {
-                    Modifier.size(dimensions.thumbnailSize + (horizontalPadding * 2))
+                    Modifier.size(dimensions.thumbnailSize + (PlayerHorizontalPadding * 2))
                 } else {
                     Modifier
                         .width(dimensions.itemWidth)
                         .fillMaxSize()
                 }
             )
-            .padding(horizontal = horizontalPadding)
+            .padding(horizontal = PlayerHorizontalPadding)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = { offset ->
@@ -706,11 +692,8 @@ private fun ThumbnailItem(
     ) {
         Box(
             modifier = Modifier
-                .then(
-                    if (isAppleMusic && !isLandscape) Modifier.fillMaxSize() 
-                    else Modifier.size(dimensions.thumbnailSize)
-                )
-                .clip(RoundedCornerShape(if (isAppleMusic) 0.dp else dimensions.cornerRadius))
+                .size(dimensions.thumbnailSize)
+                .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)
@@ -734,27 +717,9 @@ private fun ThumbnailItem(
 
                 ThumbnailImage(
                     artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt || isAppleMusic,
+                    cropArtwork = cropAlbumArt,
                     modifier = imageModifier
                 )
-
-                // Fading Dark Gradient at the bottom for Apple Music style
-                if (isAppleMusic && !isLandscape) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.4f),
-                                        Color.Black.copy(alpha = 0.95f)
-                                    )
-                                )
-                            )
-                    )
-                }
             }
             
             val shouldAnimateCanvas = archiveTuneCanvasEnabled && item.mediaId.isNotBlank() && item.mediaId == currentMediaId
@@ -859,7 +824,7 @@ private fun ThumbnailImage(
                 .networkCachePolicy(CachePolicy.ENABLED)
                 .build(),
             contentDescription = null,
-            contentScale = if (cropArtwork) ContentScale.Crop else ContentScale.Fit, 
+            contentScale = ContentScale.Crop, 
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -969,7 +934,7 @@ private fun normalizeCanvasSongTitle(raw: String): String = raw.replace(Regex("\
 private fun normalizeCanvasArtistName(raw: String): String = raw.split(Regex("(?:\\s*,\\s*|\\s*&\\s*|\\s+×\\s+|\\s+x\\s+|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bfeaturing\\b|\\bwith\\b)", RegexOption.IGNORE_CASE), limit = 2).firstOrNull().orEmpty().replace(Regex("\\s+"), " ").trim()
 
 @ExperimentalFoundationApi
-fun SnapLayoutInfoProvider(
+fun ThumbnailSnapLayoutInfoProvider(
     lazyGridState: LazyGridState,
     positionInLayout: (layoutSize: Float, itemSize: Float) -> Float = { layoutSize, itemSize -> (layoutSize / 2f - itemSize / 2f) },
     velocityThreshold: Float = 1000f,
