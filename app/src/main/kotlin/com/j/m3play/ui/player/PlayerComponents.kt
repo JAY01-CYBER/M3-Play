@@ -125,6 +125,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToLong
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+
 
 
 @Composable
