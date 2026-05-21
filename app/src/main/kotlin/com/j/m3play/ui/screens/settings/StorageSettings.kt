@@ -4,21 +4,25 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Card
@@ -39,10 +43,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.annotation.ExperimentalCoilApi
@@ -207,7 +213,7 @@ fun StorageSettings(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
             .verticalScroll(rememberScrollState())
-            .padding(12.dp)
+            .padding(16.dp)
     ) {
         Spacer(
             Modifier.windowInsetsPadding(
@@ -222,6 +228,8 @@ fun StorageSettings(
             onCheckedChange = onSmartTrimmerChange,
             isEnabled = isSmartTrimmerAvailable,
         )
+
+        Spacer(Modifier.padding(top = 8.dp))
 
         // --- Section: Downloads ---
         CacheCard(
@@ -431,41 +439,45 @@ fun CacheCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            .padding(vertical = 10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
-        shape = MaterialTheme.shapes.large
+        shape = RoundedCornerShape(32.dp) // Premium Radius
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(top = 24.dp, bottom = 12.dp, start = 20.dp, end = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Card(
-                    modifier = Modifier.padding(end = 12.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                Box(
+                    modifier = Modifier
+                        .padding(end = 16.dp)
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp)) // Squircle Icon
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    androidx.compose.foundation.layout.Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            painter = painterResource(icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(icon),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
                 Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (progress != null) {
-                Spacer(Modifier.padding(top = 8.dp))
+                Spacer(Modifier.padding(top = 16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LinearProgressIndicator(
                         progress = progress,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(end = 8.dp),
+                            .padding(end = 12.dp)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = StrokeCap.Round
@@ -473,12 +485,13 @@ fun CacheCard(
                     // percent label
                     Text(
                         text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
-            Spacer(Modifier.padding(4.dp))
+            Spacer(Modifier.padding(8.dp))
             actions()
         }
     }
