@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,11 +59,10 @@ class MenuState(
 fun BottomSheetMenu(
     modifier: Modifier = Modifier,
     state: MenuState,
-    background: Color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Pixel background
 ) {
     val focusManager = LocalFocusManager.current
     
-    // skipPartiallyExpanded = true se sheet seedha apne content ke hisaab se khulegi
+    // skipPartiallyExpanded = true se sheet apne content ke hisab se theek se open hogi
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     if (state.isVisible) {
@@ -75,9 +72,9 @@ fun BottomSheetMenu(
                 state.isVisible = false
             },
             sheetState = sheetState,
-            containerColor = background,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Color
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), // Premium Large Radius
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), // Premium Large Pixel Radius
             dragHandle = {
                 Box(
                     modifier = Modifier
@@ -87,11 +84,8 @@ fun BottomSheetMenu(
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 )
             },
-            modifier = modifier
+            modifier = modifier // Dhyan dein: Yahan se 'fillMaxHeight()' hata diya gaya hai
         ) {
-            // Yahan se navigation bar ki actual height (pixels/dp) nikali ja rahi hai
-            val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -99,8 +93,8 @@ fun BottomSheetMenu(
             ) {
                 state.content(this)
                 
-                // Actual nav bar height + 24dp extra breathing room taaki aakhri list item bilkul na kate
-                Spacer(modifier = Modifier.height(bottomPadding + 24.dp))
+                // Yahan navigation bars ki padding aur extra space add ki gayi hai taaki content cut na ho
+                Spacer(modifier = Modifier.navigationBarsPadding().height(24.dp))
             }
         }
     }
