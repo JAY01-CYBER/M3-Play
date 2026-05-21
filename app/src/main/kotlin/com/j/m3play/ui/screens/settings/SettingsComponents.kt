@@ -4,15 +4,13 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens.settings
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -385,10 +383,10 @@ fun SettingsGroupCard(
     Column(modifier = modifier) {
         Text(
             text = group.title.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing * 1.2f,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
             modifier = Modifier.padding(
                 horizontal = SettingsDimensions.SectionHeaderHorizontalPadding,
                 vertical = SettingsDimensions.SectionHeaderBottomPadding,
@@ -398,7 +396,7 @@ fun SettingsGroupCard(
         Card(
             shape = RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
@@ -434,7 +432,7 @@ fun SettingsRow(
         label = "rowScale",
     )
     val bgAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.06f else 0f,
+        targetValue = if (isPressed) 0.08f else 0f,
         animationSpec = SettingsAnimations.pressSpring(),
         label = "rowBgAlpha",
     )
@@ -444,7 +442,7 @@ fun SettingsRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer { scaleX = scale; scaleY = scale }
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = bgAlpha))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = bgAlpha))
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -460,7 +458,7 @@ fun SettingsRow(
                 modifier = Modifier
                     .size(SettingsDimensions.RowIconSize)
                     .clip(RoundedCornerShape(SettingsDimensions.RowIconCornerRadius))
-                    .background(effectiveAccent.copy(alpha = 0.12f)),
+                    .background(effectiveAccent.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (item.showUpdateIndicator) {
@@ -468,7 +466,7 @@ fun SettingsRow(
                         badge = {
                             Badge(
                                 containerColor = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(8.dp),
+                                modifier = Modifier.size(10.dp),
                             )
                         },
                     ) {
@@ -489,20 +487,20 @@ fun SettingsRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 item.subtitle?.let { subtitle ->
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = if (item.showUpdateIndicator) {
                             effectiveAccent
                         } else {
@@ -529,21 +527,24 @@ fun SettingsRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
             Icon(
                 painter = painterResource(R.drawable.navigate_next),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(SettingsDimensions.ChevronSize),
             )
         }
 
         if (showDivider) {
             HorizontalDivider(
-                modifier = Modifier.padding(start = SettingsDimensions.DividerStartIndent),
+                modifier = Modifier.padding(
+                    start = SettingsDimensions.DividerStartIndent,
+                    end = SettingsDimensions.RowHorizontalPadding
+                ),
                 thickness = SettingsDimensions.DividerThickness,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.surfaceVariant,
             )
         }
     }
