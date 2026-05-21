@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -221,6 +221,8 @@ fun ThemeCreatorScreen(
     if (showImportErrorDialog) {
         AlertDialog(
             onDismissRequest = { showImportErrorDialog = false },
+            shape = RoundedCornerShape(32.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             confirmButton = {
                 TextButton(onClick = { showImportErrorDialog = false }) {
                     Text(text = stringResource(android.R.string.ok))
@@ -283,6 +285,7 @@ fun ThemeCreatorScreen(
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurface,
+                    shape = RoundedCornerShape(20.dp)
                 )
                 ExtendedFloatingActionButton(
                     onClick = {
@@ -297,6 +300,7 @@ fun ThemeCreatorScreen(
                     icon = { Icon(painter = painterResource(R.drawable.share), contentDescription = null) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(20.dp)
                 )
             }
         }
@@ -323,16 +327,17 @@ fun ThemeCreatorScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                shape = RoundedCornerShape(32.dp), // Premium Large Radius
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
-                Column(Modifier.padding(16.dp)) {
+                Column(Modifier.padding(20.dp)) {
                     Text(
                         text = stringResource(R.string.theme_meta_title),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(14.dp))
                     OutlinedTextField(
                         value = themeName,
                         onValueChange = { themeName = it.take(48) },
@@ -340,13 +345,15 @@ fun ThemeCreatorScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        shape = RoundedCornerShape(16.dp)
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = { applyThemeToPrefs() },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Text(text = stringResource(R.string.theme_apply_button))
+                        Text(text = stringResource(R.string.theme_apply_button), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -414,9 +421,9 @@ private fun ThemeHeroPreview(
             modifier = modifier
                 .fillMaxWidth()
                 .height(320.dp)
-                .shadow(18.dp, RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                .shadow(18.dp, RoundedCornerShape(32.dp)),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(Modifier.fillMaxWidth()) {
@@ -435,8 +442,8 @@ private fun ThemeHeroPreview(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -447,6 +454,7 @@ private fun ThemeHeroPreview(
                             Text(
                                 text = stringResource(R.string.theme_preview),
                                 style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -474,15 +482,15 @@ private fun ThemeHeroPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Box(
                                     Modifier
-                                        .size(44.dp)
-                                        .clip(RoundedCornerShape(14.dp))
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(16.dp))
                                         .background(
                                             Brush.linearGradient(
                                                 listOf(
@@ -496,6 +504,7 @@ private fun ThemeHeroPreview(
                                     Text(
                                         text = stringResource(R.string.now_playing),
                                         style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
@@ -531,7 +540,7 @@ private fun ThemeHeroPreview(
                                     Box(
                                         Modifier
                                             .weight(1f)
-                                            .height(8.dp)
+                                            .height(10.dp)
                                             .clip(RoundedCornerShape(99.dp))
                                             .background(c)
                                     )
@@ -540,7 +549,7 @@ private fun ThemeHeroPreview(
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(999.dp),
@@ -548,7 +557,7 @@ private fun ThemeHeroPreview(
                             shadowElevation = 4.dp,
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -570,11 +579,11 @@ private fun ThemeHeroPreview(
                         Surface(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
                             shadowElevation = 0.dp,
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -633,9 +642,9 @@ private fun ThemeRichPreview(
             modifier = modifier
                 .fillMaxWidth()
                 .height(560.dp)
-                .shadow(18.dp, RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                .shadow(18.dp, RoundedCornerShape(32.dp)),
+            shape = RoundedCornerShape(32.dp), // Premium Large Radius
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(Modifier.fillMaxSize()) {
@@ -657,8 +666,8 @@ private fun ThemeRichPreview(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -669,6 +678,7 @@ private fun ThemeRichPreview(
                             Text(
                                 text = stringResource(R.string.theme_preview),
                                 style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -682,7 +692,7 @@ private fun ThemeRichPreview(
                         }
                         Surface(
                             shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         ) {
                             Row(
                                 modifier = Modifier.padding(4.dp),
@@ -705,17 +715,17 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
+                        shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.arrow_back),
@@ -726,7 +736,8 @@ private fun ThemeRichPreview(
                                 Spacer(Modifier.width(10.dp))
                                 Text(
                                     text = "Premium look",
-                                    style = MaterialTheme.typography.titleSmall,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -736,7 +747,7 @@ private fun ThemeRichPreview(
                                 ) {
                                     Surface(
                                         shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.new_release),
@@ -745,10 +756,10 @@ private fun ThemeRichPreview(
                                         )
                                     }
                                 }
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(10.dp))
                                 Surface(
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.more_vert),
@@ -761,7 +772,7 @@ private fun ThemeRichPreview(
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -771,7 +782,7 @@ private fun ThemeRichPreview(
                                     Box(
                                         Modifier
                                             .size(52.dp)
-                                            .clip(RoundedCornerShape(18.dp))
+                                            .clip(RoundedCornerShape(16.dp))
                                             .background(
                                                 Brush.linearGradient(
                                                     listOf(
@@ -785,6 +796,7 @@ private fun ThemeRichPreview(
                                         Text(
                                             text = "Now playing",
                                             style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                         )
@@ -815,23 +827,21 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Buttons")
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 Button(
                                     onClick = { },
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                 ) {
                                     Text("Primary")
                                 }
                                 ElevatedButton(
                                     onClick = { },
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                 ) {
                                     Text("Elevated")
                                 }
@@ -839,8 +849,7 @@ private fun ThemeRichPreview(
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                                 OutlinedButton(
                                     onClick = { },
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                 ) {
                                     Text("Outlined")
                                 }
@@ -850,7 +859,7 @@ private fun ThemeRichPreview(
                                             chipSelected = !chipSelected
                                         }
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f).height(48.dp),
                                 ) {
                                     Text("Text")
                                 }
@@ -860,10 +869,10 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Chips")
                             Row(
                                 modifier = Modifier
@@ -879,10 +888,11 @@ private fun ThemeRichPreview(
                                         Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp))
                                     },
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                         labelColor = MaterialTheme.colorScheme.onSurface,
                                         leadingIconContentColor = MaterialTheme.colorScheme.onSurface,
                                     ),
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                                 FilterChip(
                                     selected = chipSelected,
@@ -900,6 +910,7 @@ private fun ThemeRichPreview(
                                         selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                         selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                     ),
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                                 AssistChip(
                                     onClick = { },
@@ -908,6 +919,7 @@ private fun ThemeRichPreview(
                                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                                         labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
                                     ),
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                             }
                         }
@@ -915,10 +927,10 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Inputs")
                             TextField(
                                 value = query,
@@ -944,6 +956,7 @@ private fun ThemeRichPreview(
                                 },
                                 placeholder = { Text("Search") },
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
                             )
                             OutlinedTextField(
                                 value = "Outline",
@@ -952,16 +965,17 @@ private fun ThemeRichPreview(
                                 enabled = false,
                                 label = { Text("Disabled") },
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp)
                             )
                         }
                     }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Toggles")
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -997,32 +1011,35 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Progress")
-                            LinearProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth())
+                            LinearProgressIndicator(
+                                progress = { sliderValue }, 
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                            )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text("Loading", style = MaterialTheme.typography.labelLarge)
-                                CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(22.dp))
+                                CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(24.dp))
                             }
                         }
                     }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     ) {
-                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             PreviewSectionTitle("List")
                             ListItem(
-                                headlineContent = { Text("Playlist") },
+                                headlineContent = { Text("Playlist", fontWeight = FontWeight.SemiBold) },
                                 supportingContent = { Text("Curated picks • 24 tracks") },
                                 leadingContent = {
                                     Surface(
@@ -1033,7 +1050,7 @@ private fun ThemeRichPreview(
                                             painter = painterResource(R.drawable.library_filled),
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.padding(10.dp).size(18.dp),
+                                            modifier = Modifier.padding(10.dp).size(20.dp),
                                         )
                                     }
                                 },
@@ -1047,7 +1064,7 @@ private fun ThemeRichPreview(
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
                             ListItem(
-                                headlineContent = { Text("Liked songs") },
+                                headlineContent = { Text("Liked songs", fontWeight = FontWeight.SemiBold) },
                                 supportingContent = { Text("Smart collection") },
                                 leadingContent = {
                                     Surface(
@@ -1058,7 +1075,7 @@ private fun ThemeRichPreview(
                                             painter = painterResource(R.drawable.favorite),
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.padding(10.dp).size(18.dp),
+                                            modifier = Modifier.padding(10.dp).size(20.dp),
                                         )
                                     }
                                 },
@@ -1068,8 +1085,8 @@ private fun ThemeRichPreview(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                     ) {
                         NavigationBar(containerColor = Color.Transparent) {
                             NavigationBarItem(
@@ -1081,7 +1098,7 @@ private fun ThemeRichPreview(
                                         contentDescription = null
                                     )
                                 },
-                                label = { Text("Home") },
+                                label = { Text("Home", fontWeight = FontWeight.Medium) },
                             )
                             NavigationBarItem(
                                 selected = navSelected == 1,
@@ -1092,13 +1109,13 @@ private fun ThemeRichPreview(
                                         contentDescription = null
                                     )
                                 },
-                                label = { Text("Explore") },
+                                label = { Text("Explore", fontWeight = FontWeight.Medium) },
                             )
                             NavigationBarItem(
                                 selected = navSelected == 2,
                                 onClick = { navSelected = 2 },
                                 icon = { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null) },
-                                label = { Text("Library") },
+                                label = { Text("Library", fontWeight = FontWeight.Medium) },
                             )
                         }
                     }
@@ -1130,8 +1147,9 @@ private fun PreviewSegment(
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1142,8 +1160,9 @@ private fun PreviewSegment(
 private fun PreviewSectionTitle(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
     )
 }
 
@@ -1155,17 +1174,18 @@ private fun SeedRolePicker(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
                 text = stringResource(R.string.theme_seed_colors),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SeedChip(
                     label = stringResource(R.string.theme_seed_primary),
@@ -1182,7 +1202,7 @@ private fun SeedRolePicker(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SeedChip(
                     label = stringResource(R.string.theme_seed_tertiary),
@@ -1209,23 +1229,24 @@ private fun SeedChip(
     modifier: Modifier = Modifier,
 ) {
     val container =
-        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
     val content =
         if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(16.dp)) // Premium Chip Radius
             .clickable(onClick = onClick),
         color = container,
         contentColor = content,
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(16.dp),
         shadowElevation = if (selected) 6.dp else 0.dp,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1279,31 +1300,32 @@ private fun SeedColorEditor(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
                 text = stringResource(R.string.theme_editor_title, roleLabel),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(54.dp)
+                        .size(56.dp)
                         .shadow(8.dp, CircleShape)
                         .clip(CircleShape)
                         .background(color)
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(text = stringResource(R.string.theme_editor_hex), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = hex, style = MaterialTheme.typography.titleSmall)
+                    Text(text = hex, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Row(
                         modifier = Modifier
@@ -1311,12 +1333,12 @@ private fun SeedColorEditor(
                                 clipboard.setText(AnnotatedString(hex))
                                 Toast.makeText(context, context.getString(R.string.copied), Toast.LENGTH_SHORT).show()
                             }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(painter = painterResource(R.drawable.link), contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(text = stringResource(R.string.copy), style = MaterialTheme.typography.labelLarge)
+                        Icon(painter = painterResource(R.drawable.copy), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                        Text(text = stringResource(R.string.copy), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1342,7 +1364,10 @@ private fun SeedColorEditor(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
             )
+
+            Spacer(Modifier.height(4.dp))
 
             RgbSlider(
                 label = "R",
@@ -1372,6 +1397,7 @@ private fun SeedColorEditor(
                 },
             )
 
+            Spacer(Modifier.height(8.dp))
             PresetSwatches(
                 current = color,
                 onPick = onColorChange,
@@ -1387,16 +1413,17 @@ private fun RgbSlider(
     color: Color,
     onValueChange: (Int) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Surface(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             color = color.copy(alpha = 0.18f),
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = color,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             )
         }
         Slider(
@@ -1412,7 +1439,8 @@ private fun RgbSlider(
         )
         Text(
             text = value.toString(),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.width(44.dp),
         )
     }
@@ -1430,18 +1458,19 @@ private fun PresetSwatches(
             .take(18)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = stringResource(R.string.theme_presets_title),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             swatches.forEach { c ->
                 val selected = c.toArgb() == current.toArgb()
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)
                         .shadow(if (selected) 8.dp else 2.dp, CircleShape)
                         .clip(CircleShape)
                         .background(c)
@@ -1456,4 +1485,3 @@ private fun PresetSwatches(
         }
     }
 }
-
