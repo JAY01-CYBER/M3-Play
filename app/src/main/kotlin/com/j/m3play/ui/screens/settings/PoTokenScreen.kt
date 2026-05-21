@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
@@ -209,18 +210,22 @@ fun PoTokenScreen(
         ModalBottomSheet(
             onDismissRequest = { showRegenerateSheet = false },
             sheetState = regenerateSheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = stringResource(R.string.source_url),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = sourceUrl,
@@ -231,27 +236,32 @@ fun PoTokenScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
                     ),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(16.dp), // Premium Shape
                 )
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
 
                 Button(
                     onClick = {
                         showRegenerateSheet = false
                         launchExtraction()
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(16.dp), // Premium Shape
                 ) {
-                    Text(stringResource(R.string.regenerate_token))
+                    Text(
+                        stringResource(R.string.regenerate_token),
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -306,7 +316,7 @@ fun PoTokenScreen(
                         clipboardManager.setText(AnnotatedString(displayGvsToken))
                         Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
 
                 SelectableTokenCard(
@@ -316,7 +326,7 @@ fun PoTokenScreen(
                         clipboardManager.setText(AnnotatedString(displayPlayerToken))
                         Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
 
                 SelectableTokenCard(
@@ -326,7 +336,7 @@ fun PoTokenScreen(
                         clipboardManager.setText(AnnotatedString(displayVisitorData))
                         Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
 
                 PreferenceGroupTitle(
@@ -338,7 +348,7 @@ fun PoTokenScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     SUPPORTED_CLIENTS.forEach { client ->
                         AssistChip(
@@ -347,12 +357,18 @@ fun PoTokenScreen(
                                 Text(
                                     text = client,
                                     style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                                 )
                             },
+                            shape = RoundedCornerShape(12.dp), // Squircle Chip
                             colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                                 labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                             ),
+                            border = AssistChipDefaults.assistChipBorder(
+                                enabled = true,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
                         )
                     }
                 }
@@ -379,7 +395,7 @@ fun PoTokenScreen(
                     },
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
 
                 ExtendedFloatingActionButton(
                     onClick = {
@@ -387,26 +403,30 @@ fun PoTokenScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = MaterialTheme.shapes.medium,
+                        .padding(horizontal = 16.dp)
+                        .height(56.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(24.dp), // Premium Action Radius
                     icon = {
                         Icon(
                         painter = painterResource(R.drawable.sync),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
                         )
                     },
                     text = {
                         Text(
                             text = stringResource(R.string.regenerate),
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     },
                 )
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(32.dp))
             }
         }
     }
@@ -436,14 +456,14 @@ private fun SelectableTokenCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(28.dp), // Premium Large Radius
+        color = MaterialTheme.colorScheme.surfaceContainerHigh, // Expensive color
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
             verticalAlignment = Alignment.Top,
         ) {
             Column(
@@ -451,10 +471,11 @@ private fun SelectableTokenCard(
             ) {
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 SelectionContainer {
                     Text(
                         text = token.ifBlank { "—" },
@@ -473,17 +494,22 @@ private fun SelectableTokenCard(
             }
 
             if (token.isNotBlank()) {
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = onCopy,
-                    onLongClick = onCopy,
+                Spacer(Modifier.width(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.copy),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    IconButton(
+                        onClick = onCopy,
+                        onLongClick = onCopy,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.copy),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         }
