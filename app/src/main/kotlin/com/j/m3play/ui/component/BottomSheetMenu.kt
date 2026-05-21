@@ -69,15 +69,14 @@ fun BottomSheetMenu(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             },
-            modifier = modifier.wrapContentHeight(),
-            windowInsets = WindowInsets.navigationBars
+            modifier = modifier.wrapContentHeight() // Yeh screen cut hone se bachayega
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 24.dp)
-                    .navigationBarsPadding()
+                    .navigationBarsPadding() // Yeh system bar se overlap hone se bachayega
             ) {
                 state.content(this)
             }
