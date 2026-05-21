@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -18,7 +18,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -103,7 +100,8 @@ fun QuickActionCard(
             .scale(scale)
             .aspectRatio(SettingsDimensions.QuickActionTileAspectRatio),
         shape = RoundedCornerShape(SettingsDimensions.QuickActionCardCornerRadius),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        // Premium Expensive Color
+        color = MaterialTheme.colorScheme.surfaceContainerHigh, 
         onClick = action.onClick,
         interactionSource = interactionSource,
     ) {
@@ -113,12 +111,12 @@ fun QuickActionCard(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            action.accentColor.copy(alpha = 0.10f),
+                            action.accentColor.copy(alpha = 0.15f), // Richer Gradient Start
                             Color.Transparent,
                         ),
                     ),
                 )
-                .padding(14.dp),
+                .padding(16.dp), // Slightly more breathing room
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -127,8 +125,8 @@ fun QuickActionCard(
                 Box(
                     modifier = Modifier
                         .size(SettingsDimensions.QuickActionIconSize)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(action.accentColor.copy(alpha = 0.14f)),
+                        .clip(RoundedCornerShape(16.dp)) // Squircle Premium Shape
+                        .background(action.accentColor.copy(alpha = 0.20f)), // Richer Inner Color
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -143,8 +141,8 @@ fun QuickActionCard(
 
                 Text(
                     text = action.label,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall, // Better Hierarchy
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
