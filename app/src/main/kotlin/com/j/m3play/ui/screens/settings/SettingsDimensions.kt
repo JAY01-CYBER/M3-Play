@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,38 +15,38 @@ import androidx.compose.animation.core.spring
 import androidx.compose.ui.unit.dp
 
 object SettingsDimensions {
-    val GroupCardCornerRadius = 16.dp
-    val QuickActionCardCornerRadius = 20.dp
-    val IntegrationPillCornerRadius = 14.dp
-    val BannerCardCornerRadius = 20.dp
-    val HeroCardCornerRadius = 24.dp
-    val RowIconCornerRadius = 12.dp
+    val GroupCardCornerRadius = 28.dp 
+    val QuickActionCardCornerRadius = 24.dp
+    val IntegrationPillCornerRadius = 100.dp 
+    val BannerCardCornerRadius = 28.dp
+    val HeroCardCornerRadius = 32.dp
+    val RowIconCornerRadius = 16.dp 
 
     val ScreenHorizontalPadding = 16.dp
     val CardInternalPadding = 16.dp
-    val SectionSpacing = 14.dp
-    val RowVerticalPadding = 14.dp
-    val RowHorizontalPadding = 16.dp
+    val SectionSpacing = 16.dp 
+    val RowVerticalPadding = 16.dp
+    val RowHorizontalPadding = 20.dp 
 
-    val RowIconSize = 36.dp
-    val RowIconInnerSize = 20.dp
-    val QuickActionIconSize = 40.dp
-    val QuickActionIconInnerSize = 22.dp
-    val HeroIconSize = 56.dp
-    val HeroIconInnerSize = 30.dp
-    val IntegrationIconSize = 28.dp
-    val IntegrationIconInnerSize = 16.dp
-    val BannerIconSize = 44.dp
-    val BannerIconInnerSize = 22.dp
-    val ChevronSize = 18.dp
+    val RowIconSize = 42.dp
+    val RowIconInnerSize = 22.dp
+    val QuickActionIconSize = 44.dp
+    val QuickActionIconInnerSize = 24.dp
+    val HeroIconSize = 64.dp
+    val HeroIconInnerSize = 32.dp
+    val IntegrationIconSize = 30.dp
+    val IntegrationIconInnerSize = 18.dp
+    val BannerIconSize = 48.dp
+    val BannerIconInnerSize = 24.dp
+    val ChevronSize = 20.dp
 
-    val DividerThickness = 0.5.dp
-    val DividerStartIndent = 60.dp
+    val DividerThickness = 1.dp
+    val DividerStartIndent = 72.dp 
 
-    val SectionHeaderBottomPadding = 6.dp
-    val SectionHeaderHorizontalPadding = 20.dp
+    val SectionHeaderBottomPadding = 8.dp
+    val SectionHeaderHorizontalPadding = 24.dp 
 
-    val QuickActionTileAspectRatio = 1.4f
+    val QuickActionTileAspectRatio = 1.3f
 
     val CompactColumns = 2
     val MediumColumns = 4
@@ -58,11 +58,11 @@ object SettingsDimensions {
 }
 
 object SettingsAnimations {
-    val PressScale = 0.97f
-    val TilePressScale = 0.94f
+    val PressScale = 0.96f
+    val TilePressScale = 0.92f
     val PillPressScale = 0.95f
-    val IconPressRotation = 5f
-    val PillPressLift = (-2).dp
+    val IconPressRotation = 8f
+    val PillPressLift = (-3).dp
 
     val EntranceFadeDuration = 300
     val EntranceSlideDuration = 350
