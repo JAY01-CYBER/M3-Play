@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -100,8 +101,8 @@ fun CustomizeBackground(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(playerPreviewHeight)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUri.isNotBlank()) {
@@ -135,9 +136,9 @@ fun CustomizeBackground(
                         contentScale = ContentScale.FillBounds
                     )
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(painterResource(R.drawable.image), contentDescription = null)
-                        Text(stringResource(R.string.add_image))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.add_image), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -145,8 +146,8 @@ fun CustomizeBackground(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(lyricsPreviewHeight)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUri.isNotBlank()) {
@@ -180,17 +181,22 @@ fun CustomizeBackground(
                         contentScale = ContentScale.FillBounds
                     )
                 } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(painterResource(R.drawable.image), contentDescription = null)
-                        Text(stringResource(R.string.add_image))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.add_image), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
-            Button(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.add_image))
+            
+            FilledTonalButton(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.add_image), fontWeight = FontWeight.SemiBold)
             }
 
-            Text(stringResource(R.string.blur))
+            Spacer(Modifier.height(8.dp))
+
+            Text(stringResource(R.string.blur), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Slider(
                 value = blur,
                 onValueChange = onBlurChange,
@@ -198,7 +204,7 @@ fun CustomizeBackground(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text(stringResource(R.string.contrast))
+            Text(stringResource(R.string.contrast), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Slider(
                 value = contrast,
                 onValueChange = onContrastChange,
@@ -206,7 +212,7 @@ fun CustomizeBackground(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text(stringResource(R.string.brightness))
+            Text(stringResource(R.string.brightness), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Slider(
                 value = brightness,
                 onValueChange = onBrightnessChange,
@@ -214,15 +220,19 @@ fun CustomizeBackground(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            FilledTonalButton(
+            Spacer(Modifier.height(8.dp))
+
+            Button(
                 onClick = {
                     Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
                     navController.navigateUp()
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text(stringResource(R.string.save))
+                Text(stringResource(R.string.save), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
+            
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
