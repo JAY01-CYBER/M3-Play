@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -56,8 +56,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -186,8 +188,8 @@ fun AppearanceSettings(
         defaultValue = LyricsPosition.LEFT
     )
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
-        key = LyricsAnimationStyleKey,
-        defaultValue = LyricsAnimationStyle.APPLE
+    key = LyricsAnimationStyleKey,
+    defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
@@ -435,14 +437,12 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
-                    PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
-                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                 }
             },
         )
@@ -939,14 +939,18 @@ private fun SliderStyleOptionCard(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) 
+                else MaterialTheme.colorScheme.surfaceContainerHigh
+            )
             .border(
-                1.dp,
-                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(16.dp)
+                2.dp, // Thicker border for selected state
+                if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                RoundedCornerShape(24.dp)
             )
             .clickable(onClick = onClick)
             .padding(16.dp)
@@ -966,7 +970,9 @@ private fun SliderStyleOptionCard(
 
         Text(
             text = sliderStyleLabel(sliderStyle),
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
     }
 }
