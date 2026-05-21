@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
@@ -35,14 +34,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -55,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -161,7 +153,7 @@ fun AppearanceSettings(
     )
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(
         key = ThumbnailCornerRadiusKey,
-        defaultValue = 16f // default dp
+        defaultValue = 16f
     )
     val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(
         CropThumbnailToSquareKey,
@@ -188,8 +180,8 @@ fun AppearanceSettings(
         defaultValue = LyricsPosition.LEFT
     )
     val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(
-    key = LyricsAnimationStyleKey,
-    defaultValue = LyricsAnimationStyle.APPLE
+        key = LyricsAnimationStyleKey,
+        defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, defaultValue = true)
@@ -409,6 +401,7 @@ fun AppearanceSettings(
                     PlayerDesignStyle.V4 -> stringResource(R.string.player_design_v4)
                     PlayerDesignStyle.V5 -> stringResource(R.string.player_design_v5)
                     PlayerDesignStyle.V6 -> stringResource(R.string.player_design_v6)
+                    else -> it.name
                 }
             },
         )
@@ -437,17 +430,19 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                        PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                     PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                    PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music" // Add Missing Item
+                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh" // Add Missing Item
+                    else -> it.name // Fallback for exhaustiveness
                 }
             },
         )
 
-        // When custom background is selected, show a direct link to customize it
         if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
             PreferenceEntry(
                 title = { Text(stringResource(R.string.customized_background)) },
@@ -471,7 +466,6 @@ fun AppearanceSettings(
             checked = archiveTuneCanvasEnabled,
             onCheckedChange = onM3PlayCanvasEnabledChange
         )
-      
 
         ThumbnailCornerRadiusSelectorButton(
             modifier = Modifier.padding(16.dp),
@@ -488,7 +482,6 @@ fun AppearanceSettings(
             onCheckedChange = onCropThumbnailToSquareChange
         )
 
-
         EnumListPreference(
             title = { Text(stringResource(R.string.player_buttons_style)) },
             icon = { Icon(painterResource(R.drawable.palette), null) },
@@ -498,6 +491,7 @@ fun AppearanceSettings(
                 when (it) {
                     PlayerButtonsStyle.DEFAULT -> stringResource(R.string.default_style)
                     PlayerButtonsStyle.SECONDARY -> stringResource(R.string.secondary_color_style)
+                    else -> it.name
                 }
             },
         )
@@ -614,6 +608,7 @@ fun AppearanceSettings(
                     LyricsPosition.LEFT -> stringResource(R.string.left)
                     LyricsPosition.CENTER -> stringResource(R.string.center)
                     LyricsPosition.RIGHT -> stringResource(R.string.right)
+                    else -> it.name
                 }
             },
         )
@@ -631,6 +626,7 @@ fun AppearanceSettings(
                   LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
                   LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
                   LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
+                  else -> it.name
               }
           }
         )
@@ -809,6 +805,7 @@ fun AppearanceSettings(
                     NavigationTab.HOME -> stringResource(R.string.home)
                     NavigationTab.SEARCH -> stringResource(R.string.search)
                     NavigationTab.LIBRARY -> stringResource(R.string.filter_library)
+                    else -> it.name
                 }
             },
         )
@@ -863,7 +860,6 @@ fun AppearanceSettings(
             onCheckedChange = onSlimNavChange
         )
 
-
         EnumListPreference(
             title = { Text(stringResource(R.string.grid_cell_size)) },
             icon = { Icon(painterResource(R.drawable.grid_view), null) },
@@ -873,6 +869,7 @@ fun AppearanceSettings(
                 when (it) {
                     GridItemSize.BIG -> stringResource(R.string.big)
                     GridItemSize.SMALL -> stringResource(R.string.small)
+                    else -> it.name
                 }
             },
         )
@@ -942,13 +939,13 @@ private fun SliderStyleOptionCard(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+            .clip(RoundedCornerShape(24.dp))
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) 
                 else MaterialTheme.colorScheme.surfaceContainerHigh
             )
             .border(
-                2.dp, // Thicker border for selected state
+                2.dp,
                 if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                 RoundedCornerShape(24.dp)
             )
@@ -989,24 +986,17 @@ private fun sliderStyleLabel(sliderStyle: SliderStyle): String {
 }
 
 enum class DarkMode {
-    ON,
-    OFF,
-    AUTO,
+    ON, OFF, AUTO
 }
 
 enum class NavigationTab {
-    HOME,
-    SEARCH,
-    LIBRARY,
+    HOME, SEARCH, LIBRARY
 }
 
 enum class LyricsPosition {
-    LEFT,
-    CENTER,
-    RIGHT,
+    LEFT, CENTER, RIGHT
 }
 
 enum class PlayerTextAlignment {
-    SIDED,
-    CENTER,
+    SIDED, CENTER
 }
