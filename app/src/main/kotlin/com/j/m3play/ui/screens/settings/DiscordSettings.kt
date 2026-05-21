@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -83,8 +83,6 @@ fun DiscordSettings(
     var position by rememberSaveable(playbackState) {
         mutableLongStateOf(playerConnection.player.currentPosition)
     }
-    // Track last RPC timestamps to detect when RPC progress bar reaches the end.
-    // These are now owned by DiscordPresenceManager; read their current values here.
     val lastRpcStartTime = DiscordPresenceManager.lastRpcStartTime
     val lastRpcEndTime = DiscordPresenceManager.lastRpcEndTime
     val coroutineScope = rememberCoroutineScope()
@@ -99,19 +97,14 @@ fun DiscordSettings(
     LaunchedEffect(discordToken) {
         val token = discordToken
         if (token.isNotEmpty()) {
-            // Run the network call inside this LaunchedEffect coroutine so it is
-            // cancelled automatically if the composable leaves the composition.
             try {
                 withContext(Dispatchers.IO) {
-                    // KizzyRPC.getUserInfo may throw network/socket exceptions when the
-                    // app is backgrounded or network drops; catch them to avoid crashing.
                     KizzyRPC.getUserInfo(token)
                 }.onSuccess {
                     discordUsername = it.username
                     discordName = it.name
                 }
             } catch (e: Exception) {
-                // Log and ignore network errors (e.g. SocketException on resume).
                 Timber.tag("DiscordSettings").w(e, "getUserInfo failed")
             }
         }
@@ -125,20 +118,7 @@ fun DiscordSettings(
     LaunchedEffect(discordToken, discordRPC) {
         if (discordRPC && discordToken.isNotBlank()) {
             Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
-            // DiscordPresenceManager.start(
-            //     context = context,
-            //     token = discordToken,
-            //     songProvider = { song },
-            //     positionProvider = { playerConnection.player.currentPosition },
-            //     isPausedProvider = {
-            //         val isPlaying = playerConnection.player.playWhenReady &&
-            //                 playerConnection.player.playbackState == STATE_READY
-            //         !isPlaying
-            //     },
-            //     intervalProvider = { getPresenceIntervalMillis(context) }
-            // )
         } else {
-            // user disabled RPC or cleared token -> ensure manager is stopped
             Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
             DiscordPresenceManager.stop()
         }
@@ -162,43 +142,41 @@ fun DiscordSettings(
             )
         )
 
-    // Developer debug moved to DebugSettings (Settings -> Misc)
-
         AnimatedVisibility(visible = !infoDismissed) {
             Card(
+                shape = RoundedCornerShape(32.dp), // Premium Large Radius
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 ),
+                elevation = CardDefaults.cardElevation(0.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.info),
-                    contentDescription = null,
-                    modifier = Modifier.padding(16.dp),
-                )
-                Text(
-                    text = stringResource(R.string.discord_information),
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                TextButton(
-                    onClick = { infoDismissed = true },
-                    modifier = Modifier.align(Alignment.End).padding(16.dp),
-                ) {
-                    Text(stringResource(R.string.dismiss))
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Icon(
+                        painter = painterResource(R.drawable.info),
+                        contentDescription = null,
+                        modifier = Modifier.padding(bottom = 12.dp, start = 8.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(R.string.discord_information),
+                        textAlign = TextAlign.Start,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                    TextButton(
+                        onClick = { infoDismissed = true },
+                        modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
+                    ) {
+                        Text(stringResource(R.string.dismiss), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
 
-        Text(
-            text = stringResource(R.string.account),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        PreferenceGroupTitle(title = stringResource(R.string.account))
 
     var showLogoutConfirm by remember { mutableStateOf(false) }
 
@@ -241,13 +219,7 @@ fun DiscordSettings(
                 )
             }
 
-        Text(
-            text = stringResource(R.string.options),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        PreferenceGroupTitle(title = stringResource(R.string.options))
 
         SwitchPreference(
             title = { Text(stringResource(R.string.enable_discord_rpc)) },
@@ -256,32 +228,6 @@ fun DiscordSettings(
             isEnabled = isLoggedIn,
         )
 
-        // Add a refresh action to manually re-update Discord RPC
-        // PreferenceEntry(
-        //     title = { Text(stringResource(R.string.refresh)) },
-        //     description = stringResource(R.string.description_refresh),
-        //     icon = { Icon(painterResource(R.drawable.refresh), null) },
-        //     trailingContent = {
-        //         IconButton(onClick = {
-        //             // trigger update in background
-        //             coroutineScope.launch(Dispatchers.IO) {
-        //                 val token = discordToken
-        //                 if (token.isNotBlank()) {
-        //                     try {
-        //                         val rpc = DiscordRPC(context, token)
-        //                         song?.let { rpc.updateSong(it, position) }
-        //                     } catch (_: Exception) {
-        //                         // ignore
-        //                     }
-        //                 }
-        //             }
-        //         }) {
-        //             Icon(painterResource(R.drawable.update), contentDescription = null)
-        //         }
-        //     }
-        // )
-        
-        // Discord presence image preferences (hoisted so refresh action can read them)
         val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
         val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
 
@@ -302,7 +248,6 @@ fun DiscordSettings(
             defaultValue = ""
      )
 
-        // When large/small image selection changes, clear any stored artwork for the current song
         LaunchedEffect(largeImageType, smallImageType) {
             ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
         }
@@ -328,7 +273,6 @@ fun DiscordSettings(
                        isRefreshing = true
                        val start = System.currentTimeMillis()
 
-                       // Resolve large image from current Compose state (respect user selection)
                        val success = DiscordPresenceManager.updatePresence(
                            context = context,
                            token = discordToken,
@@ -337,7 +281,6 @@ fun DiscordSettings(
                            isPaused = !playerConnection.player.isPlaying,
                        )
                        isRefreshing = false
-                        // Show snackbar on main thread
                         withContext(Dispatchers.Main) {
                             if (success) {
                                 snackbarHostState.showSnackbar("Refreshed!")
@@ -354,7 +297,6 @@ fun DiscordSettings(
     }
 )
 
-        // Status discord
         val activityStatus = listOf("online", "dnd", "idle", "streaming")
         val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
             key = DiscordPresenceStatusKey,
@@ -378,9 +320,14 @@ fun DiscordSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
-                    .padding(horizontal = 13.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .pointerInput(Unit) { detectTapGestures { activityStatusExpanded = true } },
-                leadingIcon = { Icon(painterResource(R.drawable.status), null) }
+                leadingIcon = { Icon(painterResource(R.drawable.status), null) },
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                )
             )
             ExposedDropdownMenu(expanded = activityStatusExpanded, onDismissRequest = { activityStatusExpanded = false }) {
                 activityStatus.forEach { opt ->
@@ -399,7 +346,6 @@ fun DiscordSettings(
             }
         }
 
-        // Platform selector (client platform displayed on Discord)
         val platformOptions = listOf("android", "desktop", "web")
         val (platformSelection, onPlatformSelectionChange) = rememberPreference(
             key = DiscordActivityPlatformKey,
@@ -417,9 +363,14 @@ fun DiscordSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
-                    .padding(horizontal = 13.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
-                leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) }
+                leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) },
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                )
             )
             ExposedDropdownMenu(expanded = platformExpanded, onDismissRequest = { platformExpanded = false }) {
                 platformOptions.forEach { opt ->
@@ -431,7 +382,6 @@ fun DiscordSettings(
             }
         }
 
-        // Interval selection
        val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
        val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
            key = stringPreferencesKey("discordPresenceIntervalPreset"),
@@ -450,9 +400,14 @@ ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { interva
         modifier = Modifier
             .fillMaxWidth()
             .menuAnchor()
-            .padding(horizontal = 13.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
             .pointerInput(Unit) { detectTapGestures { intervalExpanded = true } },
-        leadingIcon = { Icon(painterResource(R.drawable.timer), null) }
+        leadingIcon = { Icon(painterResource(R.drawable.timer), null) },
+        shape = RoundedCornerShape(16.dp),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+        )
     )
     ExposedDropdownMenu(expanded = intervalExpanded, onDismissRequest = { intervalExpanded = false }) {
         intervalOptions.forEach { opt ->
@@ -483,7 +438,6 @@ if (intervalSelection == "Custom") {
             onValueChange = { text ->
                 val number = text.toIntOrNull()
                 if (number != null) {
-                    // Validation: if seconds, enforce >= 30
                     if (customUnit == "S" && number < 30) {
                         onCustomValueChange(30)
                     } else {
@@ -493,12 +447,13 @@ if (intervalSelection == "Custom") {
             },
             label = { Text("Value") },
             modifier = Modifier.weight(1f).padding(end = 8.dp),
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp)
         )
 
         var unitExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
-            TextField(
+            OutlinedTextField(
                 value = when (customUnit) {
                     "S" -> "Seconds"
                     "M" -> "Minutes"
@@ -512,12 +467,12 @@ if (intervalSelection == "Custom") {
                 modifier = Modifier
                     .menuAnchor()
                     .weight(1f)
-                    .pointerInput(Unit) { detectTapGestures { unitExpanded = true } }
+                    .pointerInput(Unit) { detectTapGestures { unitExpanded = true } },
+                shape = RoundedCornerShape(16.dp)
             )
             ExposedDropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
                 listOf("S" to "Seconds", "M" to "Minutes", "H" to "Hours").forEach { (code, label) ->
                     DropdownMenuItem(text = { Text(label) }, onClick = {
-                        // Enforce minimum when switching to seconds
                         if (code == "S" && customValue < 30) {
                             onCustomValueChange(30)
                         }
@@ -530,14 +485,7 @@ if (intervalSelection == "Custom") {
     }
 }
 
-        // PREVIEW HEADING
-        Text(
-            text = stringResource(R.string.preview),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        PreferenceGroupTitle(title = stringResource(R.string.preview))
 
         val (nameSource, onNameSourceChange) = rememberEnumPreference(
             key = DiscordActivityNameKey, defaultValue = ActivitySource.APP
@@ -585,8 +533,6 @@ if (intervalSelection == "Custom") {
             defaultValue = true
         )
 
-
-    // Activity type selection
         val (activityType, onActivityTypeChange) = rememberPreference(
             key = DiscordActivityTypeKey,
             defaultValue = "LISTENING"
@@ -606,7 +552,6 @@ if (intervalSelection == "Custom") {
             onCheckedChange = { showWhenPaused = it }
         )
 
-        // Activity type selector - OutlinedTextField anchored dropdown
         var activityExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(expanded = activityExpanded, onExpandedChange = { activityExpanded = it }) {
             TextField(
@@ -619,8 +564,13 @@ if (intervalSelection == "Custom") {
                     .fillMaxWidth()
                     .menuAnchor()
                     .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
-                    .padding(horizontal = 13.dp, vertical = 16.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.discord), null) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                leadingIcon = { Icon(painterResource(R.drawable.discord), null) },
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                )
             )
             ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
                 activityOptions.forEach { opt ->
@@ -632,14 +582,7 @@ if (intervalSelection == "Custom") {
             }
         }
 
-    // Group button related preferences
-    Text(
-        text = stringResource(R.string.discord_image_options),
-        style = MaterialTheme.typography.headlineSmall,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    )
+    PreferenceGroupTitle(title = stringResource(R.string.discord_image_options))
 
         val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
 
@@ -664,8 +607,13 @@ ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { large
             .fillMaxWidth()
             .menuAnchor()
             .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
-            .padding(horizontal = 13.dp, vertical = 16.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.image), null) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.image), null) },
+        shape = RoundedCornerShape(16.dp),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+        )
     )
     ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
         imageOptions.forEach { opt ->
@@ -702,8 +650,13 @@ ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeT
             .fillMaxWidth()
             .menuAnchor()
             .pointerInput(Unit) { detectTapGestures { largeTextExpanded = true } }
-            .padding(horizontal = 13.dp, vertical = 16.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) },
+        shape = RoundedCornerShape(16.dp),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+        )
     )
     ExposedDropdownMenu(expanded = largeTextExpanded, onDismissRequest = { largeTextExpanded = false }) {
         largeTextOptions.forEach { opt ->
@@ -749,8 +702,13 @@ ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { small
             .fillMaxWidth()
             .menuAnchor()
             .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.image), null) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        leadingIcon = { Icon(painterResource(R.drawable.image), null) },
+        shape = RoundedCornerShape(16.dp),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+        )
     )
     ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
         smallImageOptions.forEach { opt ->
@@ -776,7 +734,6 @@ if (smallImageType == "custom") {
     )
 }
 
-    // Compute whether the player is currently playing so the preview progress can run.
     val playerIsPlayingForPreview = playerConnection.player.playWhenReady && playbackState == STATE_READY
 
     RichPresence(
@@ -794,6 +751,7 @@ if (smallImageType == "custom") {
         button2Enabled = button2Enabled,
         isPlaying = playerConnection.player.isPlaying
     )
+    Spacer(Modifier.height(32.dp))
 }
 
     TopAppBar(
@@ -857,7 +815,7 @@ fun ActivitySourceDropdown(
         onExpandedChange = { expanded = it },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 13.dp)
+            .padding(vertical = 12.dp)
     ) {
         TextField(
             value = selected.name,
@@ -869,7 +827,12 @@ fun ActivitySourceDropdown(
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+            )
         )
 
         ExposedDropdownMenu(
@@ -888,7 +851,6 @@ fun ActivitySourceDropdown(
         }
     }
 }
-
 
 @Composable
 fun EditablePreference(
@@ -923,12 +885,13 @@ fun EditablePreference(
             },
             title = { Text("Edit $title") },
             text = {
-                TextField(
+                OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
                     placeholder = { Text(defaultValue) },
                     singleLine = true,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         )
@@ -964,19 +927,11 @@ fun RichPresence(
    }
 
    val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
-   val (button1Enabled) = rememberPreference(DiscordActivityButton1EnabledKey, true)
-
    val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "Go to M3Play")
-   val (button2Enabled) = rememberPreference(DiscordActivityButton2EnabledKey, true)
-
-// Button URL sources + custom
    val (button1UrlSource) = rememberPreference(DiscordActivityButton1UrlSourceKey, "songurl")
    val (button1CustomUrl) = rememberPreference(DiscordActivityButton1CustomUrlKey, "")
-
    val (button2UrlSource) = rememberPreference(DiscordActivityButton2UrlSourceKey, "custom")
    val (button2CustomUrl) = rememberPreference(DiscordActivityButton2CustomUrlKey, "https://github.com/JAY01-CYBER/M3-Play")
-
-// Large text source + custom
    val (largeTextSource) = rememberPreference(DiscordLargeTextSourceKey, "album")
    val (largeTextCustom) = rememberPreference(DiscordLargeTextCustomKey, "")
 
@@ -1009,7 +964,6 @@ fun RichPresence(
     ActivitySource.APP -> "$activityVerb M3Play"
    }
 
-
     PreferenceEntry(
         title = {
             Text(
@@ -1020,24 +974,24 @@ fun RichPresence(
         },
         content = {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = MaterialTheme.shapes.medium,
-                shadowElevation = 6.dp,
-                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Color
+                shape = RoundedCornerShape(32.dp), // Premium Radius
+                shadowElevation = 0.dp,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(24.dp), // More breathing room
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = previewTitle,
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.titleMedium, // Better typography
                         textAlign = TextAlign.Start,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     Row(verticalAlignment = Alignment.Top) {
                         Box(Modifier.size(108.dp)) {
@@ -1052,46 +1006,45 @@ fun RichPresence(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(96.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(20.dp)) // Pixel Squircle look
                                     .align(Alignment.TopStart)
                                     .run {
                                         if (song == null) border(
                                             2.dp,
-                                            MaterialTheme.colorScheme.onSurface,
-                                            RoundedCornerShape(12.dp)
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                            RoundedCornerShape(20.dp)
                                         ) else this
                                     },
                             )
                             val songThumb = song?.song?.thumbnailUrl
                             val artistThumb = song?.artists?.firstOrNull()?.thumbnailUrl
 
-                            // Fix: Don't fallback from artist to song thumbnail - each source should be independent
                             val smallModel = when (smallImageType.lowercase()) {
-                                "thumbnail" -> songThumb  // Only show song thumbnail, no fallback
-                                "artist" -> artistThumb   // Only show artist thumbnail, no fallback to song
+                                "thumbnail" -> songThumb
+                                "artist" -> artistThumb
                                 "appicon" -> "https://raw.githubusercontent.com/JAY01-CYBER/M3-Play/main/fastlane/metadata/android/en-US/images/icon.png"
-                                "custom" -> smallImageCustomUrl.takeIf { it.isNotBlank() } ?: songThumb  // Custom with fallback to song only
+                                "custom" -> smallImageCustomUrl.takeIf { it.isNotBlank() } ?: songThumb
                                 "dontshow", "none" -> null
-                                else -> artistThumb  // Default to artist without fallback
+                                else -> artistThumb
                             }
                             smallModel?.let {
                                 Box(
                                     modifier = Modifier
-                                        .border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape)
+                                        .border(3.dp, MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
                                         .padding(2.dp)
                                         .align(Alignment.BottomEnd),
                                 ) {
                                     AsyncImage(
                                         model = it,
                                         contentDescription = null,
-                                        modifier = Modifier.size(32.dp).clip(CircleShape),
+                                        modifier = Modifier.size(34.dp).clip(CircleShape),
                                     )
                                 }
                             }
                         }
 
                         Column(
-                            modifier = Modifier.weight(1f).padding(horizontal = 6.dp),
+                            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                         ) {
                             Text(
                                 text = song?.song?.title ?: "Song Title",
@@ -1102,7 +1055,6 @@ fun RichPresence(
                                 overflow = TextOverflow.Ellipsis,
                             )
 
-                            // Compute a preview for the "state" line according to the selected stateSource
                             val previewState = when (stateSource) {
                                 ActivitySource.ARTIST -> song?.artists?.joinToString { it.name } ?: "Artist"
                                 ActivitySource.ALBUM -> song?.song?.albumName ?: song?.album?.title ?: song?.song?.title ?: "Unknown Album"
@@ -1136,33 +1088,37 @@ fun RichPresence(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     AnimatedVisibility(visible = button1Enabled && button1Label.isNotBlank()) {
-                        Button(
+                        FilledTonalButton(
                             enabled = !resolvedButton1Url.isNullOrBlank(),
                             onClick = {
                               resolvedButton1Url?.let {
                               context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                          }
                      },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) {
-                            Text(button1Label.ifBlank { "Listen on YouTube Music" })
+                            Text(button1Label.ifBlank { "Listen on YouTube Music" }, fontWeight = FontWeight.Bold)
                         }
+                    }
+                    
+                    if (button1Enabled && button1Label.isNotBlank() && button2Enabled && button2Label.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     AnimatedVisibility(visible = button2Enabled && button2Label.isNotBlank()) {
-                        Button(
+                        FilledTonalButton(
                             enabled = !resolvedButton2Url.isNullOrBlank(),
                             onClick = {
                               resolvedButton2Url?.let {
                               context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
                         }
                      },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) {
-                            Text(button2Label.ifBlank { "View Album" })
+                            Text(button2Label.ifBlank { "View Album" }, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1197,26 +1153,34 @@ fun SongProgressBar(
     } else 0f
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         LinearProgressIndicator(
-            progress = progress.coerceIn(0f, 1f),
+            progress = { progress.coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Text(
                 text = makeTimeString(displayedTime),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Start,
-                fontSize = 12.sp
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = makeTimeString(durationMillis),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.End,
-                fontSize = 12.sp
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
