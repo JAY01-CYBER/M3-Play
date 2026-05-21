@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -1071,8 +1071,8 @@ private fun ThemePreviewCard(
         modifier = modifier
             .fillMaxWidth()
             .height(280.dp)
-            .shadow(16.dp, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
+            .shadow(16.dp, RoundedCornerShape(32.dp)),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
@@ -1366,9 +1366,9 @@ private fun PaletteCard(
         modifier = Modifier
             .size(80.dp)
             .scale(scale)
-            .border(borderWidth, animatedBorderColor, RoundedCornerShape(16.dp))
+            .border(borderWidth, animatedBorderColor, RoundedCornerShape(28.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         ),
@@ -1461,9 +1461,9 @@ private fun SelectedPaletteDetails(
     
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
         Column(
