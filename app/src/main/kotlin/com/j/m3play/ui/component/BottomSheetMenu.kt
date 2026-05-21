@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,11 +61,11 @@ class MenuState(
 fun BottomSheetMenu(
     modifier: Modifier = Modifier,
     state: MenuState,
-    background: Color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium default background
+    background: Color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Pixel background
 ) {
     val focusManager = LocalFocusManager.current
     
-    // skipPartiallyExpanded = true se sheet aadhi open nahi hogi, seedha content ke hisaab se open hogi aur cut nahi hogi
+    // skipPartiallyExpanded = true se sheet seedha apne content ke hisaab se khulegi
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     if (state.isVisible) {
@@ -75,28 +77,30 @@ fun BottomSheetMenu(
             sheetState = sheetState,
             containerColor = background,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), // Premium Large Pixel Radius
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), // Premium Large Radius
             dragHandle = {
                 Box(
                     modifier = Modifier
                         .padding(vertical = 16.dp)
-                        .size(width = 36.dp, height = 5.dp) // Thoda mota aur premium drag handle
+                        .size(width = 36.dp, height = 5.dp)
                         .clip(RoundedCornerShape(2.5.dp))
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 )
             },
             modifier = modifier
         ) {
+            // Yahan se navigation bar ki actual height (pixels/dp) nikali ja rahi hai
+            val bottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .navigationBarsPadding() // Error fix: Yahan se niche ka hissa handle hoga taaki content na kate
             ) {
                 state.content(this)
                 
-                // Niche thodi extra breathing space taaki aakhri item bilkul chipak na jaye
-                Spacer(modifier = Modifier.height(24.dp))
+                // Actual nav bar height + 24dp extra breathing room taaki aakhri list item bilkul na kate
+                Spacer(modifier = Modifier.height(bottomPadding + 24.dp))
             }
         }
     }
