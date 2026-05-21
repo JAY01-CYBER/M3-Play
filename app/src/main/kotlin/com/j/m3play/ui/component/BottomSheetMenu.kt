@@ -1,3 +1,9 @@
+/*
+ * M3Play Component Module
+ *
+ * Reusable UI building block
+ * Signature: M3PLAY::COMPONENT::V1
+ */
 
 package com.j.m3play.ui.component
 
@@ -9,12 +15,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.Stable
@@ -37,13 +44,11 @@ class MenuState(
     var isVisible by mutableStateOf(isVisible)
     var content by mutableStateOf(content)
 
-    @OptIn(ExperimentalMaterial3Api::class)
     fun show(content: @Composable ColumnScope.() -> Unit) {
         isVisible = true
         this.content = content
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     fun dismiss() {
         isVisible = false
     }
@@ -72,7 +77,9 @@ fun BottomSheetMenu(
                         .padding(vertical = 12.dp)
                         .size(width = 40.dp, height = 4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        .background(
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
                 )
             },
             modifier = modifier.fillMaxHeight()
@@ -81,6 +88,8 @@ fun BottomSheetMenu(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
+                    .navigationBarsPadding() 
+                    .verticalScroll(rememberScrollState()) 
             ) {
                 state.content(this)
             }
