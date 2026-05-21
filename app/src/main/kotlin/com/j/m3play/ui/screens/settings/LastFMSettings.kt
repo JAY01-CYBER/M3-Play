@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -125,6 +126,8 @@ fun LastFMSettings(
         var tempPassword by rememberSaveable { mutableStateOf("") }
 
         AlertDialog(
+            shape = RoundedCornerShape(32.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             onDismissRequest = { 
                 if (!isLoggingIn) {
                     showLoginDialog = false
@@ -145,6 +148,7 @@ fun LastFMSettings(
                         label = { Text(stringResource(R.string.username)) },
                         singleLine = true,
                         enabled = !isLoggingIn,
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
@@ -158,6 +162,7 @@ fun LastFMSettings(
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         enabled = !isLoggingIn,
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -226,11 +231,6 @@ fun LastFMSettings(
                                         isLoggingIn = false
                                         val errorMessage = when (exception) {
                                             is LastFM.LastFmException -> {
-                                                // Last.fm API error codes:
-                                                // 4 = Invalid authentication token
-                                                // 10 = Invalid API key
-                                                // 13 = Invalid method signature
-                                                // 26 = API key suspended
                                                 when (exception.code) {
                                                     4 -> "Invalid username or password"
                                                     10 -> "Invalid API key. Please contact the developer."
@@ -346,6 +346,8 @@ fun LastFMSettings(
             var tempMinTrackDuration by remember { mutableIntStateOf(minTrackDuration) }
 
             AlertDialog(
+                shape = RoundedCornerShape(32.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 onDismissRequest = {
                     tempMinTrackDuration = minTrackDuration
                     showMinTrackDurationDialog = false
@@ -405,6 +407,8 @@ fun LastFMSettings(
             var tempScrobbleDelayPercent by remember { mutableFloatStateOf(scrobbleDelayPercent) }
 
             AlertDialog(
+                shape = RoundedCornerShape(32.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 onDismissRequest = {
                     tempScrobbleDelayPercent = scrobbleDelayPercent
                     showScrobbleDelayPercentDialog = false
@@ -464,6 +468,8 @@ fun LastFMSettings(
             var tempScrobbleDelaySeconds by remember { mutableIntStateOf(scrobbleDelaySeconds) }
 
             AlertDialog(
+                shape = RoundedCornerShape(32.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 onDismissRequest = {
                     tempScrobbleDelaySeconds = scrobbleDelaySeconds
                     showScrobbleDelaySecondsDialog = false
