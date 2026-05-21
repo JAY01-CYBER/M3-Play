@@ -90,47 +90,55 @@ fun PreferenceEntry(
         animationSpec = spring(stiffness = Spring.StiffnessHigh),
         label = "prefScale",
     )
+    val bgAlpha by animateFloatAsState(
+        targetValue = if (isPressed && inGroup) 0.08f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "rowBgAlpha",
+    )
 
     val rowContent: @Composable () -> Unit = {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = bgAlpha))
                 .clickable(
                     interactionSource = interactionSource,
-                    indication = if (inGroup) LocalIndication.current else null,
+                    indication = null, // Custom indication color via bgAlpha
                     enabled = isEnabled && onClick != null,
                     onClick = onClick ?: {},
                 )
                 .alpha(if (isEnabled) 1f else 0.5f)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
         ) {
             if (icon != null) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    icon()
+                    ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary)) {
+                        icon()
+                    }
                 }
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(16.dp))
             }
 
             Column(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.weight(1f),
             ) {
-                ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)) {
+                ProvideTextStyle(MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) {
                     title()
                 }
                 if (description != null) {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = description,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -150,14 +158,14 @@ fun PreferenceEntry(
         rowContent()
     } else {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 3.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
                 .graphicsLayer { scaleX = scale; scaleY = scale },
         ) {
             rowContent()
@@ -186,13 +194,13 @@ fun <T> ListPreference(
             items(values) { value ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier =
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             showDialog = false
                             onValueSelected(value)
-                        }.padding(horizontal = 16.dp, vertical = 12.dp),
+                        }
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
                 ) {
                     RadioButton(
                         selected = value == selectedValue,
@@ -359,7 +367,7 @@ fun SliderPreference(
                 showDialog = false
             },
             onReset = {
-                sliderValue = 30f // Default value or any reset value you prefer
+                sliderValue = 30f
             },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -578,20 +586,21 @@ fun PreferenceGroup(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = modifier.padding(horizontal = 16.dp)) {
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
         if (title != null) {
             Text(
                 text = title.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
             )
         }
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -606,9 +615,9 @@ fun PreferenceGroup(
 @Composable
 fun PreferenceGroupDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
-        modifier = modifier.padding(start = 60.dp),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+        modifier = modifier.padding(start = 74.dp, end = 24.dp), // Matched padding with icon start
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     )
 }
 
@@ -619,8 +628,10 @@ fun PreferenceGroupTitle(
 ) {
     Text(
         text = title.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+        letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 12.dp),
     )
 }
