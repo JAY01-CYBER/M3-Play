@@ -34,25 +34,26 @@ fun Material3SettingsGroup(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Section title
+        // Section title (Premium Look)
         title?.let {
             Text(
-                text = it,
-                style = MaterialTheme.typography.labelLarge,
+                text = it.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp, top = 8.dp)
+                fontWeight = FontWeight.Bold,
+                letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp, top = 8.dp)
             )
         }
         
-        // Settings card
+        // Settings card (Expensive Card Look)
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
@@ -80,7 +81,7 @@ private fun Material3SettingsItemRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(32.dp))
                 .clickable(
                     enabled = item.onClick != null,
                     onClick = { item.onClick?.invoke() }
@@ -88,15 +89,15 @@ private fun Material3SettingsItemRow(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon with background
+            // Icon with premium background
             item.icon?.let { icon ->
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             MaterialTheme.colorScheme.primary.copy(
-                                alpha = if (item.isHighlighted) 0.15f else 0.1f
+                                alpha = if (item.isHighlighted) 0.20f else 0.12f
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -105,7 +106,8 @@ private fun Material3SettingsItemRow(
                         BadgedBox(
                             badge = { 
                                 Badge(
-                                    containerColor = MaterialTheme.colorScheme.error
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(10.dp)
                                 )
                             }
                         ) {
@@ -116,7 +118,7 @@ private fun Material3SettingsItemRow(
                                     MaterialTheme.colorScheme.primary 
                                 else 
                                     MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     } else {
@@ -127,7 +129,7 @@ private fun Material3SettingsItemRow(
                                 MaterialTheme.colorScheme.primary 
                             else 
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
@@ -139,13 +141,17 @@ private fun Material3SettingsItemRow(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                // Title content (can be Text or custom composable)
-                item.title()
+                // Title content
+                ProvideTextStyle(MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) {
+                    item.title()
+                }
                 
                 // Description if provided
                 item.description?.let { desc ->
                     Spacer(modifier = Modifier.height(2.dp))
-                    desc()
+                    ProvideTextStyle(MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
+                        desc()
+                    }
                 }
             }
             
@@ -160,11 +166,11 @@ private fun Material3SettingsItemRow(
         if (showDivider) {
             HorizontalDivider(
                 modifier = Modifier.padding(
-                    start = if (item.icon != null) 76.dp else 20.dp,
-                    end = 20.dp
+                    start = if (item.icon != null) 78.dp else 24.dp,
+                    end = 24.dp
                 ),
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.surfaceVariant
             )
         }
     }
