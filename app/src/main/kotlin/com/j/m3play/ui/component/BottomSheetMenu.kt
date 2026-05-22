@@ -1,5 +1,7 @@
 /*
  * M3Play Component Module
+ *
+ * Reusable UI building block
  * Signature: M3PLAY::COMPONENT::V1
  */
 
@@ -32,7 +34,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 
-// Purana naam hi use karenge taaki MainActivity mein error na aaye
 val LocalMenuState = compositionLocalOf { MenuState() }
 
 @Stable
@@ -43,11 +44,13 @@ class MenuState(
     var isVisible by mutableStateOf(isVisible)
     var content by mutableStateOf(content)
 
+    @OptIn(ExperimentalMaterial3Api::class)
     fun show(content: @Composable ColumnScope.() -> Unit) {
         isVisible = true
         this.content = content
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     fun dismiss() {
         isVisible = false
     }
@@ -58,11 +61,11 @@ class MenuState(
 fun BottomSheetMenu(
     modifier: Modifier = Modifier,
     state: MenuState,
-    background: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    background: Color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Color
 ) {
     val focusManager = LocalFocusManager.current
     
-    // skipPartiallyExpanded = true se sheet cut nahi hogi
+    
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     if (state.isVisible) {
@@ -74,7 +77,7 @@ fun BottomSheetMenu(
             sheetState = sheetState,
             containerColor = background,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), 
             dragHandle = {
                 Box(
                     modifier = Modifier
@@ -84,16 +87,16 @@ fun BottomSheetMenu(
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                 )
             },
-            modifier = modifier
+            modifier = modifier 
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .navigationBarsPadding() 
                     .padding(horizontal = 20.dp)
-                    .navigationBarsPadding() // Yahan se cut hona band hoga!
             ) {
                 state.content(this)
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp)) // Extra space
             }
         }
     }
