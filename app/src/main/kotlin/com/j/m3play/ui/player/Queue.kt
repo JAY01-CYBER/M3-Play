@@ -729,7 +729,6 @@ fun Queue(
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
                                     trailingContent = {
-                                        trailingContent = {
                                             var expanded by remember { mutableStateOf(false) }
 
 IconButton(
@@ -762,7 +761,7 @@ DropdownMenu(
         text = { Text("Add to queue") }
     )
 }
-                                        }
+                                        }  
                                          {
                                             Icon(
                                                 painter = painterResource(R.drawable.more_vert),
@@ -785,7 +784,7 @@ DropdownMenu(
                                                 )
                                             }
                                         }
-                                    },
+                                    ,
                                     modifier =
                                     Modifier
                                         .fillMaxWidth()
