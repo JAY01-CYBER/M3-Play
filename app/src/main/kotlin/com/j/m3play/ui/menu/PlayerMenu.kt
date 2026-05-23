@@ -138,6 +138,7 @@ import kotlin.math.pow
 import kotlin.math.round
 import kotlin.math.roundToInt
 import java.util.UUID
+import androidx.compose.foundation.layout.navigationBars
 
 @Composable
 fun PlayerMenu(
