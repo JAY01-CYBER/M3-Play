@@ -727,23 +727,67 @@ fun Queue(
                                     shouldLoadImage = shouldLoadImages,
                                     trailingContent = {
                                         IconButton(
-                                            onClick = {
-                                                menuState.show {
-                                                    PlayerMenu(
-                                                        mediaMetadata = window.mediaItem.metadata!!,
-                                                        navController = navController,
-                                                        playerBottomSheetState = playerBottomSheetState,
-                                                        isQueueTrigger = true,
-                                                        onShowDetailsDialog = {
-                                                            window.mediaItem.mediaId.let {
-                                                                bottomSheetPageState.show {
-                                                                    ShowMediaInfo(it)
-                                                                }
-                                                            }
-                                                        },
-                                                        onDismiss = menuState::dismiss,
-                                                    )
-                                                }
+                                            trailingContent = {
+    var expanded by remember { mutableStateOf(false) }
+
+    IconButton(
+        onClick = { expanded = true }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.more_vert),
+            contentDescription = null,
+        )
+    }
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+
+        // Play Next
+        DropdownMenuItem(
+            text = { Text("Play next") },
+            onClick = {
+                playerConnection.playNext(window.mediaItem)
+                expanded = false
+            }
+        )
+
+        //  Add to Queue
+        DropdownMenuItem(
+            text = { Text("Add to queue") },
+            onClick = {
+                playerConnection.addToQueue(window.mediaItem)
+                expanded = false
+            }
+        )
+
+        HorizontalDivider()
+
+        //  OLD MENU SAFE
+        DropdownMenuItem(
+            text = { Text("More options") },
+            onClick = {
+                expanded = false
+                menuState.show {
+                    PlayerMenu(
+                        mediaMetadata = window.mediaItem.metadata!!,
+                        navController = navController,
+                        playerBottomSheetState = playerBottomSheetState,
+                        isQueueTrigger = true,
+                        onShowDetailsDialog = {
+                            window.mediaItem.mediaId.let {
+                                bottomSheetPageState.show {
+                                    ShowMediaInfo(it)
+                                }
+                            }
+                        },
+                        onDismiss = menuState::dismiss,
+                    )
+                }
+            }
+        )
+    }
                                             },
                                         ) {
                                             Icon(
