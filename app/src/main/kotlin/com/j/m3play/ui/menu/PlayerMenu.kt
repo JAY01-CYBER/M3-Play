@@ -89,6 +89,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.net.toUri
 import android.widget.Toast
+import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
@@ -536,6 +537,64 @@ fun PlayerMenu(
         item {
             Spacer(modifier = Modifier.height(12.dp))
         }
+        
+        item {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                Column {
+                    ListItem(
+                        headlineContent = { Text(text = "Play next") },
+                        supportingContent = {
+                            Text(
+                                text = "Play next in the queue",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_play),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            val mediaItem = MediaItem.Builder().setMediaId(mediaMetadata.id).build()
+                            playerConnection.playNext(mediaItem)
+                            onDismiss()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 56.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
+                    ListItem(
+                        headlineContent = { Text(text = "Add to queue") },
+                        supportingContent = {
+                            Text(
+                                text = "Add to the end of the queue",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.queue_music),
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            val mediaItem = MediaItem.Builder().setMediaId(mediaMetadata.id).build()
+                            playerConnection.addToQueue(mediaItem)
+                            onDismiss()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+                }
+            }
+        }
+
         if (splitArtists.isNotEmpty() || mediaMetadata.album != null) {
             item {
                 MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
@@ -713,6 +772,35 @@ fun PlayerMenu(
         item {
             MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 Column {
+                    ListItem(
+                        headlineContent = { Text(text = "Refetch") },
+                        supportingContent = {
+                            Text(
+                                text = "Refresh metadata from YouTube Music",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                painter = painterResource(R.drawable.sync), // Change this icon if needed
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.clickable {
+                            Toast.makeText(context, "Refetching...", Toast.LENGTH_SHORT).show()
+                            // Yahan apna refetch logic add karein, example:
+                            // coroutineScope.launch(Dispatchers.IO) { YouTube.getMetadata(mediaMetadata.id) }
+                            onDismiss()
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 56.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+
                     ListItem(
                         headlineContent = { Text(text = stringResource(R.string.details)) },
                         leadingContent = {
