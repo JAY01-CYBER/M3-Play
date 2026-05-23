@@ -68,6 +68,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -82,7 +83,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -194,7 +194,7 @@ fun Queue(
     var infiniteQueueEnabled by rememberPreference(AutoLoadMoreKey, defaultValue = true)
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
     val togetherForcesLock =
-        togetherSessionState is com.j.m3play.together.TogetherSessionState.Joined &&
+         togetherSessionState is com.j.m3play.together.TogetherSessionState.Joined &&
             (togetherSessionState as com.j.m3play.together.TogetherSessionState.Joined).role is com.j.m3play.together.TogetherRole.Guest
     val effectiveLocked = locked || togetherForcesLock
 
@@ -352,7 +352,7 @@ fun Queue(
                         }
                     )
                 }
-                
+                 
                 PlayerDesignStyle.V4 -> {
                     QueueCollapsedContentV4(
                         showCodecOnPlayer = showCodecOnPlayer,
@@ -675,8 +675,7 @@ fun Queue(
                         LaunchedEffect(dismissBoxState.currentValue) {
                             val dv = dismissBoxState.currentValue
                             if (!processedDismiss && (
-                                    dv == SwipeToDismissBoxValue.StartToEnd ||
-                                    dv == SwipeToDismissBoxValue.EndToStart
+                                    dv == SwipeToDismissBoxValue.StartToEnd || dv == SwipeToDismissBoxValue.EndToStart
                                 )
                             ) {
                                 processedDismiss = true
@@ -985,18 +984,214 @@ fun Queue(
                         )
                     }
 
+                    // --- M3 EXPRESSIVE SMART MENU IMPLEMENTATION START ---
                     IconButton(
                         onClick = {
                             menuState.show {
-                                SelectionMediaMetadataMenu(
-                                    songSelection = selectedSongs,
-                                    onDismiss = menuState::dismiss,
-                                    clearAction = {
-                                        selectedSongs.clear()
-                                        selectedItems.clear()
-                                    },
-                                    currentItems = selectedItems,
-                                )
+                                val context = LocalContext.current
+                                val database = com.j.m3play.LocalDatabase.current
+                                val downloadUtil = com.j.m3play.LocalDownloadUtil.current
+                                val coroutineScope = rememberCoroutineScope()
+                                var showPlaylistDialog by rememberSaveable { mutableStateOf(false) }
+
+                                var anyPinned by remember { mutableStateOf(false) }
+                                var anyDownloaded by remember { mutableStateOf(false) }
+
+                                LaunchedEffect(Unit) {
+                                    selectedSongs.forEach { song ->
+                                        launch {
+                                            database.speedDialDao.isPinned(song.id).collect { pinned ->
+                                                if (pinned) anyPinned = true
+                                            }
+                                        }
+                                        launch {
+                                            downloadUtil.getDownload(song.id).collect { download ->
+                                                if (download?.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED) {
+                                                    anyDownloaded = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (showPlaylistDialog) {
+                                    com.j.m3play.ui.menu.AddToPlaylistDialog(
+                                        isVisible = showPlaylistDialog,
+                                        onGetSong = { playlist ->
+                                            database.transaction { selectedSongs.forEach { insert(it) } }
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                selectedSongs.forEach { song ->
+                                                    playlist.playlist.browseId?.let { com.j.m3play.innertube.YouTube.addToPlaylist(it, song.id) }
+                                                }
+                                            }
+                                            selectedSongs.map { it.id }
+                                        },
+                                        onDismiss = { showPlaylistDialog = false },
+                                        onAddComplete = { _, playlistNames ->
+                                            val msg = if (playlistNames.size == 1) {
+                                                context.getString(R.string.added_to_playlist, playlistNames.first())
+                                            } else {
+                                                context.getString(R.string.added_to_n_playlists, playlistNames.size)
+                                            }
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                            selectedSongs.clear()
+                                            selectedItems.clear()
+                                            selection = false
+                                            menuState.dismiss()
+                                        },
+                                    )
+                                }
+
+                                // 🟢 Material Design 3 Expressive Container
+                                Surface(
+                                    shape = RoundedCornerShape(28.dp), // Premium rounded look
+                                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    modifier = Modifier
+                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                        .fillMaxWidth()
+                                ) {
+                                    LazyColumn(
+                                        contentPadding = PaddingValues(vertical = 12.dp, bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        item {
+                                            // PLAY NEXT
+                                            androidx.compose.material3.ListItem(
+                                                headlineContent = { Text("Play next", style = MaterialTheme.typography.titleMedium) },
+                                                leadingContent = { Icon(painterResource(R.drawable.playlist_play), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                                modifier = Modifier.clickable {
+                                                    val currentPlayingIndex = playerConnection.player.currentMediaItemIndex
+                                                    val indicesToRemove = selectedItems.map { it.firstPeriodIndex }.filter { it != currentPlayingIndex }.sortedDescending()
+                                                    indicesToRemove.forEach { playerConnection.player.removeMediaItem(it) }
+                                                    val mediaItems = selectedSongs.filterIndexed { index, _ -> selectedItems[index].firstPeriodIndex != currentPlayingIndex }.map { song ->
+                                                        val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                                                            .setTitle(song.title).setArtist(song.artists.joinToString(", ") { it.name })
+                                                            .setArtworkUri(song.thumbnailUrl?.let { android.net.Uri.parse(it) }).build()
+                                                        androidx.media3.common.MediaItem.Builder().setMediaId(song.id).setUri(song.id)
+                                                            .setCustomCacheKey(song.id).setMediaMetadata(exoMediaMetadata).setTag(song).build()
+                                                    }
+                                                    if (mediaItems.isNotEmpty()) {
+                                                        playerConnection.playNext(mediaItems)
+                                                        Toast.makeText(context, "Moved ${mediaItems.size} songs to Play Next", Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        Toast.makeText(context, "Already playing", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                    selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                },
+                                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                            )
+
+                                            HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                            // ADD TO PLAYLIST
+                                            androidx.compose.material3.ListItem(
+                                                headlineContent = { Text("Add to playlist", style = MaterialTheme.typography.titleMedium) },
+                                                leadingContent = { Icon(painterResource(R.drawable.playlist_add), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                                modifier = Modifier.clickable { showPlaylistDialog = true },
+                                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                            )
+
+                                            HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                            // SMART PIN / UNPIN
+                                            if (anyPinned) {
+                                                androidx.compose.material3.ListItem(
+                                                    headlineContent = { Text("Remove from speed dial", style = MaterialTheme.typography.titleMedium) },
+                                                    leadingContent = { Icon(painterResource(R.drawable.bookmark_filled), null, tint = MaterialTheme.colorScheme.primary) },
+                                                    modifier = Modifier.clickable {
+                                                        coroutineScope.launch(Dispatchers.IO) { selectedSongs.forEach { database.speedDialDao.delete(it.id) } }
+                                                        Toast.makeText(context, "Unpinned ${selectedSongs.size} songs", Toast.LENGTH_SHORT).show()
+                                                        selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                    },
+                                                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                                )
+                                            } else {
+                                                androidx.compose.material3.ListItem(
+                                                    headlineContent = { Text("Pin to speed dial", style = MaterialTheme.typography.titleMedium) },
+                                                    leadingContent = { Icon(painterResource(R.drawable.bookmark), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                                    modifier = Modifier.clickable {
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            selectedSongs.forEach { song ->
+                                                                database.speedDialDao.insert(com.j.m3play.db.entities.SpeedDialItem(
+                                                                    id = song.id, title = song.title, subtitle = song.artists.joinToString(", ") { it.name },
+                                                                    thumbnailUrl = song.thumbnailUrl, type = "SONG", explicit = false
+                                                                ))
+                                                            }
+                                                        }
+                                                        Toast.makeText(context, "Pinned ${selectedSongs.size} songs", Toast.LENGTH_SHORT).show()
+                                                        selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                    },
+                                                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                                )
+                                            }
+
+                                            HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                            // SMART DOWNLOAD / REMOVE DOWNLOAD
+                                            if (anyDownloaded) {
+                                                androidx.compose.material3.ListItem(
+                                                    headlineContent = { Text("Remove downloads", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error) },
+                                                    leadingContent = { Icon(painterResource(R.drawable.offline), null, tint = MaterialTheme.colorScheme.error) },
+                                                    modifier = Modifier.clickable {
+                                                        selectedSongs.forEach { song ->
+                                                            androidx.media3.exoplayer.offline.DownloadService.sendRemoveDownload(context, com.j.m3play.playback.ExoDownloadService::class.java, song.id, false)
+                                                        }
+                                                        Toast.makeText(context, "Removed downloads for ${selectedSongs.size} songs", Toast.LENGTH_SHORT).show()
+                                                        selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                    },
+                                                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                                )
+                                            } else {
+                                                androidx.compose.material3.ListItem(
+                                                    headlineContent = { Text("Download", style = MaterialTheme.typography.titleMedium) },
+                                                    leadingContent = { Icon(painterResource(R.drawable.download), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                                    modifier = Modifier.clickable {
+                                                        database.transaction { selectedSongs.forEach { insert(it) } }
+                                                        selectedSongs.forEach { song ->
+                                                            val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest.Builder(song.id, android.net.Uri.parse(song.id))
+                                                                .setCustomCacheKey(song.id).setData(song.title.toByteArray()).build()
+                                                            androidx.media3.exoplayer.offline.DownloadService.sendAddDownload(context, com.j.m3play.playback.ExoDownloadService::class.java, downloadRequest, false)
+                                                        }
+                                                        Toast.makeText(context, "Downloading ${selectedSongs.size} songs", Toast.LENGTH_SHORT).show()
+                                                        selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                    },
+                                                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                                )
+                                            }
+
+                                            HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                            // COPY LINKS
+                                            androidx.compose.material3.ListItem(
+                                                headlineContent = { Text("Copy links", style = MaterialTheme.typography.titleMedium) },
+                                                leadingContent = { Icon(painterResource(R.drawable.link), null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                                modifier = Modifier.clickable {
+                                                    val links = selectedSongs.joinToString("\n") { "https://music.youtube.com/watch?v=${it.id}" }
+                                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Copied Links", links))
+                                                    Toast.makeText(context, "Copied ${selectedSongs.size} links", Toast.LENGTH_SHORT).show()
+                                                    selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                },
+                                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                            )
+
+                                            HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                                            // REMOVE FROM QUEUE
+                                            androidx.compose.material3.ListItem(
+                                                headlineContent = { Text("Remove from queue", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error) },
+                                                leadingContent = { Icon(painterResource(R.drawable.delete), null, tint = MaterialTheme.colorScheme.error) },
+                                                modifier = Modifier.clickable {
+                                                    val indicesToRemove = selectedItems.map { it.firstPeriodIndex }.sortedDescending()
+                                                    indicesToRemove.forEach { playerConnection.player.removeMediaItem(it) }
+                                                    Toast.makeText(context, "Removed ${selectedSongs.size} songs", Toast.LENGTH_SHORT).show()
+                                                    selectedSongs.clear(); selectedItems.clear(); selection = false; menuState.dismiss()
+                                                },
+                                                colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         },
                     ) {
@@ -1006,6 +1201,7 @@ fun Queue(
                             tint = LocalContentColor.current,
                         )
                     }
+                    // --- M3 EXPRESSIVE SMART MENU IMPLEMENTATION END ---
                 }
             }
             if (pureBlack) {
@@ -1030,11 +1226,11 @@ fun Queue(
                         .launch {
                             lazyListState.animateScrollToItem(
                                 if (playerConnection.player.shuffleModeEnabled) playerConnection.player.currentMediaItemIndex else 0,
-                            )
+                             )
                         }.invokeOnCompletion {
                             playerConnection.player.shuffleModeEnabled =
                                 !playerConnection.player.shuffleModeEnabled
-                        }
+                         }
                 },
             ) {
                 Icon(
