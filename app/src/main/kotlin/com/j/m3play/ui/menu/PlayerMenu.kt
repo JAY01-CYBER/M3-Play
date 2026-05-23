@@ -557,7 +557,19 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
-                            val mediaItem = MediaItem.Builder().setMediaId(mediaMetadata.id).build()
+                            val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                                .setTitle(mediaMetadata.title)
+                                .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
+                                .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
+                                .build()
+
+                            val mediaItem = MediaItem.Builder()
+                                .setMediaId(mediaMetadata.id)
+                                .setUri(mediaMetadata.id)
+                                .setCustomCacheKey(mediaMetadata.id)
+                                .setMediaMetadata(exoMediaMetadata)
+                                .build()
+
                             playerConnection.playNext(mediaItem)
                             onDismiss()
                         },
@@ -585,7 +597,19 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
-                            val mediaItem = MediaItem.Builder().setMediaId(mediaMetadata.id).build()
+                            val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                                .setTitle(mediaMetadata.title)
+                                .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
+                                .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
+                                .build()
+
+                            val mediaItem = MediaItem.Builder()
+                                .setMediaId(mediaMetadata.id)
+                                .setUri(mediaMetadata.id)
+                                .setCustomCacheKey(mediaMetadata.id)
+                                .setMediaMetadata(exoMediaMetadata)
+                                .build()
+
                             playerConnection.addToQueue(mediaItem)
                             onDismiss()
                         },
