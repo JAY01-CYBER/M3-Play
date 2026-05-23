@@ -148,9 +148,12 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 
 @SuppressLint("UnrememberedMutableState")
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class,
+        ExperimentalMaterial3Api::class)
 @Composable
 fun Queue(
     state: BottomSheetState,
@@ -726,70 +729,41 @@ fun Queue(
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
                                     trailingContent = {
-                                        IconButton(
-                                            trailingContent = {
-    var expanded by remember { mutableStateOf(false) }
+                                        trailingContent = {
+                                            var expanded by remember { mutableStateOf(false) }
 
-    IconButton(
-        onClick = { expanded = true }
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.more_vert),
-            contentDescription = null,
-        )
-    }
+IconButton(
+    onClick = { expanded = true }
+) {
+    Icon(
+        painter = painterResource(R.drawable.more_vert),
+        contentDescription = null
+    )
+}
 
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false }
-    ) {
+DropdownMenu(
+    expanded = expanded,
+    onDismissRequest = { expanded = false }
+) {
 
-        // Play Next
-        DropdownMenuItem(
-            text = { Text("Play next") },
-            onClick = {
-                playerConnection.playNext(window.mediaItem)
-                expanded = false
-            }
-        )
+    DropdownMenuItem(
+        onClick = {
+            playerConnection.playNext(window.mediaItem)
+            expanded = false
+        },
+        text = { Text("Play next") }
+    )
 
-        //  Add to Queue
-        DropdownMenuItem(
-            text = { Text("Add to queue") },
-            onClick = {
-                playerConnection.addToQueue(window.mediaItem)
-                expanded = false
-            }
-        )
-
-        HorizontalDivider()
-
-        //  OLD MENU SAFE
-        DropdownMenuItem(
-            text = { Text("More options") },
-            onClick = {
-                expanded = false
-                menuState.show {
-                    PlayerMenu(
-                        mediaMetadata = window.mediaItem.metadata!!,
-                        navController = navController,
-                        playerBottomSheetState = playerBottomSheetState,
-                        isQueueTrigger = true,
-                        onShowDetailsDialog = {
-                            window.mediaItem.mediaId.let {
-                                bottomSheetPageState.show {
-                                    ShowMediaInfo(it)
-                                }
-                            }
-                        },
-                        onDismiss = menuState::dismiss,
-                    )
-                }
-            }
-        )
-    }
-                                            },
-                                        ) {
+    DropdownMenuItem(
+        onClick = {
+            playerConnection.addToQueue(window.mediaItem)
+            expanded = false
+        },
+        text = { Text("Add to queue") }
+    )
+}
+                                        }
+                                         {
                                             Icon(
                                                 painter = painterResource(R.drawable.more_vert),
                                                 contentDescription = null,
