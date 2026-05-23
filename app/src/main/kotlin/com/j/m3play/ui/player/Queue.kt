@@ -148,13 +148,9 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.roundToInt
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 @SuppressLint("UnrememberedMutableState")
-@OptIn(ExperimentalFoundationApi::class,
-        ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Queue(
     state: BottomSheetState,
@@ -730,40 +726,40 @@ fun Queue(
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
                                     trailingContent = {
-                                            var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
 
-IconButton(
-    onClick = { expanded = true }
-) {
-    Icon(
-        painter = painterResource(R.drawable.more_vert),
-        contentDescription = null
-    )
-}
+    IconButton(
+        onClick = { expanded = true }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.more_vert),
+            contentDescription = null
+        )
+    }
 
-DropdownMenu(
-    expanded = expanded,
-    onDismissRequest = { expanded = false }
-) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
 
-    DropdownMenuItem(
-        onClick = {
-            playerConnection.playNext(window.mediaItem)
-            expanded = false
-        },
-        text = { Text("Play next") }
-    )
+        DropdownMenuItem(
+            onClick = {
+                playerConnection.playNext(window.mediaItem)
+                expanded = false
+            },
+            text = { Text("Play next") }
+        )
 
-    DropdownMenuItem(
-        onClick = {
-            playerConnection.addToQueue(window.mediaItem)
-            expanded = false
-        },
-        text = { Text("Add to queue") }
-    )
-}
-                                        }  
-                                         {
+        DropdownMenuItem(
+            onClick = {
+                playerConnection.addToQueue(window.mediaItem)
+                expanded = false
+            },
+            text = { Text("Add to queue") }
+        )
+    }
+                                    }
+                                     {
                                             Icon(
                                                 painter = painterResource(R.drawable.more_vert),
                                                 contentDescription = null,
@@ -785,7 +781,7 @@ DropdownMenu(
                                                 )
                                             }
                                         }
-                                    ,
+                                    },
                                     modifier =
                                     Modifier
                                         .fillMaxWidth()
