@@ -415,14 +415,16 @@ fun PlayerMenu(
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
-        userScrollEnabled = !isPortrait,
-        contentPadding = PaddingValues(
-            start = 0.dp,
-            top = 0.dp,
-            end = 0.dp,
-            bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
-        ),
-    ) {
+    userScrollEnabled = true, //  ALWAYS SCROLLABLE (FIXED)
+    contentPadding = PaddingValues(
+        start = 0.dp,
+        top = 0.dp,
+        end = 0.dp,
+        bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(), // EXTRA SAFE SPACE
+    ),
+    modifier = Modifier.fillMaxSize() // (prevents cut)
+)
+      {
         item {
             NewActionGrid(
                 actions = listOf(
