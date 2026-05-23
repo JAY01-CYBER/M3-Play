@@ -150,6 +150,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalFoundationApi::class,
