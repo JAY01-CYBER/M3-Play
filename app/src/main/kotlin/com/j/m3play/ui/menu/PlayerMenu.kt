@@ -417,16 +417,15 @@ fun PlayerMenu(
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
-    userScrollEnabled = true, //  ALWAYS SCROLLABLE (FIXED)
-    contentPadding = PaddingValues(
-        start = 0.dp,
-        top = 0.dp,
-        end = 0.dp,
-        bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(), // EXTRA SAFE SPACE
-    ),
-    modifier = Modifier.fillMaxSize() // (prevents cut)
-)
-      {
+        userScrollEnabled = true, //  ALWAYS SCROLLABLE (FIXED)
+        contentPadding = PaddingValues(
+            start = 0.dp,
+            top = 0.dp,
+            end = 0.dp,
+            bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(), // EXTRA SAFE SPACE
+        ),
+        modifier = Modifier.fillMaxSize() // (prevents cut)
+    ) {
         item {
             NewActionGrid(
                 actions = listOf(
@@ -557,6 +556,9 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
+                            // Queue crash fix: Inserting into local DB and adding setTag()
+                            database.transaction { insert(mediaMetadata) }
+
                             val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
                                 .setTitle(mediaMetadata.title)
                                 .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
@@ -568,6 +570,7 @@ fun PlayerMenu(
                                 .setUri(mediaMetadata.id)
                                 .setCustomCacheKey(mediaMetadata.id)
                                 .setMediaMetadata(exoMediaMetadata)
+                                .setTag(mediaMetadata) // Yahan Tag add kiya, jis se Compose UI null nahi samjhega
                                 .build()
 
                             playerConnection.playNext(mediaItem)
@@ -597,6 +600,9 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
+                            // Queue crash fix: Inserting into local DB and adding setTag()
+                            database.transaction { insert(mediaMetadata) }
+
                             val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
                                 .setTitle(mediaMetadata.title)
                                 .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
@@ -608,6 +614,7 @@ fun PlayerMenu(
                                 .setUri(mediaMetadata.id)
                                 .setCustomCacheKey(mediaMetadata.id)
                                 .setMediaMetadata(exoMediaMetadata)
+                                .setTag(mediaMetadata) // Important for Queue screen rendering
                                 .build()
 
                             playerConnection.addToQueue(mediaItem)
