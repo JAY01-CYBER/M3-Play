@@ -155,6 +155,11 @@ fun PlayerMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
+    
+    // Duplicate fix: Fetching queue state and current item index to avoid duplicates
+    val queueWindows by playerConnection.queueWindows.collectAsState()
+    val currentIndex by playerConnection.currentMediaItemIndex.collectAsState()
+    
     val activityResultLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
     val librarySong by database.song(mediaMetadata.id).collectAsState(initial = null)
@@ -417,14 +422,14 @@ fun PlayerMenu(
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     LazyColumn(
-        userScrollEnabled = true, //  ALWAYS SCROLLABLE (FIXED)
+        userScrollEnabled = true,
         contentPadding = PaddingValues(
             start = 0.dp,
             top = 0.dp,
             end = 0.dp,
-            bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(), // EXTRA SAFE SPACE
+            bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
         ),
-        modifier = Modifier.fillMaxSize() // (prevents cut)
+        modifier = Modifier.fillMaxSize()
     ) {
         item {
             NewActionGrid(
@@ -556,24 +561,37 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
-                            // Queue crash fix: Inserting into local DB and adding setTag()
-                            database.transaction { insert(mediaMetadata) }
+                            val existingIndex = queueWindows.indexOfFirst { it.mediaItem.mediaId == mediaMetadata.id }
+                            
+                            if (existingIndex != -1) {
+                                // Agar gaana pehle se queue me hai to dubara add nahi karenge, bas jagah change karenge
+                                if (existingIndex == currentIndex) {
+                                    Toast.makeText(context, "Already playing", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val targetIndex = if (existingIndex < currentIndex) currentIndex else currentIndex + 1
+                                    playerConnection.player.moveMediaItem(existingIndex, targetIndex)
+                                    Toast.makeText(context, "Moved to Play Next", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                // Agar queue me nahi hai to normally add karenge
+                                database.transaction { insert(mediaMetadata) }
 
-                            val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
-                                .setTitle(mediaMetadata.title)
-                                .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
-                                .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
-                                .build()
+                                val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                                    .setTitle(mediaMetadata.title)
+                                    .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
+                                    .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
+                                    .build()
 
-                            val mediaItem = MediaItem.Builder()
-                                .setMediaId(mediaMetadata.id)
-                                .setUri(mediaMetadata.id)
-                                .setCustomCacheKey(mediaMetadata.id)
-                                .setMediaMetadata(exoMediaMetadata)
-                                .setTag(mediaMetadata) // Yahan Tag add kiya, jis se Compose UI null nahi samjhega
-                                .build()
+                                val mediaItem = MediaItem.Builder()
+                                    .setMediaId(mediaMetadata.id)
+                                    .setUri(mediaMetadata.id)
+                                    .setCustomCacheKey(mediaMetadata.id)
+                                    .setMediaMetadata(exoMediaMetadata)
+                                    .setTag(mediaMetadata) 
+                                    .build()
 
-                            playerConnection.playNext(mediaItem)
+                                playerConnection.playNext(mediaItem)
+                            }
                             onDismiss()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -600,24 +618,41 @@ fun PlayerMenu(
                             )
                         },
                         modifier = Modifier.clickable {
-                            // Queue crash fix: Inserting into local DB and adding setTag()
-                            database.transaction { insert(mediaMetadata) }
+                            val existingIndex = queueWindows.indexOfFirst { it.mediaItem.mediaId == mediaMetadata.id }
+                            
+                            if (existingIndex != -1) {
+                                // Agar gaana pehle se queue me hai to usko queue ke end me move kar denge
+                                if (existingIndex == currentIndex) {
+                                    Toast.makeText(context, "Already playing", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val targetIndex = queueWindows.size - 1
+                                    if (existingIndex != targetIndex) {
+                                        playerConnection.player.moveMediaItem(existingIndex, targetIndex)
+                                        Toast.makeText(context, "Moved to end of queue", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Already at end of queue", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } else {
+                                // Agar queue me nahi hai to normally queue ke end me daalenge
+                                database.transaction { insert(mediaMetadata) }
 
-                            val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
-                                .setTitle(mediaMetadata.title)
-                                .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
-                                .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
-                                .build()
+                                val exoMediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                                    .setTitle(mediaMetadata.title)
+                                    .setArtist(mediaMetadata.artists.joinToString(", ") { it.name })
+                                    .setArtworkUri(mediaMetadata.thumbnailUrl?.toUri())
+                                    .build()
 
-                            val mediaItem = MediaItem.Builder()
-                                .setMediaId(mediaMetadata.id)
-                                .setUri(mediaMetadata.id)
-                                .setCustomCacheKey(mediaMetadata.id)
-                                .setMediaMetadata(exoMediaMetadata)
-                                .setTag(mediaMetadata) // Important for Queue screen rendering
-                                .build()
+                                val mediaItem = MediaItem.Builder()
+                                    .setMediaId(mediaMetadata.id)
+                                    .setUri(mediaMetadata.id)
+                                    .setCustomCacheKey(mediaMetadata.id)
+                                    .setMediaMetadata(exoMediaMetadata)
+                                    .setTag(mediaMetadata) 
+                                    .build()
 
-                            playerConnection.addToQueue(mediaItem)
+                                playerConnection.addToQueue(mediaItem)
+                            }
                             onDismiss()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
