@@ -726,40 +726,26 @@ fun Queue(
                                     isPlaying = isPlaying && isActive,
                                     shouldLoadImage = shouldLoadImages,
                                     trailingContent = {
-    var expanded by remember { mutableStateOf(false) }
-
-    IconButton(
-        onClick = { expanded = true }
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.more_vert),
-            contentDescription = null
-        )
-    }
-
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false }
-    ) {
-
-        DropdownMenuItem(
-            onClick = {
-                playerConnection.playNext(window.mediaItem)
-                expanded = false
-            },
-            text = { Text("Play next") }
-        )
-
-        DropdownMenuItem(
-            onClick = {
-                playerConnection.addToQueue(window.mediaItem)
-                expanded = false
-            },
-            text = { Text("Add to queue") }
-        )
-    }
-                                    }
-                                     {
+                                        IconButton(
+                                            onClick = {
+                                                menuState.show {
+                                                    PlayerMenu(
+                                                        mediaMetadata = window.mediaItem.metadata!!,
+                                                        navController = navController,
+                                                        playerBottomSheetState = playerBottomSheetState,
+                                                        isQueueTrigger = true,
+                                                        onShowDetailsDialog = {
+                                                            window.mediaItem.mediaId.let {
+                                                                bottomSheetPageState.show {
+                                                                    ShowMediaInfo(it)
+                                                                }
+                                                            }
+                                                        },
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.more_vert),
                                                 contentDescription = null,
