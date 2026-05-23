@@ -87,13 +87,13 @@ import com.j.m3play.constants.ExternalDownloaderEnabledKey
 import com.j.m3play.constants.ExternalDownloaderPackageKey
 import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.ListThumbnailSize
+import com.j.m3play.constants.SpeedDialSongIdsKey
 import com.j.m3play.db.entities.ArtistEntity
 import com.j.m3play.db.entities.Event
 import com.j.m3play.db.entities.PlaylistSong
 import com.j.m3play.db.entities.Song
 import com.j.m3play.db.entities.SongArtistMap
 import com.j.m3play.db.MusicDatabase
-import com.j.m3play.db.entities.SpeedDialItem
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.ExoDownloadService
@@ -146,7 +146,16 @@ fun SongMenu(
     val (artistSeparators) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
     val (externalDownloaderEnabled) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
     val (externalDownloaderPackage) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
-    val isInSpeedDial by database.speedDialDao.isPinned(song.id).collectAsState(initial = false)
+    val (speedDialSongIds, onSpeedDialSongIdsChange) = rememberPreference(SpeedDialSongIdsKey, "")
+    val speedDialSongs = remember(speedDialSongIds) {
+        speedDialSongIds
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(24)
+    }
+    val isInSpeedDial = remember(speedDialSongs, song.id) { song.id in speedDialSongs }
 
     val orderedArtists by produceState(initialValue = emptyList<ArtistEntity>(), song) {
         withContext(Dispatchers.IO) {
@@ -343,7 +352,7 @@ fun SongMenu(
     Surface(
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         SongListItem(
             song = song,
@@ -494,8 +503,7 @@ fun SongMenu(
             start = 0.dp,
             top = 0.dp,
             end = 0.dp,
-            // FIX: INCREASED BOTTOM PADDING TO 128.dp TO PREVENT CUT OFF
-            bottom = 128.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
+            bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
         item {
@@ -503,7 +511,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 NewActionGrid(
                     actions = primaryActions,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -516,7 +524,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 ListItem(
                     headlineContent = {
                         Text(
@@ -554,7 +562,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 ListItem(
                     headlineContent = {
                         Text(
@@ -571,22 +579,12 @@ fun SongMenu(
                         )
                     },
                     modifier = Modifier.clickable {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            if (isInSpeedDial) {
-                                database.speedDialDao.delete(song.id)
-                            } else {
-                                database.speedDialDao.insert(
-                                    SpeedDialItem(
-                                        id = song.id,
-                                        title = song.title,
-                                        subtitle = song.artists.joinToString(", ") { it.name },
-                                        thumbnailUrl = song.thumbnailUrl,
-                                        type = "SONG",
-                                        explicit = song.song.explicit,
-                                    )
-                                )
-                            }
+                        val updatedIds = if (isInSpeedDial) {
+                            speedDialSongs.filterNot { it == song.id }
+                        } else {
+                            (speedDialSongs + song.id).distinct().take(24)
                         }
+                        onSpeedDialSongIdsChange(updatedIds.joinToString(","))
                         onDismiss()
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -599,7 +597,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 val dividerModifier = Modifier.padding(start = 56.dp)
                 Column {
                     if (event != null) {
@@ -831,7 +829,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 Column {
                     ListItem(
                         headlineContent = { Text(text = stringResource(R.string.view_artist)) },
@@ -884,7 +882,7 @@ fun SongMenu(
         }
 
         item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp, horizontal = 16.dp)) {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
                 Column {
                     ListItem(
                         headlineContent = { Text(text = stringResource(R.string.refetch)) },
