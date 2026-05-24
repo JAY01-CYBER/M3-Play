@@ -198,28 +198,28 @@
         <item quantity="other">%d playlists</item>
     </plurals>
     <plurals name="n_week">
-        <item quantity="one">%d week</item>
-        <item quantity="other">%d weeks</item>
+        <item quantity="one">%d semaine</item>
+        <item quantity="other">%d semaines</item>
     </plurals>
     <plurals name="n_month">
-        <item quantity="one">%d month</item>
-        <item quantity="other">%d months</item>
+        <item quantity="one">%d mois</item>
+        <item quantity="other">%d mois</item>
     </plurals>
     <plurals name="n_year">
-        <item quantity="one">%d year</item>
-        <item quantity="other">%d years</item>
+        <item quantity="one">%d an</item>
+        <item quantity="other">%d ans</item>
     </plurals>
     <!-- Snackbar -->
-    <string name="added_to_playlist">Added to %s</string>
-    <string name="added_n_songs_to_playlist">Added %1$d songs to %2$s</string>
-    <string name="added_to_n_playlists">Added to %d playlists</string>
-    <string name="added_n_songs_to_n_playlists">Added %1$d songs to %2$d playlists</string>
-    <string name="playlist_imported">Playlist imported</string>
-    <string name="removed_song_from_playlist">Removed \"%s\" from playlist</string>
-    <string name="playlist_synced">Playlist synced</string>
+    <string name="added_to_playlist">Ajouté à %s</string>
+    <string name="added_n_songs_to_playlist">%1$d titres ont été ajoutés à %2$s</string>
+    <string name="added_to_n_playlists">Ajouté à %d playlists</string>
+    <string name="added_n_songs_to_n_playlists">%1$d titres ont été ajoutés à %2$d playlists</string>
+    <string name="playlist_imported">Playlist importée</string>
+    <string name="removed_song_from_playlist">Suppression de « %s » de la playlist</string>
+    <string name="playlist_synced">Playlist synchronisée</string>
     <string name="undo">Undo</string>
     <!-- Player -->
-    <string name="lyrics_not_found">Lyrics not found</string>
+    <string name="lyrics_not_found">Paroles introuvables</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="end_of_song">Fin du titre</string>
     <plurals name="minute">
@@ -386,10 +386,10 @@
     <string name="disable_blur">Désactiver les effets de flou</string>
     <string name="disable_blur_desc">Désactivez les effets de flou dans toute l\'application</string>
     <string name="customize_navigation_tabs">Customize navigation tabs</string>
-    <string name="player">Player</string>
-    <string name="player_text_alignment">Player text alignment</string>
-    <string name="lyrics_text_position">Lyrics text position</string>
-    <string name="sided">Sided</string>
+    <string name="player">Lecteur</string>
+    <string name="player_text_alignment">Alignement du texte du lecteur</string>
+    <string name="lyrics_text_position">Position du texte des paroles</string>
+    <string name="sided">Côté</string>
     <string name="left">Left</string>
     <string name="center">Center</string>
     <string name="right">Right</string>
@@ -397,11 +397,11 @@
     <string name="slider_style_standard">Standard</string>
     <string name="slider_style_wavy">Wavy</string>
     <string name="slider_style_thick">Thick</string>
-    <string name="slider_style_circular">Circular</string>
+    <string name="slider_style_circular">Circulaire</string>
     <string name="slider_style_simple">Simple</string>
-    <string name="default_">Default</string>
-    <string name="squiggly">Squiggly</string>
-    <string name="misc">Misc</string>
+    <string name="default_">Par défaut</string>
+    <string name="squiggly">Zigzaguant</string>
+    <string name="misc">Divers</string>
     <string name="default_open_tab">Default open tab</string>
     <string name="grid_cell_size">Grid cell size</string>
     <string name="small">Small</string>
