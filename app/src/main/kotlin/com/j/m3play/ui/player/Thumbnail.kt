@@ -153,8 +153,6 @@ import java.io.File
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
-import coil3.request.crossfade
-
 
 @Immutable
 data class ThumbnailDimensions(
@@ -811,7 +809,6 @@ private fun ThumbnailImage(
     cropArtwork: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // BLURRY THUMBNAIL FIX: Force highest resolution URL for YouTube Music
     val highResUri = remember(artworkUri) {
         artworkUri?.replace(Regex("=[wh]\\d+-[wh]\\d+.*"), "=w1080-h1080-l90-rj")
             ?.replace(Regex("-[wh]\\d+-[wh]\\d+.*"), "-w1080-h1080-l90-rj")
@@ -825,11 +822,10 @@ private fun ThumbnailImage(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(highResUri ?: artworkUri) // Use the High Res URI here
+                .data(highResUri ?: artworkUri) 
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .networkCachePolicy(CachePolicy.ENABLED)
-                .crossfade(true) // Crossfade adds a smooth fade-in animation
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop, 
@@ -923,7 +919,6 @@ private fun CanvasArtworkPlayer(
 
     val alpha by animateFloatAsState(targetValue = if (isVideoReady) 1f else 0f, animationSpec = tween(300), label = "")
 
-    //  CANVAS DISAPPEARING FIX: TextureView programmatic setup
     AndroidView(
         factory = { viewContext ->
             PlayerView(viewContext).apply {
@@ -932,13 +927,6 @@ private fun CanvasArtworkPlayer(
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM 
                 setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
-                
-                // Replace default SurfaceView with TextureView dynamically
-                val textureView = android.view.TextureView(viewContext).apply {
-                    layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                }
-                (this.videoSurfaceView as? android.view.ViewGroup)?.removeAllViews()
-                exoPlayer.setVideoTextureView(textureView)
             }
         },
         update = { view -> if (view.player !== exoPlayer) view.player = exoPlayer },
