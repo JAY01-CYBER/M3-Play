@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -135,9 +135,7 @@ fun PlaylistMenu(
         }
     }
 
-    var showEditDialog by remember {
-        mutableStateOf(false)
-    }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     if (showEditDialog) {
         EditPlaylistDialog(
@@ -163,9 +161,7 @@ fun PlaylistMenu(
         )
     }
 
-    var showRemoveDownloadDialog by remember {
-        mutableStateOf(false)
-    }
+    var showRemoveDownloadDialog by remember { mutableStateOf(false) }
 
     if (showRemoveDownloadDialog) {
         DefaultDialog(
@@ -181,9 +177,7 @@ fun PlaylistMenu(
                 )
             },
             buttons = {
-                TextButton(
-                    onClick = { showRemoveDownloadDialog = false },
-                ) {
+                TextButton(onClick = { showRemoveDownloadDialog = false }) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
 
@@ -206,13 +200,8 @@ fun PlaylistMenu(
         )
     }
 
-    var showDeletePlaylistDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var showAssignTagsDialog by remember {
-        mutableStateOf(false)
-    }
+    var showDeletePlaylistDialog by remember { mutableStateOf(false) }
+    var showAssignTagsDialog by remember { mutableStateOf(false) }
 
     if (showAssignTagsDialog) {
         AssignTagsDialog(
@@ -236,9 +225,7 @@ fun PlaylistMenu(
                 )
             },
             buttons = {
-                TextButton(
-                    onClick = { showDeletePlaylistDialog = false }
-                ) {
+                TextButton(onClick = { showDeletePlaylistDialog = false }) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
 
@@ -265,9 +252,6 @@ fun PlaylistMenu(
     }
 
     val configuration = LocalConfiguration.current
-    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    
-    // Modern Inset Divider for a cleaner, expensive look
     val dividerModifier = Modifier.padding(horizontal = 32.dp)
     
     val startRadioText = stringResource(R.string.start_radio)
@@ -367,12 +351,11 @@ fun PlaylistMenu(
                 text = shareText,
                 onClick = {
                     onDismiss()
-                    val intent =
-                        Intent().apply {
-                            action = Intent.ACTION_SEND
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${dbPlaylist?.playlist?.browseId}")
-                        }
+                    val intent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${dbPlaylist?.playlist?.browseId}")
+                    }
                     context.startActivity(Intent.createChooser(intent, null))
                 },
             ),
@@ -380,12 +363,13 @@ fun PlaylistMenu(
     }
 
     LazyColumn(
-        userScrollEnabled = !isPortrait,
+        // BUG FIXED: userScrollEnabled hatakar true kiya taki humesha scroll ho sake
+        modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(
-            start = 12.dp, // Added side padding for floating effect
+            start = 12.dp,
             top = 16.dp,
             end = 12.dp,
-            bottom = 100.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(), // Ensured it doesn't cut at the bottom
+            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
         ),
     ) {
         // --- Premium Header Card ---
@@ -400,7 +384,9 @@ fun PlaylistMenu(
             ) {
                 PlaylistListItem(
                     playlist = playlist,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 4.dp),
                     trailingContent = {
                         if (playlist.playlist.isEditable != true) {
                             IconButton(
@@ -422,7 +408,7 @@ fun PlaylistMenu(
             }
         }
 
-        item { Spacer(modifier = Modifier.height(20.dp)) } // More breathing space
+        item { Spacer(modifier = Modifier.height(20.dp)) }
 
         // --- Quick Actions Grid ---
         item {
@@ -439,7 +425,7 @@ fun PlaylistMenu(
         // --- Main Operations Section ---
         item {
             MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                Column(modifier = Modifier.padding(vertical = 8.dp)) { // Inner padding for lists
+                Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     playlist.playlist.browseId?.let { browseId ->
                         ListItem(
                             headlineContent = { Text(text = startRadioText, fontWeight = FontWeight.Medium) },
@@ -683,12 +669,11 @@ fun PlaylistMenu(
                                 )
                             },
                             modifier = Modifier.clickable {
-                                val intent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, shareLink)
-                                    }
+                                val intent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, shareLink)
+                                }
                                 context.startActivity(Intent.createChooser(intent, null))
                                 onDismiss()
                             },
@@ -697,6 +682,11 @@ fun PlaylistMenu(
                     }
                 }
             }
+        }
+
+        
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
