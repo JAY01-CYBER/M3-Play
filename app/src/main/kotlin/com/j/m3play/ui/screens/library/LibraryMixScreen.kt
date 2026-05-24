@@ -115,7 +115,6 @@ fun LibraryMixScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai
     var viewType by rememberEnumPreference(AlbumViewTypeKey, LibraryViewType.LIST)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
         MixSortTypeKey,
@@ -396,11 +395,12 @@ fun LibraryMixScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Crossfade(targetState = viewType, label = "LibraryViewTransition") { currentViewType ->
+        Crossfade(targetState = viewType, modifier = Modifier.fillMaxSize(), label = "LibraryViewTransition") { currentViewType ->
             when (currentViewType) {
                 LibraryViewType.LIST ->
                     LazyColumn(
                         state = lazyListState,
+                        modifier = Modifier.fillMaxSize(),
                         contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                     ) {
                         item(key = "filter", contentType = CONTENT_TYPE_HEADER) {
@@ -631,6 +631,7 @@ fun LibraryMixScreen(
                 LibraryViewType.GRID ->
                     LazyVerticalGrid(
                         state = lazyGridState,
+                        modifier = Modifier.fillMaxSize(),
                         columns = GridCells.Adaptive(
                             minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                         ),
@@ -653,7 +654,7 @@ fun LibraryMixScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .combinedClickable(onClick = { navController.navigate("auto_playlist/liked") })
-                                        .animateItem(),
+                                        // ⚡ FIX: animateItem() removed
                                 )
                             }
                         }
@@ -667,7 +668,6 @@ fun LibraryMixScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .combinedClickable(onClick = { navController.navigate("auto_playlist/downloaded") })
-                                        .animateItem(),
                                 )
                             }
                         }
@@ -681,7 +681,6 @@ fun LibraryMixScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .combinedClickable(onClick = { navController.navigate("top_playlist/$topSize") })
-                                        .animateItem(),
                                 )
                             }
                         }
@@ -695,7 +694,6 @@ fun LibraryMixScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .combinedClickable(onClick = { navController.navigate("cache_playlist/cached") })
-                                        .animateItem(),
                                 )
                             }
                         }
@@ -712,7 +710,7 @@ fun LibraryMixScreen(
                                         menuState = menuState,
                                         coroutineScope = coroutineScope,
                                         playlist = item,
-                                        modifier = Modifier.animateItem(),
+                                        modifier = Modifier //  FIX: animateItem() removed
                                     )
                                 }
                                 is Artist -> {
@@ -728,7 +726,6 @@ fun LibraryMixScreen(
                                                     menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) }
                                                 },
                                             )
-                                            .animateItem(),
                                     )
                                 }
                                 is Album -> {
@@ -747,7 +744,6 @@ fun LibraryMixScreen(
                                                     menuState.show { AlbumMenu(item, navController, menuState::dismiss) }
                                                 },
                                             )
-                                            .animateItem(),
                                     )
                                 }
                                 else -> {}
