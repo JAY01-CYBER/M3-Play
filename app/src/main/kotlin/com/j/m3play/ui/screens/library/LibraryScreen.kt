@@ -59,8 +59,7 @@ fun LibraryScreen(navController: NavController) {
         Column {
             Row {
                 ChipsRow(
-                    chips =
-                    listOf(
+                    chips = listOf(
                         LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
                         LibraryFilter.SONGS to stringResource(R.string.filter_songs),
                         LibraryFilter.ALBUMS to stringResource(R.string.filter_albums),
@@ -68,12 +67,11 @@ fun LibraryScreen(navController: NavController) {
                     ),
                     currentValue = filterType,
                     onValueUpdate = {
-                        filterType =
-                            if (filterType == it) {
-                                LibraryFilter.LIBRARY
-                            } else {
-                                it
-                            }
+                        filterType = if (filterType == it) {
+                            LibraryFilter.LIBRARY
+                        } else {
+                            it
+                        }
                     },
                     icons = mapOf(
                         LibraryFilter.PLAYLISTS to R.drawable.queue_music,
@@ -103,7 +101,6 @@ fun LibraryScreen(navController: NavController) {
         }
     }
 
-    // Capture M3 Expressive colors from theme outside drawBehind
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
@@ -111,23 +108,18 @@ fun LibraryScreen(navController: NavController) {
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // M3E Mesh gradient background layer at the top
+    Box(modifier = Modifier.fillMaxSize()) {
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .fillMaxSize(0.7f)
                     .align(Alignment.TopCenter)
-                    .zIndex(-1f) // Place behind all content
+                    .zIndex(-1f)
                 .drawBehind {
                     val width = size.width
                     val height = size.height
                     
-                    // Create mesh gradient with 5 color blobs for more variation
-                    // First color blob - top left
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -142,7 +134,6 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                     
-                    // Second color blob - top right
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -157,7 +148,6 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                     
-                    // Third color blob - middle left
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -172,7 +162,6 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                     
-                    // Fourth color blob - middle right
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -187,7 +176,6 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                     
-                    // Fifth color blob - bottom center (helps with smooth fade)
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -202,7 +190,6 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                     
-                    // Add a final vertical gradient overlay to ensure smooth bottom fade
                     drawRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
@@ -217,23 +204,15 @@ fun LibraryScreen(navController: NavController) {
                         )
                     )
                 }
-        ) {}
+            ) {}
         }
 
         when (filterType) {
             LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
             LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
-            LibraryFilter.SONGS -> LibrarySongsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
-
-            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
-
-            LibraryFilter.ARTISTS -> LibraryArtistsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY })
+            LibraryFilter.SONGS -> LibrarySongsScreen(navController, { filterType = LibraryFilter.LIBRARY })
+            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, { filterType = LibraryFilter.LIBRARY })
+            LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, { filterType = LibraryFilter.LIBRARY })
         }
     }
 }
