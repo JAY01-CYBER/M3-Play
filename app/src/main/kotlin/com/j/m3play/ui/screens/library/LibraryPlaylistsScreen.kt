@@ -112,7 +112,6 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.extensions.move
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.UUID
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -131,7 +130,6 @@ fun LibraryPlaylistsScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai
     var viewType by rememberEnumPreference(PlaylistViewTypeKey, LibraryViewType.LIST)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
         PlaylistSortTypeKey,
@@ -164,45 +162,37 @@ fun LibraryPlaylistsScreen(
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
-    val likedPlaylist =
+    val likedName = stringResource(R.string.liked)
+    val likedPlaylist = remember(likedName) {
         Playlist(
-            playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.liked)
-            ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            playlist = PlaylistEntity(id = "auto_liked", name = likedName),
+            songCount = 0, songThumbnails = emptyList()
         )
+    }
 
-    val downloadPlaylist =
+    val downloadName = stringResource(R.string.offline)
+    val downloadPlaylist = remember(downloadName) {
         Playlist(
-            playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.offline)
-            ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            playlist = PlaylistEntity(id = "auto_downloaded", name = downloadName),
+            songCount = 0, songThumbnails = emptyList()
         )
+    }
 
-    val topPlaylist =
+    val topName = stringResource(R.string.my_top) + " $topSize"
+    val topPlaylist = remember(topName) {
         Playlist(
-            playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.my_top) + " $topSize"
-            ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            playlist = PlaylistEntity(id = "auto_top", name = topName),
+            songCount = 0, songThumbnails = emptyList()
         )
+    }
 
-    val cachePlaylist =
+    val cachedName = stringResource(R.string.cached_playlist)
+    val cachePlaylist = remember(cachedName) {
         Playlist(
-            playlist = PlaylistEntity(
-                id = UUID.randomUUID().toString(),
-                name = stringResource(R.string.cached_playlist)
-            ),
-            songCount = 0,
-            songThumbnails = emptyList(),
+            playlist = PlaylistEntity(id = "auto_cached", name = cachedName),
+            songCount = 0, songThumbnails = emptyList()
         )
+    }
 
     val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
@@ -325,7 +315,7 @@ fun LibraryPlaylistsScreen(
             val result = runCatching {
                 withContext(Dispatchers.IO) { context.imageLoader.execute(request) }
             }.getOrNull()
-            
+             
             if (result != null) {
                 val bitmap = result.image?.toBitmap()
                 if (bitmap != null) {
@@ -577,6 +567,7 @@ fun LibraryPlaylistsScreen(
             LibraryViewType.LIST -> {
                 LazyColumn(
                     state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                 ) {
                     item(
@@ -722,6 +713,7 @@ fun LibraryPlaylistsScreen(
             LibraryViewType.GRID -> {
                 LazyVerticalGrid(
                     state = lazyGridState,
+                    modifier = Modifier.fillMaxSize(),
                     columns = GridCells.Adaptive(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
@@ -759,7 +751,7 @@ fun LibraryPlaylistsScreen(
                                             navController.navigate("auto_playlist/liked")
                                         },
                                     )
-                                    .animateItem(),
+                                    // ⚡ FIX: animateItem() removed for smooth grid scrolling
                             )
                         }
                     }
@@ -780,7 +772,6 @@ fun LibraryPlaylistsScreen(
                                             navController.navigate("auto_playlist/downloaded")
                                         },
                                     )
-                                    .animateItem(),
                             )
                         }
                     }
@@ -801,7 +792,6 @@ fun LibraryPlaylistsScreen(
                                             navController.navigate("top_playlist/$topSize")
                                         },
                                     )
-                                    .animateItem(),
                             )
                         }
                     }
@@ -822,7 +812,6 @@ fun LibraryPlaylistsScreen(
                                             navController.navigate("cache_playlist/cached")
                                         },
                                     )
-                                    .animateItem(),
                             )
                         }
                     }
@@ -842,7 +831,7 @@ fun LibraryPlaylistsScreen(
                             menuState = menuState,
                             coroutineScope = coroutineScope,
                             playlist = playlist,
-                            modifier = Modifier.animateItem()
+                            modifier = Modifier // ⚡ FIX: animateItem() removed
                         )
                     }
                 }
