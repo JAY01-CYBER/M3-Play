@@ -115,7 +115,8 @@ fun LibraryMixScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    var viewType by rememberEnumPreference(AlbumViewTypeKey, LibraryViewType.GRID)
+    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai
+    var viewType by rememberEnumPreference(AlbumViewTypeKey, LibraryViewType.LIST)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
         MixSortTypeKey,
         MixSortType.CREATE_DATE
@@ -137,7 +138,6 @@ fun LibraryMixScreen(
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
-    // Optimized: Replaced UUID.randomUUID() with fixed IDs and wrapped in remember to avoid recomposition lag
     val likedName = stringResource(R.string.liked)
     val likedPlaylist = remember(likedName) {
         Playlist(
@@ -188,7 +188,6 @@ fun LibraryMixScreen(
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
 
-    // Optimized: Wrap heavy sorting and filtering in remember blocks based on their dependencies
     val visiblePlaylists = remember(playlist, selectedTagIds, filteredPlaylistIds) {
         if (selectedTagIds.isEmpty()) playlist else playlist.filter { it.id in filteredPlaylistIds }
     }
@@ -235,7 +234,7 @@ fun LibraryMixScreen(
             
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    
+  
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = lazyListState,
         scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
@@ -397,7 +396,6 @@ fun LibraryMixScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Optimized: Added Crossfade for a premium fluid transition between List and Grid
         Crossfade(targetState = viewType, label = "LibraryViewTransition") { currentViewType ->
             when (currentViewType) {
                 LibraryViewType.LIST ->
