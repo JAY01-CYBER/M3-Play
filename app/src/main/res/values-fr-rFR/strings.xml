@@ -671,9 +671,9 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="playback_state_ended">ENDED</string>
     <string name="playback_state_unknown">UNKNOWN</string>
     <string name="share_logs">Share logs</string>
-    <string name="about">About</string>
-    <string name="app_version">App version</string>
-    <string name="new_version_available">New version available</string>
+    <string name="about">À propos</string>
+    <string name="app_version">Version de l\'application</string>
+    <string name="new_version_available">Nouvelle version disponible</string>
     <string name="translation_models">Translation Models</string>
     <string name="clear_translation_models">Clear translation models</string>
     <string name="updates">Updates</string>
@@ -687,8 +687,8 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="channel_nightly">Nightly</string>
     <string name="commit_history">Development</string>
     <string name="recent_commits">Recent Commits</string>
-    <string name="changelog">Changelog</string>
-    <string name="view_changelog">View Changelog</string>
+    <string name="changelog">Journal des modifications</string>
+    <string name="view_changelog">Consulter le journal des modifications</string>
     <string name="error_loading_changelog">Error loading changelog</string>
     <string name="no_releases">No releases found</string>
     <string name="update_notification_channel_name">App Updates</string>
