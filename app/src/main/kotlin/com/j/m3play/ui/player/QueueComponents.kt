@@ -67,18 +67,14 @@ import com.j.m3play.R
 import com.j.m3play.db.entities.FormatEntity
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.ui.component.ActionPromptDialog
-import com.j.m3play.ui.component.BottomSheetPageState
 import com.j.m3play.ui.component.BottomSheetState
-import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.bottomSheetDraggable
-import com.j.m3play.ui.menu.PlayerMenu
-import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.makeTimeString
 import kotlin.math.roundToInt
 
 /**
  * Current Song Header shown at the top of the queue
- * Displays album art, song info, and control buttons
+ * Displays album art, song info, and control buttons (Material 3 Expressive)
  */
 @Composable
 fun CurrentSongHeader(
@@ -108,147 +104,112 @@ fun CurrentSongHeader(
             .background(backgroundColor)
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .bottomSheetDraggable(sheetState)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        // Drag handle
+        // M3 Expressive Drag Handle
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp),
+                .padding(bottom = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .width(36.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(onBackgroundColor.copy(alpha = 0.3f))
+                    .width(48.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(onBackgroundColor.copy(alpha = 0.2f))
             )
         }
         
-        // Song info row with thumbnail, title, artist, and action buttons
+        // Expressive Song Info Row
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Album art thumbnail
+            // Larger, bolder thumbnail for M3
             AsyncImage(
                 model = mediaMetadata?.thumbnailUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             )
             
-            // Song title and artist
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = mediaMetadata?.title ?: "",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    text = mediaMetadata?.title ?: "Unknown Title",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = onBackgroundColor
                 )
                 Text(
-                    text = mediaMetadata?.artists?.joinToString(",") { artist -> artist.name } ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = mediaMetadata?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
+                    style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = onBackgroundColor.copy(alpha = 0.7f)
                 )
             }
             
-            // Like button
+            // Context Action Buttons
             IconButton(
-                onClick = onToggleLike,
-                modifier = Modifier.size(40.dp)
+                onClick = onToggleLike, 
+                modifier = Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha=0.3f), CircleShape)
             ) {
                 Icon(
-                    painter = painterResource(
-                        if (mediaMetadata?.liked == true) R.drawable.favorite
-                        else R.drawable.favorite_border
-                    ),
-                    contentDescription = stringResource(R.string.action_like),
-                    tint = if (mediaMetadata?.liked == true) 
-                        MaterialTheme.colorScheme.primary
-                    else onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
+                    painter = painterResource(if (mediaMetadata?.liked == true) R.drawable.favorite else R.drawable.favorite_border),
+                    contentDescription = "Like",
+                    tint = if (mediaMetadata?.liked == true) MaterialTheme.colorScheme.primary else onBackgroundColor
                 )
             }
             
-            // Lock button
-            IconButton(
-                onClick = onLockClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
-                    contentDescription = null,
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            // Menu button
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.more_vert),
-                    contentDescription = null,
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(24.dp)
-                )
+            IconButton(onClick = onMenuClick) {
+                Icon(painterResource(R.drawable.more_vert), contentDescription = "Menu", tint = onBackgroundColor)
             }
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
-        // Control buttons row
+        // M3 Expressive Control Buttons (Pill Shapes)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Shuffle button
+            // Shuffle
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (shuffleModeEnabled) onBackgroundColor.copy(alpha = 0.2f)
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(if (shuffleModeEnabled) MaterialTheme.colorScheme.secondaryContainer else onBackgroundColor.copy(alpha = 0.08f))
                     .clickable { onShuffleClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.shuffle),
-                    contentDescription = stringResource(R.string.action_shuffle_on),
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(22.dp)
+                    contentDescription = "Shuffle",
+                    tint = if (shuffleModeEnabled) MaterialTheme.colorScheme.onSecondaryContainer else onBackgroundColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
             
-            // Repeat button
+            // Repeat
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (repeatMode != Player.REPEAT_MODE_OFF) onBackgroundColor.copy(alpha = 0.2f)
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.secondaryContainer else onBackgroundColor.copy(alpha = 0.08f))
                     .clickable { onRepeatClick() },
                 contentAlignment = Alignment.Center
             ) {
@@ -260,86 +221,90 @@ fun CurrentSongHeader(
                             else -> R.drawable.repeat
                         }
                     ),
-                    contentDescription = null,
-                    tint = onBackgroundColor,
-                    modifier = Modifier.size(22.dp)
+                    contentDescription = "Repeat",
+                    tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.onSecondaryContainer else onBackgroundColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
             
-            // Infinity/Automix button
+            // Infinity/Automix
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (infiniteQueueEnabled) MaterialTheme.colorScheme.primary
-                        else onBackgroundColor.copy(alpha = 0.15f)
-                    )
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(if (infiniteQueueEnabled) MaterialTheme.colorScheme.primary else onBackgroundColor.copy(alpha = 0.08f))
                     .clickable { onInfiniteQueueClick() },
                 contentAlignment = Alignment.Center
             ) {
                 if (automixLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                               else onBackgroundColor,
+                        modifier = Modifier.size(20.dp),
+                        color = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary else onBackgroundColor,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Icon(
                         painter = painterResource(R.drawable.all_inclusive),
-                        contentDescription = stringResource(R.string.similar_content),
-                        tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary
-                               else onBackgroundColor.copy(alpha = 0.5f),
-                        modifier = Modifier.size(22.dp)
+                        contentDescription = "Automix",
+                        tint = if (infiniteQueueEnabled) MaterialTheme.colorScheme.onPrimary else onBackgroundColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
+            
+            // Lock
+            Box(
+                modifier = Modifier
+                    .weight(0.7f)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(if (locked) MaterialTheme.colorScheme.errorContainer else onBackgroundColor.copy(alpha = 0.08f))
+                    .clickable { onLockClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open),
+                    contentDescription = "Lock Queue",
+                    tint = if (locked) MaterialTheme.colorScheme.onErrorContainer else onBackgroundColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
-        // "Continue Playing" text and stats
+        // M3 Status Row
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+            Column {
                 Text(
                     text = stringResource(R.string.queue_continue_playing),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = onBackgroundColor
                 )
                 Text(
-                    text = stringResource(R.string.queue_autoplaying_similar),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = onBackgroundColor.copy(alpha = 0.6f)
+                    text = "Up Next",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.End
-            ) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = pluralStringResource(
-                        R.plurals.n_song,
-                        songCount,
-                        songCount
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "$songCount Songs",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
                     color = onBackgroundColor.copy(alpha = 0.8f)
                 )
                 Text(
                     text = makeTimeString(queueDuration * 1000L),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = onBackgroundColor.copy(alpha = 0.8f)
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onBackgroundColor.copy(alpha = 0.6f)
                 )
             }
         }
@@ -1004,7 +969,7 @@ fun QueueCollapsedContentV4(
                 textColor = textBackgroundColor.copy(alpha = 0.6f)
             )
         }
-        
+    
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
