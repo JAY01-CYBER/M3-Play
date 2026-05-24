@@ -120,10 +120,9 @@ fun LibrarySongsScreen(
         }
     }
 
-    val wrappedSongs = songs.map { item -> ItemWrapper(item) }.toMutableList()
-    var selection by remember {
-        mutableStateOf(false)
-    }
+    val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableList() }
+    
+    var selection by remember { mutableStateOf(false) }
 
     val lazyListState = rememberLazyListState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -140,15 +139,13 @@ fun LibrarySongsScreen(
     }
 
     Box(
-        modifier =
-            Modifier.fillMaxSize()
-                .pullToRefresh(
-                    state = pullRefreshState,
-                    isRefreshing = isRefreshing,
-                    onRefresh = { if (ytmSync) viewModel.refresh(filter) }
-                ),
+        modifier = Modifier.fillMaxSize()
+            .pullToRefresh(
+                state = pullRefreshState,
+                isRefreshing = isRefreshing,
+                onRefresh = { if (ytmSync) viewModel.refresh(filter) }
+            ),
     ) {
-        
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -171,23 +168,17 @@ fun LibrarySongsScreen(
                         onClick = onDeselect,
                         shape = RoundedCornerShape(16.dp),
                         leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = ""
-                            )
+                            Icon(painter = painterResource(R.drawable.close), contentDescription = "")
                         },
                     )
                     ChipsRow(
-                        chips =
-                        listOf(
+                        chips = listOf(
                             SongFilter.LIKED to stringResource(R.string.filter_liked),
                             SongFilter.LIBRARY to stringResource(R.string.filter_library),
                             SongFilter.DOWNLOADED to stringResource(R.string.filter_downloaded),
                         ),
                         currentValue = filter,
-                        onValueUpdate = {
-                            filter = it
-                        },
+                        onValueUpdate = { filter = it },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -202,13 +193,8 @@ fun LibrarySongsScreen(
                 ) {
                     if (selection) {
                         val count = wrappedSongs.count { it.isSelected }
-                        IconButton(
-                            onClick = { selection = false },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = null,
-                            )
+                        IconButton(onClick = { selection = false }) {
+                            Icon(painter = painterResource(R.drawable.close), contentDescription = null)
                         }
                         Text(
                             text = pluralStringResource(R.plurals.n_song, count, count),
@@ -233,18 +219,14 @@ fun LibrarySongsScreen(
                             onClick = {
                                 menuState.show {
                                     SelectionSongMenu(
-                                        songSelection = wrappedSongs.filter { it.isSelected }
-                                            .map { it.item },
+                                        songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
                                         onDismiss = menuState::dismiss,
                                         clearAction = { selection = false },
                                     )
                                 }
                             },
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.more_vert),
-                                contentDescription = null,
-                            )
+                            Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                         }
                     } else {
                         Row(
@@ -269,11 +251,7 @@ fun LibrarySongsScreen(
                             Spacer(Modifier.weight(1f))
 
                             Text(
-                                text = pluralStringResource(
-                                    R.plurals.n_song,
-                                    songs.size,
-                                    songs.size
-                                ),
+                                text = pluralStringResource(R.plurals.n_song, songs.size, songs.size),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.secondary,
                             )
@@ -282,11 +260,10 @@ fun LibrarySongsScreen(
                 }
             }
 
-            val filteredSongs = if (hideExplicit) {
-                wrappedSongs.filter { !it.item.song.explicit }
-            } else {
-                wrappedSongs
+            val filteredSongs = remember(wrappedSongs, hideExplicit) {
+                if (hideExplicit) wrappedSongs.filter { !it.item.song.explicit } else wrappedSongs
             }
+            
             itemsIndexed(
                 items = filteredSongs,
                 key = { _, item -> item.item.song.id },
@@ -310,15 +287,11 @@ fun LibrarySongsScreen(
                                 }
                             },
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.more_vert),
-                                contentDescription = null,
-                            )
+                            Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                         }
                     },
                     isSelected = songWrapper.isSelected && selection,
-                    modifier =
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .combinedClickable(
                             onClick = {
@@ -340,13 +313,9 @@ fun LibrarySongsScreen(
                             },
                             onLongClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (!selection) {
-                                    selection = true
-                                }
-                                wrappedSongs.forEach {
-                                    it.isSelected = false
-                                } // Clear previous selections
-                                songWrapper.isSelected = true // Select current item
+                                if (!selection) selection = true
+                                wrappedSongs.forEach { it.isSelected = false } 
+                                songWrapper.isSelected = true 
                             },
                         )
                         .animateItem(),
