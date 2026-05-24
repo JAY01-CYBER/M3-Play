@@ -115,7 +115,6 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-
 import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.LocalSharedTransitionScope
@@ -123,7 +122,6 @@ import com.j.m3play.R
 import com.j.m3play.canvas.CanvasArtwork
 import com.j.m3play.canvas.MonochromeAlbumCanvas
 import com.j.m3play.canvas.MonochromeApiCanvas
-
 import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.HidePlayerThumbnailKey
 import com.j.m3play.constants.M3PlayCanvasKey
@@ -497,7 +495,7 @@ fun Thumbnail(
                 BoxWithConstraints(
                     contentAlignment = Alignment.Center,
                     modifier = if (isLandscape) {
-                         Modifier.weight(1f, false)
+                        Modifier.weight(1f, false)
                     } else {
                         Modifier.fillMaxSize()
                     }
@@ -537,7 +535,7 @@ fun Thumbnail(
                             items = mediaItems,
                             key = { item -> 
                                 item.mediaId.ifEmpty { "unknown_${item.hashCode()}" }
-                            }
+                             }
                         ) { item ->
                             ThumbnailItem(
                                 item = item,
@@ -644,7 +642,6 @@ private fun ThumbnailItem(
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
-    
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
 
@@ -676,7 +673,8 @@ private fun ThumbnailItem(
 
                         val skipAmount = 5000 * skipMultiplier
 
-                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) || (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
+                        val isLeftSide = (layoutDirection == LayoutDirection.Ltr && offset.x < size.width / 2) ||
+                            (layoutDirection == LayoutDirection.Rtl && offset.x > size.width / 2)
 
                         if (isLeftSide) {
                             playerConnection.player.seekTo((currentPosition - skipAmount).coerceAtLeast(0))
@@ -811,6 +809,13 @@ private fun ThumbnailImage(
     cropArtwork: Boolean,
     modifier: Modifier = Modifier
 ) {
+    // BLURRY THUMBNAIL FIX: Force highest resolution URL for YouTube Music
+    val highResUri = remember(artworkUri) {
+        artworkUri?.replace(Regex("=[wh]\\d+-[wh]\\d+.*"), "=w1080-h1080-l90-rj")
+            ?.replace(Regex("-[wh]\\d+-[wh]\\d+.*"), "-w1080-h1080-l90-rj")
+            ?.replace(Regex("=s\\d+.*"), "=s1080-l90-rj")
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -818,10 +823,11 @@ private fun ThumbnailImage(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(artworkUri)
+                .data(highResUri ?: artworkUri) // Use the High Res URI here
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .networkCachePolicy(CachePolicy.ENABLED)
+                .crossfade(true) // Crossfade adds a smooth fade-in animation
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop, 
@@ -915,6 +921,7 @@ private fun CanvasArtworkPlayer(
 
     val alpha by animateFloatAsState(targetValue = if (isVideoReady) 1f else 0f, animationSpec = tween(300), label = "")
 
+    //  CANVAS DISAPPEARING FIX: TextureView programmatic setup
     AndroidView(
         factory = { viewContext ->
             PlayerView(viewContext).apply {
@@ -923,6 +930,13 @@ private fun CanvasArtworkPlayer(
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM 
                 setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                
+                // Replace default SurfaceView with TextureView dynamically
+                val textureView = android.view.TextureView(viewContext).apply {
+                    layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                }
+                (this.videoSurfaceView as? android.view.ViewGroup)?.removeAllViews()
+                exoPlayer.setVideoTextureView(textureView)
             }
         },
         update = { view -> if (view.player !== exoPlayer) view.player = exoPlayer },
