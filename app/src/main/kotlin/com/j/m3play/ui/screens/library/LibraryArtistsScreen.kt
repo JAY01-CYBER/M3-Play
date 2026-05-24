@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,8 +90,6 @@ fun LibraryArtistsScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
-
-    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai taaki flash na ho
     var viewType by rememberEnumPreference(ArtistViewTypeKey, LibraryViewType.LIST)
 
     var filter by rememberEnumPreference(ArtistFilterKey, ArtistFilter.LIKED)
@@ -160,6 +159,10 @@ fun LibraryArtistsScreen(
         }
     }
 
+    val optimizedArtists = remember(artists) {
+        artists?.distinctBy { it.id } ?: emptyList()
+    }
+
     val headerContent = @Composable {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -186,13 +189,13 @@ fun LibraryArtistsScreen(
                 Text(
                     text = pluralStringResource(
                         R.plurals.n_artist,
-                        artists.size,
-                        artists.size
+                        optimizedArtists.size,
+                        optimizedArtists.size
                     ),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.secondary,
                 )
-             }
+            }
 
             IconButton(
                 onClick = {
@@ -227,6 +230,7 @@ fun LibraryArtistsScreen(
             LibraryViewType.LIST ->
                 LazyColumn(
                     state = lazyListState,
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                 ) {
                     item(
@@ -243,36 +247,35 @@ fun LibraryArtistsScreen(
                         headerContent()
                     }
 
-                    artists.let { artists ->
-                        if (artists.isEmpty()) {
-                            item {
-                                EmptyPlaceholder(
-                                    icon = R.drawable.artist,
-                                    text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
-
-                        items(
-                            items = artists.distinctBy { it.id },
-                            key = { it.id },
-                            contentType = { CONTENT_TYPE_ARTIST },
-                        ) { artist ->
-                            LibraryArtistListItem(
-                                navController = navController,
-                                menuState = menuState,
-                                coroutineScope = coroutineScope,
-                                modifier = Modifier.animateItem(),
-                                artist = artist
+                    if (optimizedArtists.isEmpty()) {
+                        item {
+                            EmptyPlaceholder(
+                                icon = R.drawable.artist,
+                                text = stringResource(R.string.library_artist_empty),
+                                modifier = Modifier.animateItem()
                             )
                         }
+                    }
+
+                    items(
+                        items = optimizedArtists,
+                        key = { it.id },
+                        contentType = { CONTENT_TYPE_ARTIST },
+                    ) { artist ->
+                        LibraryArtistListItem(
+                            navController = navController,
+                            menuState = menuState,
+                            coroutineScope = coroutineScope,
+                            modifier = Modifier.animateItem(),
+                            artist = artist
+                        )
                     }
                 }
 
             LibraryViewType.GRID ->
                 LazyVerticalGrid(
                     state = lazyGridState,
+                    modifier = Modifier.fillMaxSize(),
                     columns =
                     GridCells.Adaptive(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
@@ -295,30 +298,28 @@ fun LibraryArtistsScreen(
                         headerContent()
                     }
 
-                    artists.let { artists ->
-                        if (artists.isEmpty()) {
-                            item(span = { GridItemSpan(maxLineSpan) }) {
-                                EmptyPlaceholder(
-                                    icon = R.drawable.artist,
-                                    text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
-                                )
-                            }
-                        }
-
-                        items(
-                            items = artists.distinctBy { it.id },
-                            key = { it.id },
-                            contentType = { CONTENT_TYPE_ARTIST },
-                        ) { artist ->
-                            LibraryArtistGridItem(
-                                navController = navController,
-                                menuState = menuState,
-                                coroutineScope = coroutineScope,
-                                modifier = Modifier.animateItem(),
-                                artist = artist
+                    if (optimizedArtists.isEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            EmptyPlaceholder(
+                                icon = R.drawable.artist,
+                                text = stringResource(R.string.library_artist_empty),
+                                modifier = Modifier // FIX: animateItem() removed
                             )
                         }
+                    }
+
+                    items(
+                        items = optimizedArtists,
+                        key = { it.id },
+                        contentType = { CONTENT_TYPE_ARTIST },
+                    ) { artist ->
+                        LibraryArtistGridItem(
+                            navController = navController,
+                            menuState = menuState,
+                            coroutineScope = coroutineScope,
+                            modifier = Modifier, // : animateItem() removed
+                            artist = artist
+                        )
                     }
                 }
         }
