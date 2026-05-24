@@ -89,7 +89,9 @@ fun LibraryArtistsScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
-    var viewType by rememberEnumPreference(ArtistViewTypeKey, LibraryViewType.GRID)
+
+    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai taaki flash na ho
+    var viewType by rememberEnumPreference(ArtistViewTypeKey, LibraryViewType.LIST)
 
     var filter by rememberEnumPreference(ArtistFilterKey, ArtistFilter.LIKED)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
@@ -190,7 +192,7 @@ fun LibraryArtistsScreen(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.secondary,
                 )
-            }
+             }
 
             IconButton(
                 onClick = {
