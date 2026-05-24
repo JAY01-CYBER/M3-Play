@@ -366,7 +366,6 @@ class MusicService :
     private var crossfadeAudio: CrossfadeAudio? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
 
-    // 🔥 Metrolist Style JSON Engine setup (with LocalDateTime support)
     private val gson = GsonBuilder()
         .registerTypeAdapter(LocalDateTime::class.java, JsonSerializer<LocalDateTime> { src, _, _ ->
             JsonPrimitive(src.toString())
@@ -458,7 +457,7 @@ class MusicService :
 
     private var consecutivePlaybackErr = 0
 
-    val maxSafeGainFactor = 1.414f // +3 dB
+    val maxSafeGainFactor = 1.414f 
     @Volatile
     private var hasCalledStartForeground = false
 
@@ -883,7 +882,6 @@ class MusicService :
                 onCrossfadeStart = { mediaItem ->
                     val metadata = mediaItem.metadata
                     currentMediaMetadata.value = metadata
-                    // immediate update when media item transitions to avoid stale presence
                     scope.launch {
                         try {
                             val token = dataStore.get(DiscordTokenKey, "")
@@ -909,7 +907,6 @@ class MusicService :
                 }
             ).also { it.start(scope) }
 
-        // Initialize lyrics pre-load manager
         lyricsPreloadManager = LyricsPreloadManager(
             context = this,
             database = database,
@@ -934,32 +931,24 @@ class MusicService :
         }.collectLatest(scope) { (format, normalizeAudio) ->
             audioNormalizationEnabled.value = normalizeAudio
             Timber.tag("AudioNormalization").d("Audio normalization enabled: $normalizeAudio")
-            Timber.tag("AudioNormalization").d("Format loudnessDb: ${format?.loudnessDb}, perceptualLoudnessDb: ${format?.perceptualLoudnessDb}")
             
             normalizeFactor.value =
                 if (normalizeAudio) {
-                    // Use loudnessDb if available, otherwise fall back to perceptualLoudnessDb
                     val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
                     
                     if (loudness != null) {
                         val loudnessDb = loudness.toFloat()
                         var factor = 10f.pow(-loudnessDb / 20)
                         
-                        Timber.tag("AudioNormalization").d("Calculated raw normalization factor: $factor (from loudness: $loudnessDb)")
-                        
                         if (factor > 1f) {
                             factor = min(factor, maxSafeGainFactor)
-                            Timber.tag("AudioNormalization").d("Factor capped at maxSafeGainFactor: $factor")
                         }
                         
-                        Timber.tag("AudioNormalization").i("Applying normalization factor: $factor")
                         factor
                     } else {
-                        Timber.tag("AudioNormalization").w("Normalization enabled but no loudness data available - no normalization applied")
                         1f
                     }
                 } else {
-                    Timber.tag("AudioNormalization").d("Normalization disabled - using factor 1.0")
                     1f
                 }
         }
@@ -1013,7 +1002,6 @@ class MusicService :
                 trimPlayerCacheToBytes(limitBytes)
             }
 
-        // Last.fm ScrobbleManager setup
         dataStore.data
             .map { it[EnableLastFMScrobblingKey] ?: false }
             .debounce(300)
@@ -1078,7 +1066,6 @@ class MusicService :
                 
                 readPersistentObject<PersistPlayerState>(PERSISTENT_PLAYER_STATE_FILE)
                     ?.let { playerState ->
-                    // FIX: Removed delay(1000) for instant state loading
                     withContext(Dispatchers.Main) {
                         player.repeatMode = playerState.repeatMode
                         player.shuffleModeEnabled = playerState.shuffleModeEnabled
@@ -1106,7 +1093,6 @@ class MusicService :
             }
         }
 
-        // Save queue periodically to prevent queue loss from crash or force kill
         scope.launch {
             while (isActive) {
                 val interval = if (player.isPlaying) 10.seconds else 30.seconds
@@ -1152,7 +1138,6 @@ class MusicService :
 
             val fullIndex = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
 
-            // 🔥 FIX: Instant loading and metadata set from saved file directly
             val savedMetadata = persistedQueue.items.getOrNull(fullIndex)
             if (savedMetadata != null) {
                 currentMediaMetadata.value = savedMetadata
@@ -1169,9 +1154,7 @@ class MusicService :
     private fun ensurePresenceManager() {
         if (DiscordPresenceManager.isRunning() && lastPresenceToken != null) return
 
-        // Launch in scope to avoid blocking
         scope.launch {
-            // Don't start if Discord RPC is disabled in settings
             if (!dataStore.get(EnableDiscordRPCKey, false)) {
                 if (DiscordPresenceManager.isRunning()) {
                     Timber.tag("MusicService").d("Discord RPC disabled → stopping presence manager")
@@ -1279,18 +1262,13 @@ class MusicService :
             }
 
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-
                 hasAudioFocus = false
-
                 wasPlayingBeforeAudioFocusLoss = player.isPlaying
-
                 audioFocusVolumeFactor.value = 0.2f
-
                 lastAudioFocusState = focusChange
             }
 
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
-
                 hasAudioFocus = true
                 audioFocusVolumeFactor.value = 1f
 
@@ -1305,7 +1283,6 @@ class MusicService :
             AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK -> {
                 hasAudioFocus = true
                 audioFocusVolumeFactor.value = 1f
-
                 lastAudioFocusState = focusChange
             }
         }
@@ -3269,9 +3246,7 @@ class MusicService :
                  update(song)
                  syncUtils.likeSong(song)
 
-                 // Check if auto-download on like is enabled and the song is now liked
                  if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
-                     // Trigger download for the liked song
                      val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest
                          .Builder(song.id, song.id.toUri())
                          .setCustomCacheKey(song.id)
@@ -3513,9 +3488,7 @@ class MusicService :
 
     crossfadeAudio?.onMediaItemTransition(mediaItem, reason)
 
-    // Pre-load lyrics for upcoming songs in queue
     val currentIndex = player.currentMediaItemIndex
-    // Convert media items to MediaMetadata for lyrics pre-loading
     val queue = player.mediaItems.mapNotNull { it.metadata }
     if (queue.isNotEmpty()) {
         lyricsPreloadManager?.onSongChanged(currentIndex, queue)
@@ -3577,7 +3550,6 @@ class MusicService :
         }
     }
 
-    // Auto-load more from queue if available
     if (!suppressAutoPlayback &&
         !timelineEmpty &&
         dataStore.get(AutoLoadMoreKey, true) &&
@@ -3679,7 +3651,6 @@ class MusicService :
         scrobbleManager?.onSongStop()
     }
     
-    // Auto-start recommendations when playback ends
     if (!suppressAutoPlayback &&
         playbackState == Player.STATE_ENDED &&
         dataStore.get(AutoLoadMoreKey, true) &&
@@ -3743,7 +3714,6 @@ class MusicService :
         try {
             val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
             if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                // Obtain the freshest Song from DB using current media item id to avoid stale currentSong.value
                 val mediaId = player.currentMediaItem?.mediaId
                 val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
                 val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
@@ -3886,7 +3856,6 @@ class MusicService :
             if (crossfadeAudio?.isCrossfading() != true) {
                 currentMediaMetadata.value = player.currentMetadata
             }
-            // immediate update when media item transitions to avoid stale presence
             scope.launch {
                 try {
                     val token = dataStore.get(DiscordTokenKey, "")
@@ -3920,7 +3889,6 @@ class MusicService :
                                     }
                                 }
                                 
-                                // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
                         }
                     }
@@ -3930,12 +3898,10 @@ class MusicService :
             }
         }
 
-        // Also handle immediate update for play state and media item transition events explicitly
         if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
             if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
                 currentMediaMetadata.value = player.currentMetadata
             }
-            // Capture player state on Main thread
             val currentMediaId = player.currentMediaItem?.mediaId
             val currentMetadata = player.currentMetadata
             val currentPosition = player.currentPosition
@@ -3949,8 +3915,6 @@ class MusicService :
                         val finalSong = song ?: currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         if (canUpdatePresence()) {
-                            // Run update on IO if possible, assuming updateNow is thread-safe or handles its own threading correctly
-                            // Assuming it's network/logic.
                             val success = withContext(Dispatchers.IO) {
                                 DiscordPresenceManager.updateNow(
                                     context = this@MusicService,
@@ -3978,8 +3942,6 @@ class MusicService :
                                         }
                                     }
                                 }
-                                
-                                // Last.fm now playing - handled by ScrobbleManager
                             } catch (_: Exception) {}
                         }
                     }
@@ -3991,7 +3953,6 @@ class MusicService :
 
    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()
-        // Scrobble: Track play/pause state
         scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
         ensurePresenceManager()
@@ -4022,7 +3983,6 @@ class MusicService :
             applyCurrentFirstShuffleOrder()
         }
         
-        // Save state when shuffle mode changes - must be on Main thread to access player
         scope.launch {
             if (dataStore.get(PersistentQueueKey, true)) {
                 saveQueueToDisk()
@@ -4053,7 +4013,6 @@ class MusicService :
             }
         }
         
-        // Save state when repeat mode changes - must be on Main thread to access player
         scope.launch {
             if (dataStore.get(PersistentQueueKey, true)) {
                 saveQueueToDisk()
@@ -4083,11 +4042,10 @@ class MusicService :
                 playbackUrlCache.remove(currentMediaId)
                 pendingStreamRefreshValidationMediaId = currentMediaId
                 
-                // 👇 LOOP FIX
                 val currentPos = player.currentPosition
+                val currentIndex = player.currentMediaItemIndex
+                player.seekTo(currentIndex, currentPos)
                 player.prepare()
-                player.seekTo(currentPos)
-                // 👆 LOOP FIX END
                 
                 player.playWhenReady = true
                 return
@@ -4115,11 +4073,10 @@ class MusicService :
             )
             refreshValidatedPlayingMediaId = null
             
-            // 👇 LOOP FIX
             val currentPos = player.currentPosition
+            val currentIndex = player.currentMediaItemIndex
+            player.seekTo(currentIndex, currentPos)
             player.prepare()
-            player.seekTo(currentPos)
-            // 👆 LOOP FIX END
             
             player.playWhenReady = true
             return
@@ -4142,11 +4099,10 @@ class MusicService :
             playbackUrlCache.remove(currentMediaId)
             pendingStreamRefreshValidationMediaId = currentMediaId
             
-            // 👇 LOOP FIX
             val currentPos = player.currentPosition
+            val currentIndex = player.currentMediaItemIndex
+            player.seekTo(currentIndex, currentPos)
             player.prepare()
-            player.seekTo(currentPos)
-            // 👆 LOOP FIX END
             
             player.playWhenReady = true
             return
@@ -4383,11 +4339,10 @@ class MusicService :
         playbackUrlCache.remove(mediaId)
         pendingStreamRefreshValidationMediaId = mediaId
         
-        // 👇 LOOP FIX
         val currentPos = player.currentPosition
+        val currentIndex = player.currentMediaItemIndex
+        player.seekTo(currentIndex, currentPos)
         player.prepare()
-        player.seekTo(currentPos)
-        // 👆 LOOP FIX END
         
         player.playWhenReady = true
     }
@@ -4598,7 +4553,6 @@ class MusicService :
         return cookie.isNotBlank() && cookie.contains("SAPISID")
     }
 
-    // Create a transient Song object from current Player MediaMetadata when the DB doesn't have it.
     private fun createTransientSongFromMedia(media: com.j.m3play.models.MediaMetadata): Song {
         val songEntity = SongEntity(
             id = media.id,
@@ -4639,14 +4593,13 @@ class MusicService :
         )
     }
 
-    // Naya JSON Reader (Metrolist Logic)
     private inline fun <reified T> readPersistentObject(fileName: String): T? {
         val persistentFile = filesDir.resolve(fileName)
         if (!persistentFile.exists() || !persistentFile.isFile) return null
 
         return synchronized(persistentStateLock) {
             try {
-                val jsonString = persistentFile.readText() // Read file as plain text
+                val jsonString = persistentFile.readText() 
                 val type = object : TypeToken<T>() {}.type
                 gson.fromJson<T>(jsonString, type)
             } catch (e: Exception) {
@@ -4658,15 +4611,14 @@ class MusicService :
         }
     }
 
-    // Naya JSON Writer (OS kill hone se pehle fast text likhega)
     private inline fun <reified T> writePersistentObject(fileName: String, payload: T) {
         val persistentFile = filesDir.resolve(fileName)
         val tempFile = filesDir.resolve("$fileName.tmp")
 
         synchronized(persistentStateLock) {
             try {
-                val jsonString = gson.toJson(payload) // Convert complex objects to JSON text
-                tempFile.writeText(jsonString)        // Save instantly!
+                val jsonString = gson.toJson(payload) 
+                tempFile.writeText(jsonString)        
                 if (persistentFile.exists() && !persistentFile.delete()) {
                     Timber.tag("MusicService").e("Could not replace $fileName")
                 }
@@ -4726,7 +4678,6 @@ class MusicService :
          )
     }
 
-    // Main thread/Sync file write for when app is swiped away
     private fun saveQueueToDiskSync() {
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
         if (mediaItemsSnapshot.isEmpty()) return
@@ -4782,7 +4733,6 @@ class MusicService :
         val playbackState = player.playbackState
 
         withContext(Dispatchers.IO) {
-            // Save current queue with proper type information
             val persistQueue = currentQueue.toPersistQueue(
                 title = queueTitle,
                 items = mediaItemsSnapshot,
@@ -4798,14 +4748,13 @@ class MusicService :
                     position = 0,
                 )
                 
-            // Save player state
             val persistPlayerState = PersistPlayerState(
                 playWhenReady = playWhenReady,
                 repeatMode = repeatMode,
                 shuffleModeEnabled = shuffleModeEnabled,
                 volume = volume,
                 currentPosition = currentPosition,
-                currentMediaItemIndex = currentMediaItemIndex, // Redundant but part of data class
+                currentMediaItemIndex = currentMediaItemIndex, 
                 playbackState = playbackState
             )
             
@@ -4935,7 +4884,6 @@ class MusicService :
             Timber.tag("MusicService").e(e, "CRITICAL: Failed to save queue on task clear")
         }
 
-        // When the user clears the app from Recents, ensure we clear Discord rich presence
         try {
             scope.launch {
                 try { discordRpc?.stopActivity() } catch (_: Exception) {}
@@ -4974,7 +4922,7 @@ class MusicService :
 
                 if (stopMusicOnTaskClearEnabled) {
                     if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
-                        saveQueueToDiskSync() // Extra safety fallback
+                        saveQueueToDiskSync() 
                     }
                     runCatching { stopAndClearPlayback() }
                     runCatching {
