@@ -120,7 +120,12 @@ fun LibrarySongsScreen(
         }
     }
 
+    // ⚡ FIX: Dono remember blocks ko LazyColumn ke bahar move kar diya
     val wrappedSongs = remember(songs) { songs.map { item -> ItemWrapper(item) }.toMutableList() }
+    
+    val filteredSongs = remember(wrappedSongs, hideExplicit) {
+        if (hideExplicit) wrappedSongs.filter { !it.item.song.explicit } else wrappedSongs
+    }
     
     var selection by remember { mutableStateOf(false) }
 
@@ -260,10 +265,7 @@ fun LibrarySongsScreen(
                 }
             }
 
-            val filteredSongs = remember(wrappedSongs, hideExplicit) {
-                if (hideExplicit) wrappedSongs.filter { !it.item.song.explicit } else wrappedSongs
-            }
-            
+            // Yahan hum directly `filteredSongs` variable use kar rahe hain (jo ki upar defined hai)
             itemsIndexed(
                 items = filteredSongs,
                 key = { _, item -> item.item.song.id },
