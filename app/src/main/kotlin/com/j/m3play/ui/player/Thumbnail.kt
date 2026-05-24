@@ -153,6 +153,8 @@ import java.io.File
 import java.util.LinkedHashMap
 import java.util.Locale
 import kotlin.math.abs
+import coil3.request.crossfade
+
 
 @Immutable
 data class ThumbnailDimensions(
