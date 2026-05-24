@@ -96,6 +96,7 @@ import com.j.m3play.constants.ListItemHeight
 import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.QueueEditLockKey
+import com.j.m3play.extensions.metadata
 import com.j.m3play.extensions.move
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.extensions.toggleRepeatMode
