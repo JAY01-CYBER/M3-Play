@@ -62,10 +62,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.palette.graphics.Palette
@@ -135,7 +131,8 @@ fun LibraryPlaylistsScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    var viewType by rememberEnumPreference(PlaylistViewTypeKey, LibraryViewType.GRID)
+    // ⚡ FIX: Grid ki jagah List default set kiya gaya hai
+    var viewType by rememberEnumPreference(PlaylistViewTypeKey, LibraryViewType.LIST)
     val (sortType, onSortTypeChange) = rememberEnumPreference(
         PlaylistSortTypeKey,
         PlaylistSortType.CUSTOM
@@ -146,7 +143,6 @@ fun LibraryPlaylistsScreen(
     )
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, false)
-
 
     val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
     val selectedTagIds = remember(selectedTagsFilter) {
@@ -311,12 +307,10 @@ fun LibraryPlaylistsScreen(
         }
     }
 
-    // Gradient colors state for playlists page background
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
     
-    // Extract gradient colors from the first playlist with thumbnails
     LaunchedEffect(playlists) {
         val firstPlaylistWithThumbs = playlists.firstOrNull { it.songThumbnails.isNotEmpty() }
         val thumbnailUrl = firstPlaylistWithThumbs?.songThumbnails?.firstOrNull()
@@ -354,7 +348,6 @@ fun LibraryPlaylistsScreen(
         }
     }
     
-    // Calculate gradient opacity based on scroll position for both list and grid
     val gradientAlpha by remember {
         derivedStateOf {
             val firstVisibleIndex = when (viewType) {
@@ -367,7 +360,6 @@ fun LibraryPlaylistsScreen(
             }
             
             if (firstVisibleIndex == 0) {
-                // Fade out over 900dp of scrolling
                 (1f - (scrollOffset / 900f)).coerceIn(0f, 1f)
             } else {
                 0f
@@ -463,29 +455,27 @@ fun LibraryPlaylistsScreen(
                 onRefresh = { if (ytmSync) viewModel.sync() }
             ),
     ) {
-        // Mesh gradient background layer - behind everything
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f) // Cover top 70% of screen
+                    .fillMaxSize(0.7f) 
                     .align(Alignment.TopCenter)
-                    .zIndex(-1f) // Place behind all content
+                    .zIndex(-1f) 
                     .drawBehind {
                         val width = size.width
                         val height = size.height
                         
-                        // Create mesh gradient with 5 color blobs for variation
                         if (gradientColors.size >= 3) {
                             val c0 = gradientColors[0]
                             val c1 = gradientColors[1]
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // First color blob - top left
+  
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
+                                     colors = listOf(
                                         c0.copy(alpha = gradientAlpha * 0.34f),
                                         c0.copy(alpha = gradientAlpha * 0.2f),
                                         c0.copy(alpha = gradientAlpha * 0.11f),
@@ -497,7 +487,6 @@ fun LibraryPlaylistsScreen(
                                 )
                             )
                             
-                            // Second color blob - top right
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -512,7 +501,6 @@ fun LibraryPlaylistsScreen(
                                 )
                             )
                             
-                            // Third color blob - middle left
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -522,12 +510,11 @@ fun LibraryPlaylistsScreen(
                                         c2.copy(alpha = gradientAlpha * 0.038f),
                                         Color.Transparent
                                     ),
-                                    center = Offset(width * 0.3f, height * 0.45f),
+                                     center = Offset(width * 0.3f, height * 0.45f),
                                     radius = width * 0.6f
                                 )
                             )
                             
-                            // Fourth color blob - middle right
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -541,8 +528,7 @@ fun LibraryPlaylistsScreen(
                                     radius = width * 0.7f
                                 )
                             )
-                            
-                            // Fifth color blob - bottom center
+                             
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -557,7 +543,6 @@ fun LibraryPlaylistsScreen(
                                 )
                             )
                         } else {
-                            // Fallback: single radial gradient
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -568,7 +553,7 @@ fun LibraryPlaylistsScreen(
                                     center = Offset(width * 0.5f, height * 0.3f),
                                     radius = width * 0.7f
                                 )
-                            )
+                             )
                         }
 
                         drawRect(
@@ -616,8 +601,7 @@ fun LibraryPlaylistsScreen(
                             PlaylistListItem(
                                 playlist = likedPlaylist,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         navController.navigate("auto_playlist/liked")
@@ -635,8 +619,7 @@ fun LibraryPlaylistsScreen(
                             PlaylistListItem(
                                 playlist = downloadPlaylist,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         navController.navigate("auto_playlist/downloaded")
@@ -654,8 +637,7 @@ fun LibraryPlaylistsScreen(
                             PlaylistListItem(
                                 playlist = topPlaylist,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         navController.navigate("top_playlist/$topSize")
@@ -673,8 +655,7 @@ fun LibraryPlaylistsScreen(
                             PlaylistListItem(
                                 playlist = cachePlaylist,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         navController.navigate("cache_playlist/cached")
@@ -741,8 +722,7 @@ fun LibraryPlaylistsScreen(
             LibraryViewType.GRID -> {
                 LazyVerticalGrid(
                     state = lazyGridState,
-                    columns =
-                    GridCells.Adaptive(
+                    columns = GridCells.Adaptive(
                         minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp,
                     ),
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
@@ -772,8 +752,7 @@ fun LibraryPlaylistsScreen(
                                 playlist = likedPlaylist,
                                 fillMaxWidth = true,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .combinedClickable(
                                         onClick = {
@@ -794,8 +773,7 @@ fun LibraryPlaylistsScreen(
                                 playlist = downloadPlaylist,
                                 fillMaxWidth = true,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .combinedClickable(
                                         onClick = {
@@ -816,8 +794,7 @@ fun LibraryPlaylistsScreen(
                                 playlist = topPlaylist,
                                 fillMaxWidth = true,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .combinedClickable(
                                         onClick = {
@@ -838,8 +815,7 @@ fun LibraryPlaylistsScreen(
                                 playlist = cachePlaylist,
                                 fillMaxWidth = true,
                                 autoPlaylist = true,
-                                modifier =
-                                Modifier
+                                modifier = Modifier
                                     .fillMaxWidth()
                                     .combinedClickable(
                                         onClick = {
@@ -890,4 +866,3 @@ fun LibraryPlaylistsScreen(
         )
     }
 }
-
