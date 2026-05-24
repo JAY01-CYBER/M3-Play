@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.media3.exoplayer.offline.Download
@@ -181,9 +182,7 @@ fun PlaylistMenu(
             },
             buttons = {
                 TextButton(
-                    onClick = {
-                        showRemoveDownloadDialog = false
-                    },
+                    onClick = { showRemoveDownloadDialog = false },
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -238,9 +237,7 @@ fun PlaylistMenu(
             },
             buttons = {
                 TextButton(
-                    onClick = {
-                        showDeletePlaylistDialog = false
-                    }
+                    onClick = { showDeletePlaylistDialog = false }
                 ) {
                     Text(text = stringResource(android.R.string.cancel))
                 }
@@ -267,39 +264,12 @@ fun PlaylistMenu(
         )
     }
 
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        PlaylistListItem(
-            playlist = playlist,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-            trailingContent = {
-                if (playlist.playlist.isEditable != true) {
-                    IconButton(
-                        onClick = {
-                            database.query {
-                                dbPlaylist?.playlist?.toggleLike()?.let { update(it) }
-                            }
-                        },
-                    ) {
-                        Icon(
-                            painter = painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border),
-                            tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else LocalContentColor.current,
-                            contentDescription = null,
-                        )
-                    }
-                }
-            },
-        )
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    val dividerModifier = Modifier.padding(start = 56.dp)
+    
+    // Modern Inset Divider for a cleaner, expensive look
+    val dividerModifier = Modifier.padding(horizontal = 32.dp)
+    
     val startRadioText = stringResource(R.string.start_radio)
     val playText = stringResource(R.string.play)
     val shuffleText = stringResource(R.string.shuffle)
@@ -309,16 +279,8 @@ fun PlaylistMenu(
     val speedDialText = stringResource(if (isInSpeedDial) R.string.remove_from_speed_dial else R.string.pin_to_speed_dial)
 
     val primaryActions = remember(
-        songs,
-        playText,
-        shuffleText,
-        shareText,
-        speedDialText,
-        isInSpeedDial,
-        playlist.playlist.name,
-        dbPlaylist?.playlist?.browseId,
-        onDismiss,
-        playerConnection,
+        songs, playText, shuffleText, shareText, speedDialText, isInSpeedDial,
+        playlist.playlist.name, dbPlaylist?.playlist?.browseId, onDismiss, playerConnection,
     ) {
         listOf(
             NewAction(
@@ -420,39 +382,72 @@ fun PlaylistMenu(
     LazyColumn(
         userScrollEnabled = !isPortrait,
         contentPadding = PaddingValues(
-            start = 0.dp,
-            top = 0.dp,
-            end = 0.dp,
-            bottom = 8.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(),
+            start = 12.dp, // Added side padding for floating effect
+            top = 16.dp,
+            end = 12.dp,
+            bottom = 100.dp + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding(), // Ensured it doesn't cut at the bottom
         ),
     ) {
+        // --- Premium Header Card ---
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        item {
-            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                NewActionGrid(
-                    actions = primaryActions,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+            ) {
+                PlaylistListItem(
+                    playlist = playlist,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+                    trailingContent = {
+                        if (playlist.playlist.isEditable != true) {
+                            IconButton(
+                                onClick = {
+                                    database.query {
+                                        dbPlaylist?.playlist?.toggleLike()?.let { update(it) }
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    painter = painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border),
+                                    tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else LocalContentColor.current,
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    },
                 )
             }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+        item { Spacer(modifier = Modifier.height(20.dp)) } // More breathing space
 
+        // --- Quick Actions Grid ---
         item {
             MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                Column {
+                NewActionGrid(
+                    actions = primaryActions,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                )
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        // --- Main Operations Section ---
+        item {
+            MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
+                Column(modifier = Modifier.padding(vertical = 8.dp)) { // Inner padding for lists
                     playlist.playlist.browseId?.let { browseId ->
                         ListItem(
-                            headlineContent = { Text(text = startRadioText) },
+                            headlineContent = { Text(text = startRadioText, fontWeight = FontWeight.Medium) },
                             leadingContent = {
                                 Icon(
                                     painter = painterResource(R.drawable.radio),
                                     contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -472,12 +467,12 @@ fun PlaylistMenu(
 
                         HorizontalDivider(
                             modifier = dividerModifier,
-                            color = MaterialTheme.colorScheme.outlineVariant,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
                     }
 
                     ListItem(
-                        headlineContent = { Text(text = playNextText) },
+                        headlineContent = { Text(text = playNextText, fontWeight = FontWeight.Medium) },
                         leadingContent = {
                             Icon(
                                 painter = painterResource(R.drawable.playlist_play),
@@ -495,11 +490,11 @@ fun PlaylistMenu(
 
                     HorizontalDivider(
                         modifier = dividerModifier,
-                        color = MaterialTheme.colorScheme.outlineVariant,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
 
                     ListItem(
-                        headlineContent = { Text(text = addToQueueText) },
+                        headlineContent = { Text(text = addToQueueText, fontWeight = FontWeight.Medium) },
                         leadingContent = {
                             Icon(
                                 painter = painterResource(R.drawable.queue_music),
@@ -516,11 +511,11 @@ fun PlaylistMenu(
                     if (editable && autoPlaylist != true) {
                         HorizontalDivider(
                             modifier = dividerModifier,
-                            color = MaterialTheme.colorScheme.outlineVariant,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
 
                         ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.edit)) },
+                            headlineContent = { Text(text = stringResource(R.string.edit), fontWeight = FontWeight.Medium) },
                             leadingContent = {
                                 Icon(
                                     painter = painterResource(R.drawable.edit),
@@ -537,11 +532,11 @@ fun PlaylistMenu(
                     if (autoPlaylist != true && downloadPlaylist != true) {
                         HorizontalDivider(
                             modifier = dividerModifier,
-                            color = MaterialTheme.colorScheme.outlineVariant,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                         )
 
                         ListItem(
-                            headlineContent = { Text(text = stringResource(R.string.manage_tags)) },
+                            headlineContent = { Text(text = stringResource(R.string.manage_tags), fontWeight = FontWeight.Medium) },
                             leadingContent = {
                                 Icon(
                                     painter = painterResource(R.drawable.style),
@@ -558,142 +553,148 @@ fun PlaylistMenu(
             }
         }
 
+        // --- Download Section ---
         if (downloadPlaylist != true) {
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             item {
                 MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                    when (downloadState) {
-                        Download.STATE_COMPLETED -> {
-                            ListItem(
-                                headlineContent = {
-                                    Text(
-                                        text = stringResource(R.string.remove_download),
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                leadingContent = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.offline),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                modifier = Modifier.clickable {
-                                    showRemoveDownloadDialog = true
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            )
-                        }
-
-                        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
-                            ListItem(
-                                headlineContent = { Text(text = stringResource(R.string.downloading)) },
-                                leadingContent = {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp,
-                                    )
-                                },
-                                modifier = Modifier.clickable {
-                                    showRemoveDownloadDialog = true
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            )
-                        }
-
-                        else -> {
-                            ListItem(
-                                headlineContent = { Text(text = stringResource(R.string.action_download)) },
-                                leadingContent = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.download),
-                                        contentDescription = null,
-                                    )
-                                },
-                                modifier = Modifier.clickable {
-                                    songs.forEach { song ->
-                                        val downloadRequest =
-                                            DownloadRequest
-                                                .Builder(song.id, song.id.toUri())
-                                                .setCustomCacheKey(song.id)
-                                                .setData(song.song.title.toByteArray())
-                                                .build()
-                                        DownloadService.sendAddDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            downloadRequest,
-                                            false,
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        when (downloadState) {
+                            Download.STATE_COMPLETED -> {
+                                ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            text = stringResource(R.string.remove_download),
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.Medium
                                         )
-                                    }
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            )
+                                    },
+                                    leadingContent = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.offline),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        showRemoveDownloadDialog = true
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+
+                            Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                                ListItem(
+                                    headlineContent = { Text(text = stringResource(R.string.downloading), fontWeight = FontWeight.Medium) },
+                                    leadingContent = {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp,
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        showRemoveDownloadDialog = true
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
+
+                            else -> {
+                                ListItem(
+                                    headlineContent = { Text(text = stringResource(R.string.action_download), fontWeight = FontWeight.Medium) },
+                                    leadingContent = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.download),
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        songs.forEach { song ->
+                                            val downloadRequest =
+                                                DownloadRequest
+                                                    .Builder(song.id, song.id.toUri())
+                                                    .setCustomCacheKey(song.id)
+                                                    .setData(song.song.title.toByteArray())
+                                                    .build()
+                                            DownloadService.sendAddDownload(
+                                                context,
+                                                ExoDownloadService::class.java,
+                                                downloadRequest,
+                                                false,
+                                            )
+                                        }
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
+        // --- Delete Section ---
         if (autoPlaylist != true) {
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             item {
                 MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                text = stringResource(R.string.delete),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.delete),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            showDeletePlaylistDialog = true
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = stringResource(R.string.delete),
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.delete),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                showDeletePlaylistDialog = true
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
             }
         }
 
+        // --- Share Link Section ---
         playlist.playlist.shareLink?.let { shareLink ->
-            item {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             item {
                 MenuSurfaceSection(modifier = Modifier.padding(vertical = 6.dp)) {
-                    ListItem(
-                        headlineContent = { Text(text = shareText) },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(R.drawable.share),
-                                contentDescription = null,
-                            )
-                        },
-                        modifier = Modifier.clickable {
-                            val intent =
-                                Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, shareLink)
-                                }
-                            context.startActivity(Intent.createChooser(intent, null))
-                            onDismiss()
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        ListItem(
+                            headlineContent = { Text(text = shareText, fontWeight = FontWeight.Medium) },
+                            leadingContent = {
+                                Icon(
+                                    painter = painterResource(R.drawable.share),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                val intent =
+                                    Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, shareLink)
+                                    }
+                                context.startActivity(Intent.createChooser(intent, null))
+                                onDismiss()
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        )
+                    }
                 }
             }
         }
