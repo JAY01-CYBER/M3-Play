@@ -851,6 +851,7 @@ private fun SeekEffectOverlay(
     )
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun CanvasArtworkPlayer(
     primaryUrl: String?,
@@ -921,8 +922,7 @@ private fun CanvasArtworkPlayer(
 
     AndroidView(
         factory = { viewContext ->
-            @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-            androidx.media3.ui.PlayerView(viewContext).apply {
+            PlayerView(viewContext).apply {
                 layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 player = exoPlayer
                 useController = false
@@ -931,10 +931,9 @@ private fun CanvasArtworkPlayer(
 
                 val textureView = android.view.TextureView(viewContext).apply {
                     layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                    isOpaque = false // Canvas transparency ke liye zaroori hai
+                    isOpaque = false 
                 }
 
-                // Replace internal SurfaceView with TextureView securely
                 val surfaceParent = this.videoSurfaceView?.parent as? android.view.ViewGroup
                 if (surfaceParent != null) {
                     val index = surfaceParent.indexOfChild(this.videoSurfaceView)
