@@ -921,16 +921,31 @@ private fun CanvasArtworkPlayer(
 
     AndroidView(
         factory = { viewContext ->
-            PlayerView(viewContext).apply {
+            @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+            androidx.media3.ui.PlayerView(viewContext).apply {
                 layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 player = exoPlayer
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM 
                 setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+
+                val textureView = android.view.TextureView(viewContext).apply {
+                    layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                    isOpaque = false // Canvas transparency ke liye zaroori hai
+                }
+
+                // Replace internal SurfaceView with TextureView securely
+                val surfaceParent = this.videoSurfaceView?.parent as? android.view.ViewGroup
+                if (surfaceParent != null) {
+                    val index = surfaceParent.indexOfChild(this.videoSurfaceView)
+                    surfaceParent.removeView(this.videoSurfaceView)
+                    surfaceParent.addView(textureView, index)
+                }
+                exoPlayer.setVideoTextureView(textureView)
             }
         },
         update = { view -> if (view.player !== exoPlayer) view.player = exoPlayer },
-        modifier = modifier.alpha(alpha),
+        modifier = modifier.alpha(alpha).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
     )
 }
 
