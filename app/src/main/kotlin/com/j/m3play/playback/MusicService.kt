@@ -3,7 +3,7 @@
  * │            M3Play Core Engine              │
  * │--------------------------------------------│
  * │  JSON Queue Persistence (Metrolist Logic)  │
- * │  Signature: M3PLAY::CORE::ENGINE::V5       │
+ * │  Signature: M3PLAY::CORE::ENGINE::V6       │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -1624,11 +1624,15 @@ class MusicService :
         clearAutomix()
         automixSeedMediaId = null
         autoAddedMediaIds.clear()
+        
+        // 1. Gaana turant play karna shuru karo (Preload)
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
             player.prepare()
             player.playWhenReady = playWhenReady
         }
+        
+        // 2. Background mein baaki ka Queue load karo
         scope.launch(SilentHandler) {
             val initialStatus =
                 withContext(Dispatchers.IO) {
@@ -1642,7 +1646,17 @@ class MusicService :
 
             val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            player.setMediaItems(items, index, initialStatus.position)
+            // 👇 FIX YAHAN HAI: Agar gaana already chal chuka hai 1-2 sec, toh usko restart mat hone do
+            val isPlayingPreload = queue.preloadItem != null && 
+                    player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId
+                    
+            val posToSeek = if (isPlayingPreload) {
+                player.currentPosition.coerceAtLeast(0L) // Wahi current time (jaise 1.5s) maintain rakho
+            } else {
+                initialStatus.position // Default 0
+            }
+            
+            player.setMediaItems(items, index, posToSeek)
             player.prepare()
             player.playWhenReady = playWhenReady
             if (player.shuffleModeEnabled) {
@@ -4226,7 +4240,7 @@ class MusicService :
             playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                return@Factory dataSpec.withUri(it.first.toUri()).subrange(0, length)
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -4305,7 +4319,7 @@ class MusicService :
                 playbackUrlCache[mediaId] =
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(0, length)
             }
         }
     }
