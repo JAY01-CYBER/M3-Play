@@ -1625,14 +1625,12 @@ class MusicService :
         automixSeedMediaId = null
         autoAddedMediaIds.clear()
         
-        // 1. Gaana turant play karna shuru karo (Preload)
         if (queue.preloadItem != null) {
             player.setMediaItem(queue.preloadItem!!.toMediaItem())
             player.prepare()
             player.playWhenReady = playWhenReady
         }
         
-        // 2. Background mein baaki ka Queue load karo
         scope.launch(SilentHandler) {
             val initialStatus =
                 withContext(Dispatchers.IO) {
@@ -1646,19 +1644,23 @@ class MusicService :
 
             val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            // 👇 FIX YAHAN HAI: Agar gaana already chal chuka hai 1-2 sec, toh usko restart mat hone do
             val isPlayingPreload = queue.preloadItem != null && 
-                    player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId
+                    player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId &&
+                    player.mediaItemCount == 1
                     
-            val posToSeek = if (isPlayingPreload) {
-                player.currentPosition.coerceAtLeast(0L) // Wahi current time (jaise 1.5s) maintain rakho
+            if (isPlayingPreload) {
+                if (index < items.size - 1) {
+                    player.addMediaItems(items.subList(index + 1, items.size))
+                }
+                if (index > 0) {
+                    player.addMediaItems(0, items.subList(0, index))
+                }
             } else {
-                initialStatus.position // Default 0
+                player.setMediaItems(items, index, initialStatus.position)
+                player.prepare()
+                player.playWhenReady = playWhenReady
             }
             
-            player.setMediaItems(items, index, posToSeek)
-            player.prepare()
-            player.playWhenReady = playWhenReady
             if (player.shuffleModeEnabled) {
                 applyCurrentFirstShuffleOrder()
             }
@@ -4240,7 +4242,7 @@ class MusicService :
             playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(it.first.toUri()).subrange(0, length)
+                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -4319,7 +4321,7 @@ class MusicService :
                 playbackUrlCache[mediaId] =
                     streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
                 val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
-                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(0, length)
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
             }
         }
     }
