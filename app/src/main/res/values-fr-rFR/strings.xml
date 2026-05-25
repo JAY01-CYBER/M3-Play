@@ -166,7 +166,7 @@
     <string name="song_artists">Song artists</string>
     <string name="error_song_title_empty">Song title cannot be empty.</string>
     <string name="error_song_artist_empty">Song artist cannot be empty.</string>
-    <string name="save">Save</string>
+    <string name="save">Enregistrer</string>
     <string name="choose_playlist">Choose playlist</string>
     <string name="edit_playlist">Edit playlist</string>
     <string name="create_playlist">Create playlist</string>
@@ -283,10 +283,10 @@
     <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Coucher de Soleil</string>
     <string name="palette_golden_hour">Doré</string>
-    <string name="palette_warm_amber">Amber</string>
-    <string name="palette_tangerine_blast">Tangerine</string>
-    <string name="palette_peach">Peach</string>
-    <string name="palette_mango">Mango</string>
+    <string name="palette_warm_amber">Ambre</string>
+    <string name="palette_tangerine_blast">Mandarine</string>
+    <string name="palette_peach">Pêche</string>
+    <string name="palette_mango">Mangue</string>
     <!-- Purples -->
     <string name="palette_royal_purple">Royal Purple</string>
     <string name="palette_lavender_dream">Lavender</string>
@@ -300,14 +300,14 @@
     <string name="palette_magenta_pop">Magenta</string>
     <string name="palette_hot_pink">Hot Pink</string>
     <string name="palette_blush">Blush</string>
-    <string name="palette_coral">Coral</string>
-    <string name="palette_bubblegum">Bubblegum</string>
+    <string name="palette_coral">Corail</string>
+    <string name="palette_bubblegum">Chewing-gum</string>
     <!-- Reds -->
     <string name="palette_crimson_red">Crimson</string>
     <string name="palette_youtube_red">YouTube</string>
-    <string name="palette_wine_red">Wine</string>
-    <string name="palette_ruby_red">Ruby</string>
-    <string name="palette_scarlet">Scarlet</string>
+    <string name="palette_wine_red">Vin</string>
+    <string name="palette_ruby_red">Rubis</string>
+    <string name="palette_scarlet">Écarlate</string>
     <!-- Neutrals -->
     <string name="palette_charcoal">Charcoal</string>
     <string name="palette_silver">Silver</string>
@@ -315,10 +315,10 @@
     <string name="palette_graphite">Graphite</string>
     <!-- Earth Tones -->
     <string name="palette_terracotta">Terracotta</string>
-    <string name="palette_coffee">Coffee</string>
+    <string name="palette_coffee">Café</string>
     <string name="palette_mocha">Mocha</string>
-    <string name="palette_sand">Sand</string>
-    <string name="palette_clay">Clay</string>
+    <string name="palette_sand">Sable</string>
+    <string name="palette_clay">Argile</string>
     <!-- Pastels -->
     <string name="palette_pastel_pink">Pastel Pink</string>
     <string name="palette_pastel_blue">Pastel Blue</string>
@@ -333,7 +333,7 @@
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
     <!-- Special & Themed -->
-    <string name="palette_ocean">Ocean</string>
+    <string name="palette_ocean">Océan</string>
     <string name="palette_forest">Forêt Profonde</string>
     <string name="palette_autumn">Automne</string>
     <string name="palette_winter">Hiver</string>
@@ -381,19 +381,19 @@
     <string name="show_button1_description">Toggle visibility of button 1 in Discord Rich Presence</string>
     <string name="show_button2_description">Toggle visibility of button 2 in Discord Rich Presence</string>
     <string name="discord_activity_type">Type d\'activité</string>
-    <string name="dark_theme_follow_system">Follow system</string>
+    <string name="dark_theme_follow_system">Suivre le système</string>
     <string name="pure_black">Noir pur</string>
     <string name="disable_blur">Désactiver les effets de flou</string>
     <string name="disable_blur_desc">Désactivez les effets de flou dans toute l\'application</string>
-    <string name="customize_navigation_tabs">Customize navigation tabs</string>
+    <string name="customize_navigation_tabs">Personnaliser les onglets de navigation</string>
     <string name="player">Lecteur</string>
     <string name="player_text_alignment">Alignement du texte du lecteur</string>
     <string name="lyrics_text_position">Position du texte des paroles</string>
     <string name="sided">Côté</string>
-    <string name="left">Left</string>
-    <string name="center">Center</string>
-    <string name="right">Right</string>
-    <string name="player_slider_style">Player slider style</string>
+    <string name="left">Gauche</string>
+    <string name="center">Centre</string>
+    <string name="right">Droite</string>
+    <string name="player_slider_style">Style du curseur du lecteur</string>
     <string name="slider_style_standard">Standard</string>
     <string name="slider_style_wavy">Ondulé</string>
     <string name="slider_style_thick">Épais</string>
@@ -403,9 +403,9 @@
     <string name="squiggly">Zigzaguant</string>
     <string name="misc">Divers</string>
     <string name="default_open_tab">Default open tab</string>
-    <string name="grid_cell_size">Grid cell size</string>
-    <string name="small">Small</string>
-    <string name="big">Big</string>
+    <string name="grid_cell_size">Taille des cellules de la grille</string>
+    <string name="small">Petite</string>
+    <string name="big">Grande</string>
     <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Style d\'animation des paroles</string>
     <!-- Animation options -->
