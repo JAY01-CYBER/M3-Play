@@ -11,8 +11,7 @@ import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,6 +32,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -134,7 +134,7 @@ import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
-// 🌟 ORIGINAL VIVI GROUPING SHAPE 🌟
+
 @Composable
 fun getViviGroupedShape(index: Int, size: Int): Shape {
     return when {
@@ -163,17 +163,14 @@ inline fun ListItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 16.dp, vertical = 8.dp) // Removed surface background for clean look
             .height(ListItemHeight)
-            .padding(horizontal = 8.dp)
-            .then(if (isActive) Modifier.background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f), RoundedCornerShape(8.dp)) else Modifier)
     ) {
-        Box(Modifier.padding(6.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
-        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+        Box(Modifier.padding(end = 12.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
+        Column(Modifier.weight(1f)) {
             Text(
-                text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                 color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
@@ -328,16 +325,8 @@ fun SongListItem(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-                .then(
-                    if (isActive) Modifier.background(
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        RoundedCornerShape(8.dp)
-                    ) else Modifier
-                ),
+                .padding(horizontal = 16.dp, vertical = 10.dp), // Premium Look - No background container
             verticalAlignment = Alignment.CenterVertically
         ) {
             ItemThumbnail(
@@ -346,8 +335,8 @@ fun SongListItem(
                 isSelected = isSelected,
                 isActive = isActive,
                 isPlaying = isPlaying,
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier.size(48.dp)
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.size(52.dp)
             )
 
             Spacer(modifier = Modifier.width(14.dp))
@@ -356,8 +345,8 @@ fun SongListItem(
                 Text(
                     text = song.song.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 15.sp
+                        fontWeight = FontWeight.SemiBold, // Bold typography for premium feel
+                        fontSize = 16.sp
                     ),
                     color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -379,7 +368,7 @@ fun SongListItem(
                         Text(
                             text = subtitleText,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -979,16 +968,8 @@ fun YouTubeListItem(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = if (isGrouped) 1.dp else 4.dp) // Original 1dp ViVi Gap
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-                .then(
-                    if (isActive) Modifier.background(
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        RoundedCornerShape(8.dp)
-                    ) else Modifier
-                ),
+                .padding(horizontal = 16.dp, vertical = 10.dp), // Premium Look - No background container
             verticalAlignment = Alignment.CenterVertically
         ) {
             ItemThumbnail(
@@ -997,8 +978,8 @@ fun YouTubeListItem(
                 isSelected = isSelected,
                 isActive = isActive,
                 isPlaying = isPlaying,
-                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(6.dp),
-                modifier = Modifier.size(48.dp)
+                shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(8.dp),
+                modifier = Modifier.size(52.dp)
             )
 
             Spacer(modifier = Modifier.width(14.dp))
@@ -1007,8 +988,8 @@ fun YouTubeListItem(
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 15.sp
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
                     ),
                     color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -1031,7 +1012,7 @@ fun YouTubeListItem(
                         Text(
                             text = subtitleText,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1321,25 +1302,28 @@ fun ItemThumbnail(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.done),
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = Color.White
                 )
             }
         }
 
-        PlayingIndicatorBox(
-            isActive = isActive,
-            playWhenReady = isPlaying,
-            color = if (albumIndex != null) MaterialTheme.colorScheme.onBackground else Color.White,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    color = if (albumIndex != null)
-                        Color.Transparent
-                    else
-                        Color.Black.copy(alpha = ActiveBoxAlpha),
-                    shape = shape
-                )
-        )
+        // Updated Active Box with PlayingWaveform
+        if (isActive) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        color = if (albumIndex != null) Color.Transparent else Color.Black.copy(alpha = ActiveBoxAlpha),
+                        shape = shape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isPlaying) {
+                    PlayingWaveform(color = if (albumIndex != null) MaterialTheme.colorScheme.onBackground else Color.White)
+                }
+            }
+        }
     }
 }
 
@@ -1398,10 +1382,8 @@ fun LocalThumbnail(
                     .background(Color.Black.copy(alpha = 0.4f), shape)
             ) {
                 if (isPlaying) {
-                    PlayingIndicator(
-                        color = Color.White,
-                        modifier = Modifier.height(24.dp)
-                    )
+                    // Replaced PlayingIndicator with modern PlayingWaveform
+                    PlayingWaveform(color = Color.White)
                 } else {
                     Icon(
                         painter = painterResource(R.drawable.play),
@@ -1673,7 +1655,7 @@ fun SwipeToSongBox(
             modifier = Modifier
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface),
+                .background(Color.Transparent), // Changed to transparent for clean look
             content = content
         )
     }
@@ -1687,6 +1669,34 @@ private fun reset(offset: MutableState<Float>, scope: CoroutineScope) {
             targetValue = 0f,
             animationSpec = tween(durationMillis = 300)
         ) { value, _ -> offset.value = value }
+    }
+}
+
+// New Waveform Animation for playing state
+@Composable
+fun PlayingWaveform(modifier: Modifier = Modifier, color: Color = Color.White) {
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val bar1 by infiniteTransition.animateFloat(
+        initialValue = 0.4f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(400, easing = LinearEasing), repeatMode = RepeatMode.Reverse), label = "bar1"
+    )
+    val bar2 by infiniteTransition.animateFloat(
+        initialValue = 0.2f, targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(animation = tween(300, easing = LinearEasing), repeatMode = RepeatMode.Reverse), label = "bar2"
+    )
+    val bar3 by infiniteTransition.animateFloat(
+        initialValue = 0.6f, targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(animation = tween(500, easing = LinearEasing), repeatMode = RepeatMode.Reverse), label = "bar3"
+    )
+
+    Row(
+        modifier = modifier.height(16.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Box(modifier = Modifier.width(4.dp).fillMaxHeight(bar1).clip(RoundedCornerShape(2.dp)).background(color))
+        Box(modifier = Modifier.width(4.dp).fillMaxHeight(bar2).clip(RoundedCornerShape(2.dp)).background(color))
+        Box(modifier = Modifier.width(4.dp).fillMaxHeight(bar3).clip(RoundedCornerShape(2.dp)).background(color))
     }
 }
 
