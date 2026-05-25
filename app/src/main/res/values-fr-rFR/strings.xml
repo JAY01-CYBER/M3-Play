@@ -288,11 +288,11 @@
     <string name="palette_peach">Pêche</string>
     <string name="palette_mango">Mangue</string>
     <!-- Purples -->
-    <string name="palette_royal_purple">Royal Purple</string>
-    <string name="palette_lavender_dream">Lavender</string>
-    <string name="palette_grape_purple">Grape</string>
+    <string name="palette_royal_purple">Violet Royal</string>
+    <string name="palette_lavender_dream">Lavande</string>
+    <string name="palette_grape_purple">Raisin</string>
     <string name="palette_violet">Violet</string>
-    <string name="palette_amethyst">Amethyst</string>
+    <string name="palette_amethyst">Améthyste</string>
     <string name="palette_ultra_violet">Ultraviolet</string>
     <!-- Pinks -->
     <string name="palette_cherry_blossom">Sakura</string>
@@ -456,11 +456,11 @@
     <string name="pause_on_device_mute_desc">Mettez automatiquement la musique en pause lorsque le son est coupé et la reprendre lorsque le son est réactivé</string>
     <string name="auto_skip_next_on_error">Passage automatique au titre suivant en cas d\'erreur</string>
     <string name="auto_skip_next_on_error_desc">Assurez-vous de pouvoir profiter d\'une lecture ininterrompue</string>
-    <string name="stop_music_on_task_clear">Stop music on task clear</string>
+    <string name="stop_music_on_task_clear">Arrêter la musique lorsque la tâche est terminée</string>
     <string name="wakelock">Maintenir le processeur actif pendant la lecture</string>
     <string name="wakelock_desc">Empêche le système d\'interrompre la lecture musicale en maintenant un verrou de réveil du processeur</string>
-    <string name="auto_start_on_bluetooth">Auto-start on Bluetooth connect</string>
-    <string name="auto_start_on_bluetooth_desc">Automatically resume playback when a Bluetooth audio device connects</string>
+    <string name="auto_start_on_bluetooth">Démarrage automatique lors de la connexion Bluetooth</string>
+    <string name="auto_start_on_bluetooth_desc">Reprenez automatiquement la lecture lorsqu\'un périphérique audio Bluetooth se connecte</string>
     <string name="artist_separators">Symbols to split artists</string>
     <string name="artist_separators_desc">Symbols used to split multiple artists</string>
     <string name="external_downloader">Téléchargeur externe</string>
@@ -472,14 +472,14 @@
     <string name="external_downloader_not_configured">Aucun programme de téléchargement externe n\'est configuré. Configurez-en un dans Paramètres → Lecteur.</string>
     <string name="add_symbol">Add symbol</string>
     <string name="enter_symbol">Enter symbol</string>
-    <string name="equalizer">Equalizer</string>
-    <string name="eq_waiting_for_audio_session">Waiting for audio session…</string>
+    <string name="equalizer">Égaliseur</string>
+    <string name="eq_waiting_for_audio_session">En attente de la session audio…</string>
     <string name="eq_open_system_equalizer">Open system equalizer</string>
-    <string name="eq_presets">Presets</string>
-    <string name="eq_system">System</string>
-    <string name="eq_flat">Flat</string>
-    <string name="eq_profiles">Profiles</string>
-    <string name="eq_manage">Manage</string>
+    <string name="eq_presets">Préréglages</string>
+    <string name="eq_system">Système</string>
+    <string name="eq_flat">Plat</string>
+    <string name="eq_profiles">Profils</string>
+    <string name="eq_manage">Gérer</string>
     <string name="eq_system_preset">System preset</string>
     <string name="eq_manual">Manual</string>
     <string name="eq_profile_hint">Apply a profile or save your current settings</string>
