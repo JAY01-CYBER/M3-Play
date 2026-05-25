@@ -4033,20 +4033,18 @@ class MusicService :
         val currentMediaId = player.currentMediaItem?.mediaId
         val httpStatusCode = error.httpStatusCodeOrNull()
 
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
+
         if (currentMediaId != null && YTPlayerUtils.isBotDetectionException(error)) {
             if (markAndCheckRecoveryAllowance(currentMediaId)) {
-                Timber.tag("MusicService").w(
-                    "Bot detection error for $currentMediaId — clearing caches and retrying with fresh stream"
-                )
+                Timber.tag("MusicService").w("Bot detection error for $currentMediaId")
                 YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
                 playbackUrlCache.remove(currentMediaId)
                 pendingStreamRefreshValidationMediaId = currentMediaId
                 
-                val currentPos = player.currentPosition
-                val currentIndex = player.currentMediaItemIndex
-                player.seekTo(currentIndex, currentPos)
+                player.seekTo(savedIndex, savedPosition)
                 player.prepare()
-                
                 player.playWhenReady = true
                 return
             }
@@ -4068,16 +4066,11 @@ class MusicService :
         }
 
         if (shouldAttemptStreamRefresh && currentMediaId != null && shouldSkipRedundantStreamRefresh(currentMediaId)) {
-            Timber.tag("MusicService").w(
-                "Skipping redundant stream refresh for $currentMediaId after validated recovery; resuming playback without URL refresh"
-            )
+            Timber.tag("MusicService").w("Skipping redundant stream refresh for $currentMediaId")
             refreshValidatedPlayingMediaId = null
             
-            val currentPos = player.currentPosition
-            val currentIndex = player.currentMediaItemIndex
-            player.seekTo(currentIndex, currentPos)
+            player.seekTo(savedIndex, savedPosition)
             player.prepare()
-            
             player.playWhenReady = true
             return
         }
@@ -4089,21 +4082,15 @@ class MusicService :
                     ?.toHttpUrlOrNull()
                     ?.queryParameter("c")
                     ?.trim()
-                    ?.takeIf { it.isNotBlank() }
-            Timber.tag("MusicService").w(
-                "Attempting stream refresh for $currentMediaId (http=$httpStatusCode, code=${error.errorCode}, client=${failingStreamClientKey ?: "unknown"})"
-            )
+            Timber.tag("MusicService").w("Attempting stream refresh for $currentMediaId")
             YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode)
             YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode)
             YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
             playbackUrlCache.remove(currentMediaId)
             pendingStreamRefreshValidationMediaId = currentMediaId
             
-            val currentPos = player.currentPosition
-            val currentIndex = player.currentMediaItemIndex
-            player.seekTo(currentIndex, currentPos)
+            player.seekTo(savedIndex, savedPosition)
             player.prepare()
-            
             player.playWhenReady = true
             return
         }
@@ -4121,22 +4108,18 @@ class MusicService :
                         settings[SkipSilenceKey] = false
                     }
                     player.skipSilenceEnabled = false
-                    val currentPos = player.currentPosition
-                    val targetPos = min(currentPos + 1500L, if (player.duration > 0) player.duration - 1000L else currentPos + 1500L)
-                    player.seekTo(targetPos)
+                    val targetPos = min(savedPosition + 1500L, if (player.duration > 0) player.duration - 1000L else savedPosition + 1500L)
+                    player.seekTo(savedIndex, targetPos)
                     player.prepare()
                     player.play()
                     return@launch
-                } catch (t: Throwable) {
-                    Timber.tag("MusicService").e(t, "failed to recover from silence-skipper error")
-                }
+                } catch (t: Throwable) {}
                 if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
                     skipOnError()
                 } else {
                     stopOnError()
                 }
             }
-
             return
         }
 
@@ -4298,11 +4281,6 @@ class MusicService :
                 val format = nonNullPlayback.format
                 val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
                 val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
-                
-                Timber.tag("AudioNormalization").d("Storing format for $mediaId with loudnessDb: $loudnessDb, perceptualLoudnessDb: $perceptualLoudnessDb")
-                if (loudnessDb == null && perceptualLoudnessDb == null) {
-                    Timber.tag("AudioNormalization").w("No loudness data available from YouTube for video: $mediaId")
-                }
 
                 database.query {
                     upsert(
@@ -4339,11 +4317,11 @@ class MusicService :
         playbackUrlCache.remove(mediaId)
         pendingStreamRefreshValidationMediaId = mediaId
         
-        val currentPos = player.currentPosition
-        val currentIndex = player.currentMediaItemIndex
-        player.seekTo(currentIndex, currentPos)
-        player.prepare()
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
         
+        player.seekTo(savedIndex, savedPosition)
+        player.prepare()
         player.playWhenReady = true
     }
 
@@ -4500,7 +4478,6 @@ class MusicService :
                         try {
                             ListenBrainzManager.submitFinished(this@MusicService, lbToken, song, startMs, endMs)
                         } catch (ie: Exception) {
-                             Timber.tag("MusicService").v(ie, "ListenBrainz finished submit failed")
                         }
                     }
                 } catch (_: Exception) {
@@ -4603,7 +4580,6 @@ class MusicService :
                 val type = object : TypeToken<T>() {}.type
                 gson.fromJson<T>(jsonString, type)
             } catch (e: Exception) {
-                Timber.tag("MusicService").e(e, "CRITICAL: JSON Queue read failed for $fileName")
                 e.printStackTrace()
                 runCatching { persistentFile.delete() }
                  null
@@ -4620,14 +4596,13 @@ class MusicService :
                 val jsonString = gson.toJson(payload) 
                 tempFile.writeText(jsonString)        
                 if (persistentFile.exists() && !persistentFile.delete()) {
-                    Timber.tag("MusicService").e("Could not replace $fileName")
+                    // Ignored intentionally 
                 }
                 if (!tempFile.renameTo(persistentFile)) {
-                    Timber.tag("MusicService").e("Could not atomically move $fileName")
+                     // Ignored intentionally
                  }
             } catch (e: Exception) {
                 runCatching { tempFile.delete() }
-                Timber.tag("MusicService").e(e, "Failed to write JSON queue")
             }
         }
     }
