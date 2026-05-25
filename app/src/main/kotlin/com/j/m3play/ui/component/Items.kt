@@ -187,7 +187,7 @@ inline fun ListItem(
         Divider(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
             thickness = 0.5.dp,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(start = 82.dp, end = 16.dp)
         )
     }
 }
@@ -391,7 +391,7 @@ fun SongListItem(
             Divider(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 thickness = 0.5.dp,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(start = 82.dp, end = 16.dp)
             )
         }
     }
@@ -1044,7 +1044,7 @@ fun YouTubeListItem(
             Divider(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 thickness = 0.5.dp,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(start = 82.dp, end = 16.dp)
             )
         }
     }
