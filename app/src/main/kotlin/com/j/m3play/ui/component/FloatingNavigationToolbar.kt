@@ -30,34 +30,37 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    // Google Material 3 Surface Colors
     val mainContainerColor = if (pureBlack) {
-        Color(0xFF111111) // Pure AMOLED black ke liye halka sa grey tone for separation
+        Color(0xFF141414) // Slightly lifted black for better separation
     } else {
         MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
     }
 
-    val home = items.firstOrNull { it.route == Screens.Home.route }
-    val library = items.firstOrNull { it.route == Screens.Library.route }
-    val search = items.firstOrNull { it.route == Screens.Search.route }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 24.dp, start = 16.dp, end = 16.dp), // Thoda upar float karega Google jaisa
+            .navigationBarsPadding() // FIX: Ye system home indicator ke upar overlap hone se rokega
+            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val home = items.firstOrNull { it.route == Screens.Home.route }
+        val library = items.firstOrNull { it.route == Screens.Library.route }
+        val search = items.firstOrNull { it.route == Screens.Search.route }
+
         // 1. Main Navigation Pill (Home & Library)
         Surface(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 6.dp, // Google standard floating elevation
+            shadowElevation = 8.dp, // Thoda aur premium floating shadow
+            tonalElevation = 4.dp,
         ) {
             Row(
-                modifier = Modifier.padding(8.dp), // Inner padding for pill
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .height(56.dp) // FIX: Fixed standard height for perfect symmetry
+                    .padding(horizontal = 6.dp), // Outer padding for pill
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
@@ -77,15 +80,16 @@ fun FloatingNavigationToolbar(
                 color = mainContainerColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = CircleShape,
-                shadowElevation = 6.dp,
-                modifier = Modifier.size(56.dp) // Standard Google FAB Size
+                shadowElevation = 8.dp,
+                tonalElevation = 4.dp,
+                modifier = Modifier.size(56.dp) // FIX: Exactly matching the pill's height (56dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(color = accentColor), // Google M3 Ripple Effect
+                            indication = ripple(color = accentColor),
                             onClick = { onItemClick(it, isSelected(it)) }
                         ),
                     contentAlignment = Alignment.Center
@@ -109,18 +113,16 @@ private fun GoogleFloatingNavItem(
     accentColor: Color,
     onClick: () -> Unit,
 ) {
-    // Standard M3 easing & duration (bouncy spring ki jagah professional smooth tween)
-    val animationSpec = tween<Float>(durationMillis = 250, easing = FastOutSlowInEasing)
-    val colorAnimationSpec = tween<Color>(durationMillis = 250, easing = LinearOutSlowInEasing)
+    val animationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
+    val colorAnimationSpec = tween<Color>(durationMillis = 300, easing = LinearOutSlowInEasing)
 
-    // Background Container Color (Active tab ke liye Google style)
+    // FIX: Alpha 0.2f kar diya hai taaki light background par accent color properly dikhe
     val bgColor by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.12f) else Color.Transparent,
+        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
         animationSpec = colorAnimationSpec,
         label = "bg_color"
     )
 
-    // Icon & Text Color
     val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = colorAnimationSpec,
@@ -129,16 +131,16 @@ private fun GoogleFloatingNavItem(
 
     Row(
         modifier = Modifier
-            .height(48.dp) // Standard Google touch target height
+            .height(44.dp) // FIX: 56dp pill ke andar 44dp ka item = perfect 6dp vertical padding top/bottom
             .clip(CircleShape)
             .background(bgColor)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = accentColor), // M3 Touch Ripple
+                indication = ripple(color = accentColor),
                 onClick = onClick
             )
             .padding(horizontal = if (selected) 20.dp else 16.dp)
-            .animateContentSize(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)),
+            .animateContentSize(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -149,25 +151,24 @@ private fun GoogleFloatingNavItem(
             tint = contentColor
         )
 
-        // Text animation with clean fade
         AnimatedVisibility(
             visible = selected,
             enter = fadeIn(animationSpec = animationSpec) + expandHorizontally(
-                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
                 expandFrom = Alignment.Start
             ),
             exit = fadeOut(animationSpec = animationSpec) + shrinkHorizontally(
-                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
                 shrinkTowards = Alignment.Start
             )
         ) {
             Text(
                 text = stringResource(screen.titleId),
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold, // M3 uses SemiBold mostly for nav labels
+                fontWeight = FontWeight.Bold, // Changed back to Bold so it stands out
                 color = contentColor,
                 maxLines = 1,
-                overflow = TextOverflow.Clip, // Clip ensures it doesn't try to show "..." while animating
+                overflow = TextOverflow.Visible, // Ensures no "..." truncation glitch
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
