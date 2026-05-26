@@ -17,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.j.m3play.ui.screens.Screens
 
@@ -31,16 +32,20 @@ fun FloatingNavigationToolbar(
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val mainContainerColor = if (pureBlack) {
-        Color(0xFF141414) // Slightly lifted black for better separation
+        Color(0xFF141414)
     } else {
         MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
     }
 
+    // SLIM & ELEGANT DIMENSIONS
+    val barHeight = 56.dp
+    val innerItemHeight = 42.dp
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding() // FIX: Ye system home indicator ke upar overlap hone se rokega
-            .padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
+            .navigationBarsPadding()
+            .padding(bottom = 20.dp, start = 20.dp, end = 20.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -53,21 +58,20 @@ fun FloatingNavigationToolbar(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 8.dp, // Thoda aur premium floating shadow
-            tonalElevation = 4.dp,
+            shadowElevation = 12.dp, // High elevation for better floating look
         ) {
             Row(
                 modifier = Modifier
-                    .height(56.dp) // FIX: Fixed standard height for perfect symmetry
-                    .padding(horizontal = 6.dp), // Outer padding for pill
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    .height(barHeight) // Strict height for perfect symmetry
+                    .padding(horizontal = 8.dp), // Space from left and right edges
+                horizontalArrangement = Arrangement.spacedBy(8.dp), // Breathing space between tabs
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
-                    GoogleFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    GoogleFloatingNavItem(it, isSelected(it), accentColor, innerItemHeight) { onItemClick(it, isSelected(it)) }
                 }
                 library?.let {
-                    GoogleFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    GoogleFloatingNavItem(it, isSelected(it), accentColor, innerItemHeight) { onItemClick(it, isSelected(it)) }
                 }
             }
         }
@@ -80,9 +84,8 @@ fun FloatingNavigationToolbar(
                 color = mainContainerColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = CircleShape,
-                shadowElevation = 8.dp,
-                tonalElevation = 4.dp,
-                modifier = Modifier.size(56.dp) // FIX: Exactly matching the pill's height (56dp)
+                shadowElevation = 12.dp,
+                modifier = Modifier.size(barHeight) // Matches Pill height exactly
             ) {
                 Box(
                     modifier = Modifier
@@ -111,14 +114,14 @@ private fun GoogleFloatingNavItem(
     screen: Screens,
     selected: Boolean,
     accentColor: Color,
+    itemHeight: Dp,
     onClick: () -> Unit,
 ) {
     val animationSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
     val colorAnimationSpec = tween<Color>(durationMillis = 300, easing = LinearOutSlowInEasing)
 
-    // FIX: Alpha 0.2f kar diya hai taaki light background par accent color properly dikhe
     val bgColor by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
+        targetValue = if (selected) accentColor.copy(alpha = 0.15f) else Color.Transparent,
         animationSpec = colorAnimationSpec,
         label = "bg_color"
     )
@@ -131,7 +134,7 @@ private fun GoogleFloatingNavItem(
 
     Row(
         modifier = Modifier
-            .height(44.dp) // FIX: 56dp pill ke andar 44dp ka item = perfect 6dp vertical padding top/bottom
+            .height(itemHeight) // Controlled inner height to prevent "sausage" effect
             .clip(CircleShape)
             .background(bgColor)
             .clickable(
@@ -165,10 +168,10 @@ private fun GoogleFloatingNavItem(
             Text(
                 text = stringResource(screen.titleId),
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold, // Changed back to Bold so it stands out
+                fontWeight = FontWeight.Bold,
                 color = contentColor,
                 maxLines = 1,
-                overflow = TextOverflow.Visible, // Ensures no "..." truncation glitch
+                overflow = TextOverflow.Visible,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
