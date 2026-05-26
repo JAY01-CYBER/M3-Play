@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,34 +31,40 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    // FIX: Base color ko 'surfaceVariant' kar diya taaki ye app theme aur baaki buttons se perfect match kare
-    val baseSurface = if (pureBlack) Color(0xFF101010) else MaterialTheme.colorScheme.surfaceVariant
-    
-    // Direct accentColor ke sath blend kar diya jisse proper tint aaye
-    val mainContainerColor = lerp(baseSurface, accentColor, 0.12f)
+    // Pure black user preference ya standard Material 3 surfaceContainer fallback
+    val mainContainerColor = if (pureBlack) {
+        Color(0xFF000000)
+    } else {
+        MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+    }
 
     val home = items.firstOrNull { it.route == Screens.Home.route }
     val library = items.firstOrNull { it.route == Screens.Library.route }
     val search = items.firstOrNull { it.route == Screens.Search.route }
 
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 1. Home aur Library ka Mota Pill
+        // 1. Home aur Library ka Main Navigation Pill
         Surface(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 14.dp,
+            shadowElevation = 12.dp,
             tonalElevation = 6.dp,
         ) {
             Row(
                 modifier = Modifier
-                    .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    .animateContentSize(animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ))
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
@@ -71,17 +76,17 @@ fun FloatingNavigationToolbar(
             }
         }
 
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(16.dp))
 
-        // 2. Search ka Circular Button
+        // 2. Search ka Circular Floating Action Button
         search?.let {
             Surface(
                 color = mainContainerColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = CircleShape,
-                shadowElevation = 14.dp,
+                shadowElevation = 12.dp,
                 tonalElevation = 6.dp,
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier.size(64.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     ExpressiveFloatingNavItem(
@@ -109,39 +114,53 @@ private fun ExpressiveFloatingNavItem(
 
     val scale by animateFloatAsState(
         targetValue = when {
-            isPressed -> 0.88f
-            selected -> 1f
-            else -> 0.95f
+            isPressed -> 0.85f
+            selected -> 1.05f
+            else -> 1f
         },
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, 
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "scale"
     )
 
-    // Active tab ka background color
     val bg by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.2f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        targetValue = if (selected) accentColor.copy(alpha = 0.25f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "bg_color"
     )
 
     val color by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "content_color"
     )
 
     Surface(
         modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .graphicsLayer { 
+                scaleX = scale 
+                scaleY = scale 
+            }
             .clip(CircleShape)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource, 
+                indication = null, 
+                onClick = onClick
+            ),
         shape = CircleShape,
         color = bg,
         contentColor = color,
     ) {
         Row(
             modifier = Modifier
-                .then(if (!isDetached) Modifier.animateContentSize() else Modifier)
+                .then(if (!isDetached) Modifier.animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) else Modifier)
                 .padding(
                     horizontal = if (selected && !isDetached) 20.dp else 16.dp,
                     vertical = 16.dp
@@ -152,7 +171,7 @@ private fun ExpressiveFloatingNavItem(
             Icon(
                 painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
                 contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(26.dp)
             )
 
             if (selected && !isDetached) {
@@ -161,12 +180,12 @@ private fun ExpressiveFloatingNavItem(
                     enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
                     exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
                 ) {
-                    Row {
-                        Spacer(Modifier.width(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(8.dp))
                         Text(
                             text = stringResource(screen.titleId),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
