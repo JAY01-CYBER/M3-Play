@@ -2,9 +2,9 @@ package com.j.m3play.ui.component
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,9 +30,9 @@ fun FloatingNavigationToolbar(
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
-    // Pure black user preference ya standard Material 3 surfaceContainer fallback
+    // Google Material 3 Surface Colors
     val mainContainerColor = if (pureBlack) {
-        Color(0xFF000000)
+        Color(0xFF111111) // Pure AMOLED black ke liye halka sa grey tone for separation
     } else {
         MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
     }
@@ -45,56 +44,58 @@ fun FloatingNavigationToolbar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp),
+            .padding(bottom = 24.dp, start = 16.dp, end = 16.dp), // Thoda upar float karega Google jaisa
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 1. Home aur Library ka Main Navigation Pill
+        // 1. Main Navigation Pill (Home & Library)
         Surface(
             color = mainContainerColor,
             contentColor = MaterialTheme.colorScheme.onSurface,
             shape = CircleShape,
-            shadowElevation = 12.dp,
-            tonalElevation = 6.dp,
+            shadowElevation = 6.dp, // Google standard floating elevation
         ) {
             Row(
-                modifier = Modifier
-                    .animateContentSize(animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ))
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.padding(8.dp), // Inner padding for pill
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 home?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    GoogleFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
                 }
                 library?.let {
-                    ExpressiveFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
+                    GoogleFloatingNavItem(it, isSelected(it), accentColor) { onItemClick(it, isSelected(it)) }
                 }
             }
         }
 
         Spacer(Modifier.width(16.dp))
 
-        // 2. Search ka Circular Floating Action Button
+        // 2. Search Floating Action Button (FAB)
         search?.let {
             Surface(
                 color = mainContainerColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 shape = CircleShape,
-                shadowElevation = 12.dp,
-                tonalElevation = 6.dp,
-                modifier = Modifier.size(64.dp)
+                shadowElevation = 6.dp,
+                modifier = Modifier.size(56.dp) // Standard Google FAB Size
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    ExpressiveFloatingNavItem(
-                        screen = it,
-                        selected = isSelected(it),
-                        accentColor = accentColor,
-                        isDetached = true
-                    ) { onItemClick(it, isSelected(it)) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = accentColor), // Google M3 Ripple Effect
+                            onClick = { onItemClick(it, isSelected(it)) }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(if (isSelected(it)) it.iconIdActive else it.iconIdInactive),
+                        contentDescription = stringResource(it.titleId),
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isSelected(it)) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -102,96 +103,73 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun ExpressiveFloatingNavItem(
+private fun GoogleFloatingNavItem(
     screen: Screens,
     selected: Boolean,
     accentColor: Color,
-    isDetached: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    // Standard M3 easing & duration (bouncy spring ki jagah professional smooth tween)
+    val animationSpec = tween<Float>(durationMillis = 250, easing = FastOutSlowInEasing)
+    val colorAnimationSpec = tween<Color>(durationMillis = 250, easing = LinearOutSlowInEasing)
 
-    val scale by animateFloatAsState(
-        targetValue = when {
-            isPressed -> 0.85f
-            selected -> 1.05f
-            else -> 1f
-        },
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy, 
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
-    )
-
-    val bg by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.25f) else Color.Transparent,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+    // Background Container Color (Active tab ke liye Google style)
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) accentColor.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = colorAnimationSpec,
         label = "bg_color"
     )
 
-    val color by animateColorAsState(
+    // Icon & Text Color
+    val contentColor by animateColorAsState(
         targetValue = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        animationSpec = colorAnimationSpec,
         label = "content_color"
     )
 
-    Surface(
+    Row(
         modifier = Modifier
-            .graphicsLayer { 
-                scaleX = scale 
-                scaleY = scale 
-            }
+            .height(48.dp) // Standard Google touch target height
             .clip(CircleShape)
+            .background(bgColor)
             .clickable(
-                interactionSource = interactionSource, 
-                indication = null, 
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = accentColor), // M3 Touch Ripple
                 onClick = onClick
-            ),
-        shape = CircleShape,
-        color = bg,
-        contentColor = color,
-    ) {
-        Row(
-            modifier = Modifier
-                .then(if (!isDetached) Modifier.animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) else Modifier)
-                .padding(
-                    horizontal = if (selected && !isDetached) 20.dp else 16.dp,
-                    vertical = 16.dp
-                ),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
-                contentDescription = stringResource(screen.titleId),
-                modifier = Modifier.size(26.dp)
             )
+            .padding(horizontal = if (selected) 20.dp else 16.dp)
+            .animateContentSize(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(if (selected) screen.iconIdActive else screen.iconIdInactive),
+            contentDescription = stringResource(screen.titleId),
+            modifier = Modifier.size(24.dp),
+            tint = contentColor
+        )
 
-            if (selected && !isDetached) {
-                AnimatedVisibility(
-                    visible = true,
-                    enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                    exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(screen.titleId),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
+        // Text animation with clean fade
+        AnimatedVisibility(
+            visible = selected,
+            enter = fadeIn(animationSpec = animationSpec) + expandHorizontally(
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                expandFrom = Alignment.Start
+            ),
+            exit = fadeOut(animationSpec = animationSpec) + shrinkHorizontally(
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                shrinkTowards = Alignment.Start
+            )
+        ) {
+            Text(
+                text = stringResource(screen.titleId),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold, // M3 uses SemiBold mostly for nav labels
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Clip, // Clip ensures it doesn't try to show "..." while animating
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
