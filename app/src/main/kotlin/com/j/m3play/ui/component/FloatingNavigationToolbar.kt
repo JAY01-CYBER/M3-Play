@@ -66,13 +66,16 @@ fun FloatingNavigationToolbar(
     accentColor: Color = MaterialTheme.colorScheme.primary, 
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
+    // NEW DETACHED ACTIONS
+    onIdentifyClick: () -> Unit,
+    onMoodClick: () -> Unit,
+    onShuffleClick: () -> Unit,
 ) {
     val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = toolbarContainerColor,
     )
     
-    // Dropdown state for detached options
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     BoxWithConstraints(
@@ -83,7 +86,6 @@ fun FloatingNavigationToolbar(
             expanded = true,
             floatingActionButton = {
                 Box {
-                    // Main Detached FAB Button
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
                         onClick = { fabMenuExpanded = !fabMenuExpanded },
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
@@ -95,7 +97,6 @@ fun FloatingNavigationToolbar(
                         )
                     }
 
-                    // Detached Dropdown Menu
                     DropdownMenu(
                         expanded = fabMenuExpanded,
                         onDismissRequest = { fabMenuExpanded = false },
@@ -103,12 +104,11 @@ fun FloatingNavigationToolbar(
                         containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh,
                         tonalElevation = 6.dp,
                     ) {
-                        // Option 1: Identify Music
                         DropdownMenuItem(
                             text = { Text("Identify Music") },
                             onClick = { 
                                 fabMenuExpanded = false 
-                                // TODO: Add Identify Logic here
+                                onIdentifyClick() 
                             },
                             leadingIcon = {
                                 MenuIconContainer(pureBlack) {
@@ -118,12 +118,11 @@ fun FloatingNavigationToolbar(
                             colors = getMenuColors(pureBlack)
                         )
 
-                        // Option 2: Mood & Genres
                         DropdownMenuItem(
                             text = { Text("Mood & Genres") },
                             onClick = { 
                                 fabMenuExpanded = false 
-                                // TODO: Add Mood & Genres Logic here
+                                onMoodClick() 
                             },
                             leadingIcon = {
                                 MenuIconContainer(pureBlack) {
@@ -133,12 +132,11 @@ fun FloatingNavigationToolbar(
                             colors = getMenuColors(pureBlack)
                         )
 
-                        // Option 3: Shuffle
                         DropdownMenuItem(
                             text = { Text("Shuffle") },
                             onClick = { 
                                 fabMenuExpanded = false 
-                                // TODO: Add Shuffle Logic here
+                                onShuffleClick() 
                             },
                             leadingIcon = {
                                 MenuIconContainer(pureBlack) {
@@ -160,7 +158,7 @@ fun FloatingNavigationToolbar(
                     screen = screen,
                     selected = selected,
                     pureBlack = pureBlack,
-                    slim = slim, // <--- PASSING THE SLIM PARAMETER DOWN
+                    slim = slim, 
                     onClick = { onItemClick(screen, selected) },
                 )
             }
@@ -168,7 +166,6 @@ fun FloatingNavigationToolbar(
     }
 }
 
-// Helper container to make menu icons look premium and rounded
 @Composable
 private fun MenuIconContainer(pureBlack: Boolean, content: @Composable () -> Unit) {
     Surface(
@@ -177,13 +174,10 @@ private fun MenuIconContainer(pureBlack: Boolean, content: @Composable () -> Uni
         color = floatingToolbarMenuIconContainerColor(pureBlack = pureBlack),
         contentColor = floatingToolbarMenuIconContentColor(pureBlack = pureBlack),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            content()
-        }
+        Box(contentAlignment = Alignment.Center) { content() }
     }
 }
 
-// Helper colors for Dropdown Menu Items
 @Composable
 private fun getMenuColors(pureBlack: Boolean): MenuItemColors {
     return MenuDefaults.itemColors(
@@ -197,24 +191,22 @@ private fun FloatingNavigationToolbarItem(
     screen: Screens,
     selected: Boolean,
     pureBlack: Boolean,
-    slim: Boolean, // <--- ADDED SLIM PARAMETER HERE
+    slim: Boolean,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(24.dp)
     val containerColor by animateColorAsState(
-        targetValue =
-            when {
-                selected -> floatingToolbarSelectedItemContainerColor(pureBlack = pureBlack)
-                else -> Color.Transparent
-            },
+        targetValue = when {
+            selected -> floatingToolbarSelectedItemContainerColor(pureBlack = pureBlack)
+            else -> Color.Transparent
+        },
         label = "",
     )
     val contentColor by animateColorAsState(
-        targetValue =
-            when {
-                selected -> floatingToolbarSelectedItemContentColor(pureBlack = pureBlack)
-                else -> floatingToolbarItemContentColor(pureBlack = pureBlack)
-            },
+        targetValue = when {
+            selected -> floatingToolbarSelectedItemContentColor(pureBlack = pureBlack)
+            else -> floatingToolbarItemContentColor(pureBlack = pureBlack)
+        },
         label = "",
     )
     
@@ -229,29 +221,25 @@ private fun FloatingNavigationToolbarItem(
         label = "",
     )
     
-    // THE MAGIC LOGIC:
-    // Agar selected hai AUR slim OFF hai, tabhi text show hoga.
-    // Agar slim ON hai, toh ye hamesha false rahega aur sirf icons dikhenge.
     val showLabel = selected && !slim 
 
     Row(
-        modifier =
-            Modifier
-                .scale(scale)
-                .animateContentSize()
-                .clip(shape)
-                .background(color = containerColor, shape = shape)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
-                    role = Role.Tab,
-                    onClick = onClick,
-                )
-                .widthIn(min = 48.dp)
-                .padding(
-                    horizontal = if (showLabel) 16.dp else 12.dp,
-                    vertical = 12.dp,
-                ),
+        modifier = Modifier
+            .scale(scale)
+            .animateContentSize()
+            .clip(shape)
+            .background(color = containerColor, shape = shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .widthIn(min = 48.dp)
+            .padding(
+                horizontal = if (showLabel) 16.dp else 12.dp,
+                vertical = 12.dp,
+            ),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -263,7 +251,6 @@ private fun FloatingNavigationToolbarItem(
 
         if (showLabel) {
             Spacer(modifier = Modifier.size(8.dp))
-
             Text(
                 text = stringResource(screen.titleId),
                 color = contentColor,
@@ -275,47 +262,19 @@ private fun FloatingNavigationToolbarItem(
     }
 }
 
-// Color Utility Functions
 @Composable
-private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-}
-
+private fun floatingToolbarContainerColor(pureBlack: Boolean): Color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
 @Composable
-private fun floatingToolbarFabContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer
-}
-
+private fun floatingToolbarFabContainerColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer
 @Composable
-private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer
-}
-
+private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer
 @Composable
-private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
-}
-
+private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
 @Composable
-private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-}
-
+private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
 @Composable
-private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) {
-        Color.White.copy(alpha = 0.82f)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-}
-
+private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
 @Composable
-private fun floatingToolbarMenuIconContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
-}
-
+private fun floatingToolbarMenuIconContainerColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
 @Composable
-private fun floatingToolbarMenuIconContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
-}
+private fun floatingToolbarMenuIconContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
