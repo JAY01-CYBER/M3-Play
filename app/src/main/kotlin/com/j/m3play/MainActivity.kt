@@ -632,7 +632,7 @@ class MainActivity : ComponentActivity() {
                             if (!pauseSearchHistory) {
                                 database.query {
                                     insert(SearchHistory(query = it))
-                                }
+                                 }
                             }
                         }
                     }
@@ -643,15 +643,13 @@ class MainActivity : ComponentActivity() {
 
                     val shouldShowSearchBar =
                         remember(active, navBackStackEntry) {
-                            active ||
-                                    navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
+                            active || navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } ||
                                     navBackStackEntry?.destination?.route?.startsWith("search/") == true
                         }
 
                     val shouldShowNavigationBar =
                         remember(navBackStackEntry, active) {
-                            navBackStackEntry?.destination?.route == null ||
-                                    navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } &&
+                            navBackStackEntry?.destination?.route == null || navigationItems.fastAny { it.route == navBackStackEntry?.destination?.route } &&
                                     !active
                         }
 
@@ -682,7 +680,7 @@ class MainActivity : ComponentActivity() {
                             collapsedBound =
                                 bottomInset +
                                     (if (shouldShowNavigationBar && !useRail) floatingBarsBottomPadding else 0.dp) +
-                                    getBottomNavPadding() +
+                                     getBottomNavPadding() +
                                     (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
@@ -801,8 +799,7 @@ class MainActivity : ComponentActivity() {
                         val wasOnNonTopLevelScreen = previousRoute != null &&
                             previousRoute !in topLevelScreens &&
                             previousRoute?.startsWith("search/") != true
-                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route ||
-                            currentRoute == Screens.Library.route
+                        val isReturningToHomeOrLibrary = currentRoute == Screens.Home.route || currentRoute == Screens.Library.route
 
                         if (wasOnNonTopLevelScreen && isReturningToHomeOrLibrary) {
                             searchBarScrollBehavior.state.resetHeightOffset()
@@ -1228,92 +1225,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 bottomBar = {
                                     Box {
-                                        // 1. EXTRA ICONS FLOATING ABOVE MINI PLAYER
-                                        FloatingIconsVisibility(
-                                            visible = navBackStackEntry?.destination?.route == Screens.Home.route && !active && playerBottomSheetState.isCollapsed,
-                                            modifier = Modifier
-                                                .align(Alignment.BottomEnd)
-                                                .padding(
-                                                    bottom = bottomInset + floatingBarsBottomPadding + (if (shouldShowNavigationBar && !useRail) navVisibleHeight else 0.dp) + MiniPlayerHeight + 16.dp,
-                                                    end = 16.dp
-                                                )
-                                        ) {
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                val detachedColor = androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.surfaceVariant, themeColor, 0.08f)
-                                                
-                                                val moodScreen = navigationItems.firstOrNull { it.route == Screens.MoodAndGenres.route }
-                                                if (moodScreen != null) {
-                                                    Surface(
-                                                        onClick = { navController.navigate(moodScreen.route) },
-                                                        shape = CircleShape,
-                                                        color = detachedColor,
-                                                        shadowElevation = 8.dp,
-                                                        modifier = Modifier.size(50.dp)
-                                                    ) {
-                                                        Box(contentAlignment = Alignment.Center) {
-                                                            Icon(painterResource(moodScreen.iconIdActive), contentDescription = stringResource(moodScreen.titleId), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                        }
-                                                    }
-                                                }
-
-                                                Surface(
-                                                    onClick = { navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute) },
-                                                    shape = CircleShape,
-                                                    color = detachedColor,
-                                                    shadowElevation = 8.dp,
-                                                    modifier = Modifier.size(50.dp)
-                                                ) {
-                                                    Box(contentAlignment = Alignment.Center) {
-                                                        Icon(painterResource(R.drawable.mic), contentDescription = stringResource(R.string.music_recognition), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    }
-                                                }
-
-                                                if (shouldShowHomeShuffleButton) {
-                                                    Surface(
-                                                        onClick = {
-                                                            val useLocalSource = when {
-                                                                allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> kotlin.random.Random.nextFloat() < 0.5f
-                                                                allLocalItems.isNotEmpty() -> true
-                                                                else -> false
-                                                            }
-                                                            coroutineScope.launch(Dispatchers.Main) {
-                                                                if (useLocalSource) {
-                                                                    when (val luckyItem = allLocalItems.random()) {
-                                                                        is Song -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
-                                                                        is Album -> {
-                                                                            val albumWithSongs = withContext(Dispatchers.IO) { database.albumWithSongs(luckyItem.id).first() }
-                                                                            albumWithSongs?.let { playerConnection?.playQueue(LocalAlbumRadio(it)) }
-                                                                        }
-                                                                        is Artist -> Unit
-                                                                        is Playlist -> Unit
-                                                                    }
-                                                                } else {
-                                                                    when (val luckyItem = allYtItems.random()) {
-                                                                        is SongItem -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
-                                                                        is AlbumItem -> { playerConnection?.playQueue(YouTubeAlbumRadio(luckyItem.playlistId)) }
-                                                                        is ArtistItem -> { luckyItem.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
-                                                                        is PlaylistItem -> { luckyItem.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        shape = CircleShape,
-                                                        color = detachedColor,
-                                                        shadowElevation = 8.dp,
-                                                        modifier = Modifier.size(50.dp)
-                                                    ) {
-                                                        Box(contentAlignment = Alignment.Center) {
-                                                            Icon(painterResource(R.drawable.shuffle), contentDescription = stringResource(R.string.shuffle), modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // 2. EXISTING MINI PLAYER
+                                        // 1. EXISTING MINI PLAYER
                                         BottomSheetPlayer(
                                             state = playerBottomSheetState,
                                             navController = navController,
@@ -1322,7 +1234,7 @@ class MainActivity : ComponentActivity() {
 
                                         if(useRail) return@Box
 
-                                        // 3. NAVIGATION PILL BAR
+                                        // 2. NAVIGATION PILL BAR
                                         val navSlideDistance = bottomInset + floatingBarsBottomPadding + navVisibleHeight
 
                                         Box(
@@ -1340,7 +1252,8 @@ class MainActivity : ComponentActivity() {
                                                 },
                                         ) {
                                             FloatingNavigationToolbar(
-                                                items = navigationItems,
+                                                // HIDDEN 'Moods' FROM TABS TO KEEP BAR SLIM
+                                                items = navigationItems.filter { it.route != Screens.MoodAndGenres.route },
                                                 slim = slimNav,
                                                 pureBlack = pureBlack,
                                                 accentColor = themeColor,
@@ -1353,10 +1266,6 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     .height(navVisibleHeight),
                                                 isSelected = { screen -> navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true },
-                                                
-                                                // ----------------------------------------------------
-                                                // FIXED: Floating Nav Behavior
-                                                // ----------------------------------------------------
                                                 onItemClick = { screen, isSelected ->
                                                     if (isSelected) {
                                                         navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
@@ -1369,6 +1278,43 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
+                                                // DETACHED ACTIONS BINDING
+                                                onIdentifyClick = {
+                                                    navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute)
+                                                },
+                                                onMoodClick = {
+                                                    navController.navigate(Screens.MoodAndGenres.route)
+                                                },
+                                                onShuffleClick = {
+                                                    if (allLocalItems.isEmpty() && allYtItems.isEmpty()) return@FloatingNavigationToolbar
+                                                    
+                                                    val useLocalSource = when {
+                                                        allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> kotlin.random.Random.nextFloat() < 0.5f
+                                                        allLocalItems.isNotEmpty() -> true
+                                                        else -> false
+                                                    }
+                                                    
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        if (useLocalSource) {
+                                                            when (val luckyItem = allLocalItems.random()) {
+                                                                is Song -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
+                                                                is Album -> {
+                                                                    val albumWithSongs = withContext(Dispatchers.IO) { database.albumWithSongs(luckyItem.id).first() }
+                                                                    albumWithSongs?.let { playerConnection?.playQueue(LocalAlbumRadio(it)) }
+                                                                }
+                                                                is Artist -> Unit
+                                                                is Playlist -> Unit
+                                                            }
+                                                        } else {
+                                                            when (val luckyItem = allYtItems.random()) {
+                                                                is SongItem -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
+                                                                is AlbumItem -> { playerConnection?.playQueue(YouTubeAlbumRadio(luckyItem.playlistId)) }
+                                                                is ArtistItem -> { luckyItem.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
+                                                                is PlaylistItem -> { luckyItem.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             )
                                         }
                                     }
@@ -1520,7 +1466,7 @@ class MainActivity : ComponentActivity() {
 
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
-                if (playlistId.startsWith("OLAK5uy_")) {
+                 if (playlistId.startsWith("OLAK5uy_")) {
                     coroutineScope.launch {
                         YouTube.albumSongs(playlistId).onSuccess { songs ->
                             songs.firstOrNull()?.album?.id?.let { browseId ->
@@ -1528,7 +1474,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }.onFailure { reportException(it) }
                     }
-                } else {
+                 } else {
                     navController.navigate("online_playlist/$playlistId")
                 }
             }
@@ -1546,10 +1492,10 @@ class MainActivity : ComponentActivity() {
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
-                        val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
+                         val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
                         result.onSuccess { queued ->
                             val mediaItem = queued.firstOrNull { it.id == vid }?.toMediaItem() ?: queued.firstOrNull()?.toMediaItem() ?: MediaItem.Builder().setMediaId(vid).setUri(vid).setCustomCacheKey(vid).build()
-                            pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
+                             pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
                             startMusicServiceSafely()
                             playPendingDeepLinkSongIfReady()
                         }.onFailure { reportException(it) }
@@ -1561,7 +1507,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startMusicServiceSafely() {
         runCatching { startService(Intent(this, com.j.m3play.playback.MusicService::class.java)) }
-            .onFailure { reportException(it) }
+             .onFailure { reportException(it) }
     }
 
     @SuppressLint("ObsoleteSdkInt")
@@ -1589,19 +1535,3 @@ val LocalPlayerConnection = staticCompositionLocalOf<PlayerConnection?> { error(
 val LocalPlayerAwareWindowInsets = compositionLocalOf<WindowInsets> { error("No WindowInsets provided") }
 val LocalDownloadUtil = staticCompositionLocalOf<DownloadUtil> { error("No DownloadUtil provided") }
 val LocalSyncUtils = staticCompositionLocalOf<SyncUtils> { error("No SyncUtils provided") }
-
-@Composable
-private fun FloatingIconsVisibility(
-    visible: Boolean,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    androidx.compose.animation.AnimatedVisibility(
-        visible = visible,
-        enter = androidx.compose.animation.fadeIn(),
-        exit = androidx.compose.animation.fadeOut(),
-        modifier = modifier
-    ) {
-        content()
-    }
-}
