@@ -77,6 +77,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -134,6 +136,9 @@ import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
 
+// val GoogleSans = FontFamily(Font(R.font.google_sans))
+val GoogleSans = FontFamily.SansSerif
+
 
 @Composable
 fun getViviGroupedShape(index: Int, size: Int): Shape {
@@ -170,9 +175,13 @@ inline fun ListItem(
         Box(Modifier.padding(end = 12.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
         Column(Modifier.weight(1f)) {
             Text(
-                text = title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                text = title, 
+                fontFamily = GoogleSans,
+                fontSize = 16.sp, 
+                fontWeight = FontWeight.SemiBold,
                 color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis
             )
             if (subtitle != null) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -201,7 +210,14 @@ fun ListItem(
     subtitle = {
         badges()
         if (!subtitle.isNullOrEmpty()) {
-            Text(text = subtitle, color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = subtitle, 
+                fontFamily = GoogleSans,
+                color = MaterialTheme.colorScheme.secondary, 
+                fontSize = 13.sp, 
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis
+            )
         }
     },
     thumbnailContent = thumbnailContent,
@@ -268,6 +284,7 @@ fun GridItem(
     title = {
         Text(
             text = title,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -279,6 +296,7 @@ fun GridItem(
     subtitle = {
         Text(
             text = subtitle,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
             maxLines = 1,
@@ -344,6 +362,7 @@ fun SongListItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = song.song.title,
+                    fontFamily = GoogleSans,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
@@ -367,6 +386,7 @@ fun SongListItem(
                     if (!subtitleText.isNullOrEmpty()) {
                         Text(
                             text = subtitleText,
+                            fontFamily = GoogleSans,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             maxLines = 1,
@@ -411,6 +431,7 @@ fun SongGridItem(
     title = {
         Text(
             text = song.song.title,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -424,6 +445,7 @@ fun SongGridItem(
                 song.artists.joinToString { it.name },
                 makeTimeString(song.song.duration * 1000L)
             ),
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
             maxLines = 2,
@@ -607,6 +629,7 @@ fun AlbumGridItem(
     title = {
         Text(
             text = album.album.title,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -617,6 +640,7 @@ fun AlbumGridItem(
     subtitle = {
         Text(
             text = album.artists.joinToString { it.name },
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
             maxLines = 2,
@@ -770,6 +794,7 @@ fun OverlayPlaylistListItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = playlist.playlist.name,
+                        fontFamily = GoogleSans,
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
@@ -785,6 +810,7 @@ fun OverlayPlaylistListItem(
                     }
                     Text(
                         text = subtitle,
+                        fontFamily = GoogleSans,
                         color = MaterialTheme.colorScheme.secondary,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1,
@@ -823,6 +849,7 @@ fun PlaylistGridItem(
     title = {
         Text(
             text = playlist.playlist.name,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -850,6 +877,7 @@ fun PlaylistGridItem(
         }
         Text(
             text = subtitle,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.secondary,
             maxLines = 2,
@@ -988,6 +1016,7 @@ fun YouTubeListItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
+                    fontFamily = GoogleSans,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp
@@ -1012,6 +1041,7 @@ fun YouTubeListItem(
                     if (!subtitleText.isNullOrEmpty()) {
                         Text(
                             text = subtitleText,
+                            fontFamily = GoogleSans,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             maxLines = 1,
@@ -1064,6 +1094,7 @@ fun YouTubeGridItem(
     title = {
         Text(
             text = item.title,
+            fontFamily = GoogleSans,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -1082,6 +1113,7 @@ fun YouTubeGridItem(
         if (subtitle != null) {
             Text(
                 text = subtitle,
+                fontFamily = GoogleSans,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 maxLines = 2,
@@ -1287,6 +1319,7 @@ fun ItemThumbnail(
             ) {
                 Text(
                     text = albumIndex.toString(),
+                    fontFamily = GoogleSans,
                     style = MaterialTheme.typography.labelLarge
                 )
             }
