@@ -137,8 +137,11 @@ import kotlin.math.roundToInt
 const val ActiveBoxAlpha = 0.6f
 
 // val GoogleSans = FontFamily(Font(R.font.google_sans))
-val GoogleSans = FontFamily.SansSerif
-
+val GoogleSans = FontFamily(
+    Font(R.font.google_sans_regular, FontWeight.Normal),
+    Font(R.font.google_sans_medium, FontWeight.Medium),
+    Font(R.font.google_sans_bold, FontWeight.Bold)
+)
 
 @Composable
 fun getViviGroupedShape(index: Int, size: Int): Shape {
