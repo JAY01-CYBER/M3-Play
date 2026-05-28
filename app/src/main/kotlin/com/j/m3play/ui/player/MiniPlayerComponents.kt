@@ -11,13 +11,11 @@
 package com.j.m3play.ui.player
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -31,28 +29,12 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,7 +44,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,7 +65,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import androidx.media3.common.Player
 import kotlinx.coroutines.CoroutineScope
@@ -92,17 +72,13 @@ import kotlinx.coroutines.launch
 import com.j.m3play.R
 import com.j.m3play.constants.MiniPlayerHeight
 import com.j.m3play.extensions.togglePlayPause
-
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.PlayerConnection
 import com.j.m3play.together.TogetherSessionState
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.LocalDatabase
 import com.j.m3play.db.entities.ArtistEntity
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
 
 @Composable
 fun SwipeableMiniPlayerBox(
@@ -222,7 +198,6 @@ fun SwipeableMiniPlayerBox(
     ) {
         content(offsetXAnimatable.value)
 
-        // Visual indicator
         if (offsetXAnimatable.value.absoluteValue > 50f) {
             Box(
                 modifier = Modifier
@@ -243,6 +218,210 @@ fun SwipeableMiniPlayerBox(
         }
     }
 }
+
+@Composable
+fun NewMiniPlayerContent(
+    pureBlack: Boolean,
+    position: Long,
+    duration: Long,
+    playerConnection: PlayerConnection
+) {
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
+
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val isLiked = currentSong?.song?.liked == true
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        LinearProgressIndicator(
+            progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .align(Alignment.BottomCenter),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+        ) {
+            ModernMiniPlayerArtwork(mediaMetadata = mediaMetadata)
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            mediaMetadata?.let {
+                ModernMiniPlayerInfo(mediaMetadata = it)
+            } ?: Spacer(Modifier.weight(1f))
+
+            if (togetherSessionState !is TogetherSessionState.Idle) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.all_inclusive),
+                        contentDescription = stringResource(R.string.music_together),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(8.dp).size(14.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            ModernLikeButton(isLiked = isLiked, onLikeClick = playerConnection::toggleLike)
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            ModernPlayPauseControl(
+                isPlaying = isPlaying,
+                playbackState = playbackState,
+                isLoading = isLoading,
+                playerConnection = playerConnection
+            )
+            
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+    }
+}
+
+@Composable
+private fun ModernMiniPlayerArtwork(mediaMetadata: MediaMetadata?) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(56.dp)
+            .shadow(4.dp, CircleShape, clip = false)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        AsyncImage(
+            model = mediaMetadata?.thumbnailUrl,
+            contentDescription = mediaMetadata?.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+@Composable
+private fun ModernPlayPauseControl(
+    isPlaying: Boolean,
+    playbackState: Int,
+    isLoading: Boolean,
+    playerConnection: PlayerConnection
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+            .clickable {
+                if (playbackState == Player.STATE_ENDED) {
+                    playerConnection.player.seekTo(0, 0)
+                    playerConnection.player.playWhenReady = true
+                } else {
+                    playerConnection.player.togglePlayPause()
+                }
+            }
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                painter = painterResource(
+                    if (playbackState == Player.STATE_ENDED) {
+                        R.drawable.replay
+                    } else if (isPlaying) {
+                        R.drawable.pause
+                    } else {
+                        R.drawable.play
+                    }
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .padding(end = 4.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        AnimatedContent(
+            targetState = mediaMetadata.title,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "title"
+        ) { title ->
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee()
+            )
+        }
+
+        AnimatedContent(
+            targetState = mediaMetadata.artists,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "artist"
+        ) { artists ->
+            Text(
+                text = artists.joinToString { it.name },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernLikeButton(
+    isLiked: Boolean,
+    onLikeClick: () -> Unit
+) {
+    IconButton(
+        onClick = onLikeClick,
+        modifier = Modifier.size(28.dp)
+    ) {
+        Icon(
+            painter = painterResource(
+                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
+            ),
+            contentDescription = null,
+            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+// Baki ke Legacy aur Optional components ko maine chhod diya hai taki app ka doosra hissa break na ho.
 
 @Composable
 fun MiniPlayerPlayPauseButton(
@@ -294,42 +473,7 @@ fun MiniPlayerPlayPauseButton(
 }
 
 @Composable
-private fun MiniPlayerArtwork(
-    mediaMetadata: MediaMetadata?,
-    isPlaying: Boolean,
-    position: Long,
-    duration: Long,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(56.dp)
-    ) {
-        WavyCircularProgress(
-            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
-            isPlaying = isPlaying,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        Box(
-            modifier = Modifier
-                .padding(5.dp)
-                .fillMaxSize()
-                .shadow(10.dp, CircleShape, clip = false)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            AsyncImage(
-                model = mediaMetadata?.thumbnailUrl,
-                contentDescription = mediaMetadata?.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun WavyCircularProgress(
+fun WavyCircularProgress(
     progress: Float,
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
@@ -420,144 +564,6 @@ private fun WavyCircularProgress(
             color = activeColor,
             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
-    }
-}
-
-@Composable
-fun RowScope.MiniPlayerInfo(
-    mediaMetadata: MediaMetadata
-) {
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        AnimatedContent(
-            targetState = mediaMetadata.title,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "title"
-        ) { title ->
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee()
-            )
-        }
-
-        AnimatedContent(
-            targetState = mediaMetadata.artists,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "artist"
-        ) { artists ->
-            Text(
-                text = artists.joinToString { it.name },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee()
-            )
-        }
-    }
-}
-
-@Composable
-fun MiniPlayerActionButtons(
-    isLiked: Boolean,
-    onLikeClick: () -> Unit
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
-            .clickable(onClick = onLikeClick)
-    ) {
-        Icon(
-            painter = painterResource(
-                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
-            ),
-            contentDescription = null,
-            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@Composable
-fun NewMiniPlayerContent(
-    pureBlack: Boolean,
-    position: Long,
-    duration: Long,
-    playerConnection: PlayerConnection
-) {
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val playbackState by playerConnection.playbackState.collectAsState()
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
-
-    val isLoading = playbackState == Player.STATE_BUFFERING
-    val isLiked = currentSong?.song?.liked == true
-    val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 6.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-        ) {
-            MiniPlayerArtwork(
-                mediaMetadata = mediaMetadata,
-                isPlaying = isPlaying,
-                position = position,
-                duration = duration,
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            mediaMetadata?.let {
-                MiniPlayerInfo(mediaMetadata = it)
-            } ?: Spacer(Modifier.weight(1f))
-
-            if (togetherSessionState !is TogetherSessionState.Idle) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.all_inclusive),
-                        contentDescription = stringResource(R.string.music_together),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.padding(8.dp).size(14.dp),
-                    )
-                }
-            }
-
-            MiniPlayerActionButtons(
-                isLiked = isLiked,
-                onLikeClick = playerConnection::toggleLike
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            MiniPlayerPlayPauseButton(
-                position = position,
-                duration = duration,
-                isPlaying = isPlaying,
-                playbackState = playbackState,
-                isLoading = isLoading,
-                playerConnection = playerConnection
-            )
-        }
     }
 }
 
