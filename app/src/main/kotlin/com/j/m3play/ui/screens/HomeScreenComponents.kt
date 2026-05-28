@@ -622,7 +622,7 @@ fun KeepListeningSection(
 }
 
 /**
- * Forgotten Favorites section - horizontal grid of songs
+ * Forgotten Favorites section - NOW UPDATED to 16:9 LazyRow Design
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -639,71 +639,82 @@ fun ForgottenFavoritesSection(
     haptic: HapticFeedback,
     modifier: Modifier = Modifier
 ) {
-    val rows = min(4, forgottenFavorites.size)
     val distinctForgottenFavorites = remember(forgottenFavorites) { forgottenFavorites.distinctBy { it.id } }
     
-    LazyHorizontalGrid(
-        state = lazyGridState,
-        rows = GridCells.Fixed(rows),
-        flingBehavior = rememberSnapFlingBehavior(snapLayoutInfoProvider),
+    LazyRow(
         contentPadding = WindowInsets.systemBars
             .only(WindowInsetsSides.Horizontal)
             .asPaddingValues(),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(ListItemHeight * rows)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
         items(
             items = distinctForgottenFavorites,
             key = { it.id }
         ) { song ->
-            SongListItem(
-                song = song,
-                showInLibraryIcon = true,
-                isActive = song.id == mediaMetadata?.id,
-                isPlaying = isPlaying,
-                isSwipeable = false,
-                trailingContent = {
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                SongMenu(
-                                    originalSong = song,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.more_vert),
-                            contentDescription = null
-                        )
-                    }
-                },
+            Column(
                 modifier = Modifier
-                    .width(horizontalLazyGridItemWidth)
+                    .width(160.dp)
                     .combinedClickable(
                         onClick = {
-                            if (song.id == mediaMetadata?.id) {
-                                playerConnection.player.togglePlayPause()
-                            } else {
-                                playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
-                            }
+                            if (song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                            else playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                         },
                         onLongClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                SongMenu(
-                                    originalSong = song,
-                                    navController = navController,
-                                    onDismiss = menuState::dismiss
-                                )
-                            }
+                            menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) }
                         }
                     )
-            )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(12.dp))
+                ) {
+                    AsyncImage(
+                        model = song.song.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val isActive = song.id == mediaMetadata?.id
+                            Icon(
+                                painter = painterResource(if (isActive && isPlaying) R.drawable.pause else R.drawable.play),
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .padding(start = if (isActive && isPlaying) 0.dp else 2.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = song.song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = song.artists.joinToString(", ") { it.name },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -1049,40 +1060,49 @@ fun SimilarRecommendationsTitle(
     )
 }
 
-// 🔥 GLOSSY: YTM PLAY ALL BUTTON REMOVED (As NavigationTitle doesn't support it) 🔥
+// GLOSSY: NEW HOMEPAGE SECTION TITLE WITH "PLAY ALL" BUTTON 
 @Composable
 fun HomePageSectionTitle(
     section: HomePage.Section,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
-    NavigationTitle(
-        title = section.title,
-        label = section.label,
-        // onPlayAllClick is removed to prevent the unresolved reference error
-        thumbnail = section.thumbnail?.let { thumbnailUrl ->
-            {
-                val shape = if (section.endpoint?.isArtistEndpoint == true) CircleShape 
-                    else RoundedCornerShape(ThumbnailCornerRadius)
-                AsyncImage(
-                    model = thumbnailUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(ListThumbnailSize)
-                        .clip(shape)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = section.title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f)
+        )
+
+        if (section.items.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                color = Color.Transparent,
+                modifier = Modifier.clickable {
+                    section.endpoint?.browseId?.let { browseId ->
+                        if (browseId == "FEmusic_moods_and_genres") navController.navigate("mood_and_genres")
+                        else navController.navigate("browse/$browseId")
+                    }
+                }
+            ) {
+                Text(
+                    text = "Play all",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
-        },
-        onClick = section.endpoint?.browseId?.let { browseId ->
-            {
-                if (browseId == "FEmusic_moods_and_genres")
-                    navController.navigate("mood_and_genres") 
-                else
-                    navController.navigate("browse/$browseId")
-            }
-        },
-        modifier = modifier
-    )
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -1104,7 +1124,7 @@ fun LazyListScope.AccountPlaylistsContainer(
         val currentPlaylists = accountPlaylists
         if (!currentPlaylists.isNullOrEmpty()) {
             Column {
-                 AccountPlaylistsTitle(
+                AccountPlaylistsTitle(
                     accountName = accountName ?: "",
                     accountImageUrl = accountImageUrl,
                     onClick = { navController.navigate("account") },
@@ -1158,7 +1178,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
                     haptic = haptic,
                     scope = scope
                 )
-            }
+             }
         }
     }
 }
@@ -1309,14 +1329,14 @@ fun MetroSpeedDialSection(
                             )
                         )
                     )
-            )
+             )
 
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
                     .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = item.title,
@@ -1403,7 +1423,7 @@ fun MetroSpeedDialSection(
                             .clip(CircleShape)
                             .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
                     )
-                }
+                 }
                 if (isRandomizing) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
@@ -1480,7 +1500,7 @@ fun MetroSpeedDialSection(
     }
 }
 
-// 🔥 GLOSSY: DYNAMIC HOME PAGE RENDERING ENGINE 🔥
+// GLOSSY: DYNAMIC YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
@@ -1495,23 +1515,19 @@ fun HomePageSectionContent(
     modifier: Modifier = Modifier
 ) {
     val sectionTitle = section.title.lowercase()
-    
-    // Check if section contains ONLY playable songs
     val sectionSongs = section.items.filterIsInstance<SongItem>()
     val isSongsOnlySection = section.items.isNotEmpty() && section.items.all { it is SongItem }
+    val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
     when {
-        // 1. YouTube Music "Daily Discover" or "Mixed for you" UI (Premium Square Cards)
+        // 1. YouTube Music "Daily Discover" (Hero Premium Cards)
         sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = modifier.fillMaxWidth()
             ) {
-                items(
-                    items = section.items.distinctBy { it.id },
-                    key = { "premium_card_${it.id}" }
-                ) { item ->
+                items(items = section.items.distinctBy { it.id }, key = { "premium_card_${it.id}" }) { item ->
                     YTPremiumDiscoverCard(
                         item = item,
                         onClick = {
@@ -1523,75 +1539,76 @@ fun HomePageSectionContent(
                             }
                         },
                         navController = navController,
-                        modifier = Modifier.width(180.dp).aspectRatio(1f) // Square Premium Cards
+                        modifier = Modifier.width(300.dp).aspectRatio(0.85f) // Tall hero card format
                     )
                 }
             }
         }
 
-        // 2. YouTube Music "Quick Picks" or "Shorts" or "Trending" UI (Horizontal List format)
+        // 2. Large Video Cards
+        isVideoSection -> {
+            LazyRow(
+                contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
+                modifier = modifier.fillMaxWidth()
+            ) {
+                items(items = section.items.distinctBy { it.id }, key = { "large_video_${it.id}" }) { video ->
+                    YTMLargeVideoCard(
+                        item = video,
+                        onClick = {
+                            if (video is SongItem) playerConnection.playQueue(YouTubeQueue(video.endpoint ?: WatchEndpoint(videoId = video.id), video.toMediaMetadata()))
+                        },
+                        onMenuClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (video is SongItem) menuState.show { YouTubeSongMenu(song = video, navController = navController, onDismiss = menuState::dismiss) }
+                        }
+                    )
+                }
+            }
+        }
+
+        // 3. 4-Row Lists (Trending, Covers)
         isSongsOnlySection -> {
             BoxWithConstraints {
-                val horizontalLazyGridItemWidth = maxWidth * if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+                val horizontalLazyGridItemWidth = maxWidth * 0.92f // 92% screen width
                 
                 LazyHorizontalGrid(
                     state = rememberLazyGridState(),
-                    rows = GridCells.Fixed(4), // 4 Rows of songs
+                    rows = GridCells.Fixed(4), // Exact 4 items stacked vertically
                     contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .height(ListItemHeight * 4)
+                    modifier = modifier.fillMaxWidth().height(ListItemHeight * 4)
                 ) {
-                    items(
-                        items = sectionSongs.distinctBy { it.id },
-                        key = { "list_song_${it.id}" }
-                    ) { song ->
+                    items(items = sectionSongs.distinctBy { it.id }, key = { "list_song_${it.id}" }) { song ->
                         YouTubeListItem(
                             item = song,
                             isActive = song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
                             isSwipeable = false,
                             trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menuState.show {
-                                            YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss)
-                                        }
-                                    }
-                                ) {
-                                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-                                }
+                                IconButton(onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) }
+                                }) { Icon(painterResource(R.drawable.more_vert), null) }
                             },
-                            modifier = Modifier
-                                .width(horizontalLazyGridItemWidth)
-                                .combinedClickable(
-                                    onClick = {
-                                        playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata()))
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menuState.show {
-                                            YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss)
-                                        }
-                                    }
-                                )
+                            modifier = Modifier.width(horizontalLazyGridItemWidth).combinedClickable(
+                                onClick = { playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) }
+                                }
+                            )
                         )
                     }
                 }
             }
         }
 
-        // 3. Fallback to standard Grid Items (For Artists, Albums, and mixed items)
+        // 4. Default Fallback Grid (For Playlists / Albums)
         else -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
                 modifier = modifier
             ) {
-                items(
-                    items = section.items.distinctBy { it.id },
-                    key = { "grid_item_${it.id}" }
-                ) { item ->
+                items(items = section.items.distinctBy { it.id }, key = { "grid_item_${it.id}" }) { item ->
                     YouTubeGridItemWrapper(
                         item = item,
                         mediaMetadata = mediaMetadata,
@@ -1603,6 +1620,82 @@ fun HomePageSectionContent(
                         scope = scope
                     )
                 }
+            }
+        }
+    }
+}
+
+// GLOSSY: LARGE YTM VIDEO CARD 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun YTMLargeVideoCard(
+    item: YTItem,
+    onClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .width(320.dp) // Large width for video
+            .combinedClickable(onClick = onClick, onLongClick = onMenuClick)
+            .padding(end = 16.dp)
+    ) {
+        // 16:9 Thumbnail
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = item.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w640-h360"),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(10.dp))
+        
+        // Title, Subtitle & Menu
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                val subtitle = when (item) {
+                    is SongItem -> item.artists.joinToString(", ") { it.name }
+                    is PlaylistItem -> item.author?.name ?: ""
+                    else -> ""
+                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.size(24.dp).padding(top = 2.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.more_vert), 
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
         }
     }
