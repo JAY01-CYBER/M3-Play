@@ -43,12 +43,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -132,9 +133,7 @@ private fun NewMiniPlayer(
                 .fillMaxWidth()
                 .height(68.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .shadow(elevation = 12.dp, shape = RoundedCornerShape(34.dp), clip = false)
                 .clip(RoundedCornerShape(34.dp))
-                // Solid Material Design 3 Background (Border outline has been removed)
                 .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
         ) {
             NewMiniPlayerContent(
@@ -168,6 +167,7 @@ private fun LegacyMiniPlayer(
     val currentView = LocalView.current
     val layoutDirection = LocalLayoutDirection.current
     val coroutineScope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
     
@@ -240,6 +240,9 @@ private fun LegacyMiniPlayer(
                                 ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
                                 
                                 if (shouldChangeSong) {
+                                    // Smooth vibrate on swipe
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    
                                     val isRightSwipe = currentOffset > 0
                                     
                                     if (isRightSwipe && canSkipPrevious) {
@@ -297,6 +300,7 @@ private fun LegacyMiniPlayer(
 
             IconButton(
                 onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     if (playbackState == Player.STATE_ENDED) {
                         playerConnection.player.seekTo(0, 0)
                         playerConnection.player.playWhenReady = true
