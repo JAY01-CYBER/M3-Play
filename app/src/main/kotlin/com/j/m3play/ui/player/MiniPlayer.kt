@@ -134,14 +134,8 @@ private fun NewMiniPlayer(
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .shadow(elevation = 12.dp, shape = RoundedCornerShape(34.dp), clip = false)
                 .clip(RoundedCornerShape(34.dp))
-                // Solid Material Design 3 Background (No transparency)
+                // Solid Material Design 3 Background (Border outline has been removed)
                 .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
-                // Outline Border for Premium Look
-                .border(
-                    width = 1.5.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(34.dp)
-                )
         ) {
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
