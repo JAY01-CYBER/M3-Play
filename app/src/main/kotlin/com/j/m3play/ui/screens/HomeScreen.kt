@@ -138,7 +138,7 @@ fun GlossyCarouselCard(
     Card(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp)) // Compact but premium corner
+            .clip(RoundedCornerShape(24.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -150,7 +150,7 @@ fun GlossyCarouselCard(
             ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)) // Premium Glass Edge
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
@@ -190,7 +190,6 @@ fun GlossyCarouselCard(
                         ),
                 )
 
-                // Compact standard text and padding
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -456,7 +455,7 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(290.dp) // Reverted to compact height
+                                .height(290.dp)
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -533,7 +532,6 @@ fun HomeScreen(
     }
 }
 
-//  REDESIGNED M3 EXPENSIVE CARD (COMPACT HEIGHT, NO BIG TEXT) 
 @Composable
 fun ActionCard(
     title: String,
@@ -551,18 +549,18 @@ fun ActionCard(
         onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(48.dp), // Kept compact
-        shape = RoundedCornerShape(999.dp), // Premium pill shape
+            .height(48.dp),
+        shape = RoundedCornerShape(999.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) // Glassmorphism base
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)), // Subtle reflection
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
         interactionSource = interactionSource
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center // Centered looks clean and compact
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
                 painter = painterResource(icon), 
@@ -573,7 +571,7 @@ fun ActionCard(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = title, 
-                style = MaterialTheme.typography.bodyMedium, // Kept normal size
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold, 
                 color = MaterialTheme.colorScheme.onSurface, 
                 maxLines = 1,
