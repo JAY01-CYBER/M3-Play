@@ -116,6 +116,7 @@ import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.TimeGreetingCard
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
+import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.utils.SnapLayoutInfoProvider
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CommunityPlaylistItem
@@ -382,7 +383,6 @@ fun HomeScreen(
                     )
                 }
                 
-                // COMPACT YET PREMIUM ACTION CARDS
                 item {
                     Row(
                         modifier = Modifier
@@ -437,6 +437,18 @@ fun HomeScreen(
                                             ),
                                         )
                                     },
+                                    onMenuClick = { song: SongItem ->
+                                        // 3-DOT BUTTON MENU
+                                        menuState.show {
+                                            YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss)
+                                        }
+                                    },
+                                    onSaveClick = {
+                                        // BOOKMARK BUTTON PLAYLIST MENU
+                                        menuState.show {
+                                            YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss)
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -456,7 +468,7 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(290.dp) // Compact height
+                                .height(290.dp)
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center,
                         ) {
