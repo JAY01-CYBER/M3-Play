@@ -49,13 +49,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -96,6 +97,7 @@ fun SwipeableMiniPlayerBox(
     val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableStateOf(0L) }
     var totalDragDistance by remember { mutableFloatStateOf(0f) }
+    val haptic = LocalHapticFeedback.current
 
     val animationSpec = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -166,6 +168,9 @@ fun SwipeableMiniPlayerBox(
                                 ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
 
                                 if (shouldChangeSong) {
+                                    // Swipe vibrate
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    
                                     val isRightSwipe = currentOffset > 0
                                     val canSkipPrevious = playerConnection.player.previousMediaItemIndex != -1
                                     val canSkipNext = playerConnection.player.nextMediaItemIndex != -1
@@ -245,7 +250,13 @@ fun NewMiniPlayerContent(
                 .fillMaxSize()
                 .padding(horizontal = 6.dp, vertical = 6.dp),
         ) {
-            ModernMiniPlayerArtwork(mediaMetadata = mediaMetadata)
+            // Wavy progress ab thumbnail (artwork) par hai
+            ModernMiniPlayerArtwork(
+                mediaMetadata = mediaMetadata,
+                isPlaying = isPlaying,
+                position = position,
+                duration = duration
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -270,15 +281,11 @@ fun NewMiniPlayerContent(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // Premium MD3 Shape for Like button
             ModernLikeButton(isLiked = isLiked, onLikeClick = playerConnection::toggleLike)
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Play/Pause button with Wavy Circular Ring around it
             ModernPlayPauseControl(
-                position = position,
-                duration = duration,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
                 isLoading = isLoading,
@@ -291,82 +298,88 @@ fun NewMiniPlayerContent(
 }
 
 @Composable
-private fun ModernMiniPlayerArtwork(mediaMetadata: MediaMetadata?) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(56.dp)
-            .shadow(4.dp, CircleShape, clip = false)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        AsyncImage(
-            model = mediaMetadata?.thumbnailUrl,
-            contentDescription = mediaMetadata?.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-        )
-    }
-}
-
-@Composable
-private fun ModernPlayPauseControl(
-    position: Long,
-    duration: Long,
+private fun ModernMiniPlayerArtwork(
+    mediaMetadata: MediaMetadata?,
     isPlaying: Boolean,
-    playbackState: Int,
-    isLoading: Boolean,
-    playerConnection: PlayerConnection
+    position: Long,
+    duration: Long
 ) {
+    // 56.dp container, wavy ring full size hogi, aur artwork thoda andar aayega
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(52.dp) // Thoda bada container taaki wavy ring fit ho sake
+        modifier = Modifier.size(56.dp)
     ) {
-        // Wavy Circular Ring around the Play button (spinning is disabled)
+        // Sirf progress se fill hoga, ghume ga nahi
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
             isPlaying = isPlaying,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Inner solid Play/Pause Button
         Box(
-            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(38.dp)
+                .padding(4.dp) // Wavy ring ke liye thodi space chhodne ke liye
+                .fillMaxSize()
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable {
-                    if (playbackState == Player.STATE_ENDED) {
-                        playerConnection.player.seekTo(0, 0)
-                        playerConnection.player.playWhenReady = true
-                    } else {
-                        playerConnection.player.togglePlayPause()
-                    }
-                }
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    painter = painterResource(
-                        if (playbackState == Player.STATE_ENDED) {
-                            R.drawable.replay
-                        } else if (isPlaying) {
-                            R.drawable.pause
-                        } else {
-                            R.drawable.play
-                        }
-                    ),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+            AsyncImage(
+                model = mediaMetadata?.thumbnailUrl,
+                contentDescription = mediaMetadata?.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernPlayPauseControl(
+    isPlaying: Boolean,
+    playbackState: Int,
+    isLoading: Boolean,
+    playerConnection: PlayerConnection
+) {
+    val haptic = LocalHapticFeedback.current
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(40.dp) // Ab iski size standard kar di gayi hai (kyuki ring nahi hai yahan)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable {
+                // Click par smooth vibrate
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (playbackState == Player.STATE_ENDED) {
+                    playerConnection.player.seekTo(0, 0)
+                    playerConnection.player.playWhenReady = true
+                } else {
+                    playerConnection.player.togglePlayPause()
+                }
             }
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                painter = painterResource(
+                    if (playbackState == Player.STATE_ENDED) {
+                        R.drawable.replay
+                    } else if (isPlaying) {
+                        R.drawable.pause
+                    } else {
+                        R.drawable.play
+                    }
+                ),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         }
     }
 }
@@ -416,7 +429,8 @@ private fun ModernLikeButton(
     isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
-    // Like button ek premium MD3 shape mein (Rounded Squircle)
+    val haptic = LocalHapticFeedback.current
+    
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -426,7 +440,10 @@ private fun ModernLikeButton(
                 if (isLiked) MaterialTheme.colorScheme.errorContainer 
                 else MaterialTheme.colorScheme.surfaceVariant
             )
-            .clickable(onClick = onLikeClick)
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLikeClick()
+            }
     ) {
         Icon(
             painter = painterResource(
@@ -440,7 +457,7 @@ private fun ModernLikeButton(
 }
 
 // -----------------------------------------------------------------
-// LEGACY & ORIGINAL COMPONENTS (Taaki aapka purana system break na ho)
+// LEGACY & ORIGINAL COMPONENTS
 // -----------------------------------------------------------------
 
 @Composable
@@ -452,6 +469,7 @@ fun MiniPlayerPlayPauseButton(
     isLoading: Boolean,
     playerConnection: PlayerConnection
 ) {
+    val haptic = LocalHapticFeedback.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -459,6 +477,7 @@ fun MiniPlayerPlayPauseButton(
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primary)
             .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 if (playbackState == Player.STATE_ENDED) {
                     playerConnection.player.seekTo(0, 0)
                     playerConnection.player.playWhenReady = true
@@ -487,41 +506,6 @@ fun MiniPlayerPlayPauseButton(
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-    }
-}
-
-@Composable
-private fun MiniPlayerArtwork(
-    mediaMetadata: MediaMetadata?,
-    isPlaying: Boolean,
-    position: Long,
-    duration: Long,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(56.dp)
-    ) {
-        WavyCircularProgress(
-            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
-            isPlaying = isPlaying,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        Box(
-            modifier = Modifier
-                .padding(5.dp)
-                .fillMaxSize()
-                .shadow(10.dp, CircleShape, clip = false)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            AsyncImage(
-                model = mediaMetadata?.thumbnailUrl,
-                contentDescription = mediaMetadata?.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -574,13 +558,17 @@ fun MiniPlayerActionButtons(
     isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
-            .clickable(onClick = onLikeClick)
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLikeClick()
+            }
     ) {
         Icon(
             painter = painterResource(
@@ -599,7 +587,6 @@ fun WavyCircularProgress(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // Rotation animation has been completely removed to stop spinning.
     val (waveShift, amplitudePulse) = if (isPlaying) {
         val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
         Pair(
@@ -636,7 +623,7 @@ fun WavyCircularProgress(
     val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
 
     Canvas(
-        modifier = modifier // No rotation graphicsLayer here
+        modifier = modifier
     ) {
         val strokeWidth = 3.dp.toPx()
         val center = Offset(size.width / 2f, size.height / 2f)
@@ -651,7 +638,6 @@ fun WavyCircularProgress(
             val path = Path()
             for (i in 0..steps) {
                 val fraction = i / totalSteps.toFloat()
-                // Starting exactly from the top (-90 degrees / -Math.PI / 2)
                 val angle = (Math.PI * 2 * fraction) - (Math.PI / 2)
                 val wave = kotlin.math.sin((angle * waves) + waveShift).toFloat() * amplitude
                 val radius = baseRadius + wave
@@ -679,6 +665,8 @@ fun WavyCircularProgress(
 @Composable
 fun MiniPlayerSubscribeButton(mediaMetadata: MediaMetadata) {
     val database = LocalDatabase.current
+    val haptic = LocalHapticFeedback.current
+    
     mediaMetadata.artists.firstOrNull()?.let { artistInfo ->
         artistInfo.id?.let { artistId ->
             val libraryArtist by database.artist(artistId).collectAsState(initial = null)
@@ -705,6 +693,7 @@ fun MiniPlayerSubscribeButton(mediaMetadata: MediaMetadata) {
                         shape = CircleShape
                     )
                     .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         database.transaction {
                             val artist = libraryArtist?.artist
                             if (artist != null) {
