@@ -1028,33 +1028,6 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-@Composable
-fun CommunityPlaylistsSection(
-    playlists: List<CommunityPlaylistItem>,
-    mediaMetadata: MediaMetadata?,
-    isPlaying: Boolean,
-    navController: NavController,
-    playerConnection: PlayerConnection,
-    menuState: MenuState,
-    haptic: HapticFeedback,
-    modifier: Modifier = Modifier
-) {
-    LazyRow(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(playlists, key = { it.playlist.id }) { item ->
-            CommunityPlaylistCard(
-                item = item,
-                onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") },
-                onSongClick = { song -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) },
-                modifier = Modifier
-            )
-        }
-    }
-}
-
 // 🔥 MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 🔥
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -1342,7 +1315,7 @@ fun MetroSpeedDialSection(
     }
 }
 
-// 🔥 GLOSSY: EXACT YTM LAYOUT ENGINE 🔥
+// GLOSSY: EXACT YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
