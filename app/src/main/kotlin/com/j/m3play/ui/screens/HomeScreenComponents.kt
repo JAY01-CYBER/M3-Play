@@ -280,7 +280,7 @@ fun YTMSquareGridItem(
         
         Text(
             text = item.title,
-            style = MaterialTheme.typography.bodyMedium, // Standard size
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 2,
@@ -299,7 +299,7 @@ fun YTMSquareGridItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall, // Standard size
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -317,6 +317,8 @@ fun CommunityPlaylistCard(
     item: CommunityPlaylistItem,
     onClick: () -> Unit,
     onSongClick: (SongItem) -> Unit,
+    onMenuClick: (SongItem) -> Unit = {},
+    onSaveClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val playerConnection = LocalPlayerConnection.current
@@ -350,7 +352,7 @@ fun CommunityPlaylistCard(
                 Column {
                     Text(
                         text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium, // Normal compact text
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
@@ -392,7 +394,7 @@ fun CommunityPlaylistCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = song.title,
-                            style = MaterialTheme.typography.bodyMedium, // Normal size
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -405,7 +407,13 @@ fun CommunityPlaylistCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }, modifier = Modifier.size(24.dp)) {
+                    IconButton(
+                        onClick = { 
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onMenuClick(song) 
+                        }, 
+                        modifier = Modifier.size(24.dp)
+                    ) {
                         Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
                     }
                 }
@@ -432,7 +440,10 @@ fun CommunityPlaylistCard(
                 }
                 
                 IconButton(
-                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                    onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSaveClick() 
+                    },
                     modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                 ) {
                     Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
@@ -485,7 +496,7 @@ fun YTMLargeVideoCard(
             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.titleMedium, // Standard size
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -498,7 +509,7 @@ fun YTMLargeVideoCard(
                 }
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium, // Standard size
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1028,7 +1039,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// 🔥 MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 🔥
+// MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MetroSpeedDialSection(
@@ -1315,7 +1326,7 @@ fun MetroSpeedDialSection(
     }
 }
 
-// GLOSSY: EXACT YTM LAYOUT ENGINE 
+//  GLOSSY: EXACT YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
@@ -1335,7 +1346,7 @@ fun HomePageSectionContent(
     
     val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
-    // 💥 Listen Again, Mixed for you, Discover (Standard Square Cards)
+    //  Listen Again, Mixed for you, Discover (Standard Square Cards)
     val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar")
     
     when {
