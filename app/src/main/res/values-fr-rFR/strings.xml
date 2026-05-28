@@ -127,16 +127,16 @@
     <string name="together_kick_confirm">Kick %1$s?</string>
     <string name="together_ban_confirm">Ban %1$s?</string>
     <string name="together_requesting_song_change">Requesting host to change the song\u2026</string>
-    <string name="together_song_change_failed">Song change not applied. Please try again.</string>
+    <string name="together_song_change_failed">Le changement de titre n\'a pas été pris en compte. Veuillez réessayer.</string>
     <string name="remove_from_history">Supprimer de l\'historique</string>
     <string name="remove_from_playlist">Supprimer de la playlist</string>
     <string name="remove_from_queue">Retirer de la file d\'attente</string>
     <string name="search_online">Search online</string>
     <string name="action_sync">Synchroniser</string>
     <string name="advanced">Avancé</string>
-    <string name="tempo_and_pitch">Tempo and Pitch</string>
+    <string name="tempo_and_pitch">Tempo et Hauteur</string>
     <string name="tempo">Tempo</string>
-    <string name="pitch">Pitch</string>
+    <string name="pitch">Hauteur</string>
     <string name="pitch_mode_semitones_short">st</string>
     <string name="pitch_mode_multiplier_short">x</string>
     <!-- Sort menu -->
@@ -497,17 +497,17 @@
     <string name="eq_output_gain">Output gain</string>
     <string name="eq_bass_boost">Bass boost</string>
     <string name="eq_virtualizer">Virtualizer</string>
-    <string name="storage">Storage</string>
+    <string name="storage">Stockage</string>
     <string name="smart_trimmer">Smart Trimmer</string>
     <string name="smart_trimmer_description">Smart Trimmer gère de manière dynamique le cache d\'images et le cache de morceaux, en supprimant les anciennes entrées afin de libérer de l\'espace disque.</string>
     <string name="cache">Cache</string>
-    <string name="image_cache">Image Cache</string>
+    <string name="image_cache">Cache d\'images</string>
     <string name="song_cache">Song Cache</string>
-    <string name="max_cache_size">Max cache size</string>
-    <string name="unlimited">Unlimited</string>
-    <string name="clear_all_downloads">Clear all downloads</string>
-    <string name="max_image_cache_size">Max image cache size</string>
-    <string name="clear_image_cache">Clear image cache</string>
+    <string name="max_cache_size">Taille maximale du cache</string>
+    <string name="unlimited">Illimité</string>
+    <string name="clear_all_downloads">Effacer tous les téléchargements</string>
+    <string name="max_image_cache_size">Taille maximale du cache d\'images</string>
+    <string name="clear_image_cache">Vider le cache d\'images</string>
     <string name="max_song_cache_size">Max song cache size</string>
     <string name="clear_song_cache">Clear song cache</string>
     <string name="size_used">%s utilisé</string>
@@ -547,9 +547,9 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Intégration Last.fm</string>
-    <string name="enable_scrobbling">Enable Scrobbling</string>
+    <string name="enable_scrobbling">Activer le scrobbling</string>
     <string name="lastfm_now_playing">Update Now Playing</string>
-    <string name="scrobbling_configuration">Scrobbling Configuration</string>
+    <string name="scrobbling_configuration">Configuration du scrobbling</string>
     <string name="scrobble_min_track_duration">Minimum Track Duration</string>
     <string name="scrobble_delay_percent">Scrobble Delay Percent</string>
     <string name="scrobble_delay_minutes">Scrobble Delay (Seconds)</string>
@@ -585,7 +585,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="enable_translator">Enable Translator</string>
     <string name="enable_translator_desc">Translate selected fields before sending to Discord RPC</string>
     <string name="context_info">Contexts (comma-separated)</string>
-    <string name="translator_info_usage">Use Example: {song}, {artist}, {album}</string>
+    <string name="translator_info_usage">Exemple d\'utilisation : {song}, {artist}, {album}</string>
     <string name="target_language">Target Language</string>
     <string name="select_language">Select Language</string>
     <string name="close_dialog">Close</string>
@@ -706,7 +706,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="permission_status_all_granted">All required permissions are allowed. You are ready to start.</string>
     <string name="permission_status_required">Please allow all required permissions to continue.</string>
     <string name="next">Next</string>
-    <string name="next_song">Next Song</string>
+    <string name="next_song">Titre suivant</string>
     <string name="allow">Allow</string>
     <!-- Playlist Suggestions -->
     <string name="you_might_like">You might like</string>
@@ -715,7 +715,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="together_display_name">Display name</string>
     <string name="together_display_name_placeholder">Your name</string>
     <string name="together_port">Session port</string>
-    <string name="together_allow_guests_add">Guests can add songs</string>
+    <string name="together_allow_guests_add">Les invités peuvent ajouter des titres</string>
     <string name="together_allow_guests_control">Guests can control playback</string>
     <string name="together_require_approval">Require approval</string>
     <string name="together_lan">LAN</string>
@@ -734,7 +734,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="waiting_for_approval">Waiting for approval</string>
     <string name="host">Host</string>
     <string name="session_settings">Session settings</string>
-    <string name="add_current_song">Add current song</string>
+    <string name="add_current_song">Ajouter le titre en cours</string>
     <string name="playback_controls">Playback controls</string>
     <string name="approve">Approve</string>
     <string name="deny">Deny</string>
