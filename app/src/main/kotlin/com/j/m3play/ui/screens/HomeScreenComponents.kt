@@ -280,7 +280,7 @@ fun YTMSquareGridItem(
         
         Text(
             text = item.title,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium, // Standard size
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 2,
@@ -299,145 +299,11 @@ fun YTMSquareGridItem(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall, // Standard size
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-        }
-    }
-}
-
-// ==========================================
-// EXACT YTM COMMUNITY PLAYLIST CARD
-// ==========================================
-
-@Composable
-fun CommunityPlaylistCard(
-    item: CommunityPlaylistItem,
-    onClick: () -> Unit,
-    onSongClick: (SongItem) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val playerConnection = LocalPlayerConnection.current
-    val haptic = LocalHapticFeedback.current
-    
-    Card(
-        modifier = modifier.width(340.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onClick,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
-                ) {
-                    Column {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = item.playlist.author?.name ?: "Community",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            item.songs.take(4).forEach { song ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSongClick(song) }
-                        .padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = song.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }, modifier = Modifier.size(24.dp)) {
-                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.background)
-                }
-                
-                IconButton(
-                    onClick = { item.playlist.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.radio), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
-                }
-                
-                IconButton(
-                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
         }
     }
 }
@@ -485,7 +351,7 @@ fun YTMLargeVideoCard(
             Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium, // Standard size
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -498,7 +364,7 @@ fun YTMLargeVideoCard(
                 }
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium, // Standard size
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -1028,7 +894,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// 🔥 GLOSSY: EXACT YTM LAYOUT ENGINE 🔥
+//  GLOSSY: EXACT YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
