@@ -43,9 +43,9 @@
     <string name="this_week">Cette semaine</string>
     <string name="last_week">Last week</string>
     <!-- Stats -->
-    <string name="most_played_songs">Most played songs</string>
-    <string name="most_played_artists">Most played artists</string>
-    <string name="most_played_albums">Most played albums</string>
+    <string name="most_played_songs">Titres les plus écoutés</string>
+    <string name="most_played_artists">Artistes les plus écoutés</string>
+    <string name="most_played_albums">Albums les plus écoutés</string>
     <!-- Search -->
     <string name="search">Rechercher</string>
     <string name="search_yt_music">Rechercher sur YouTube Music…</string>
@@ -75,7 +75,7 @@
     <!-- Album screen -->
     <string name="other_versions">Autres versions</string>
     <!-- Playlist -->
-    <string name="liked_songs">Liked songs</string>
+    <string name="liked_songs">Titres favoris</string>
     <string name="downloaded_songs">Titres téléchargés</string>
     <string name="playlist_is_empty">La playlist est vide</string>
     <string name="remove_download_playlist_confirm">Voulez-vous vraiment supprimer tous les titres de la playlist « %s » du dossier « Titres téléchargés » ?</string>
@@ -110,7 +110,7 @@
     <string name="remove_from_speed_dial">Remove from speed dial</string>
     <string name="view_artist">Voir l\'artiste</string>
     <string name="view_album">Voir l\'album</string>
-    <string name="view_all">View all</string>
+    <string name="view_all">Tout afficher</string>
     <string name="more">plus</string>
     <string name="refetch">Recharger</string>
     <string name="share">Partager</string>
@@ -119,19 +119,19 @@
     <string name="together_connected_count">%1$d connectés</string>
     <string name="together_role_host">Hôte</string>
     <string name="together_role_guest">Invité</string>
-    <string name="together_pending_approval">Pending approval</string>
-    <string name="together_waiting_approval">Waiting Approval</string>
+    <string name="together_pending_approval">En attente d\'approbation</string>
+    <string name="together_waiting_approval">En attente d\'approbation</string>
     <string name="together_host_left_session">Host Leaved Sessions</string>
     <string name="together_kick">Kick</string>
     <string name="together_ban">Ban</string>
     <string name="together_kick_confirm">Kick %1$s?</string>
     <string name="together_ban_confirm">Ban %1$s?</string>
-    <string name="together_requesting_song_change">Requesting host to change the song\u2026</string>
+    <string name="together_requesting_song_change">Demande à l\'animateur de changer de titre…\u2026</string>
     <string name="together_song_change_failed">Le changement de titre n\'a pas été pris en compte. Veuillez réessayer.</string>
     <string name="remove_from_history">Supprimer de l\'historique</string>
     <string name="remove_from_playlist">Supprimer de la playlist</string>
     <string name="remove_from_queue">Retirer de la file d\'attente</string>
-    <string name="search_online">Search online</string>
+    <string name="search_online">Recherche en ligne</string>
     <string name="action_sync">Synchroniser</string>
     <string name="advanced">Avancé</string>
     <string name="tempo_and_pitch">Tempo et Hauteur</string>
@@ -144,7 +144,7 @@
     <string name="sort_by_name">Nom</string>
     <string name="sort_by_artist">Artiste</string>
     <string name="sort_by_year">Année</string>
-    <string name="sort_by_song_count">Song count</string>
+    <string name="sort_by_song_count">Nombre de morceaux</string>
     <string name="sort_by_length">Durée</string>
     <string name="sort_by_play_time">Temps d\'écoute</string>
     <string name="sort_by_custom">Ordre personnalisé</string>
@@ -161,23 +161,23 @@
     <string name="copied">Copié dans le presse-papiers</string>
     <string name="edit_lyrics">Modifier les paroles</string>
     <string name="search_lyrics">Rechercher les paroles</string>
-    <string name="edit_song">Edit song</string>
-    <string name="song_title">Song title</string>
-    <string name="song_artists">Song artists</string>
-    <string name="error_song_title_empty">Song title cannot be empty.</string>
-    <string name="error_song_artist_empty">Song artist cannot be empty.</string>
+    <string name="edit_song">Modifier le morceau</string>
+    <string name="song_title">Titre du morceau</string>
+    <string name="song_artists">Interprètes</string>
+    <string name="error_song_title_empty">Le titre du morceau ne peut pas être vide.</string>
+    <string name="error_song_artist_empty">Le champ « Interprète » ne peut pas être vide.</string>
     <string name="save">Enregistrer</string>
     <string name="choose_playlist">Choose playlist</string>
-    <string name="edit_playlist">Edit playlist</string>
-    <string name="create_playlist">Create playlist</string>
+    <string name="edit_playlist">Modifier la playlist</string>
+    <string name="create_playlist">Créer une playlist</string>
     <string name="playlist_name">Nom de la playlist</string>
     <string name="error_playlist_name_empty">Le nom de la playlist ne peut pas être vide.</string>
-    <string name="edit_artist">Edit artist</string>
+    <string name="edit_artist">Modifier l\'artiste</string>
     <string name="artist_name">Nom de l\'artiste</string>
     <string name="error_artist_name_empty">Le nom de l\'artiste ne peut pas être vide.</string>
     <string name="duplicates">Doublons</string>
-    <string name="skip_duplicates">Skip duplicates</string>
-    <string name="add_anyway">Add anyway</string>
+    <string name="skip_duplicates">Ignorer les doublons</string>
+    <string name="add_anyway">Ajouter quand même</string>
     <string name="duplicates_description_single">Le titre est déjà dans votre playlist</string>
     <string name="duplicates_description_multiple">%d titres sont déjà dans votre playlist</string>
     <!-- Noun -->
@@ -231,10 +231,10 @@
     <string name="error_timeout">Timeout</string>
     <string name="error_unknown">Erreur inconnue</string>
     <!-- Player action -->
-    <string name="action_like">Like</string>
-    <string name="action_like_all">Like all</string>
-    <string name="action_remove_like">Remove like</string>
-    <string name="action_remove_like_all">Remove all likes</string>
+    <string name="action_like">J\'aime</string>
+    <string name="action_like_all">J\'aime tout</string>
+    <string name="action_remove_like">Supprimer le « J\'aime »</string>
+    <string name="action_remove_like_all">Supprimer tous les « J\'aime »</string>
     <string name="action_shuffle_on">Lecture aléatoire activée</string>
     <string name="action_shuffle_off">Lecture aléatoire désactivée</string>
     <string name="repeat_mode_off">Mode répétition désactivé</string>
@@ -243,7 +243,7 @@
     <!-- Queue Title -->
     <string name="queue_all_songs">Tous les titres</string>
     <string name="queue_searched_songs">Titres recherchés</string>
-    <string name="queue_continue_playing">Continue Playing</string>
+    <string name="queue_continue_playing">Continuer la lecture</string>
     <string name="queue_autoplaying_similar">Autoplaying similar music</string>
     <!-- Notification name -->
     <string name="music_player">Lecteur de Musique</string>
@@ -426,7 +426,7 @@
     <string name="content_language">Langue par défaut du contenu</string>
     <string name="content_country">Pays par défaut</string>
     <string name="system_default">Paramètres par défaut du système</string>
-    <string name="enable_proxy">Enable proxy</string>
+    <string name="enable_proxy">Activer le proxy</string>
     <string name="proxy_type">Proxy type</string>
     <string name="proxy_url">Proxy URL</string>
     <string name="stream_bypass_proxy">Contourner le proxy pour les flux</string>
@@ -502,14 +502,14 @@
     <string name="smart_trimmer_description">Smart Trimmer gère de manière dynamique le cache d\'images et le cache de morceaux, en supprimant les anciennes entrées afin de libérer de l\'espace disque.</string>
     <string name="cache">Cache</string>
     <string name="image_cache">Cache d\'images</string>
-    <string name="song_cache">Song Cache</string>
+    <string name="song_cache">Cache des morceaux</string>
     <string name="max_cache_size">Taille maximale du cache</string>
     <string name="unlimited">Illimité</string>
     <string name="clear_all_downloads">Effacer tous les téléchargements</string>
     <string name="max_image_cache_size">Taille maximale du cache d\'images</string>
     <string name="clear_image_cache">Vider le cache d\'images</string>
-    <string name="max_song_cache_size">Max song cache size</string>
-    <string name="clear_song_cache">Clear song cache</string>
+    <string name="max_song_cache_size">Taille maximale du cache des morceaux</string>
+    <string name="clear_song_cache">Vider le cache des morceaux</string>
     <string name="size_used">%s utilisé</string>
     <string name="privacy">Confidentialité</string>
     <string name="listen_history">Historique d\'écoute</string>
@@ -774,7 +774,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="together_welcome_join_title">Join from another device</string>
     <string name="together_welcome_join_body">Open the shared link, or enter code and tap Join. Your queue and playback will follow the host.</string>
     <string name="together_welcome_permissions_title">Permissions and safety</string>
-    <string name="together_welcome_permissions_body">Hosts can decide whether guests can add songs, control playback, or require approval to join.</string>
+    <string name="together_welcome_permissions_body">Les hôtes peuvent choisir de permettre ou non aux invités d\'ajouter des morceaux, de contrôler la lecture ou d\'exiger une autorisation pour rejoindre la session.</string>
     <string name="po_token_generation">PO Token Generation</string>
     <string name="po_token_generation_subtitle">Generate and manage web client PO tokens</string>
     <string name="web_client_po_token">Web Client PO Token</string>
