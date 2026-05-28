@@ -322,7 +322,7 @@ private fun ModernPlayPauseControl(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(52.dp) // Thoda bada container taaki wavy ring fit ho sake
     ) {
-        // Wavy Circular Ring around the Play button
+        // Wavy Circular Ring around the Play button (spinning is disabled)
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
             isPlaying = isPlaying,
@@ -599,21 +599,10 @@ fun WavyCircularProgress(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val (rotation, waveShift, amplitudePulse) = if (isPlaying) {
+    // Rotation animation has been completely removed to stop spinning.
+    val (waveShift, amplitudePulse) = if (isPlaying) {
         val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
-        Triple(
-            infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 2200,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "ring_rotation",
-            ).value,
+        Pair(
             infiniteTransition.animateFloat(
                 initialValue = 0f,
                 targetValue = (Math.PI * 2).toFloat(),
@@ -637,19 +626,17 @@ fun WavyCircularProgress(
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "ring_amplitude",
-            ).value,
+            ).value
         )
     } else {
-        Triple(0f, 0f, 1f)
+        Pair(0f, 1f)
     }
 
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
 
     Canvas(
-        modifier = modifier.graphicsLayer {
-            rotationZ = rotation
-        }
+        modifier = modifier // No rotation graphicsLayer here
     ) {
         val strokeWidth = 3.dp.toPx()
         val center = Offset(size.width / 2f, size.height / 2f)
@@ -664,6 +651,7 @@ fun WavyCircularProgress(
             val path = Path()
             for (i in 0..steps) {
                 val fraction = i / totalSteps.toFloat()
+                // Starting exactly from the top (-90 degrees / -Math.PI / 2)
                 val angle = (Math.PI * 2 * fraction) - (Math.PI / 2)
                 val wave = kotlin.math.sin((angle * waves) + waveShift).toFloat() * amplitude
                 val radius = baseRadius + wave
