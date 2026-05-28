@@ -118,7 +118,7 @@ private fun NewMiniPlayer(
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
 
     SwipeableMiniPlayerBox(
-        modifier = modifier.padding(bottom = 8.dp), 
+        modifier = modifier.padding(bottom = 8.dp),
         swipeSensitivity = swipeSensitivity,
         swipeThumbnail = swipeThumbnail,
         playerConnection = playerConnection,
@@ -132,12 +132,14 @@ private fun NewMiniPlayer(
                 .fillMaxWidth()
                 .height(68.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(34.dp), clip = false)
+                .shadow(elevation = 12.dp, shape = RoundedCornerShape(34.dp), clip = false)
                 .clip(RoundedCornerShape(34.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f))
+                // Solid Material Design 3 Background (No transparency)
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
+                // Outline Border for Premium Look
                 .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                    width = 1.5.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
                     shape = RoundedCornerShape(34.dp)
                 )
         ) {
