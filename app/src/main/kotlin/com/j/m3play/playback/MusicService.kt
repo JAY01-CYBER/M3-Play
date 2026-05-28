@@ -2,7 +2,7 @@
  * ╭────────────────────────────────────────────╮
  * │            M3Play Core Engine              │
  * │--------------------------------------------│
- * │  JSON Queue Persistence (Metrolist Logic)  │
+ * │  Java Serialization Queue Persistence      │
  * │  Signature: M3PLAY::CORE::ENGINE::V6       │
  * ╰────────────────────────────────────────────╯
  */
@@ -84,11 +84,6 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializer
-import com.google.gson.reflect.TypeToken
 import com.j.m3play.innertube.YouTube
 import com.j.m3play.innertube.models.YouTubeClient
 import com.j.m3play.innertube.models.SongItem
@@ -312,8 +307,7 @@ class MusicService :
                 val request = chain.request()
                 val host = request.url.host
                 val isYouTubeMediaHost =
-                    host.endsWith("googlevideo.com") ||
-                        host.endsWith("googleusercontent.com") ||
+                    host.endsWith("googlevideo.com") || host.endsWith("googleusercontent.com") ||
                         host.endsWith("youtube.com") ||
                         host.endsWith("youtube-nocookie.com") ||
                         host.endsWith("ytimg.com")
@@ -365,15 +359,6 @@ class MusicService :
     private val audioNormalizationEnabled = MutableStateFlow(true)
     private var crossfadeAudio: CrossfadeAudio? = null
     private var lyricsPreloadManager: LyricsPreloadManager? = null
-
-    private val gson = GsonBuilder()
-        .registerTypeAdapter(LocalDateTime::class.java, JsonSerializer<LocalDateTime> { src, _, _ ->
-            JsonPrimitive(src.toString())
-        })
-        .registerTypeAdapter(LocalDateTime::class.java, JsonDeserializer { json, _, _ ->
-            runCatching { LocalDateTime.parse(json.asString) }.getOrNull()
-        })
-        .create()
 
     private fun isAppInForeground(): Boolean {
         val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -935,15 +920,12 @@ class MusicService :
             normalizeFactor.value =
                 if (normalizeAudio) {
                     val loudness = format?.loudnessDb ?: format?.perceptualLoudnessDb
-                    
                     if (loudness != null) {
                         val loudnessDb = loudness.toFloat()
                         var factor = 10f.pow(-loudnessDb / 20)
-                        
                         if (factor > 1f) {
                             factor = min(factor, maxSafeGainFactor)
                         }
-                        
                         factor
                     } else {
                         1f
@@ -1055,6 +1037,7 @@ class MusicService :
                     ?.let { persistedQueue ->
                     restorePersistentQueue(persistedQueue)
                 }
+                
                 readPersistentObject<PersistQueue>(PERSISTENT_AUTOMIX_FILE)
                     ?.let { persistedAutomix ->
                     val items = persistedAutomix.items.map { it.toMediaItem() }
@@ -1133,6 +1116,7 @@ class MusicService :
 
             val items = initialStatus.items
             if (items.isEmpty()) {
+                Timber.tag("Persist").e("Queue restore failed: items empty")
                 return@withContext
             }
 
@@ -1142,6 +1126,8 @@ class MusicService :
             if (savedMetadata != null) {
                 currentMediaMetadata.value = savedMetadata
             }
+
+            delay(300)
 
             player.setMediaItems(items, fullIndex, initialStatus.position)
             player.prepare()
@@ -2937,7 +2923,7 @@ class MusicService :
                 }
 
                 is com.j.m3play.together.ControlAction.SeekTo -> {
-                    player.seekTo(action.positionMs.coerceAtLeast(0L))
+                     player.seekTo(action.positionMs.coerceAtLeast(0L))
                     player.prepare()
                 }
 
@@ -3052,7 +3038,7 @@ class MusicService :
             val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
             val mismatch =
                 (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
-                (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                    (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
                     (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
             if (now >= pending.expiresAtElapsedMs) {
                 if ((pending.desiredIndex != null || pending.desiredTrackId != null) &&
@@ -3090,9 +3076,9 @@ class MusicService :
                 val localHash = if (localIds.isEmpty()) "" else com.j.m3play.utils.md5(localIds.joinToString(separator = "|"))
                 val needsRebuild =
                     desiredItems.isNotEmpty() &&
-                    (
+                        (
                             (desiredHash.isNotBlank() && desiredHash != localHash) ||
-                            (desiredHash.isBlank() && desiredIds != localIds)
+                                (desiredHash.isBlank() && desiredIds != localIds)
                         )
 
                 if (desiredItems.isNotEmpty() && needsRebuild) {
@@ -3251,7 +3237,7 @@ class MusicService :
         database.query {
             currentSong.value?.let {
                 update(it.song.toggleLibrary())
-            }
+             }
         }
     }
 
@@ -3522,7 +3508,7 @@ class MusicService :
         val index = player.currentMediaItemIndex.coerceAtLeast(0)
         val isEcho =
             isTogetherApplyingRemote() ||
-            (now < togetherSuppressEchoUntilElapsedMs && togetherLastRemoteAppliedIndex == index)
+                (now < togetherSuppressEchoUntilElapsedMs && togetherLastRemoteAppliedIndex == index)
         if (!isEcho) {
             val trackId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
             requestTogetherControl(
@@ -3538,7 +3524,7 @@ class MusicService :
                     )
                 },
             )
-        }
+         }
     }
 
     val timelineEmpty = player.currentTimeline.isEmpty || player.mediaItemCount == 0 || player.currentMediaItem == null
@@ -3557,7 +3543,7 @@ class MusicService :
         if (!isNearEndWithoutPaging) {
             val force =
                 reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
-                reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
+                    reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
 
             val currentId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
             if (force || (currentId.isNotBlank() && automixSeedMediaId != currentId)) {
@@ -3577,7 +3563,7 @@ class MusicService :
         scope.launch(SilentHandler) {
             val mediaItems =
                 currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
-            if (player.playbackState != STATE_IDLE) {
+             if (player.playbackState != STATE_IDLE) {
                 player.addMediaItems(mediaItems.drop(1))
             } else {
                 scope.launch { discordRpc?.stopActivity() }
@@ -3616,7 +3602,7 @@ class MusicService :
                     filteredAutomix.forEach { autoAddedMediaIds.add(it.mediaId) }
                 }
                 clearAutomix()
-            } else {
+             } else {
                 if (currentMediaMetadata != null) {
                     refreshAutomixForCurrentMedia(force = true)
                 }
@@ -3674,7 +3660,7 @@ class MusicService :
         player.currentMediaItem != null
     ) {
         scope.launch(SilentHandler) {
-            if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
+             if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
             val lastMediaMetadata = player.currentMetadata
             val existingAutomix = automixItems.value
             if (existingAutomix.isNotEmpty()) {
@@ -3723,7 +3709,7 @@ class MusicService :
                 }
             }
         }
-    }
+     }
 
     ensurePresenceManager()
     scope.launch {
@@ -3748,7 +3734,7 @@ class MusicService :
                         Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
                         if (DiscordPresenceManager.isRunning()) {
                             try {
-                                if (DiscordPresenceManager.restart()) {
+                                 if (DiscordPresenceManager.restart()) {
                                     Timber.tag("MusicService").d("presence manager restarted after failed update")
                                 }
                             } catch (ex: Exception) {
@@ -3796,7 +3782,7 @@ class MusicService :
             val playWhenReady = this.player.playWhenReady
             val isEcho =
                 isTogetherApplyingRemote() ||
-                (now < togetherSuppressEchoUntilElapsedMs &&
+                    (now < togetherSuppressEchoUntilElapsedMs &&
                         togetherLastRemoteAppliedPlayWhenReady != null &&
                         togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
             if (!isEcho) {
@@ -3849,7 +3835,7 @@ class MusicService :
     ) {
         val playbackState = player.playbackState
         val keepAudioEffectSessionOpen =
-            playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
+             playbackState == Player.STATE_BUFFERING || playbackState == Player.STATE_READY
         if (player.playWhenReady && keepAudioEffectSessionOpen) {
             requestAudioFocus()
         }
@@ -4039,7 +4025,7 @@ class MusicService :
     override fun onPlayerError(error: PlaybackException) {
         super.onPlayerError(error)
         val isConnectionError = (error.cause?.cause is PlaybackException) &&
-                (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+             (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
 
         if (!isNetworkConnected.value || isConnectionError) {
             waitOnNetworkError()
@@ -4220,7 +4206,7 @@ class MusicService :
                                 .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
                         }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
                             playerCache
-                                .getContentMetadata(mediaId)
+                                 .getContentMetadata(mediaId)
                                  .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
                         }.getOrNull()?.takeIf { it > 0L }
 
@@ -4312,7 +4298,7 @@ class MusicService :
                             perceptualLoudnessDb = perceptualLoudnessDb,
                             playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                         )
-                    )
+                     )
                 }
                 scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
 
@@ -4440,15 +4426,15 @@ class MusicService :
             ) = DefaultAudioSink
                 .Builder(this@MusicService)
                 .setEnableFloatOutput(enableFloatOutput)
-                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                 .setAudioProcessorChain(
                     DefaultAudioSink.DefaultAudioProcessorChain(
                         SilenceSkippingAudioProcessor(
                             1_500_000L,
-                             0.35f,
+                            0.35f,
                             500_000L,
                             10,
-                     150.toShort(),
+                            150.toShort(),
                         ),
                         SonicAudioProcessor(),
                     ),
@@ -4555,7 +4541,7 @@ class MusicService :
             albumId = media.album?.id,
             albumName = media.album?.title,
             explicit = media.explicit,
-        )
+         )
 
         val artists = media.artists.map { artist ->
             ArtistEntity(
@@ -4592,13 +4578,13 @@ class MusicService :
 
         return synchronized(persistentStateLock) {
             try {
-                val jsonString = persistentFile.readText() 
-                val type = object : TypeToken<T>() {}.type
-                gson.fromJson<T>(jsonString, type)
+                java.io.ObjectInputStream(java.io.FileInputStream(persistentFile)).use { 
+                    it.readObject() as T 
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 runCatching { persistentFile.delete() }
-                 null
+                null
             }
         }
     }
@@ -4609,8 +4595,10 @@ class MusicService :
 
         synchronized(persistentStateLock) {
             try {
-                val jsonString = gson.toJson(payload) 
-                tempFile.writeText(jsonString)        
+                java.io.ObjectOutputStream(java.io.FileOutputStream(tempFile)).use { 
+                    it.writeObject(payload) 
+                }
+                
                 if (persistentFile.exists() && !persistentFile.delete()) {
                     // Ignored intentionally 
                 }
@@ -4633,7 +4621,7 @@ class MusicService :
             }.takeIf { it.isNotBlank() } ?: return null
 
         val title =
-             mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
                 ?: id
 
         val artistText =
@@ -4671,7 +4659,10 @@ class MusicService :
 
     private fun saveQueueToDiskSync() {
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
-        if (mediaItemsSnapshot.isEmpty()) return
+        if (mediaItemsSnapshot.isEmpty()) {
+            Timber.tag("Persist").e("Nothing to save, metadata empty")
+            return
+        }
 
         val currentMediaItemIndex = player.currentMediaItemIndex
         val currentPosition = player.currentPosition
@@ -4683,17 +4674,19 @@ class MusicService :
         val volume = playerVolume.value
         val playbackState = player.playbackState
 
-        val persistQueue = currentQueue.toPersistQueue(
+        val persistQueue = PersistQueue(
             title = queueTitle,
             items = mediaItemsSnapshot,
             mediaItemIndex = currentMediaItemIndex,
-            position = currentPosition
+            position = currentPosition,
+            queueType = QueueType.LIST
         )
         val persistAutomix = PersistQueue(
             title = "automix",
             items = automixSnapshot,
             mediaItemIndex = 0,
             position = 0,
+            queueType = QueueType.LIST
         )
          val persistPlayerState = PersistPlayerState(
             playWhenReady = playWhenReady,
@@ -4712,7 +4705,10 @@ class MusicService :
 
     private suspend fun saveQueueToDisk() {
         val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
-        if (mediaItemsSnapshot.isEmpty()) return
+        if (mediaItemsSnapshot.isEmpty()) {
+            Timber.tag("Persist").e("Nothing to save, metadata empty")
+            return
+        }
 
         val currentMediaItemIndex = player.currentMediaItemIndex
         val currentPosition = player.currentPosition
@@ -4724,20 +4720,21 @@ class MusicService :
         val playbackState = player.playbackState
 
         withContext(Dispatchers.IO) {
-            val persistQueue = currentQueue.toPersistQueue(
+            val persistQueue = PersistQueue(
                 title = queueTitle,
                 items = mediaItemsSnapshot,
                 mediaItemIndex = currentMediaItemIndex,
-                position = currentPosition
+                position = currentPosition,
+                queueType = QueueType.LIST
             )
              
-            val persistAutomix =
-                PersistQueue(
-                    title = "automix",
-                    items = automixSnapshot,
-                    mediaItemIndex = 0,
-                    position = 0,
-                )
+            val persistAutomix = PersistQueue(
+                title = "automix",
+                items = automixSnapshot,
+                mediaItemIndex = 0,
+                position = 0,
+                queueType = QueueType.LIST
+            )
                 
             val persistPlayerState = PersistPlayerState(
                 playWhenReady = playWhenReady,
@@ -4788,17 +4785,19 @@ class MusicService :
                 val playbackState = player.playbackState
                 val playWhenReady = player.playWhenReady
                 runBlocking(Dispatchers.IO) {
-                    val persistQueue = currentQueue.toPersistQueue(
+                    val persistQueue = PersistQueue(
                         title = queueTitle,
                         items = mediaItemsSnapshot,
                         mediaItemIndex = currentMediaItemIndex,
-                        position = currentPosition
+                        position = currentPosition,
+                        queueType = QueueType.LIST
                     )
                     val persistAutomix = PersistQueue(
                         title = "automix",
                         items = automixSnapshot,
                         mediaItemIndex = 0,
                         position = 0,
+                        queueType = QueueType.LIST
                     )
                     val persistPlayerState = PersistPlayerState(
                         playWhenReady = playWhenReady,
