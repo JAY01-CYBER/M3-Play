@@ -309,6 +309,140 @@ fun YTMSquareGridItem(
 }
 
 // ==========================================
+// EXACT YTM COMMUNITY PLAYLIST CARD
+// ==========================================
+
+@Composable
+fun CommunityPlaylistCard(
+    item: CommunityPlaylistItem,
+    onClick: () -> Unit,
+    onSongClick: (SongItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val playerConnection = LocalPlayerConnection.current
+    val haptic = LocalHapticFeedback.current
+    
+    Card(
+        modifier = modifier.width(340.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
+                ) {
+                    Column {
+                        Row(modifier = Modifier.weight(1f)) {
+                            AsyncImage(model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
+                            AsyncImage(model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
+                        }
+                        Row(modifier = Modifier.weight(1f)) {
+                            AsyncImage(model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
+                            AsyncImage(model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = item.playlist.title,
+                        style = MaterialTheme.typography.titleMedium, // Normal compact text
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = item.playlist.author?.name ?: "Community",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        maxLines = 1
+                    )
+                    Text(
+                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        maxLines = 1
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            item.songs.take(4).forEach { song ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSongClick(song) }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = song.title,
+                            style = MaterialTheme.typography.bodyMedium, // Normal size
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = song.artists.joinToString(", ") { it.name },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }, modifier = Modifier.size(24.dp)) {
+                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
+                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape)
+                ) {
+                    Icon(painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.background)
+                }
+                
+                IconButton(
+                    onClick = { item.playlist.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
+                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Icon(painterResource(R.drawable.radio), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                }
+                
+                IconButton(
+                    onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                ) {
+                    Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+        }
+    }
+}
+
+// ==========================================
 // YTM LARGE VIDEO CARD
 // ==========================================
 
@@ -894,7 +1028,321 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-//  GLOSSY: EXACT YTM LAYOUT ENGINE 
+@Composable
+fun CommunityPlaylistsSection(
+    playlists: List<CommunityPlaylistItem>,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(playlists, key = { it.playlist.id }) { item ->
+            CommunityPlaylistCard(
+                item = item,
+                onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") },
+                onSongClick = { song -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) },
+                modifier = Modifier
+            )
+        }
+    }
+}
+
+// 🔥 MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 🔥
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun MetroSpeedDialSection(
+    items: List<YTItem>,
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
+    haptic: HapticFeedback,
+    modifier: Modifier = Modifier
+) {
+    val database = LocalDatabase.current
+    val viewModel: HomeViewModel = hiltViewModel()
+    val isRandomizing by viewModel.isRandomizing.collectAsState()
+    val pinnedEntries by database.speedDialDao.getAll().collectAsState(initial = emptyList())
+    val distinctItems = remember(items) { items.distinctBy { it.id }.take(26) }
+    val columns = 3
+    val rows = 3
+    val slotsPerPage = columns * rows
+    val firstPageContentSlots = slotsPerPage - 1
+    val pagerCount = remember(distinctItems.size) {
+        when {
+            distinctItems.isEmpty() -> 1
+            distinctItems.size <= firstPageContentSlots -> 1
+            else -> 1 + ceil((distinctItems.size - firstPageContentSlots) / slotsPerPage.toFloat()).toInt()
+        }
+    }
+    val pagerState = rememberPagerState(pageCount = { pagerCount })
+    val coroutineScope = rememberCoroutineScope()
+
+    fun openItem(item: YTItem) {
+        when (item) {
+            is SongItem -> playerConnection.playQueue(
+                YouTubeQueue(item.endpoint ?: WatchEndpoint(videoId = item.id), item.toMediaMetadata())
+            )
+            is AlbumItem -> navController.navigate("album/${item.id}")
+            is ArtistItem -> navController.navigate("artist/${item.id}")
+            is PlaylistItem -> {
+                val rawType = pinnedEntries.find { it.id == item.id }?.type
+                if (rawType == "LOCAL_PLAYLIST") navController.navigate("local_playlist/${item.id}")
+                else navController.navigate("online_playlist/${item.id}")
+            }
+        }
+    }
+
+    fun showItemMenu(item: YTItem) {
+        menuState.show {
+            when (item) {
+                is SongItem -> YouTubeSongMenu(
+                    song = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is AlbumItem -> YouTubeAlbumMenu(
+                    albumItem = item,
+                    navController = navController,
+                    onDismiss = menuState::dismiss
+                )
+                is ArtistItem -> YouTubeArtistMenu(
+                    artist = item,
+                    onDismiss = menuState::dismiss
+                )
+                is PlaylistItem -> YouTubePlaylistMenu(
+                    playlist = item,
+                    coroutineScope = coroutineScope,
+                    onDismiss = menuState::dismiss
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun SpeedDialPoster(item: YTItem) {
+        val isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id)
+        val isPinned by database.speedDialDao.isPinned(item.id).collectAsState(initial = false)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(16.dp))
+                .combinedClickable(
+                    onClick = {
+                        if (item is SongItem && isActive) {
+                            playerConnection.player.togglePlayPause()
+                        } else {
+                            openItem(item)
+                        }
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showItemMenu(item)
+                    }
+                )
+        ) {
+            AsyncImage(
+                model = item.thumbnail,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.35f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.92f),
+                            )
+                        )
+                    )
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+
+                if (item !is SongItem) {
+                    Icon(
+                        painter = painterResource(R.drawable.navigate_next),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            if (isPinned) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.28f),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.bookmark_filled),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(6.dp).size(12.dp),
+                    )
+                }
+            } else if (isActive && isPlaying && item is SongItem) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.volume_up),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(6.dp).size(12.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun RandomTile() {
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .combinedClickable(
+                    onClick = {
+                        if (!isRandomizing) {
+                            coroutineScope.launch {
+                                viewModel.getRandomItem()?.let(::openItem)
+                            }
+                        }
+                    },
+                    onLongClick = {}
+                )
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                val dotColor = MaterialTheme.colorScheme.onSecondaryContainer
+                listOf(
+                    Alignment.TopStart to 20.dp,
+                    Alignment.TopEnd to 20.dp,
+                    Alignment.Center to 0.dp,
+                    Alignment.BottomStart to 20.dp,
+                    Alignment.BottomEnd to 20.dp,
+                ).forEach { (align, offset) ->
+                    Box(
+                        modifier = Modifier
+                            .align(align)
+                            .padding(offset)
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
+                    )
+                }
+                if (isRandomizing) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(28.dp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 16.dp,
+            modifier = Modifier.fillMaxWidth().height(414.dp),
+        ) { page ->
+            val pageItems = when (page) {
+                0 -> distinctItems.take(firstPageContentSlots)
+                else -> distinctItems.drop(firstPageContentSlots + (page - 1) * slotsPerPage).take(slotsPerPage)
+            }
+
+            Column(modifier = Modifier.fillMaxSize()) {
+                for (row in 0 until rows) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                    ) {
+                        for (col in 0 until columns) {
+                            val slotIndex = row * columns + col
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(vertical = 5.dp)
+                            ) {
+                                when {
+                                    page == 0 && slotIndex == slotsPerPage - 1 -> RandomTile()
+                                    slotIndex < pageItems.size -> SpeedDialPoster(pageItems[slotIndex])
+                                    else -> Spacer(modifier = Modifier.fillMaxSize())
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (pagerState.pageCount > 1) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.height(24.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(pagerState.pageCount) { index ->
+                    val color = if (pagerState.currentPage == index) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                            .size(8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// 🔥 GLOSSY: EXACT YTM LAYOUT ENGINE 🔥
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
