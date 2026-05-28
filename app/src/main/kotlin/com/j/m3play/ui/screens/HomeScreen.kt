@@ -122,135 +122,6 @@ import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
 
-@Composable
-fun CommunityPlaylistCard(
-    item: CommunityPlaylistItem,
-    onClick: () -> Unit,
-    onSongClick: (SongItem) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val playerConnection = LocalPlayerConnection.current
-    
-    Card(
-        modifier = modifier.width(340.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onClick,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
-                ) {
-                    Column {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = item.playlist.author?.name ?: "Community",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            item.songs.take(4).forEach { song ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSongClick(song) }
-                        .padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = song.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.background)
-                }
-                
-                IconButton(
-                    onClick = { item.playlist.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.radio), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
-                }
-                
-                IconButton(
-                    onClick = { },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
-                ) {
-                    Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun GlossyCarouselCard(
@@ -268,7 +139,7 @@ fun GlossyCarouselCard(
     Card(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp)) // Compact but premium corner
+            .clip(RoundedCornerShape(24.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -280,7 +151,7 @@ fun GlossyCarouselCard(
             ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)) // Premium Glass Edge
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
@@ -320,7 +191,6 @@ fun GlossyCarouselCard(
                         ),
                 )
 
-                // Compact standard text and padding
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -559,7 +429,7 @@ fun HomeScreen(
                                     onClick = {
                                         navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
                                     },
-                                    onSongClick = { song ->
+                                    onSongClick = { song: SongItem ->
                                         playerConnection.playQueue(
                                             YouTubeQueue(
                                                 song.endpoint ?: WatchEndpoint(videoId = song.id),
@@ -663,7 +533,6 @@ fun HomeScreen(
     }
 }
 
-// REDESIGNED M3 EXPENSIVE CARD (COMPACT HEIGHT, NORMAL TEXT) 
 @Composable
 fun ActionCard(
     title: String,
@@ -681,18 +550,18 @@ fun ActionCard(
         onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(48.dp), // Kept compact
-        shape = RoundedCornerShape(999.dp), // Premium pill shape
+            .height(48.dp),
+        shape = RoundedCornerShape(999.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) // Glassmorphism base
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)), // Subtle reflection
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
         interactionSource = interactionSource
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center // Centered looks clean and compact
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
                 painter = painterResource(icon), 
@@ -703,7 +572,7 @@ fun ActionCard(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = title, 
-                style = MaterialTheme.typography.bodyMedium, // Kept normal size
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold, 
                 color = MaterialTheme.colorScheme.onSurface, 
                 maxLines = 1,
