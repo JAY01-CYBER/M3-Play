@@ -17,6 +17,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,6 +52,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
@@ -61,7 +63,6 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -120,185 +121,6 @@ import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
 
-@Composable
-fun CommunityPlaylistCard(
-    item: CommunityPlaylistItem,
-    onClick: () -> Unit,
-    onSongClick: (SongItem) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val database = LocalDatabase.current
-    val playerConnection = LocalPlayerConnection.current
-    val scope = rememberCoroutineScope()
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-
-    val containerColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    }
-
-    Card(
-        modifier = modifier
-            .width(320.dp)
-            .height(420.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = RoundedCornerShape(28.dp),
-        onClick = onClick,
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                            )
-                            AsyncImage(
-                                model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                            )
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                            )
-                            AsyncImage(
-                                model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.weight(1f).fillMaxSize(),
-                            )
-                        }
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = item.playlist.author?.name ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-            ) {
-                item.songs.take(3).forEach { song ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onSongClick(song) },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AsyncImage(
-                            model = song.thumbnail.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = song.artists.joinToString(", ") { it.name },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            ) {
-                IconButton(
-                    onClick = {
-                        item.playlist.playEndpoint?.let {
-                            playerConnection?.playQueue(YouTubeQueue(it))
-                        }
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-                
-                IconButton(
-                    onClick = {
-                        item.playlist.radioEndpoint?.let {
-                            playerConnection?.playQueue(YouTubeQueue(it))
-                        }
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.radio),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun GlossyCarouselCard(
@@ -316,7 +138,7 @@ fun GlossyCarouselCard(
     Card(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(32.dp)) // Expressive Extra Large Curve
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -327,7 +149,8 @@ fun GlossyCarouselCard(
                 },
             ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(32.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)) // Premium Glass Edge
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
 
@@ -353,17 +176,19 @@ fun GlossyCarouselCard(
             )
 
             if (maxWidth > 200.dp) {
+                // Bottom Heavy Premium Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Black.copy(alpha = 0.3f),
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.6f),
-                                    Color.Black.copy(alpha = 0.9f),
+                                    Color.Black.copy(alpha = 0.2f),
+                                    Color.Black.copy(alpha = 0.85f),
                                 ),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
                             ),
                         ),
                 )
@@ -372,28 +197,30 @@ fun GlossyCarouselCard(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(24.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
+                    verticalArrangement = Arrangement.Bottom, // Aligned to bottom for premium feel
                 ) {
-                    Column {
-                        Text(
-                            text = song.song.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                        )
-                        Text(
-                            text = song.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.7f),
-                        )
-                    }
-
                     Text(
-                        text = "Recommended based on your history",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.6f),
+                        text = "Based on your history",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primaryContainer, // Accent color
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    Text(
+                        text = song.song.title,
+                        style = MaterialTheme.typography.headlineSmall, // Larger expressive font
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = song.artists.joinToString(", ") { it.name },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -447,22 +274,6 @@ fun HomeScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
 
-    //  HAPTIC VIBRATION FOR SCROLL TOP AND BOTTOM 
-    val canScrollForward by remember { derivedStateOf { lazylistState.canScrollForward } }
-    val canScrollBackward by remember { derivedStateOf { lazylistState.canScrollBackward } }
-
-    LaunchedEffect(canScrollForward) {
-        if (!canScrollForward && lazylistState.layoutInfo.totalItemsCount > 0) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
-    LaunchedEffect(canScrollBackward) {
-        if (!canScrollBackward && lazylistState.layoutInfo.totalItemsCount > 0) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
-    }
-
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
             lazylistState.animateScrollToItem(0)
@@ -507,22 +318,23 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f)
+                    .fillMaxSize(0.75f) // Slightly extended background blur
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawWithCache {
                         val width = this.size.width
                         val height = this.size.height
 
-                        val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.38f), color1.copy(alpha = 0.24f), color1.copy(alpha = 0.14f), color1.copy(alpha = 0.06f), Color.Transparent), center = Offset(width * 0.15f, height * 0.1f), radius = width * 0.55f)
-                        val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.34f), color2.copy(alpha = 0.2f), color2.copy(alpha = 0.11f), color2.copy(alpha = 0.05f), Color.Transparent), center = Offset(width * 0.85f, height * 0.2f), radius = width * 0.65f)
-                        val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.3f), color3.copy(alpha = 0.17f), color3.copy(alpha = 0.09f), color3.copy(alpha = 0.04f), Color.Transparent), center = Offset(width * 0.3f, height * 0.45f), radius = width * 0.6f)
-                        val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.26f), color4.copy(alpha = 0.14f), color4.copy(alpha = 0.08f), color4.copy(alpha = 0.03f), Color.Transparent), center = Offset(width * 0.7f, height * 0.5f), radius = width * 0.7f)
-                        val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.22f), color5.copy(alpha = 0.12f), color5.copy(alpha = 0.06f), color5.copy(alpha = 0.02f), Color.Transparent), center = Offset(width * 0.5f, height * 0.75f), radius = width * 0.8f)
+                        // Softened opacities for a more premium icy look
+                        val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.35f), color1.copy(alpha = 0.20f), color1.copy(alpha = 0.10f), Color.Transparent), center = Offset(width * 0.15f, height * 0.1f), radius = width * 0.60f)
+                        val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.30f), color2.copy(alpha = 0.18f), color2.copy(alpha = 0.08f), Color.Transparent), center = Offset(width * 0.85f, height * 0.2f), radius = width * 0.70f)
+                        val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.25f), color3.copy(alpha = 0.15f), color3.copy(alpha = 0.05f), Color.Transparent), center = Offset(width * 0.3f, height * 0.45f), radius = width * 0.65f)
+                        val brush4 = Brush.radialGradient(colors = listOf(color4.copy(alpha = 0.20f), color4.copy(alpha = 0.12f), color4.copy(alpha = 0.04f), Color.Transparent), center = Offset(width * 0.7f, height * 0.5f), radius = width * 0.75f)
+                        val brush5 = Brush.radialGradient(colors = listOf(color5.copy(alpha = 0.18f), color5.copy(alpha = 0.10f), color5.copy(alpha = 0.03f), Color.Transparent), center = Offset(width * 0.5f, height * 0.75f), radius = width * 0.85f)
 
                         val overlayBrush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = 0.22f), surfaceColor.copy(alpha = 0.55f), surfaceColor),
-                            startY = height * 0.4f, endY = height
+                            colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = 0.35f), surfaceColor.copy(alpha = 0.75f), surfaceColor),
+                            startY = height * 0.35f, endY = height
                         )
 
                         onDrawBehind {
@@ -574,14 +386,16 @@ fun HomeScreen(
                         onSearchClick = { runCatching { navController.navigate("search/") } }
                     )
                 }
+                
+                item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                // EXPRESSIVE ACTION CARDS
+                // PREMIUM M3 EXPRESSIVE ACTION CARDS
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
                         ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
@@ -592,7 +406,7 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
@@ -601,6 +415,8 @@ fun HomeScreen(
                         }, modifier = Modifier.weight(1f))
                     }
                 }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
 
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
                     item {
@@ -670,7 +486,7 @@ fun HomeScreen(
                                         playerConnection.playQueue(YouTubeQueue.radio(metadata))
                                     },
                                     navController = navController,
-                                    modifier = Modifier.maskClip(MaterialTheme.shapes.extraLarge),
+                                    modifier = Modifier.maskClip(RoundedCornerShape(32.dp)),
                                 )
                             }
                         }
@@ -726,6 +542,7 @@ fun HomeScreen(
     }
 }
 
+//  REDESIGNED M3 EXPRESSIVE ACTION CARD 
 @Composable
 fun ActionCard(
     title: String,
@@ -736,28 +553,54 @@ fun ActionCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.97f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "action_card_scale")
-    val alpha by animateFloatAsState(targetValue = if (isPressed) 0.9f else 1f, animationSpec = tween(durationMillis = 120), label = "action_card_alpha")
+    val scale by animateFloatAsState(targetValue = if (isPressed) 0.95f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "action_card_scale")
+    val alpha by animateFloatAsState(targetValue = if (isPressed) 0.8f else 1f, animationSpec = tween(durationMillis = 120), label = "action_card_alpha")
 
-    Box(
+    Card(
+        onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(48.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f))
-            .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f), shape = RoundedCornerShape(999.dp))
-            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center
+            .height(72.dp), // Taller card for an expensive feel
+        shape = RoundedCornerShape(20.dp), // Premium M3 shape
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) // Glassmorphism base
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)), // Subtle reflection
+        interactionSource = interactionSource
     ) {
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.Start
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            // Icon inside a soft tinted circular container (Classic Expensive UI)
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        painter = painterResource(icon), 
+                        contentDescription = null, 
+                        tint = MaterialTheme.colorScheme.primary, 
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Text(
+                text = title, 
+                style = MaterialTheme.typography.titleMedium, 
+                fontWeight = FontWeight.SemiBold, 
+                color = MaterialTheme.colorScheme.onSurface, 
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
