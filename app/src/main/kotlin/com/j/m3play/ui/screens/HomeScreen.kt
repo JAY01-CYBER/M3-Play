@@ -138,7 +138,7 @@ fun GlossyCarouselCard(
     Card(
         modifier = modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(32.dp)) // Expressive Extra Large Curve
+            .clip(RoundedCornerShape(24.dp)) // Compact but premium corner
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -149,7 +149,7 @@ fun GlossyCarouselCard(
                 },
             ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)) // Premium Glass Edge
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -176,7 +176,6 @@ fun GlossyCarouselCard(
             )
 
             if (maxWidth > 200.dp) {
-                // Bottom Heavy Premium Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -184,40 +183,37 @@ fun GlossyCarouselCard(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.2f),
+                                    Color.Black.copy(alpha = 0.3f),
                                     Color.Black.copy(alpha = 0.85f),
                                 ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
                             ),
                         ),
                 )
 
+                // Compact standard text and padding
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Bottom, // Aligned to bottom for premium feel
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Bottom, 
                 ) {
                     Text(
                         text = "Based on your history",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primaryContainer, // Accent color
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(bottom = 2.dp)
                     )
                     Text(
                         text = song.song.title,
-                        style = MaterialTheme.typography.headlineSmall, // Larger expressive font
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = song.artists.joinToString(", ") { it.name },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -318,14 +314,13 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.75f) // Slightly extended background blur
+                    .fillMaxSize(0.75f) 
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawWithCache {
                         val width = this.size.width
                         val height = this.size.height
 
-                        // Softened opacities for a more premium icy look
                         val brush1 = Brush.radialGradient(colors = listOf(color1.copy(alpha = 0.35f), color1.copy(alpha = 0.20f), color1.copy(alpha = 0.10f), Color.Transparent), center = Offset(width * 0.15f, height * 0.1f), radius = width * 0.60f)
                         val brush2 = Brush.radialGradient(colors = listOf(color2.copy(alpha = 0.30f), color2.copy(alpha = 0.18f), color2.copy(alpha = 0.08f), Color.Transparent), center = Offset(width * 0.85f, height * 0.2f), radius = width * 0.70f)
                         val brush3 = Brush.radialGradient(colors = listOf(color3.copy(alpha = 0.25f), color3.copy(alpha = 0.15f), color3.copy(alpha = 0.05f), Color.Transparent), center = Offset(width * 0.3f, height * 0.45f), radius = width * 0.65f)
@@ -387,15 +382,13 @@ fun HomeScreen(
                     )
                 }
                 
-                item { Spacer(modifier = Modifier.height(8.dp)) }
-
-                // PREMIUM M3 EXPRESSIVE ACTION CARDS
+                // COMPACT YET PREMIUM ACTION CARDS
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
                         ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
@@ -406,8 +399,8 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
                         ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = {
@@ -416,8 +409,6 @@ fun HomeScreen(
                     }
                 }
                 
-                item { Spacer(modifier = Modifier.height(16.dp)) }
-
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
                     item {
                         NavigationTitle(
@@ -465,18 +456,18 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(340.dp)
+                                .height(290.dp) // Reverted to compact height
                                 .padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             val carouselState = rememberCarouselState { minOf(picks.size, 10) }
                             HorizontalMultiBrowseCarousel(
                                 state = carouselState,
-                                preferredItemWidth = 320.dp,
+                                preferredItemWidth = 280.dp,
                                 itemSpacing = 16.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(320.dp),
+                                    .height(290.dp),
                             ) { i ->
                                 val song = picks[i]
                                 GlossyCarouselCard(
@@ -486,7 +477,7 @@ fun HomeScreen(
                                         playerConnection.playQueue(YouTubeQueue.radio(metadata))
                                     },
                                     navController = navController,
-                                    modifier = Modifier.maskClip(RoundedCornerShape(32.dp)),
+                                    modifier = Modifier.maskClip(RoundedCornerShape(24.dp)),
                                 )
                             }
                         }
@@ -542,7 +533,7 @@ fun HomeScreen(
     }
 }
 
-//  REDESIGNED M3 EXPRESSIVE ACTION CARD 
+//  REDESIGNED M3 EXPENSIVE CARD (COMPACT HEIGHT, NO BIG TEXT) 
 @Composable
 fun ActionCard(
     title: String,
@@ -560,8 +551,8 @@ fun ActionCard(
         onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(72.dp), // Taller card for an expensive feel
-        shape = RoundedCornerShape(20.dp), // Premium M3 shape
+            .height(48.dp), // Kept compact
+        shape = RoundedCornerShape(999.dp), // Premium pill shape
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) // Glassmorphism base
         ),
@@ -569,33 +560,20 @@ fun ActionCard(
         interactionSource = interactionSource
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.Center // Centered looks clean and compact
         ) {
-            // Icon inside a soft tinted circular container (Classic Expensive UI)
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                modifier = Modifier.size(44.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(
-                        painter = painterResource(icon), 
-                        contentDescription = null, 
-                        tint = MaterialTheme.colorScheme.primary, 
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
+            Icon(
+                painter = painterResource(icon), 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary, 
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = title, 
-                style = MaterialTheme.typography.titleMedium, 
+                style = MaterialTheme.typography.bodyMedium, // Kept normal size
                 fontWeight = FontWeight.SemiBold, 
                 color = MaterialTheme.colorScheme.onSurface, 
                 maxLines = 1,
