@@ -31,6 +31,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -238,16 +239,6 @@ fun NewMiniPlayerContent(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        LinearProgressIndicator(
-            progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(2.dp)
-                .align(Alignment.BottomCenter),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
-        )
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -279,18 +270,22 @@ fun NewMiniPlayerContent(
 
             Spacer(modifier = Modifier.width(4.dp))
 
+            // Premium MD3 Shape for Like button
             ModernLikeButton(isLiked = isLiked, onLikeClick = playerConnection::toggleLike)
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Play/Pause button with Wavy Circular Ring around it
             ModernPlayPauseControl(
+                position = position,
+                duration = duration,
                 isPlaying = isPlaying,
                 playbackState = playbackState,
                 isLoading = isLoading,
                 playerConnection = playerConnection
             )
             
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
         }
     }
 }
@@ -316,6 +311,8 @@ private fun ModernMiniPlayerArtwork(mediaMetadata: MediaMetadata?) {
 
 @Composable
 private fun ModernPlayPauseControl(
+    position: Long,
+    duration: Long,
     isPlaying: Boolean,
     playbackState: Int,
     isLoading: Boolean,
@@ -323,40 +320,53 @@ private fun ModernPlayPauseControl(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-            .clickable {
-                if (playbackState == Player.STATE_ENDED) {
-                    playerConnection.player.seekTo(0, 0)
-                    playerConnection.player.playWhenReady = true
-                } else {
-                    playerConnection.player.togglePlayPause()
-                }
-            }
+        modifier = Modifier.size(52.dp) // Thoda bada container taaki wavy ring fit ho sake
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 2.dp
-            )
-        } else {
-            Icon(
-                painter = painterResource(
+        // Wavy Circular Ring around the Play button
+        WavyCircularProgress(
+            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
+            isPlaying = isPlaying,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Inner solid Play/Pause Button
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .clickable {
                     if (playbackState == Player.STATE_ENDED) {
-                        R.drawable.replay
-                    } else if (isPlaying) {
-                        R.drawable.pause
+                        playerConnection.player.seekTo(0, 0)
+                        playerConnection.player.playWhenReady = true
                     } else {
-                        R.drawable.play
+                        playerConnection.player.togglePlayPause()
                     }
-                ),
-                contentDescription = null,
-                modifier = Modifier.size(22.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
+                }
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    painter = painterResource(
+                        if (playbackState == Player.STATE_ENDED) {
+                            R.drawable.replay
+                        } else if (isPlaying) {
+                            R.drawable.pause
+                        } else {
+                            R.drawable.play
+                        }
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
     }
 }
@@ -406,9 +416,17 @@ private fun ModernLikeButton(
     isLiked: Boolean,
     onLikeClick: () -> Unit
 ) {
-    IconButton(
-        onClick = onLikeClick,
-        modifier = Modifier.size(28.dp)
+    // Like button ek premium MD3 shape mein (Rounded Squircle)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isLiked) MaterialTheme.colorScheme.errorContainer 
+                else MaterialTheme.colorScheme.surfaceVariant
+            )
+            .clickable(onClick = onLikeClick)
     ) {
         Icon(
             painter = painterResource(
@@ -416,12 +434,14 @@ private fun ModernLikeButton(
             ),
             contentDescription = null,
             tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(20.dp)
         )
     }
 }
 
-// Baki ke Legacy aur Optional components ko maine chhod diya hai taki app ka doosra hissa break na ho.
+// -----------------------------------------------------------------
+// LEGACY & ORIGINAL COMPONENTS (Taaki aapka purana system break na ho)
+// -----------------------------------------------------------------
 
 @Composable
 fun MiniPlayerPlayPauseButton(
@@ -469,6 +489,107 @@ fun MiniPlayerPlayPauseButton(
                 tint = MaterialTheme.colorScheme.onPrimary
             )
         }
+    }
+}
+
+@Composable
+private fun MiniPlayerArtwork(
+    mediaMetadata: MediaMetadata?,
+    isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(56.dp)
+    ) {
+        WavyCircularProgress(
+            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
+            isPlaying = isPlaying,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        Box(
+            modifier = Modifier
+                .padding(5.dp)
+                .fillMaxSize()
+                .shadow(10.dp, CircleShape, clip = false)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = mediaMetadata?.thumbnailUrl,
+                contentDescription = mediaMetadata?.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+@Composable
+fun RowScope.MiniPlayerInfo(
+    mediaMetadata: MediaMetadata
+) {
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        AnimatedContent(
+            targetState = mediaMetadata.title,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "title"
+        ) { title ->
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee()
+            )
+        }
+
+        AnimatedContent(
+            targetState = mediaMetadata.artists,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "artist"
+        ) { artists ->
+            Text(
+                text = artists.joinToString { it.name },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.basicMarquee()
+            )
+        }
+    }
+}
+
+@Composable
+fun MiniPlayerActionButtons(
+    isLiked: Boolean,
+    onLikeClick: () -> Unit
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+            .clickable(onClick = onLikeClick)
+    ) {
+        Icon(
+            painter = painterResource(
+                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
+            ),
+            contentDescription = null,
+            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -530,7 +651,7 @@ fun WavyCircularProgress(
             rotationZ = rotation
         }
     ) {
-        val strokeWidth = 4.dp.toPx()
+        val strokeWidth = 3.dp.toPx()
         val center = Offset(size.width / 2f, size.height / 2f)
         val baseRadius = (size.minDimension / 2f) - strokeWidth
         val waves = 22
