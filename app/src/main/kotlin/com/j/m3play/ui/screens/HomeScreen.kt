@@ -44,6 +44,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +61,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -117,12 +119,6 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.shape.CircleShape
-
-
-// ==========================================
-// GLOSSY CUSTOM COMPONENTS
-// ==========================================
 
 @Composable
 fun CommunityPlaylistCard(
@@ -405,10 +401,6 @@ fun GlossyCarouselCard(
     }
 }
 
-// ==========================================
-// MAIN HOME SCREEN
-// ==========================================
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -422,8 +414,7 @@ fun HomeScreen(
 
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-
-    // Original M3Play Datasources
+  
     val quickPicks by viewModel.quickPicks.collectAsState()
     val speedDialSongs by viewModel.speedDialSongs.collectAsState()
     val metroSpeedDialItems by viewModel.metroSpeedDialItems.collectAsState()
@@ -441,6 +432,7 @@ fun HomeScreen(
 
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
+ 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
@@ -454,6 +446,22 @@ fun HomeScreen(
     val lazylistState = rememberLazyListState()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
+
+    //  HAPTIC VIBRATION FOR SCROLL TOP AND BOTTOM 
+    val canScrollForward by remember { derivedStateOf { lazylistState.canScrollForward } }
+    val canScrollBackward by remember { derivedStateOf { lazylistState.canScrollBackward } }
+
+    LaunchedEffect(canScrollForward) {
+        if (!canScrollForward && lazylistState.layoutInfo.totalItemsCount > 0) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+
+    LaunchedEffect(canScrollBackward) {
+        if (!canScrollBackward && lazylistState.layoutInfo.totalItemsCount > 0) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
 
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) {
@@ -594,7 +602,6 @@ fun HomeScreen(
                     }
                 }
 
-                
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
                     item {
                         NavigationTitle(
@@ -629,7 +636,6 @@ fun HomeScreen(
                     }
                 }
 
-            
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
                     item {
                         val title = stringResource(R.string.quick_picks)
@@ -671,7 +677,6 @@ fun HomeScreen(
                     }
                 }
 
-                // METRO SPEED DIAL
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
                     item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
                     item {
@@ -679,7 +684,6 @@ fun HomeScreen(
                     }
                 }
 
-                // SPEED DIAL
                 speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
                     item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
                     item {
@@ -687,25 +691,20 @@ fun HomeScreen(
                     }
                 }
 
-                // KEEP LISTENING
                 keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
                     item { NavigationTitle(title = stringResource(R.string.keep_listening), modifier = Modifier.animateItem()) }
                     item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
-                // ACCOUNT PLAYLISTS
                 AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
-                // FORGOTTEN FAVORITES
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                     item { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
                     item { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = forgottenFavoritesLazyGridState, snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
-                // SIMILAR RECS
                 SimilarRecommendationsContainer(viewModel = viewModel, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
-                // HOME PAGE DYNAMIC SECTIONS
                 homePage?.sections?.forEach { section ->
                     item { HomePageSectionTitle(section = section, navController = navController, modifier = Modifier.animateItem()) }
                     item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
