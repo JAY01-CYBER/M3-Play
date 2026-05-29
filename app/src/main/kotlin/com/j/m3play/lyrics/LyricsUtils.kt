@@ -17,6 +17,9 @@ import com.j.m3play.betterlyrics.TTMLParser
 object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
+    
+    // Naya Regex Enhanced LRC / Karaoke tags ko pakadne ke liye
+    val ENHANCED_WORD_REGEX = "<(\\d{2}):(\\d{2})\\.(\\d{2,3})>([^<]*)".toRegex()
 
     private val KANA_ROMAJI_MAP: Map<String, String> = mapOf(
         // Digraphs (Yōon - combinations like kya, sho)
@@ -113,8 +116,7 @@ object LyricsUtils {
         val trimmed = lyrics.trim()
         if (!trimmed.startsWith("<")) return false
 
-        return trimmed.contains("<tt", ignoreCase = true) ||
-                trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
+        return trimmed.contains("<tt", ignoreCase = true) || trimmed.contains("http://www.w3.org/ns/ttml", ignoreCase = true)
     }
 
     fun parseTtml(lyrics: String, durationSeconds: Int? = null): List<LyricsEntry> {
@@ -157,13 +159,64 @@ object LyricsUtils {
         return result.sorted()
     }
 
+    
     private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
         }
         val matchResult = LINE_REGEX.matchEntire(line.trim()) ?: return null
         val times = matchResult.groupValues[1]
-        val text = matchResult.groupValues[3]
+        var rawText = matchResult.groupValues[3]
+        
+        
+        val isBackground = rawText.contains("{bg}")
+        rawText = rawText.replace("{bg}", "")
+
+        
+        val wordMatches = ENHANCED_WORD_REGEX.findAll(rawText).toList()
+        var cleanText = rawText
+        var words: List<WordTimestamp>? = null
+
+        if (wordMatches.isNotEmpty()) {
+            
+            cleanText = wordMatches.joinToString("") { it.groupValues[4] }.trim()
+            
+            words = wordMatches.mapIndexed { index, match ->
+                val wMin = match.groupValues[1].toLong()
+                val wSec = match.groupValues[2].toLong()
+                val wMilStr = match.groupValues[3]
+                var wMil = wMilStr.toLong()
+                if (wMilStr.length == 2) {
+                    wMil *= 10
+                }
+                val startTime = (wMin * DateUtils.MINUTE_IN_MILLIS + wSec * DateUtils.SECOND_IN_MILLIS + wMil).toDouble()
+                
+                val wText = match.groupValues[4]
+                
+                
+                val endTime = if (index < wordMatches.lastIndex) {
+                    val nextMatch = wordMatches[index + 1]
+                    val nMin = nextMatch.groupValues[1].toLong()
+                    val nSec = nextMatch.groupValues[2].toLong()
+                    val nMilStr = nextMatch.groupValues[3]
+                    var nMil = nMilStr.toLong()
+                    if (nMilStr.length == 2) {
+                        nMil *= 10
+                    }
+                    (nMin * DateUtils.MINUTE_IN_MILLIS + nSec * DateUtils.SECOND_IN_MILLIS + nMil).toDouble()
+                } else {
+                    startTime + 2000.0 // Last word duration fallback
+                }
+                
+                WordTimestamp(
+                    text = wText,
+                    startTime = startTime,
+                    endTime = endTime,
+                    isBackground = isBackground
+                )
+            }
+        }
+
         val timeMatchResults = TIME_REGEX.findAll(times)
 
         return timeMatchResults
@@ -176,7 +229,12 @@ object LyricsUtils {
                     mil *= 10
                 }
                 val time = min * DateUtils.MINUTE_IN_MILLIS + sec * DateUtils.SECOND_IN_MILLIS + mil
-                LyricsEntry(time, text)
+                
+                LyricsEntry(
+                    time = time, 
+                    text = cleanText,
+                    words = words 
+                )
             }.toList()
     }
 
