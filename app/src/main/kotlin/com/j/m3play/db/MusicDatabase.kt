@@ -59,7 +59,7 @@ import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
 private const val TAG = "MusicDatabase"
-private const val CURRENT_VERSION = 28
+private const val CURRENT_VERSION = 29
 
 class MusicDatabase(
     private val delegate: InternalDatabase,
@@ -302,14 +302,6 @@ private class DatabaseCallback : RoomDatabase.Callback() {
     }
 }
 
-// =============================================================================
-// UNIVERSAL MIGRATION - Handles schema upgrade to current version
-// =============================================================================
-
-/**
- * Universal migration that properly handles schema changes for any source version.
- * Recreates tables with correct schema when needed to fix default value issues.
- */
 private class UniversalMigration(
     private val context: Context,
     startVersion: Int,
@@ -580,10 +572,6 @@ private object SchemaTools {
     )
 }
 
-// =============================================================================
-// LEGACY MIGRATION v1 -> v2 (Major schema rewrite, must be kept)
-// =============================================================================
-
 private val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
         data class OldSong(val id: String, val title: String, val duration: Int, val liked: Boolean,
@@ -644,7 +632,6 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
             }
         }
         
-        // Drop old tables and create new schema
         db.execSQL("DROP TABLE IF EXISTS song")
         db.execSQL("DROP TABLE IF EXISTS artist")
         db.execSQL("DROP TABLE IF EXISTS playlist")
@@ -672,7 +659,6 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE VIEW `sorted_song_artist_map` AS SELECT * FROM song_artist_map ORDER BY position")
         db.execSQL("CREATE VIEW `playlist_song_map_preview` AS SELECT * FROM playlist_song_map WHERE position <= 3 ORDER BY position")
         
-        // Insert data
         artists.forEach { db.insert("artist", SQLiteDatabase.CONFLICT_ABORT, contentValuesOf(
             "id" to it.id, "name" to it.name,
             "createDate" to converters.dateToTimestamp(it.lastUpdateTime),
@@ -696,10 +682,6 @@ private val MIGRATION_1_2 = object : Migration(1, 2) {
             "playlistId" to it.playlistId, "songId" to it.songId, "position" to it.position)) }
     }
 }
-
-// =============================================================================
-// AUTO MIGRATION SPECS (Required by Room's AutoMigration annotations)
-// =============================================================================
 
 @DeleteColumn.Entries(
     DeleteColumn(tableName = "song", columnName = "isTrash"),
