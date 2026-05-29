@@ -103,7 +103,8 @@ android {
     }
 
     compileOptions {
-        isCoreLibraryDesugaringEnabled = false
+        // YAHAN CHANGE KIYA HAI: false se true kar diya
+        isCoreLibraryDesugaringEnabled = true 
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
@@ -159,7 +160,6 @@ dependencies {
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
     implementation("com.google.code.gson:gson:2.10.1")
-
 
     implementation(libs.activity)
     implementation(libs.navigation)
