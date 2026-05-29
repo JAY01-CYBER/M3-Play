@@ -375,6 +375,7 @@ enum class PreferredLyricsProvider {
     KUGOU,
     BETTER_LYRICS,
     SIMPMUSIC,
+    YOULYPLUS,
 }
 
 enum class PlayerButtonsStyle {
