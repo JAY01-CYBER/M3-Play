@@ -18,8 +18,8 @@ object LyricsUtils {
     val LINE_REGEX = "((\\[\\d\\d:\\d\\d\\.\\d{2,3}\\] ?)+)(.+)".toRegex()
     val TIME_REGEX = "\\[(\\d\\d):(\\d\\d)\\.(\\d{2,3})\\]".toRegex()
     
-    // Naya Regex Enhanced LRC / Karaoke tags ko pakadne ke liye
-    val ENHANCED_WORD_REGEX = "<(\\d{2}):(\\d{2})\\.(\\d{2,3})>([^<]*)".toRegex()
+    
+    val RICH_SYNC_WORD_REGEX = "<(\\d{1,2}):(\\d{2})\\.(\\d{2,3})>\\s*([^<]+)".toRegex()
 
     private val KANA_ROMAJI_MAP: Map<String, String> = mapOf(
         // Digraphs (Yōon - combinations like kya, sho)
@@ -159,7 +159,6 @@ object LyricsUtils {
         return result.sorted()
     }
 
-    
     private fun parseLine(line: String): List<LyricsEntry>? {
         if (line.isEmpty()) {
             return null
@@ -168,12 +167,12 @@ object LyricsUtils {
         val times = matchResult.groupValues[1]
         var rawText = matchResult.groupValues[3]
         
-        
+        // Background tag check
         val isBackground = rawText.contains("{bg}")
         rawText = rawText.replace("{bg}", "")
 
         
-        val wordMatches = ENHANCED_WORD_REGEX.findAll(rawText).toList()
+        val wordMatches = RICH_SYNC_WORD_REGEX.findAll(rawText).toList()
         var cleanText = rawText
         var words: List<WordTimestamp>? = null
 
@@ -191,9 +190,9 @@ object LyricsUtils {
                 }
                 val startTime = (wMin * DateUtils.MINUTE_IN_MILLIS + wSec * DateUtils.SECOND_IN_MILLIS + wMil).toDouble()
                 
-                val wText = match.groupValues[4]
+                val wText = match.groupValues[4].trim() 
                 
-                
+            
                 val endTime = if (index < wordMatches.lastIndex) {
                     val nextMatch = wordMatches[index + 1]
                     val nMin = nextMatch.groupValues[1].toLong()
