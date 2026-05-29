@@ -75,8 +75,8 @@ fun ContentSettings(
     val (enableKugou, onEnableKugouChange) = rememberPreference(key = EnableKugouKey, defaultValue = true)
     val (enableLrclib, onEnableLrclibChange) = rememberPreference(key = EnableLrcLibKey, defaultValue = true)
     val (enableBetterLyrics, onEnableBetterLyricsChange) = rememberPreference(key = EnableBetterLyricsKey, defaultValue = true)
-    val (enableSimpMusicLyrics, onEnableSimpMusicLyricsChange) =
-        rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
+    val (enableSimpMusicLyrics, onEnableSimpMusicLyricsChange) = rememberPreference(key = EnableSimpMusicLyricsKey, defaultValue = true)
+    val (enableYouLyPlus, onEnableYouLyPlusChange) = rememberPreference(key = EnableYouLyPlusKey, defaultValue = true) // <-- Added this
     val (preferredProvider, onPreferredProviderChange) =
         rememberEnumPreference(
             key = PreferredLyricsProviderKey,
@@ -249,6 +249,12 @@ fun ContentSettings(
             checked = enableSimpMusicLyrics,
             onCheckedChange = onEnableSimpMusicLyricsChange,
         )
+        SwitchPreference(
+            title = { Text("Enable YouLyPlus") },
+            icon = { Icon(painterResource(R.drawable.lyrics), null) },
+            checked = enableYouLyPlus,
+            onCheckedChange = onEnableYouLyPlusChange,
+        )
         ListPreference(
             title = { Text(stringResource(R.string.set_first_lyrics_provider)) },
             icon = { Icon(painterResource(R.drawable.lyrics), null) },
@@ -258,6 +264,7 @@ fun ContentSettings(
                 PreferredLyricsProvider.KUGOU,
                 PreferredLyricsProvider.BETTER_LYRICS,
                 PreferredLyricsProvider.SIMPMUSIC,
+                PreferredLyricsProvider.YOULYPLUS, 
             ),
             valueText = {
                 when (it) {
@@ -265,6 +272,7 @@ fun ContentSettings(
                     PreferredLyricsProvider.KUGOU -> "KuGou"
                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
                     PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
+                    PreferredLyricsProvider.YOULYPLUS -> "YouLyPlus" 
                 }
             },
             onValueSelected = onPreferredProviderChange,
