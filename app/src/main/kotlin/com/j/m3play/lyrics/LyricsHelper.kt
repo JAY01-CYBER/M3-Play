@@ -13,12 +13,14 @@ import android.util.LruCache
 import com.j.m3play.utils.GlobalLog
 import com.j.m3play.constants.PreferredLyricsProvider
 import com.j.m3play.constants.PreferredLyricsProviderKey
+import com.j.m3play.constants.EnableYouLyPlusKey
 import com.j.m3play.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.j.m3play.extensions.toEnum
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.reportException
 import com.j.m3play.utils.NetworkConnectivityObserver
+import com.music.youlyplus.YouLyPlus 
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -28,6 +30,50 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
+
+// --- Added the YouLyPlus Lyrics Provider Wrapper ---
+object YouLyPlusLyricsProvider : LyricsProvider {
+    override val name = "YouLyPlus"
+
+    override suspend fun isEnabled(context: Context): Boolean {
+        return context.dataStore.data.first()[EnableYouLyPlusKey] ?: true
+    }
+
+    override suspend fun getLyrics(
+        id: String,
+        title: String,
+        artist: String,
+        album: String?,
+        duration: Int,
+    ): Result<String> {
+        return YouLyPlus.getLyrics(
+            title = title,
+            artist = artist,
+            duration = duration,
+            album = album,
+            id = id
+        )
+    }
+
+    override suspend fun getAllLyrics(
+        id: String,
+        title: String,
+        artist: String,
+        album: String?,
+        duration: Int,
+        callback: (String) -> Unit
+    ) {
+        YouLyPlus.getAllLyrics(
+            title = title,
+            artist = artist,
+            duration = duration,
+            album = album,
+            id = id,
+            callback = callback
+        )
+    }
+}
+// ---------------------------------------------------
 
 class LyricsHelper
 @Inject
@@ -43,6 +89,7 @@ constructor(
             KuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
             YouTubeLyricsProvider,
+            YouLyPlusLyricsProvider, 
         )
 
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
@@ -169,6 +216,7 @@ constructor(
                 PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
                 PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
                 PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
+                PreferredLyricsProvider.YOULYPLUS -> YouLyPlusLyricsProvider 
             }
 
         return listOf(first) + baseProviders.filterNot { provider -> provider == first }
