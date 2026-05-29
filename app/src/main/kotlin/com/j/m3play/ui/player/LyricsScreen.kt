@@ -81,6 +81,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -156,35 +157,28 @@ fun LyricsScreen(
     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsState()
     val playerVolume = playerConnection.service.playerVolume.collectAsState()
     
-    // slider style preference
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
-    // Auto-fetch lyrics when no lyrics found (same logic as refetch)
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
-            // Small delay to ensure database state is stable
             delay(500)
             
             coroutineScope.launch(Dispatchers.IO) {
                 try {
-                    // Get LyricsHelper from Hilt
                     val entryPoint = EntryPointAccessors.fromApplication(
                         context.applicationContext,
                         com.j.m3play.di.LyricsHelperEntryPoint::class.java
                     )
                     val lyricsHelper = entryPoint.lyricsHelper()
                     
-                    // Fetch lyrics automatically
-                    val lyrics = lyricsHelper.getLyrics(mediaMetadata)
-                    
-                    // Save to database
+                    val result = lyricsHelper.getLyrics(mediaMetadata)
+                
                     database.query {
-                        upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                        upsert(LyricsEntity(mediaMetadata.id, result.lyrics, result.providerName))
                     }
                 } catch (e: Exception) {
-                    // Handle error silently - user can manually refetch if needed
                 }
             }
         }
@@ -194,7 +188,6 @@ fun LyricsScreen(
     var duration by remember { mutableLongStateOf(C.TIME_UNSET) }
     var sliderPosition by remember { mutableStateOf<Long?>(null) }
     
-    // Track loading state: when buffering or when user is seeking
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
@@ -212,7 +205,8 @@ fun LyricsScreen(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED || playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW ||
+            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED || playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
             if (mediaMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[mediaMetadata.id]
                 if (cachedColors != null) {
@@ -313,34 +307,27 @@ fun LyricsScreen(
             )
         }
 
-        // Check orientation and layout accordingly
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
-                // Landscape layout - split screen horizontally
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .windowInsetsPadding(WindowInsets.systemBars)
                 ) {
-                    // Unified header across full width
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 16.dp)
-                            .zIndex(1f),  // Ensure header is above content
+                            .zIndex(1f),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Down arrow button (left)
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(
-                                        bounded = true,
-                                        radius = 16.dp
-                                    )
+                                    indication = ripple(bounded = true, radius = 16.dp)
                                 ) { onBackClick() },
                             contentAlignment = Alignment.Center
                         ) {
@@ -352,7 +339,6 @@ fun LyricsScreen(
                             )
                         }
                         
-                        // Now Playing info in center
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
@@ -371,16 +357,12 @@ fun LyricsScreen(
                             )
                         }
                         
-                        // More button (right)
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(
-                                        bounded = true,
-                                        radius = 16.dp
-                                    )
+                                    indication = ripple(bounded = true, radius = 16.dp)
                                 ) {
                                     menuState.show {
                                         LyricsMenu(
@@ -401,38 +383,38 @@ fun LyricsScreen(
                         }
                     }
                     
-                    // Main content row
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                    ) {
-                        // Right side - Lyrics only
+                    Row(modifier = Modifier.fillMaxSize()) {
                         Column(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxSize()
                         ) {
-                            // Lyrics content - centered in landscape
-                            Box(
+                            Column(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.Center  // Center lyrics in landscape
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                if (useLyricsV2) {
-                                    LyricsV2(
-                                        sliderPositionProvider = { sliderPosition }
-                                    )
-                                } else {
-                                    Lyrics(
-                                        sliderPositionProvider = { sliderPosition }
-                                    )
+                                PremiumProviderBadge(
+                                    providerName = currentLyrics?.provider ?: "Local",
+                                    textColor = textBackgroundColor,
+                                    modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+                                )
+                                
+                                Box(
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (useLyricsV2) {
+                                        LyricsV2(sliderPositionProvider = { sliderPosition })
+                                    } else {
+                                        Lyrics(sliderPositionProvider = { sliderPosition })
+                                    }
                                 }
                             }
                         }
                         
-                        // Left side - Controls only (from slider to volume)
                         Column(
                             modifier = Modifier
                                 .weight(1f)
@@ -441,14 +423,11 @@ fun LyricsScreen(
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Slider
                             StyledPlaybackSlider(
                                 sliderStyle = sliderStyle,
                                 value = (sliderPosition ?: position).toFloat(),
                                 valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                                onValueChange = {
-                                    sliderPosition = it.toLong()
-                                },
+                                onValueChange = { sliderPosition = it.toLong() },
                                 onValueChangeFinished = {
                                     sliderPosition?.let {
                                         player.seekTo(it)
@@ -461,7 +440,6 @@ fun LyricsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Time display below slider
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -482,7 +460,6 @@ fun LyricsScreen(
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Control buttons
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -490,7 +467,6 @@ fun LyricsScreen(
                                 horizontalArrangement = Arrangement.SpaceEvenly,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Repeat button
                                 IconButton(
                                     onClick = { playerConnection.player.toggleRepeatMode() },
                                     modifier = Modifier.size(40.dp)
@@ -498,28 +474,17 @@ fun LyricsScreen(
                                     Icon(
                                         painter = painterResource(
                                             when (repeatMode) {
-                                                Player.REPEAT_MODE_OFF, 
-                                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                                Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                                 Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
                                                 else -> R.drawable.repeat
                                             }
                                         ),
-                                        contentDescription = when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF -> "Repeat Off"
-                                            Player.REPEAT_MODE_ALL -> "Repeat All"
-                                            Player.REPEAT_MODE_ONE -> "Repeat One"
-                                            else -> "Repeat"
-                                        },
-                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) {
-                                            textBackgroundColor.copy(alpha = 0.4f)
-                                        } else {
-                                            textBackgroundColor
-                                        },
+                                        contentDescription = null,
+                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) textBackgroundColor.copy(alpha = 0.4f) else textBackgroundColor,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
 
-                                // Previous button
                                 IconButton(
                                     onClick = { player.seekToPrevious() },
                                     modifier = Modifier.size(40.dp)
@@ -532,7 +497,6 @@ fun LyricsScreen(
                                     )
                                 }
 
-                                // Play/Pause button
                                 IconButton(
                                     onClick = { player.togglePlayPause() },
                                     modifier = Modifier.size(56.dp)
@@ -545,17 +509,14 @@ fun LyricsScreen(
                                         )
                                     } else {
                                         Icon(
-                                            painter = painterResource(
-                                                if (isPlaying) R.drawable.pause else R.drawable.play
-                                            ),
-                                            contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                            painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                                            contentDescription = null,
                                             tint = textBackgroundColor,
                                             modifier = Modifier.size(36.dp)
                                         )
                                     }
                                 }
 
-                                // Next button
                                 IconButton(
                                     onClick = { player.seekToNext() },
                                     modifier = Modifier.size(40.dp)
@@ -568,19 +529,14 @@ fun LyricsScreen(
                                     )
                                 }
 
-                                // Shuffle button
                                 IconButton(
                                     onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.shuffle),
-                                        contentDescription = if (shuffleModeEnabled) stringResource(R.string.shuffle) else stringResource(R.string.shuffle),
-                                        tint = if (shuffleModeEnabled) {
-                                            textBackgroundColor
-                                        } else {
-                                            textBackgroundColor.copy(alpha = 0.4f)
-                                        },
+                                        contentDescription = null,
+                                        tint = if (shuffleModeEnabled) textBackgroundColor else textBackgroundColor.copy(alpha = 0.4f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -588,7 +544,6 @@ fun LyricsScreen(
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Volume Control
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -598,7 +553,7 @@ fun LyricsScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.volume_off),
-                                    contentDescription = stringResource(R.string.minimum_volume),
+                                    contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = textBackgroundColor
                                 )
@@ -615,7 +570,7 @@ fun LyricsScreen(
 
                                 Icon(
                                     painter = painterResource(R.drawable.volume_up),
-                                    contentDescription = stringResource(R.string.maximum_volume),
+                                    contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = textBackgroundColor
                                 )
@@ -625,13 +580,11 @@ fun LyricsScreen(
                 }
             }
             else -> {
-                // Portrait layout - original layout
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(WindowInsets.systemBars.asPaddingValues())
                 ) {
-                    // Header with More button and Down arrow on opposite sides
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -639,16 +592,12 @@ fun LyricsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Down arrow button (left)
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(
-                                        bounded = true,
-                                        radius = 16.dp
-                                    )
+                                    indication = ripple(bounded = true, radius = 16.dp)
                                 ) { onBackClick() },
                             contentAlignment = Alignment.Center
                         ) {
@@ -660,7 +609,6 @@ fun LyricsScreen(
                             )
                         }
                         
-                        // Centered content
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.weight(1f)
@@ -679,16 +627,12 @@ fun LyricsScreen(
                             )
                         }
                         
-                        // More button (right)
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = ripple(
-                                        bounded = true,
-                                        radius = 16.dp
-                                    )
+                                    indication = ripple(bounded = true, radius = 16.dp)
                                 ) {
                                     menuState.show {
                                         LyricsMenu(
@@ -709,21 +653,28 @@ fun LyricsScreen(
                         }
                     }
 
-                    Box(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.TopCenter
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (useLyricsV2) {
-                            LyricsV2(
-                                sliderPositionProvider = { sliderPosition }
-                            )
-                        } else {
-                            Lyrics(
-                                sliderPositionProvider = { sliderPosition }
-                            )
+                        PremiumProviderBadge(
+                            providerName = currentLyrics?.provider ?: "Local",
+                            textColor = textBackgroundColor,
+                            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+                        )
+                        
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            if (useLyricsV2) {
+                                LyricsV2(sliderPositionProvider = { sliderPosition })
+                            } else {
+                                Lyrics(sliderPositionProvider = { sliderPosition })
+                            }
                         }
                     }
 
@@ -736,9 +687,7 @@ fun LyricsScreen(
                             sliderStyle = sliderStyle,
                             value = (sliderPosition ?: position).toFloat(),
                             valueRange = 0f..(if (duration == C.TIME_UNSET) 0f else duration.toFloat()),
-                            onValueChange = {
-                                sliderPosition = it.toLong()
-                            },
+                            onValueChange = { sliderPosition = it.toLong() },
                             onValueChangeFinished = {
                                 sliderPosition?.let {
                                     player.seekTo(it)
@@ -751,7 +700,6 @@ fun LyricsScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // Time display below slider
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -772,15 +720,13 @@ fun LyricsScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Optimized control buttons for better fit
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp), // Reduced padding
-                            horizontalArrangement = Arrangement.SpaceEvenly, // Even distribution
+                                .padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Repeat button with clear state indication
                             IconButton(
                                 onClick = { playerConnection.player.toggleRepeatMode() },
                                 modifier = Modifier.size(40.dp)
@@ -788,33 +734,20 @@ fun LyricsScreen(
                                 Icon(
                                     painter = painterResource(
                                         when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF, 
-                                            Player.REPEAT_MODE_ALL -> R.drawable.repeat
+                                            Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
                                             Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
                                             else -> R.drawable.repeat
                                         }
                                     ),
-                                    contentDescription = when (repeatMode) {
-                                        Player.REPEAT_MODE_OFF -> "Repeat Off"
-                                        Player.REPEAT_MODE_ALL -> "Repeat All"
-                                        Player.REPEAT_MODE_ONE -> "Repeat One"
-                                        else -> "Repeat"
-                                    },
-                                    tint = if (repeatMode == Player.REPEAT_MODE_OFF) {
-                                        // Inactive state - low opacity
-                                        textBackgroundColor.copy(alpha = 0.4f)
-                                    } else {
-                                        // Active state - full brightness
-                                        textBackgroundColor
-                                    },
+                                    contentDescription = null,
+                                    tint = if (repeatMode == Player.REPEAT_MODE_OFF) textBackgroundColor.copy(alpha = 0.4f) else textBackgroundColor,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
 
-                            // Previous button
                             IconButton(
                                 onClick = { player.seekToPrevious() },
-                                modifier = Modifier.size(40.dp) // Slightly smaller
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_previous),
@@ -824,10 +757,9 @@ fun LyricsScreen(
                                 )
                             }
 
-                            // Play/Pause button (largest)
                             IconButton(
                                 onClick = { player.togglePlayPause() },
-                                modifier = Modifier.size(56.dp) // Slightly smaller but still prominent
+                                modifier = Modifier.size(56.dp)
                             ) {
                                 if (isLoading) {
                                     CircularProgressIndicator(
@@ -837,20 +769,17 @@ fun LyricsScreen(
                                     )
                                 } else {
                                     Icon(
-                                        painter = painterResource(
-                                            if (isPlaying) R.drawable.pause else R.drawable.play
-                                        ),
-                                        contentDescription = if (isPlaying) "Pause" else stringResource(R.string.play),
+                                        painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                                        contentDescription = null,
                                         tint = textBackgroundColor,
                                         modifier = Modifier.size(36.dp)
                                     )
                                 }
                             }
 
-                            // Next button
                             IconButton(
                                 onClick = { player.seekToNext() },
-                                modifier = Modifier.size(40.dp) // Slightly smaller
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.skip_next),
@@ -860,29 +789,21 @@ fun LyricsScreen(
                                 )
                             }
 
-                            // Shuffle button with clear state indication
                             IconButton(
                                 onClick = { playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.shuffle),
-                                    contentDescription = if (shuffleModeEnabled) stringResource(R.string.shuffle) else stringResource(R.string.shuffle),
-                                    tint = if (shuffleModeEnabled) {
-                                        // Active state - full brightness
-                                        textBackgroundColor
-                                    } else {
-                                        // Inactive state - low opacity
-                                        textBackgroundColor.copy(alpha = 0.4f)
-                                    },
+                                    contentDescription = null,
+                                    tint = if (shuffleModeEnabled) textBackgroundColor else textBackgroundColor.copy(alpha = 0.4f),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp)) // Proper spacing
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        // Volume Control
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -892,7 +813,7 @@ fun LyricsScreen(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.volume_off),
-                                contentDescription = stringResource(R.string.minimum_volume),
+                                contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = textBackgroundColor
                             )
@@ -909,7 +830,7 @@ fun LyricsScreen(
 
                             Icon(
                                 painter = painterResource(R.drawable.volume_up),
-                                contentDescription = stringResource(R.string.maximum_volume),
+                                contentDescription = null,
                                 modifier = Modifier.size(20.dp),
                                 tint = textBackgroundColor
                             )
@@ -919,6 +840,47 @@ fun LyricsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PremiumProviderBadge(
+    providerName: String,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.material3.Surface(
+        shape = androidx.compose.foundation.shape.CircleShape,
+        color = textColor.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 0.5.dp,
+            color = textColor.copy(alpha = 0.15f)
+        ),
+        modifier = modifier
+    ) {
+        androidx.compose.foundation.layout.Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            
+            Icon(
+                painter = painterResource(id = R.drawable.lyrics), 
+                contentDescription = null,
+                tint = textColor.copy(alpha = 0.7f),
+                modifier = Modifier.size(12.dp)
+            )
+            
+            Spacer(modifier = Modifier.width(6.dp))
+            
+            Text(
+                text = "LYRICS BY ${providerName.uppercase()}",
+                color = textColor.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    letterSpacing = 1.5.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                )
+            )
         }
     }
 }
