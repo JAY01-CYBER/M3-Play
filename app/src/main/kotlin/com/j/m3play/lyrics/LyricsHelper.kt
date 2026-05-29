@@ -49,13 +49,13 @@ constructor(
     private val cache = LruCache<String, List<LyricsResult>>(MAX_CACHE_SIZE)
     private var currentLyricsJob: Job? = null
 
-    suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): String {
+    suspend fun getLyrics(mediaMetadata: MediaMetadata, preferredProviderOnly: Boolean = false): LyricsResult {
         currentLyricsJob?.cancel()
 
         val cached = cache.get(mediaMetadata.id)?.firstOrNull()
         if (cached != null) {
             GlobalLog.append(Log.DEBUG, "LyricsHelper", "Found lyrics in cache for ${mediaMetadata.title}")
-            return cached.lyrics
+            return cached
         }
         
         GlobalLog.append(Log.DEBUG, "LyricsHelper", "Fetching lyrics for ${mediaMetadata.title} (Artist: ${mediaMetadata.artists.joinToString { it.name }}, Album: ${mediaMetadata.album?.title})")
@@ -68,7 +68,7 @@ constructor(
         
         if (!isNetworkAvailable) {
             GlobalLog.append(Log.WARN, "LyricsHelper", "Network unavailable, aborting lyrics fetch")
-            return LYRICS_NOT_FOUND
+            return LyricsResult("Offline", LYRICS_NOT_FOUND)
         }
 
         val ordered = orderedProviders()
@@ -89,7 +89,7 @@ constructor(
                         )
                         result.onSuccess { lyrics ->
                             if (isMeaningfulLyrics(lyrics)) {
-                                return@async lyrics
+                                return@async LyricsResult(provider.name, lyrics)
                             }
                         }.onFailure {
                             reportException(it)
@@ -99,12 +99,12 @@ constructor(
                     }
                 }
             }
-            return@async LYRICS_NOT_FOUND
+            return@async LyricsResult("Unknown", LYRICS_NOT_FOUND)
         }
 
-        val lyrics = deferred.await()
+        val lyricsResult = deferred.await()
         scope.cancel()
-        return lyrics
+        return lyricsResult
     }
 
     suspend fun getAllLyrics(
