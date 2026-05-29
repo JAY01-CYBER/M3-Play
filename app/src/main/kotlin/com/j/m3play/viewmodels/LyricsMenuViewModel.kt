@@ -47,7 +47,7 @@ constructor(
                 _isNetworkAvailable.value = isConnected
             }
         }
-        
+  
         // Set initial state using synchronous check
         _isNetworkAvailable.value = try {
             networkConnectivity.isCurrentlyConnected()
@@ -87,10 +87,16 @@ constructor(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val lyrics = lyricsHelper.getLyrics(mediaMetadata)
+                
+                val result = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
                     lyricsEntity?.let(::delete)
-                    upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                    
+                    upsert(LyricsEntity(
+                        id = mediaMetadata.id, 
+                        lyrics = result.lyrics, 
+                        provider = result.providerName
+                    ))
                 }
             } catch (_: Exception) {
             }
@@ -103,7 +109,12 @@ constructor(
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             database.query {
-                upsert(LyricsEntity(mediaMetadata.id, lyrics))
+                
+                upsert(LyricsEntity(
+                    id = mediaMetadata.id, 
+                    lyrics = lyrics, 
+                    provider = "Local"
+                ))
             }
         }
     }
