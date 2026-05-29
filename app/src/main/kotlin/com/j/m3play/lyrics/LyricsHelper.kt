@@ -20,7 +20,7 @@ import com.j.m3play.models.MediaMetadata
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.reportException
 import com.j.m3play.utils.NetworkConnectivityObserver
-import com.music.youlyplus.YouLyPlus 
+import com.music.youlyplus.YouLyPlus
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -29,14 +29,18 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking 
 import javax.inject.Inject
 
 // --- Added the YouLyPlus Lyrics Provider Wrapper ---
 object YouLyPlusLyricsProvider : LyricsProvider {
     override val name = "YouLyPlus"
 
-    override suspend fun isEnabled(context: Context): Boolean {
-        return context.dataStore.data.first()[EnableYouLyPlusKey] ?: true
+    
+    override fun isEnabled(context: Context): Boolean {
+        return runBlocking {
+            context.dataStore.data.first()[EnableYouLyPlusKey] ?: true
+        }
     }
 
     override suspend fun getLyrics(
