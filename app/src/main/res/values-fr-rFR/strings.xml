@@ -244,7 +244,7 @@
     <string name="queue_all_songs">Tous les titres</string>
     <string name="queue_searched_songs">Titres recherchés</string>
     <string name="queue_continue_playing">Continuer la lecture</string>
-    <string name="queue_autoplaying_similar">Autoplaying similar music</string>
+    <string name="queue_autoplaying_similar">Lecture automatique de morceaux similaires</string>
     <!-- Notification name -->
     <string name="music_player">Lecteur de Musique</string>
     <!-- Settings -->
@@ -411,7 +411,7 @@
     <!-- Animation options -->
     <string name="none">Aucun</string>
     <string name="fade">Fondu</string>
-    <string name="slide">Slide</string>
+    <string name="slide">Diapositive</string>
     <string name="karaoke">Karaoké</string>
     <string name="apple_music_style">Apple Music</string>
     <!-- Lyrics line spacing -->
@@ -427,8 +427,8 @@
     <string name="content_country">Pays par défaut</string>
     <string name="system_default">Paramètres par défaut du système</string>
     <string name="enable_proxy">Activer le proxy</string>
-    <string name="proxy_type">Proxy type</string>
-    <string name="proxy_url">Proxy URL</string>
+    <string name="proxy_type">Type de proxy</string>
+    <string name="proxy_url">URL du serveur proxy</string>
     <string name="stream_bypass_proxy">Contourner le proxy pour les flux</string>
     <string name="stream_bypass_proxy_desc">Utilisez votre adresse IP directe pour la lecture en streaming afin d\'éviter toute incompatibilité d\'adresse IP</string>
     <string name="restart_to_take_effect">Redémarrer pour que les modifications prennent effet</string>
@@ -461,8 +461,8 @@
     <string name="wakelock_desc">Empêche le système d\'interrompre la lecture musicale en maintenant un verrou de réveil du processeur</string>
     <string name="auto_start_on_bluetooth">Démarrage automatique lors de la connexion Bluetooth</string>
     <string name="auto_start_on_bluetooth_desc">Reprenez automatiquement la lecture lorsqu\'un périphérique audio Bluetooth se connecte</string>
-    <string name="artist_separators">Symbols to split artists</string>
-    <string name="artist_separators_desc">Symbols used to split multiple artists</string>
+    <string name="artist_separators">Caractères de séparation pour les artistes</string>
+    <string name="artist_separators_desc">Symboles utilisés pour séparer plusieurs artistes</string>
     <string name="external_downloader">Téléchargeur externe</string>
     <string name="external_downloader_desc">Télécharger des morceaux via une application externe en indiquant le nom du paquet</string>
     <string name="external_downloader_package">Paquet d\'application de téléchargement</string>
@@ -470,8 +470,8 @@
     <string name="open_with_downloader">Open with Downloader</string>
     <string name="external_downloader_not_installed">L\'application de téléchargement externe n\'est pas installée</string>
     <string name="external_downloader_not_configured">Aucun programme de téléchargement externe n\'est configuré. Configurez-en un dans Paramètres → Lecteur.</string>
-    <string name="add_symbol">Add symbol</string>
-    <string name="enter_symbol">Enter symbol</string>
+    <string name="add_symbol">Ajouter un symbole</string>
+    <string name="enter_symbol">Entrer le symbole</string>
     <string name="equalizer">Égaliseur</string>
     <string name="eq_waiting_for_audio_session">En attente de la session audio…</string>
     <string name="eq_open_system_equalizer">Open system equalizer</string>
@@ -548,7 +548,7 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Intégration Last.fm</string>
     <string name="enable_scrobbling">Activer le scrobbling</string>
-    <string name="lastfm_now_playing">Update Now Playing</string>
+    <string name="lastfm_now_playing">Mise à jour : En cours de lecture</string>
     <string name="scrobbling_configuration">Configuration du scrobbling</string>
     <string name="scrobble_min_track_duration">Minimum Track Duration</string>
     <string name="scrobble_delay_percent">Scrobble Delay Percent</string>
@@ -565,19 +565,19 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="discord_activity_name">Activity name</string>
     <string name="discord_activity_details">Activity details</string>
     <string name="discord_activity_state">Activity state</string>
-    <string name="discord_activity_button_1_url">Button 1 URL Source</string>
-    <string name="discord_activity_button_2_url">Button 2 URL Source</string>
-    <string name="discord_activity_button1_label">Button 1 label</string>
-    <string name="discord_activity_button1_url">Button 1 Custom URL</string>
-    <string name="discord_activity_button2_label">Button 2 label</string>
-    <string name="discord_activity_button2_url">Button 2 Custom URL</string>
-    <string name="large_image_custom_url">Large image custom URL</string>
-    <string name="large_image">Large Image</string>
-    <string name="large_text">Large Text</string>
-    <string name="custom_large_text">Custom Large Text</string>
-    <string name="small_image">Small Image</string>
-    <string name="small_image_custom_url">Small image custom URL</string>
-    <string name="activity_status">Activity Status</string>
+    <string name="discord_activity_button_1_url">URL source du bouton 1</string>
+    <string name="discord_activity_button_2_url">URL source du bouton 2</string>
+    <string name="discord_activity_button1_label">Libellé du bouton 1</string>
+    <string name="discord_activity_button1_url">URL personnalisée du bouton 1</string>
+    <string name="discord_activity_button2_label">Libellé du bouton 2</string>
+    <string name="discord_activity_button2_url">URL personnalisée du bouton 2</string>
+    <string name="large_image_custom_url">URL personnalisée de la grande image</string>
+    <string name="large_image">Grande image</string>
+    <string name="large_text">Texte en gros caractères</string>
+    <string name="custom_large_text">Texte personnalisé en gros caractères</string>
+    <string name="small_image">Petite image</string>
+    <string name="small_image_custom_url">URL personnalisée de la petite image</string>
+    <string name="activity_status">État de l\'activité</string>
     <string name="platform_status">Platform</string>
     <string name="update_interval">Presence Update Interval</string>
     <!--Discord Tranalstor Settings-->
