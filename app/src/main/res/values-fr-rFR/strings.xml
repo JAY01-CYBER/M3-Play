@@ -9,14 +9,14 @@
         <item quantity="one">%d sélectionné</item>
         <item quantity="other">%d sélectionnés</item>
     </plurals>
-    <string name="greeting_morning">Good Morning</string>
-    <string name="greeting_afternoon">Good Afternoon</string>
-    <string name="greeting_evening">Good Evening</string>
-    <string name="greeting_night">Good Night</string>
-    <string name="subtitle_morning">Start your day with music</string>
-    <string name="subtitle_afternoon">Enjoy your day with music</string>
-    <string name="subtitle_evening">Relax with evening tunes</string>
-    <string name="subtitle_night">Slow down with night vibes</string>
+    <string name="greeting_morning">Bonjour</string>
+    <string name="greeting_afternoon">Bonjour</string>
+    <string name="greeting_evening">Bonsoir</string>
+    <string name="greeting_night">Bonsoir</string>
+    <string name="subtitle_morning">Commencez votre journée en musique</string>
+    <string name="subtitle_afternoon">Passez une bonne journée en musique</string>
+    <string name="subtitle_evening">Détendez-vous au son de la musique du soir</string>
+    <string name="subtitle_night">Ralentissez le rythme et imprégnez-vous de l\'ambiance nocturne</string>
     <string name="history">Historique</string>
     <string name="stats">Statistiques</string>
     <string name="mood_and_genres">Ambiance &amp; Genres</string>
