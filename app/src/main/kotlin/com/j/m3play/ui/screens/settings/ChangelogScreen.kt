@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,10 +51,11 @@ import com.j.m3play.R
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.utils.backToMain
 
+// Data class updated to hold raw markdown lines
 data class ChangeLog(
     val version: String,
     val isLatest: Boolean = false,
-    val changes: List<String>,
+    val lines: List<String>,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,36 +64,44 @@ fun ChangelogScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
+    
+    // Automatically reads and parses the CHANGELOG.md file from assets
     val changelog = remember {
-        listOf(
-            ChangeLog(
-                version = "v3.0.5",
-                isLatest = true,
-                changes = listOf(
-                    "Removed GitHub calls on app startup",
-                    "Disabled Discord presence by default",
-                    "Updater now works only when enabled",
-                    "Improved privacy and network control",
-                ),
-            ),
-            ChangeLog(
-                version = "v3.0.4",
-                changes = listOf(
-                    "Reduced GitHub update calls",
-                    "Added update source notice",
-                    "Cleaner updater system",
-                    "Improved UI consistency",
-                ),
-            ),
-            ChangeLog(
-                version = "v3.0.3",
-                changes = listOf(
-                    "Security improvements",
-                    "Disabled cleartext traffic",
-                    "Minor fixes",
-                ),
-            ),
-        )
+        val parsedList = mutableListOf<ChangeLog>()
+        try {
+            // Reading the file from assets folder
+            val text = context.assets.open("CHANGELOG.md").bufferedReader().use { it.readText() }
+            var currentVersion = ""
+            var currentLines = mutableListOf<String>()
+            var isFirst = true
+
+            text.lines().forEach { line ->
+                if (line.startsWith("---v")) {
+                    if (currentVersion.isNotEmpty()) {
+                        parsedList.add(ChangeLog(currentVersion, isFirst, currentLines))
+                        isFirst = false
+                    }
+                    currentVersion = line.removePrefix("---")
+                    currentLines = mutableListOf()
+                } else if (currentVersion.isNotEmpty() && line.isNotBlank()) {
+                    currentLines.add(line)
+                }
+            }
+            if (currentVersion.isNotEmpty()) {
+                parsedList.add(ChangeLog(currentVersion, isFirst, currentLines))
+            }
+        } catch (e: Exception) {
+            // Fallback error message if file is not found
+            parsedList.add(
+                ChangeLog(
+                    version = "Error",
+                    isLatest = true,
+                    lines = listOf("Could not load CHANGELOG.md from assets folder.")
+                )
+            )
+        }
+        parsedList
     }
 
     Scaffold(
@@ -141,7 +151,7 @@ fun ChangelogScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Local changelog • No API used",
+                        text = "Reading directly from CHANGELOG.md",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -183,13 +193,57 @@ fun ChangelogScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    item.changes.forEach { change ->
-                        Text(
-                            text = "• $change",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                    // Premium Markdown Renderer
+                    item.lines.forEach { line ->
+                        when {
+                            line.startsWith("# ") -> {
+                                Text(
+                                    text = line.removePrefix("# "),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                )
+                            }
+                            line.startsWith("## ") -> {
+                                Text(
+                                    text = line.removePrefix("## "),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                                )
+                            }
+                            line.startsWith("- ") -> {
+                                Text(
+                                    text = "• ${line.removePrefix("- ")}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                                )
+                            }
+                            line.startsWith("> ") -> {
+                                // Red color formatting for Warning messages
+                                val warningText = line.removePrefix("> ").removePrefix("[!WARNING]").trim()
+                                if (warningText.isNotEmpty()) {
+                                    Text(
+                                        text = warningText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(bottom = 2.dp)
+                                    )
+                                }
+                            }
+                            else -> {
+                                Text(
+                                    text = line,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -202,7 +256,7 @@ fun ChangelogScreen(
 
             item {
                 Text(
-                    text = "This changelog is bundled inside app (no GitHub request).",
+                    text = "This changelog is bundled inside app and loads offline.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 12.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -225,7 +279,7 @@ private fun GlassCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp), // Premium Large Radius
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
         ),
