@@ -5,7 +5,7 @@
  * Crafted for immersive music experience
  * Designed & maintained by JAY01-CYBER
  *
- * Signature: M3PLAY::SIGNATURE::TIME_GREETING::PREMIUM_FINAL
+ * Signature: M3PLAY::SIGNATURE::TIME_GREETING::V1
  */
 
 package com.j.m3play.ui.component
@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,37 +48,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.j.m3play.R
 import java.util.Calendar
 
 @Composable
 fun TimeGreetingCard(
-    userName: String? = null,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
-    val greeting = when (hour) {
-        in 5..11 -> "Good Morning"
-        in 12..16 -> "Good Afternoon"
-        in 17..20 -> "Good Evening"
-        else -> "Good Night"
+    val greetingRes = when (hour) {
+        in 5..11 -> R.string.greeting_morning
+        in 12..16 -> R.string.greeting_afternoon
+        in 17..20 -> R.string.greeting_evening
+        else -> R.string.greeting_night
     }
 
-    val subtitle = when (hour) {
-        in 5..11 -> "Start your day with music"
-        in 12..16 -> "Enjoy your day with music"
-        in 17..20 -> "Relax with evening tunes"
-        else -> "Slow down with night vibes"
+    val subtitleRes = when (hour) {
+        in 5..11 -> R.string.subtitle_morning
+        in 12..16 -> R.string.subtitle_afternoon
+        in 17..20 -> R.string.subtitle_evening
+        else -> R.string.subtitle_night
     }
 
     val weatherIcon = when (hour) {
@@ -98,9 +95,7 @@ fun TimeGreetingCard(
     val isAfternoon = hour in 12..16
     val isNightLike = hour in 17..23 || hour in 0..4
 
-    val displayName = if (!userName.isNullOrBlank()) userName else "User"
-
-    val transition = rememberInfiniteTransition(label = "time_card_premium")
+    val transition = rememberInfiniteTransition(label = "time_card_v3")
 
     val emojiOffsetY by transition.animateFloat(
         initialValue = 0f,
@@ -123,8 +118,8 @@ fun TimeGreetingCard(
     )
 
     val glowAlpha by transition.animateFloat(
-        initialValue = if (isNightLike) 0.14f else 0.08f,
-        targetValue = if (isNightLike) 0.35f else 0.18f,
+        initialValue = if (isNightLike) 0.14f else 0.06f,
+        targetValue = if (isNightLike) 0.30f else 0.14f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500),
             repeatMode = RepeatMode.Reverse
@@ -132,21 +127,51 @@ fun TimeGreetingCard(
         label = "glowAlpha"
     )
 
+    val sparkleAlpha by transition.animateFloat(
+        initialValue = 0.20f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sparkleAlpha"
+    )
+
     val searchPulse by transition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.025f,
+        targetValue = 1.035f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500),
+            animation = tween(2200),
             repeatMode = RepeatMode.Reverse
         ),
         label = "searchPulse"
+    )
+
+    val streakOffsetX by transition.animateFloat(
+        initialValue = -120f,
+        targetValue = 320f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2600),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "streakOffsetX"
+    )
+
+    val starTwinkle by transition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "starTwinkle"
     )
 
     val gradientShift by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(5000),
+            animation = tween(4200),
             repeatMode = RepeatMode.Reverse
         ),
         label = "gradientShift"
@@ -154,29 +179,20 @@ fun TimeGreetingCard(
 
     var searchPressed by remember { mutableStateOf(false) }
     val searchScale by animateFloatAsState(
-        targetValue = if (searchPressed) 0.90f else 1f,
-        animationSpec = spring(stiffness = 400f, dampingRatio = 0.6f),
+        targetValue = if (searchPressed) 0.92f else 1f,
+        animationSpec = spring(),
         label = "searchPressScale"
     )
 
-    // Premium Color Palette
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceHigh = MaterialTheme.colorScheme.surfaceContainerHigh
-    val surfaceLow = MaterialTheme.colorScheme.surfaceContainerLow
+    val startColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.98f)
+    val midColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
+    val endColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
 
-    val cardAnimatedBrush = Brush.linearGradient(
-        colors = listOf(
-            surfaceHigh.copy(alpha = 0.95f),
-            surfaceLow.copy(alpha = 0.85f - (gradientShift * 0.1f)),
-            primaryColor.copy(alpha = 0.08f + (gradientShift * 0.05f))
-        )
-    )
-
-    val glassBorderBrush = Brush.linearGradient(
-        colors = listOf(
-            Color.White.copy(alpha = 0.4f),
-            Color.Transparent,
-            primaryColor.copy(alpha = 0.3f)
+    val animatedBrush = Brush.horizontalGradient(
+        colorStops = arrayOf(
+            0f to startColor,
+            (0.45f + (gradientShift * 0.15f)) to midColor,
+            1f to endColor
         )
     )
 
@@ -184,47 +200,53 @@ fun TimeGreetingCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            // Premium Soft Shadow
-            .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(32.dp),
-                spotColor = primaryColor.copy(alpha = 0.15f),
-                ambientColor = primaryColor.copy(alpha = 0.05f)
-            )
             .clip(RoundedCornerShape(32.dp))
-            .background(cardAnimatedBrush)
+            .background(animatedBrush)
             .border(
                 width = 1.dp,
-                brush = glassBorderBrush,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
                 shape = RoundedCornerShape(32.dp)
             )
-            .padding(horizontal = 20.dp, vertical = 18.dp) 
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
-        // Glowing Ambient Orb (Top Right)
+        if (isMorning || isAfternoon) {
+            Box(
+                modifier = Modifier
+                    .offset(x = streakOffsetX.dp, y = (-8).dp)
+                    .size(width = 90.dp, height = 80.dp)
+                    .alpha(0.10f)
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        ),
+                        shape = RoundedCornerShape(40.dp)
+                    )
+            )
+        }
+
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = 12.dp, y = (-8).dp)
-                .size(70.dp)
+                .offset(x = (-8).dp, y = 2.dp)
+                .size(50.dp)
                 .alpha(glowAlpha)
                 .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryColor.copy(alpha = 0.4f),
-                            Color.Transparent
-                        )
-                    ),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
                     shape = CircleShape
                 )
         )
 
         Text(
             text = sparkleText,
-            color = primaryColor.copy(alpha = 0.6f),
-            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isNightLike) starTwinkle else sparkleAlpha),
+            style = MaterialTheme.typography.bodySmall,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = 2.dp, top = 0.dp)
+                .padding(end = 6.dp, top = 2.dp)
         )
 
         Row(
@@ -236,85 +258,61 @@ fun TimeGreetingCard(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Weather Icon Box with subtle inner shadow/glow
                 Box(
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(34.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .alpha(glowAlpha)
-                            .background(
-                                color = primaryColor.copy(alpha = 0.15f),
-                                shape = CircleShape
-                            )
-                    )
+                    if (isNightLike) {
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .alpha(glowAlpha)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
 
                     Text(
                         text = weatherIcon,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier
                             .offset(y = emojiOffsetY.dp)
                             .scale(emojiScale)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = "$greeting, $displayName",
-                        style = MaterialTheme.typography.titleLarge, 
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = stringResource(id = greetingRes),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    
-                    Spacer(modifier = Modifier.height(2.dp))
 
+                    val subtitleText = stringResource(id = subtitleRes)
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        text = "$subtitleText ${if (isMorning || isAfternoon) "☀️" else if (isNightLike) "🌙" else ""}".trim(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // Premium Floating Search Button
             Box(
                 modifier = Modifier
                     .scale(searchPulse * searchScale)
-                    .size(52.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape,
-                        spotColor = primaryColor.copy(alpha = 0.2f),
-                        ambientColor = Color.Black.copy(alpha = 0.05f)
-                    )
+                    .size(46.dp)
                     .clip(CircleShape)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surfaceContainerLow
-                            )
-                        )
-                    )
+                    .background(MaterialTheme.colorScheme.surface)
                     .border(
                         width = 1.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.5f),
-                                Color.Transparent
-                            )
-                        ),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f),
                         shape = CircleShape
                     )
                     .clickable(
@@ -322,7 +320,7 @@ fun TimeGreetingCard(
                         indication = null
                     ) {
                         searchPressed = true
-                        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSearchClick()
                         searchPressed = false
                     },
@@ -332,7 +330,7 @@ fun TimeGreetingCard(
                     imageVector = Icons.Outlined.Search,
                     contentDescription = "Search",
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp) 
+                    modifier = Modifier.size(21.dp)
                 )
             }
         }
