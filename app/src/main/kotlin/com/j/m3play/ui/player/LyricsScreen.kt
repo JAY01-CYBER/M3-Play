@@ -161,6 +161,15 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
+    
+    val providerBadgeText = remember(currentLyrics) {
+        if (currentLyrics == null) {
+            "LOADING LYRICS"
+        } else {
+            "LYRICS BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+        }
+    }
+
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
             delay(500)
@@ -397,7 +406,7 @@ fun LyricsScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 PremiumProviderBadge(
-                                    providerName = currentLyrics?.provider ?: "Local",
+                                    text = providerBadgeText, 
                                     textColor = textBackgroundColor,
                                     modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
                                 )
@@ -661,7 +670,7 @@ fun LyricsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         PremiumProviderBadge(
-                            providerName = currentLyrics?.provider ?: "Local",
+                            text = providerBadgeText, 
                             textColor = textBackgroundColor,
                             modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
                         )
@@ -844,41 +853,42 @@ fun LyricsScreen(
     }
 }
 
+
 @Composable
 fun PremiumProviderBadge(
-    providerName: String,
+    text: String,
     textColor: Color,
     modifier: Modifier = Modifier
 ) {
     androidx.compose.material3.Surface(
         shape = androidx.compose.foundation.shape.CircleShape,
-        color = textColor.copy(alpha = 0.08f),
+        color = textColor.copy(alpha = 0.04f), // Ekdam light transparent background
         border = androidx.compose.foundation.BorderStroke(
-            width = 0.5.dp,
-            color = textColor.copy(alpha = 0.15f)
+            width = 0.5.dp, // Hairline border
+            color = textColor.copy(alpha = 0.1f)
         ),
         modifier = modifier
     ) {
         androidx.compose.foundation.layout.Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            
             Icon(
                 painter = painterResource(id = R.drawable.lyrics), 
                 contentDescription = null,
-                tint = textColor.copy(alpha = 0.7f),
-                modifier = Modifier.size(12.dp)
+                tint = textColor.copy(alpha = 0.65f), // Faded premium look
+                modifier = Modifier.size(13.dp)
             )
             
             Spacer(modifier = Modifier.width(6.dp))
             
             Text(
-                text = "LYRICS BY ${providerName.uppercase()}",
-                color = textColor.copy(alpha = 0.7f),
+                text = text,
+                color = textColor.copy(alpha = 0.65f),
                 style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 1.5.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    letterSpacing = 1.5.sp, // Wide premium tracking
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    fontSize = 10.sp // Smaller clean font
                 )
             )
         }
