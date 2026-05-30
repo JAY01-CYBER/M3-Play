@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "M3Play" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
-    <!-- Bottom navigation -->
     <string name="home">Startseite</string>
     <string name="songs">Lieder</string>
     <string name="artists">Künstler</string>
     <string name="albums">Alben</string>
     <string name="playlists">Wiedergabelisten</string>
-    <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="one">%d ausgewählt</item>
         <item quantity="other">%d selected</item>
     </plurals>
-    <!-- Home -->
+    <string name="greeting_morning">Good Morning</string>
+    <string name="greeting_afternoon">Good Afternoon</string>
+    <string name="greeting_evening">Good Evening</string>
+    <string name="greeting_night">Good Night</string>
+    <string name="subtitle_morning">Start your day with music</string>
+    <string name="subtitle_afternoon">Enjoy your day with music</string>
+    <string name="subtitle_evening">Relax with evening tunes</string>
+    <string name="subtitle_night">Slow down with night vibes</string>
     <string name="history">Hörverlauf</string>
     <string name="stats">Statistiken</string>
     <string name="mood_and_genres">Stimmung und Genres</string>
@@ -37,16 +37,13 @@
     <string name="integrations">Integrations</string>
     <string name="internal_subcategory_settings">Internal &amp; subcategory settings</string>
     <string name="search_try_different">Try a different search term</string>
-    <!-- History -->
     <string name="today">Heute</string>
     <string name="yesterday">Gestern</string>
     <string name="this_week">Diese Woche</string>
     <string name="last_week">Letzte Woche</string>
-    <!-- Stats -->
     <string name="most_played_songs">Die meisten gespielten Lieder</string>
     <string name="most_played_artists">Die meisten gespielten Künstler</string>
     <string name="most_played_albums">Die meisten gespielten Alben</string>
-    <!-- Search -->
     <string name="search">Suchen</string>
     <string name="search_yt_music">Durchsuchen Sie YouTube Music…</string>
     <string name="search_library">Bibliothek durchsuchen…</string>
@@ -65,16 +62,12 @@
     <string name="filter_bookmarked">Mit Lesezeichen versehen</string>
     <string name="no_results_found">Keine Ergebnisse gefunden</string>
     <string name="top_results">Top Results</string>
-    <!-- Library -->
     <string name="library_song_empty">Hier werden Bibliothekslieder angezeigt</string>
     <string name="library_artist_empty">Hier werden Bibliothekskünstler auftauchen</string>
     <string name="library_album_empty">Hier werden Bibliotheksalben angezeigt</string>
     <string name="library_playlist_empty">Ihre Playlists werden hier angezeigt</string>
-    <!-- Artist screen -->
     <string name="from_your_library">Aus Ihrer Bibliothek</string>
-    <!-- Album screen -->
     <string name="other_versions">Andere Versionen</string>
-    <!-- Playlist -->
     <string name="liked_songs">Gefallene Lieder</string>
     <string name="downloaded_songs">Heruntergeladene Lieder</string>
     <string name="playlist_is_empty">Die Playlist ist leer</string>
@@ -82,13 +75,11 @@
     <string name="delete_playlist_confirm">Möchten Sie die Playlist \"%s\" wirklich löschen?</string>
     <string name="change_playlist_cover">Playlist cover ändern</string>
     <string name="remove_playlist_cover">Cover entfernen</string>
-    <!-- Button -->
     <string name="retry">Wiederholen</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Shuffle</string>
     <string name="music_recognition">Music Recognition</string>
     <string name="reset">Zurücksetzen</string>
-    <!-- Menu -->
     <string name="details">Details</string>
     <string name="edit">Bearbeiten</string>
     <string name="start_radio">Radio starten</string>
@@ -139,7 +130,6 @@
     <string name="pitch">Tonhöhe</string>
     <string name="pitch_mode_semitones_short">st</string>
     <string name="pitch_mode_multiplier_short">x</string>
-    <!-- Sort menu -->
     <string name="sort_by_create_date">Datum hinzugefügt</string>
     <string name="sort_by_name">Name</string>
     <string name="sort_by_artist">Künstler</string>
@@ -148,7 +138,6 @@
     <string name="sort_by_length">Länge</string>
     <string name="sort_by_play_time">Wiedergabezeit</string>
     <string name="sort_by_custom">Benutzerdefiniert</string>
-    <!-- Dialog -->
     <string name="media_id">Medien-ID</string>
     <string name="mime_type">MIME-Typ</string>
     <string name="codecs">Codecs</string>
@@ -180,7 +169,6 @@
     <string name="add_anyway">Trotzdem hinzufügen</string>
     <string name="duplicates_description_single">Das Lied ist bereits in Ihrer Playlist</string>
     <string name="duplicates_description_multiple">%d Songs sind bereits in Ihrer Playlist</string>
-    <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d Lied</item>
         <item quantity="other">%d Lieder</item>
@@ -209,7 +197,6 @@
         <item quantity="one">%d Jahr</item>
         <item quantity="other">%d Jahre</item>
     </plurals>
-    <!-- Snackbar -->
     <string name="added_to_playlist">Zu %s hinzugefügt</string>
     <string name="added_n_songs_to_playlist">%1$d Lieder zu %2$s hinzugefügt</string>
     <string name="added_to_n_playlists">Zu %d playlist hinzugefügt</string>
@@ -218,7 +205,6 @@
     <string name="removed_song_from_playlist">\"%s\" aus der Playlist entfernt</string>
     <string name="playlist_synced">Playlist synchronisiert</string>
     <string name="undo">Rückgängig machen</string>
-    <!-- Player -->
     <string name="lyrics_not_found">Songtext nicht gefunden</string>
     <string name="sleep_timer">Sleep-Timer</string>
     <string name="end_of_song">Ende des Liedes</string>
@@ -230,7 +216,6 @@
     <string name="error_no_internet">Keine Netzwerkverbindung</string>
     <string name="error_timeout">Time-out</string>
     <string name="error_unknown">Unbekannter Fehler</string>
-    <!-- Player action -->
     <string name="action_like">Wie</string>
     <string name="action_like_all">Wie alle</string>
     <string name="action_remove_like">Like entfernen</string>
@@ -240,14 +225,11 @@
     <string name="repeat_mode_off">Wiederholungsmodus aus</string>
     <string name="repeat_mode_one">Aktuelles Lied wiederholen</string>
     <string name="repeat_mode_all">Warteschlange wiederholen</string>
-    <!-- Queue Title -->
     <string name="queue_all_songs">Alle Lieder</string>
     <string name="queue_searched_songs">Gesuchte Lieder</string>
     <string name="queue_continue_playing">Wiedergabe fortsetzen</string>
     <string name="queue_autoplaying_similar">Ähnliche Musik automatisch abspielen</string>
-    <!-- Notification name -->
     <string name="music_player">Musik-Player</string>
-    <!-- Settings -->
     <string name="settings">Einstellungen</string>
     <string name="appearance">Aussehen</string>
     <string name="theme">Thema</string>
@@ -256,23 +238,19 @@
     <string name="random_theme_on_startup_desc">Wende eine zufällige Farbpalette bei jedem Appstart an</string>
     <string name="use_system_font">Nutze Systemschriftart</string>
     <string name="use_system_font_desc">Nutze die Geräteschriftar anstelle der Appschriftart</string>
-    <!-- Color Palette -->
     <string name="color_palette">Farbpalette</string>
     <string name="customize_theme_colors">Wähle die Farben deines App-Themes</string>
     <string name="selected_theme_color">Ausgewählte Theme-Farbe</string>
     <string name="theme_preview">Theme-Vorschau</string>
     <string name="select_palette">Farbschema auswählen</string>
     <string name="palette_applied">Palette angewendet</string>
-    <!-- Palette Names -->
     <string name="palette_default">Standard</string>
-    <!-- Blues -->
     <string name="palette_ocean_blue">Ozeanblau</string>
     <string name="palette_arctic_blue">Arktis</string>
     <string name="palette_midnight_navy">Mitternacht</string>
     <string name="palette_sky_blue">Himmelblau</string>
     <string name="palette_cobalt_blue">Kobaltblau</string>
     <string name="palette_electric_blue">Elektrisch Blau</string>
-    <!-- Greens -->
     <string name="palette_emerald_green">Smaragd</string>
     <string name="palette_teal_wave">Türkiswelle</string>
     <string name="palette_forest_green">Waldgrün</string>
@@ -280,21 +258,18 @@
     <string name="palette_mint_fresh">Minze</string>
     <string name="palette_olive_garden">Olive</string>
     <string name="palette_sage_green">Salbei</string>
-    <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Sonnenuntergang</string>
     <string name="palette_golden_hour">Goldene Stunde</string>
     <string name="palette_warm_amber">Bernstein</string>
     <string name="palette_tangerine_blast">Mandarine</string>
     <string name="palette_peach">Pfirsich</string>
     <string name="palette_mango">Mango</string>
-    <!-- Purples -->
     <string name="palette_royal_purple">Königslila</string>
     <string name="palette_lavender_dream">Lavendel</string>
     <string name="palette_grape_purple">Traube</string>
     <string name="palette_violet">Violett</string>
     <string name="palette_amethyst">Amethyst</string>
     <string name="palette_ultra_violet">Ultraviolett</string>
-    <!-- Pinks -->
     <string name="palette_cherry_blossom">Sakura</string>
     <string name="palette_rose_quartz">Rosenquarz</string>
     <string name="palette_magenta_pop">Magenta</string>
@@ -302,37 +277,31 @@
     <string name="palette_blush">Blush</string>
     <string name="palette_coral">Koralle</string>
     <string name="palette_bubblegum">Bubblegum</string>
-    <!-- Reds -->
     <string name="palette_crimson_red">Karmesin</string>
     <string name="palette_youtube_red">YouTube</string>
     <string name="palette_wine_red">Weinrot</string>
     <string name="palette_ruby_red">Rubinrot</string>
     <string name="palette_scarlet">Scharlach</string>
-    <!-- Neutrals -->
     <string name="palette_charcoal">Anthrazit</string>
     <string name="palette_silver">Silber</string>
     <string name="palette_slate">Schiefer</string>
     <string name="palette_graphite">Graphit</string>
-    <!-- Earth Tones -->
     <string name="palette_terracotta">Terrakotta</string>
     <string name="palette_coffee">Kaffee</string>
     <string name="palette_mocha">Mokka</string>
     <string name="palette_sand">Sand</string>
     <string name="palette_clay">Ton</string>
-    <!-- Pastels -->
     <string name="palette_pastel_pink">Pastellrosa</string>
     <string name="palette_pastel_blue">Pastellblau</string>
     <string name="palette_pastel_green">Pastellgrün</string>
     <string name="palette_pastel_yellow">Pastellgelb</string>
     <string name="palette_pastel_purple">Pastelllila</string>
-    <!-- Neon & Vibrant -->
     <string name="palette_neon_green">Neongrün</string>
     <string name="palette_neon_pink">Neonpink</string>
     <string name="palette_neon_blue">Neonblau</string>
     <string name="palette_neon_orange">Neonorange</string>
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
-    <!-- Special & Themed -->
     <string name="palette_ocean">Ozean</string>
     <string name="palette_forest">Tiefer Wald</string>
     <string name="palette_autumn">Herbst</string>
@@ -343,7 +312,6 @@
     <string name="palette_aurora">Aurora</string>
     <string name="palette_candy">Süßigkeiten</string>
     <string name="palette_rainbow">Regenbogen</string>
-    <!-- Additional Palettes -->
     <string name="palette_aquamarine">Aquamarin</string>
     <string name="palette_coral_reef">Korallenriff</string>
     <string name="palette_cotton_candy">Zuckerwatte</string>
@@ -356,7 +324,6 @@
     <string name="palette_slate_gray">Schiefergrau</string>
     <string name="palette_sunset_beach">Sonnenuntergangsstrand</string>
     <string name="palette_turquoise">Türkis</string>
-    <!-- End of Color Palette -->
     <string name="dark_theme">Dunkles Thema</string>
     <string name="dark_theme_on">An</string>
     <string name="dark_theme_off">Aus</string>
@@ -406,15 +373,12 @@
     <string name="grid_cell_size">Größe der Rasterzelle</string>
     <string name="small">Klein</string>
     <string name="big">Groß</string>
-    <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Songtext-Animationsstil</string>
-    <!-- Animation options -->
     <string name="none">Keiner</string>
     <string name="fade">Verblassen</string>
     <string name="slide">Gleiten</string>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music</string>
-    <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
     <string name="content">Inhalt</string>
     <string name="action_logout">Abmelden</string>
@@ -543,7 +507,6 @@
     <string name="options">Optionen</string>
     <string name="preview">Vorschau</string>
     <string name="enable_discord_rpc">Aktivieren Sie Rich Presence</string>
-    <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Last.fm-Integration</string>
     <string name="enable_scrobbling">Scrobbling aktivieren</string>
@@ -555,12 +518,10 @@
     <string name="username">Benutzername</string>
     <string name="password">Passwort</string>
     <string name="logging_in">Anmeldung…</string>
-    <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz-Scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Übermitteln von „Jetzt läuft“ und abgeschlossenen Wiedergaben an ListenBrainz aktivieren</string>
     <string name="set_listenbrainz_token">ListenBrainz-Token festlegen</string>
     <string name="edit_listenbrainz_token">ListenBrainz-Token bearbeiten</string>
-    <!-- Discord activity customization -->
     <string name="discord_activity_name">Aktivitätsname</string>
     <string name="discord_activity_details">Aktivitätsdetails</string>
     <string name="discord_activity_state">Aktivitätsstatus</string>
@@ -579,7 +540,6 @@
     <string name="activity_status">Aktivitätsstatus</string>
     <string name="platform_status">Plattform</string>
     <string name="update_interval">Aktualisierungsintervall der Präsenz</string>
-    <!--Discord Tranalstor Settings-->
     <string name="translator_options">Übersetzeroptionen</string>
     <string name="enable_translator">Übersetzer aktivieren</string>
     <string name="enable_translator_desc">Übersetzen Sie ausgewählte Felder, bevor Sie sie an Discord RPC senden</string>
@@ -590,17 +550,14 @@
     <string name="close_dialog">Schließen</string>
     <string name="select_dialog">Wählen</string>
     <string name="support_github">Star M3Play!</string>
-    <!-- Update dialog -->
     <string name="new_update_available">Neues Update verfügbar</string>
     <string name="release_notes_unavailable">Versionshinweise sind nicht verfügbar</string>
     <string name="update_text">Aktualisieren</string>
-    <!-- Translate UI strings -->
     <string name="translate">Übersetzen</string>
     <string name="language_label">Sprache</string>
     <string name="lyrics">Text</string>
     <string name="translation_success">Übersetzung gespeichert</string>
     <string name="translation_failed">Die Übersetzung ist fehlgeschlagen</string>
-    <!-- Discord settings additions -->
     <string name="discord_button_options">Schaltflächenoptionen</string>
     <string name="discord_image_options">Bildoptionen</string>
     <string name="refresh">Aktualisieren</string>
@@ -614,7 +571,6 @@
     <string name="logout_confirm_message">Sind Sie sicher, dass Sie sich von Discord abmelden möchten?</string>
     <string name="logout_confirm_yes">Abmelden</string>
     <string name="logout_confirm_no">Stornieren</string>
-    <!--Misc settings additions-->
     <string name="experiment_settings">Experimentelle Einstellungen</string>
     <string name="show_discord_debug_ui">Debug-Benutzeroberfläche anzeigen</string>
     <string name="enable_discord_debug_lines">Debug-Einstellungszeilen aktivieren</string>
@@ -707,7 +663,6 @@
     <string name="next">Next</string>
     <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
-    <!-- Playlist Suggestions -->
     <string name="you_might_like">You might like</string>
     <string name="refresh_suggestions">Refresh suggestions</string>
     <string name="music_together">M3Play Music Together</string>

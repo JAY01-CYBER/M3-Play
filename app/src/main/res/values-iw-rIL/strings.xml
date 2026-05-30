@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "M3Play" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
-    <!-- Bottom navigation -->
     <string name="home">Home</string>
     <string name="songs">Songs</string>
     <string name="artists">Artists</string>
     <string name="albums">Albums</string>
     <string name="playlists">Playlists</string>
-    <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="one">%d selected</item>
         <item quantity="two">%d selected</item>
         <item quantity="many">%d selected</item>
         <item quantity="other">%d selected</item>
     </plurals>
-    <!-- Home -->
+    <string name="greeting_morning">Good Morning</string>
+    <string name="greeting_afternoon">Good Afternoon</string>
+    <string name="greeting_evening">Good Evening</string>
+    <string name="greeting_night">Good Night</string>
+    <string name="subtitle_morning">Start your day with music</string>
+    <string name="subtitle_afternoon">Enjoy your day with music</string>
+    <string name="subtitle_evening">Relax with evening tunes</string>
+    <string name="subtitle_night">Slow down with night vibes</string>
     <string name="history">History</string>
     <string name="stats">Stats</string>
     <string name="mood_and_genres">Mood &amp; Genres</string>
@@ -39,16 +39,13 @@
     <string name="integrations">Integrations</string>
     <string name="internal_subcategory_settings">Internal &amp; subcategory settings</string>
     <string name="search_try_different">Try a different search term</string>
-    <!-- History -->
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
     <string name="this_week">This week</string>
     <string name="last_week">Last week</string>
-    <!-- Stats -->
     <string name="most_played_songs">Most played songs</string>
     <string name="most_played_artists">Most played artists</string>
     <string name="most_played_albums">Most played albums</string>
-    <!-- Search -->
     <string name="search">Search</string>
     <string name="search_yt_music">Search YouTube Music…</string>
     <string name="search_library">Search library…</string>
@@ -67,16 +64,12 @@
     <string name="filter_bookmarked">Bookmarked</string>
     <string name="no_results_found">No results found</string>
     <string name="top_results">Top Results</string>
-    <!-- Library -->
     <string name="library_song_empty">Library songs will show up here</string>
     <string name="library_artist_empty">Library artists will show up here</string>
     <string name="library_album_empty">Library albums will show up here</string>
     <string name="library_playlist_empty">Your playlists will show up here</string>
-    <!-- Artist screen -->
     <string name="from_your_library">From your library</string>
-    <!-- Album screen -->
     <string name="other_versions">Other versions</string>
-    <!-- Playlist -->
     <string name="liked_songs">Liked songs</string>
     <string name="downloaded_songs">Downloaded songs</string>
     <string name="playlist_is_empty">The playlist is empty</string>
@@ -84,13 +77,11 @@
     <string name="delete_playlist_confirm">Do you really want to delete the playlist \"%s\"?</string>
     <string name="change_playlist_cover">Change playlist cover</string>
     <string name="remove_playlist_cover">Remove Cover</string>
-    <!-- Button -->
     <string name="retry">Retry</string>
     <string name="radio">Radio</string>
     <string name="shuffle">Shuffle</string>
     <string name="music_recognition">Music Recognition</string>
     <string name="reset">Reset</string>
-    <!-- Menu -->
     <string name="details">Details</string>
     <string name="edit">Edit</string>
     <string name="start_radio">Start radio</string>
@@ -141,7 +132,6 @@
     <string name="pitch">Pitch</string>
     <string name="pitch_mode_semitones_short">st</string>
     <string name="pitch_mode_multiplier_short">x</string>
-    <!-- Sort menu -->
     <string name="sort_by_create_date">Date added</string>
     <string name="sort_by_name">Name</string>
     <string name="sort_by_artist">Artist</string>
@@ -150,7 +140,6 @@
     <string name="sort_by_length">Length</string>
     <string name="sort_by_play_time">Play time</string>
     <string name="sort_by_custom">Custom order</string>
-    <!-- Dialog -->
     <string name="media_id">Media id</string>
     <string name="mime_type">MIME type</string>
     <string name="codecs">Codecs</string>
@@ -182,7 +171,6 @@
     <string name="add_anyway">Add anyway</string>
     <string name="duplicates_description_single">The song is already in your playlist</string>
     <string name="duplicates_description_multiple">%d songs are already in your playlist</string>
-    <!-- Noun -->
     <plurals name="n_song">
         <item quantity="one">%d song</item>
         <item quantity="two">%d songs</item>
@@ -225,7 +213,6 @@
         <item quantity="many">%d years</item>
         <item quantity="other">%d years</item>
     </plurals>
-    <!-- Snackbar -->
     <string name="added_to_playlist">Added to %s</string>
     <string name="added_n_songs_to_playlist">Added %1$d songs to %2$s</string>
     <string name="added_to_n_playlists">Added to %d playlists</string>
@@ -234,7 +221,6 @@
     <string name="removed_song_from_playlist">Removed \"%s\" from playlist</string>
     <string name="playlist_synced">Playlist synced</string>
     <string name="undo">Undo</string>
-    <!-- Player -->
     <string name="lyrics_not_found">Lyrics not found</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="end_of_song">End of song</string>
@@ -248,7 +234,6 @@
     <string name="error_no_internet">No network connection</string>
     <string name="error_timeout">Timeout</string>
     <string name="error_unknown">Unknown error</string>
-    <!-- Player action -->
     <string name="action_like">Like</string>
     <string name="action_like_all">Like all</string>
     <string name="action_remove_like">Remove like</string>
@@ -258,14 +243,11 @@
     <string name="repeat_mode_off">Repeat mode off</string>
     <string name="repeat_mode_one">Repeat current song</string>
     <string name="repeat_mode_all">Repeat queue</string>
-    <!-- Queue Title -->
     <string name="queue_all_songs">All songs</string>
     <string name="queue_searched_songs">Searched songs</string>
     <string name="queue_continue_playing">Continue Playing</string>
     <string name="queue_autoplaying_similar">Autoplaying similar music</string>
-    <!-- Notification name -->
     <string name="music_player">Music Player</string>
-    <!-- Settings -->
     <string name="settings">Settings</string>
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
@@ -274,23 +256,19 @@
     <string name="random_theme_on_startup_desc">Apply a random color palette every time the app starts</string>
     <string name="use_system_font">Use system font</string>
     <string name="use_system_font_desc">Use the device font instead of the app font</string>
-    <!-- Color Palette -->
     <string name="color_palette">Color Palette</string>
     <string name="customize_theme_colors">Choose your app theme colors</string>
     <string name="selected_theme_color">Selected Theme Color</string>
     <string name="theme_preview">Theme Preview</string>
     <string name="select_palette">Select a color palette</string>
     <string name="palette_applied">Palette applied</string>
-    <!-- Palette Names -->
     <string name="palette_default">Default</string>
-    <!-- Blues -->
     <string name="palette_ocean_blue">Ocean Blue</string>
     <string name="palette_arctic_blue">Arctic</string>
     <string name="palette_midnight_navy">Midnight</string>
     <string name="palette_sky_blue">Sky Blue</string>
     <string name="palette_cobalt_blue">Cobalt</string>
     <string name="palette_electric_blue">Electric</string>
-    <!-- Greens -->
     <string name="palette_emerald_green">Emerald</string>
     <string name="palette_teal_wave">Teal Wave</string>
     <string name="palette_forest_green">Forest</string>
@@ -298,21 +276,18 @@
     <string name="palette_mint_fresh">Mint</string>
     <string name="palette_olive_garden">Olive</string>
     <string name="palette_sage_green">Sage</string>
-    <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">Sunset</string>
     <string name="palette_golden_hour">Golden</string>
     <string name="palette_warm_amber">Amber</string>
     <string name="palette_tangerine_blast">Tangerine</string>
     <string name="palette_peach">Peach</string>
     <string name="palette_mango">Mango</string>
-    <!-- Purples -->
     <string name="palette_royal_purple">Royal Purple</string>
     <string name="palette_lavender_dream">Lavender</string>
     <string name="palette_grape_purple">Grape</string>
     <string name="palette_violet">Violet</string>
     <string name="palette_amethyst">Amethyst</string>
     <string name="palette_ultra_violet">Ultra Violet</string>
-    <!-- Pinks -->
     <string name="palette_cherry_blossom">Sakura</string>
     <string name="palette_rose_quartz">Rose Quartz</string>
     <string name="palette_magenta_pop">Magenta</string>
@@ -320,37 +295,31 @@
     <string name="palette_blush">Blush</string>
     <string name="palette_coral">Coral</string>
     <string name="palette_bubblegum">Bubblegum</string>
-    <!-- Reds -->
     <string name="palette_crimson_red">Crimson</string>
     <string name="palette_youtube_red">YouTube</string>
     <string name="palette_wine_red">Wine</string>
     <string name="palette_ruby_red">Ruby</string>
     <string name="palette_scarlet">Scarlet</string>
-    <!-- Neutrals -->
     <string name="palette_charcoal">Charcoal</string>
     <string name="palette_silver">Silver</string>
     <string name="palette_slate">Slate</string>
     <string name="palette_graphite">Graphite</string>
-    <!-- Earth Tones -->
     <string name="palette_terracotta">Terracotta</string>
     <string name="palette_coffee">Coffee</string>
     <string name="palette_mocha">Mocha</string>
     <string name="palette_sand">Sand</string>
     <string name="palette_clay">Clay</string>
-    <!-- Pastels -->
     <string name="palette_pastel_pink">Pastel Pink</string>
     <string name="palette_pastel_blue">Pastel Blue</string>
     <string name="palette_pastel_green">Pastel Green</string>
     <string name="palette_pastel_yellow">Pastel Yellow</string>
     <string name="palette_pastel_purple">Pastel Purple</string>
-    <!-- Neon & Vibrant -->
     <string name="palette_neon_green">Neon Green</string>
     <string name="palette_neon_pink">Neon Pink</string>
     <string name="palette_neon_blue">Neon Blue</string>
     <string name="palette_neon_orange">Neon Orange</string>
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
-    <!-- Special & Themed -->
     <string name="palette_ocean">Ocean</string>
     <string name="palette_forest">Deep Forest</string>
     <string name="palette_autumn">Autumn</string>
@@ -361,7 +330,6 @@
     <string name="palette_aurora">Aurora</string>
     <string name="palette_candy">Candy</string>
     <string name="palette_rainbow">Rainbow</string>
-    <!-- Additional Palettes -->
     <string name="palette_aquamarine">Aquamarine</string>
     <string name="palette_coral_reef">Coral Reef</string>
     <string name="palette_cotton_candy">Cotton Candy</string>
@@ -374,7 +342,6 @@
     <string name="palette_slate_gray">Slate Gray</string>
     <string name="palette_sunset_beach">Sunset Beach</string>
     <string name="palette_turquoise">Turquoise</string>
-    <!-- End of Color Palette -->
     <string name="dark_theme">Dark theme</string>
     <string name="dark_theme_on">On</string>
     <string name="dark_theme_off">Off</string>
@@ -424,15 +391,12 @@
     <string name="grid_cell_size">Grid cell size</string>
     <string name="small">Small</string>
     <string name="big">Big</string>
-    <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">Lyrics animation style</string>
-    <!-- Animation options -->
     <string name="none">None</string>
     <string name="fade">Fade</string>
     <string name="slide">Slide</string>
     <string name="karaoke">Karaoke</string>
     <string name="apple_music_style">Apple Music</string>
-    <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">Lyrics line spacing</string>
     <string name="content">Content</string>
     <string name="action_logout">Log out</string>
@@ -562,7 +526,6 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="options">Options</string>
     <string name="preview">Preview</string>
     <string name="enable_discord_rpc">Enable Rich Presence</string>
-    <!-- Last.fm -->
     <string name="scrobbling">Scrobbling</string>
     <string name="lastfm_integration">Last.fm Integration</string>
     <string name="enable_scrobbling">Enable Scrobbling</string>
@@ -574,12 +537,10 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="logging_in">Logging in…</string>
-    <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz scrobbling</string>
     <string name="listenbrainz_scrobbling_description">Enable submitting now-playing and finished listens to ListenBrainz</string>
     <string name="set_listenbrainz_token">Set ListenBrainz token</string>
     <string name="edit_listenbrainz_token">Edit ListenBrainz token</string>
-    <!-- Discord activity customization -->
     <string name="discord_activity_name">Activity name</string>
     <string name="discord_activity_details">Activity details</string>
     <string name="discord_activity_state">Activity state</string>
@@ -598,7 +559,6 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="activity_status">Activity Status</string>
     <string name="platform_status">Platform</string>
     <string name="update_interval">Presence Update Interval</string>
-    <!--Discord Tranalstor Settings-->
     <string name="translator_options">Translator Options</string>
     <string name="enable_translator">Enable Translator</string>
     <string name="enable_translator_desc">Translate selected fields before sending to Discord RPC</string>
@@ -609,17 +569,14 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="close_dialog">Close</string>
     <string name="select_dialog">Select</string>
     <string name="support_github">Star M3Play!</string>
-    <!-- Update dialog -->
     <string name="new_update_available">New update available</string>
     <string name="release_notes_unavailable">Release notes are unavailable</string>
     <string name="update_text">Update</string>
-    <!-- Translate UI strings -->
     <string name="translate">Translate</string>
     <string name="language_label">Language</string>
     <string name="lyrics">Lyrics</string>
     <string name="translation_success">Translation saved</string>
     <string name="translation_failed">Translation failed</string>
-    <!-- Discord settings additions -->
     <string name="discord_button_options">Button Options</string>
     <string name="discord_image_options">Image Options</string>
     <string name="refresh">Refresh</string>
@@ -633,7 +590,6 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="logout_confirm_message">Are you sure you want to log out of Discord?.</string>
     <string name="logout_confirm_yes">Log out</string>
     <string name="logout_confirm_no">Cancel</string>
-    <!--Misc settings additions-->
     <string name="experiment_settings">Experimental Settings</string>
     <string name="show_discord_debug_ui">Show Debug UI</string>
     <string name="enable_discord_debug_lines">Enable debug settings lines</string>
@@ -726,7 +682,6 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="next">Next</string>
     <string name="next_song">Next Song</string>
     <string name="allow">Allow</string>
-    <!-- Playlist Suggestions -->
     <string name="you_might_like">You might like</string>
     <string name="refresh_suggestions">Refresh suggestions</string>
     <string name="music_together">M3Play Music Together</string>
