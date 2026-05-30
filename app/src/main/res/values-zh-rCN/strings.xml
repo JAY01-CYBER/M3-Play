@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Upstream InnerTune strings -->
-<!-- Do not add new features here -->
-<!-- Try to re-use strings here, but be careful on its usage e.g. verb vs noun -->
-<!-- "InnerTune" is replaced with "M3Play" -->
-<!-- Translators: Do not modify this file for translations, use InnerTune's Weblate instead. -->
 <resources>
-    <!-- Bottom navigation -->
     <string name="home">主页</string>
     <string name="songs">歌曲</string>
     <string name="artists">艺术家</string>
     <string name="albums">专辑</string>
     <string name="playlists">播放列表</string>
-    <!-- Top bar -->
     <plurals name="n_selected">
         <item quantity="other">%d 已选择</item>
     </plurals>
-    <!-- Home -->
+    <string name="greeting_morning">Good Morning</string>
+    <string name="greeting_afternoon">Good Afternoon</string>
+    <string name="greeting_evening">Good Evening</string>
+    <string name="greeting_night">Good Night</string>
+    <string name="subtitle_morning">Start your day with music</string>
+    <string name="subtitle_afternoon">Enjoy your day with music</string>
+    <string name="subtitle_evening">Relax with evening tunes</string>
+    <string name="subtitle_night">Slow down with night vibes</string>
     <string name="history">历史</string>
     <string name="stats">统计数据</string>
     <string name="mood_and_genres">氛围与流派</string>
@@ -36,16 +36,13 @@
     <string name="integrations">集成</string>
     <string name="internal_subcategory_settings">内部与子类别设置</string>
     <string name="search_try_different">请尝试不同的搜索词</string>
-    <!-- History -->
     <string name="today">今日</string>
     <string name="yesterday">昨天</string>
     <string name="this_week">这周</string>
     <string name="last_week">上周</string>
-    <!-- Stats -->
     <string name="most_played_songs">最多播放的歌曲</string>
     <string name="most_played_artists">播放次数最多的艺人</string>
     <string name="most_played_albums">被播放最多的专辑</string>
-    <!-- Search -->
     <string name="search">搜索</string>
     <string name="search_yt_music">从YT Music中搜索…</string>
     <string name="search_library">从库中搜索…</string>
@@ -64,16 +61,12 @@
     <string name="filter_bookmarked">已订阅</string>
     <string name="no_results_found">未找到结果</string>
     <string name="top_results">最佳匹配</string>
-    <!-- Library -->
     <string name="library_song_empty">媒体库中的歌曲会在这里出现</string>
     <string name="library_artist_empty">媒体库里的艺术家会在这里出现</string>
     <string name="library_album_empty">媒体库中的专辑会在这里显示</string>
     <string name="library_playlist_empty">你的播放列表会在这里显示</string>
-    <!-- Artist screen -->
     <string name="from_your_library">来自你的媒体库</string>
-    <!-- Album screen -->
     <string name="other_versions">其他版本</string>
-    <!-- Playlist -->
     <string name="liked_songs">喜爱的歌曲</string>
     <string name="downloaded_songs">下载歌曲</string>
     <string name="playlist_is_empty">播放列表是空的</string>
@@ -81,13 +74,11 @@
     <string name="delete_playlist_confirm">你真的想删除播放列表”%s\"吗?</string>
     <string name="change_playlist_cover">更改播放列表封面</string>
     <string name="remove_playlist_cover">移除封面</string>
-    <!-- Button -->
     <string name="retry">重试</string>
     <string name="radio">广播</string>
     <string name="shuffle">随机</string>
     <string name="music_recognition">Music Recognition</string>
     <string name="reset">重置</string>
-    <!-- Menu -->
     <string name="details">细节</string>
     <string name="edit">编辑</string>
     <string name="start_radio">开始广播</string>
@@ -138,7 +129,6 @@
     <string name="pitch">音高</string>
     <string name="pitch_mode_semitones_short">立体声</string>
     <string name="pitch_mode_multiplier_short">倍速</string>
-    <!-- Sort menu -->
     <string name="sort_by_create_date">添加时间</string>
     <string name="sort_by_name">名字</string>
     <string name="sort_by_artist">艺术家</string>
@@ -147,7 +137,6 @@
     <string name="sort_by_length">长度</string>
     <string name="sort_by_play_time">播放时间</string>
     <string name="sort_by_custom">自定义排序</string>
-    <!-- Dialog -->
     <string name="media_id">媒体标识</string>
     <string name="mime_type">MIME类型</string>
     <string name="codecs">编解码器</string>
@@ -179,7 +168,6 @@
     <string name="add_anyway">仍要添加</string>
     <string name="duplicates_description_single">歌曲在你的播放列表里已就绪</string>
     <string name="duplicates_description_multiple">%d 首歌曲在你的播放列表已就绪</string>
-    <!-- Noun -->
     <plurals name="n_song">
         <item quantity="other">%d 首歌曲</item>
     </plurals>
@@ -201,7 +189,6 @@
     <plurals name="n_year">
         <item quantity="other">%d 年</item>
     </plurals>
-    <!-- Snackbar -->
     <string name="added_to_playlist">添加到 %s</string>
     <string name="added_n_songs_to_playlist">已將%1$d首歌曲添加到%2$s</string>
     <string name="added_to_n_playlists">已添加到 %d 个播放列表</string>
@@ -210,7 +197,6 @@
     <string name="removed_song_from_playlist">已從播放列表中移除%s</string>
     <string name="playlist_synced">播放列表已同步</string>
     <string name="undo">撤销</string>
-    <!-- Player -->
     <string name="lyrics_not_found">未找到歌词</string>
     <string name="sleep_timer">睡眠计时器</string>
     <string name="end_of_song">歌曲结束</string>
@@ -221,7 +207,6 @@
     <string name="error_no_internet">无网络连接</string>
     <string name="error_timeout">超时</string>
     <string name="error_unknown">未知错误</string>
-    <!-- Player action -->
     <string name="action_like">喜爱</string>
     <string name="action_like_all">全部喜爱</string>
     <string name="action_remove_like">移除喜爱</string>
@@ -231,14 +216,11 @@
     <string name="repeat_mode_off">关闭循环</string>
     <string name="repeat_mode_one">单曲循环</string>
     <string name="repeat_mode_all">列表循环</string>
-    <!-- Queue Title -->
     <string name="queue_all_songs">所有歌曲</string>
     <string name="queue_searched_songs">已搜索歌曲</string>
     <string name="queue_continue_playing">继续播放</string>
     <string name="queue_autoplaying_similar">自动播放类似音乐</string>
-    <!-- Notification name -->
     <string name="music_player">音乐播放器</string>
-    <!-- Settings -->
     <string name="settings">设置</string>
     <string name="appearance">外观</string>
     <string name="theme">主题</string>
@@ -247,23 +229,19 @@
     <string name="random_theme_on_startup_desc">每次启动应用时随机应用一套配色方案</string>
     <string name="use_system_font">使用系统字体</string>
     <string name="use_system_font_desc">使用设备字体，而不是应用字体</string>
-    <!-- Color Palette -->
     <string name="color_palette">调色板</string>
     <string name="customize_theme_colors">选择你的应用主题颜色</string>
     <string name="selected_theme_color">选定主题颜色</string>
     <string name="theme_preview">主题预览</string>
     <string name="select_palette">选择一个调色板</string>
     <string name="palette_applied">应用调色板</string>
-    <!-- Palette Names -->
     <string name="palette_default">默认</string>
-    <!-- Blues -->
     <string name="palette_ocean_blue">海洋蓝</string>
     <string name="palette_arctic_blue">极地蓝</string>
     <string name="palette_midnight_navy">午夜蓝</string>
     <string name="palette_sky_blue">天空蓝</string>
     <string name="palette_cobalt_blue">深钴蓝</string>
     <string name="palette_electric_blue">脉冲蓝</string>
-    <!-- Greens -->
     <string name="palette_emerald_green">翡翠绿</string>
     <string name="palette_teal_wave">碧波青</string>
     <string name="palette_forest_green">森林绿</string>
@@ -271,21 +249,18 @@
     <string name="palette_mint_fresh">薄荷绿</string>
     <string name="palette_olive_garden">橄榄绿</string>
     <string name="palette_sage_green">淡灰绿</string>
-    <!-- Oranges & Yellows -->
     <string name="palette_sunset_orange">余晖橙</string>
     <string name="palette_golden_hour">曦光金</string>
     <string name="palette_warm_amber">暖玉金</string>
     <string name="palette_tangerine_blast">炽热橘</string>
     <string name="palette_peach">蜜桃粉</string>
     <string name="palette_mango">芒果黄</string>
-    <!-- Purples -->
     <string name="palette_royal_purple">瑰丽紫</string>
     <string name="palette_lavender_dream">香草紫</string>
     <string name="palette_grape_purple">葡萄紫</string>
     <string name="palette_violet">罗兰紫</string>
     <string name="palette_amethyst">晶簇紫</string>
     <string name="palette_ultra_violet">超然紫</string>
-    <!-- Pinks -->
     <string name="palette_cherry_blossom">樱花粉</string>
     <string name="palette_rose_quartz">晨露粉</string>
     <string name="palette_magenta_pop">波普红</string>
@@ -293,37 +268,31 @@
     <string name="palette_blush">微醺红</string>
     <string name="palette_coral">珊瑚红</string>
     <string name="palette_bubblegum">泡泡粉</string>
-    <!-- Reds -->
     <string name="palette_crimson_red">深绯红</string>
     <string name="palette_youtube_red">油管红</string>
     <string name="palette_wine_red">陈酿红</string>
     <string name="palette_ruby_red">宝石红</string>
     <string name="palette_scarlet">映山红</string>
-    <!-- Neutrals -->
     <string name="palette_charcoal">深岩灰</string>
     <string name="palette_silver">月光银</string>
     <string name="palette_slate">暮云灰</string>
     <string name="palette_graphite">石墨黑</string>
-    <!-- Earth Tones -->
     <string name="palette_terracotta">朱陶红</string>
     <string name="palette_coffee">咖啡棕</string>
     <string name="palette_mocha">摩卡棕</string>
     <string name="palette_sand">流沙金</string>
     <string name="palette_clay">软陶粉</string>
-    <!-- Pastels -->
     <string name="palette_pastel_pink">云端粉</string>
     <string name="palette_pastel_blue">薄雾蓝</string>
     <string name="palette_pastel_green">初萌绿</string>
     <string name="palette_pastel_yellow">柔和黄</string>
     <string name="palette_pastel_purple">半梦紫</string>
-    <!-- Neon & Vibrant -->
     <string name="palette_neon_green">霓虹绿</string>
     <string name="palette_neon_pink">电波粉</string>
     <string name="palette_neon_blue">电光蓝</string>
     <string name="palette_neon_orange">高压橙</string>
     <string name="palette_cyberpunk">Cyberpunk</string>
     <string name="palette_synthwave">Synthwave</string>
-    <!-- Special & Themed -->
     <string name="palette_ocean">海洋蓝</string>
     <string name="palette_forest">森林绿</string>
     <string name="palette_autumn">深秋红</string>
@@ -334,7 +303,6 @@
     <string name="palette_aurora">极光绿</string>
     <string name="palette_candy">糖果粉</string>
     <string name="palette_rainbow">七彩红</string>
-    <!-- Additional Palettes -->
     <string name="palette_aquamarine">宝石蓝</string>
     <string name="palette_coral_reef">珊瑚橙</string>
     <string name="palette_cotton_candy">棉糖粉</string>
@@ -347,7 +315,6 @@
     <string name="palette_slate_gray">石板灰</string>
     <string name="palette_sunset_beach">日落黄</string>
     <string name="palette_turquoise">青碧绿</string>
-    <!-- End of Color Palette -->
     <string name="dark_theme">黑暗主题</string>
     <string name="dark_theme_on">开</string>
     <string name="dark_theme_off">关</string>
@@ -397,15 +364,12 @@
     <string name="grid_cell_size">网格单元大小</string>
     <string name="small">小</string>
     <string name="big">大</string>
-    <!-- Lyrics animation style -->
     <string name="lyrics_animation_style">动态歌词样式</string>
-    <!-- Animation options -->
     <string name="none">无</string>
     <string name="fade">淡出</string>
     <string name="slide">幻灯片</string>
     <string name="karaoke">逐字模式</string>
     <string name="apple_music_style">Apple Music</string>
-    <!-- Lyrics line spacing -->
     <string name="lyrics_line_spacing">歌词行距</string>
     <string name="content">内容</string>
     <string name="action_logout">登出</string>
@@ -534,7 +498,6 @@
     <string name="options">选项</string>
     <string name="preview">预览</string>
     <string name="enable_discord_rpc">启用 Rich Presence</string>
-    <!-- Last.fm -->
     <string name="scrobbling">Last.fm</string>
     <string name="lastfm_integration">Last.fm 联动</string>
     <string name="enable_scrobbling">启用 Scrobbling</string>
@@ -546,12 +509,10 @@
     <string name="username">用户名</string>
     <string name="password">密码</string>
     <string name="logging_in">正在登录...…</string>
-    <!-- ListenBrainz -->
     <string name="listenbrainz_scrobbling">ListenBrainz 记录</string>
     <string name="listenbrainz_scrobbling_description">启用提交正在播放和已完成的聆听记录到 ListenBrainz</string>
     <string name="set_listenbrainz_token">设置 ListenBrainz 令牌</string>
     <string name="edit_listenbrainz_token">编辑 ListenBrainz 令牌</string>
-    <!-- Discord activity customization -->
     <string name="discord_activity_name">活动名称</string>
     <string name="discord_activity_details">活动详情</string>
     <string name="discord_activity_state">详情状态</string>
@@ -570,7 +531,6 @@
     <string name="activity_status">活动状态</string>
     <string name="platform_status">平台</string>
     <string name="update_interval">在线状态更新间隔</string>
-    <!--Discord Tranalstor Settings-->
     <string name="translator_options">翻译器选项</string>
     <string name="enable_translator">启用翻译器</string>
     <string name="enable_translator_desc">发送至 Discord 前翻译选定字段</string>
@@ -581,17 +541,14 @@
     <string name="close_dialog">最近</string>
     <string name="select_dialog">选择</string>
     <string name="support_github">给 M3Play 点一个 Star！</string>
-    <!-- Update dialog -->
     <string name="new_update_available">新更新可用</string>
     <string name="release_notes_unavailable">发布说明不可用</string>
     <string name="update_text">更新</string>
-    <!-- Translate UI strings -->
     <string name="translate">翻译</string>
     <string name="language_label">语言</string>
     <string name="lyrics">歌词</string>
     <string name="translation_success">翻译已保存</string>
     <string name="translation_failed">翻译失败</string>
-    <!-- Discord settings additions -->
     <string name="discord_button_options">按键选项</string>
     <string name="discord_image_options">图片选项</string>
     <string name="refresh">刷新</string>
@@ -605,7 +562,6 @@
     <string name="logout_confirm_message">你确定要退出Discord吗？</string>
     <string name="logout_confirm_yes">登出</string>
     <string name="logout_confirm_no">取消</string>
-    <!--Misc settings additions-->
     <string name="experiment_settings">实验性环境</string>
     <string name="show_discord_debug_ui">显示调试界面</string>
     <string name="enable_discord_debug_lines">启用调试设置行</string>
@@ -698,7 +654,6 @@
     <string name="next">下一个</string>
     <string name="next_song">下一首歌</string>
     <string name="allow">允许</string>
-    <!-- Playlist Suggestions -->
     <string name="you_might_like">猜你喜欢</string>
     <string name="refresh_suggestions">刷新建议</string>
     <string name="music_together">M3Play 音乐共赏</string>
