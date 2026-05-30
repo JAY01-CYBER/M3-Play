@@ -161,7 +161,7 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
-    
+    // Loading Text vs Provider Text
     val providerBadgeText = remember(currentLyrics) {
         if (currentLyrics == null) {
             "LOADING LYRICS"
@@ -860,37 +860,26 @@ fun PremiumProviderBadge(
     textColor: Color,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.material3.Surface(
-        shape = androidx.compose.foundation.shape.CircleShape,
-        color = textColor.copy(alpha = 0.04f), // Ekdam light transparent background
-        border = androidx.compose.foundation.BorderStroke(
-            width = 0.5.dp, // Hairline border
-            color = textColor.copy(alpha = 0.1f)
-        ),
+    androidx.compose.foundation.layout.Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.lyrics), 
-                contentDescription = null,
-                tint = textColor.copy(alpha = 0.65f), // Faded premium look
-                modifier = Modifier.size(13.dp)
+        Icon(
+            painter = painterResource(id = R.drawable.lyrics), 
+            contentDescription = null,
+            tint = textColor.copy(alpha = 0.5f), // 50% opacity
+            modifier = Modifier.size(14.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(6.dp))
+        
+        Text(
+            text = text,
+            color = textColor.copy(alpha = 0.5f), // 50% opacity
+            style = MaterialTheme.typography.labelMedium.copy(
+                letterSpacing = 1.5.sp, 
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             )
-            
-            Spacer(modifier = Modifier.width(6.dp))
-            
-            Text(
-                text = text,
-                color = textColor.copy(alpha = 0.65f),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 1.5.sp, // Wide premium tracking
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                    fontSize = 10.sp // Smaller clean font
-                )
-            )
-        }
+        )
     }
 }
