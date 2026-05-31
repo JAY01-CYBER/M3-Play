@@ -65,14 +65,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.core.content.ContextCompat
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -632,7 +640,7 @@ class MainActivity : ComponentActivity() {
                             if (!pauseSearchHistory) {
                                 database.query {
                                     insert(SearchHistory(query = it))
-                                 }
+                                }
                             }
                         }
                     }
@@ -680,7 +688,7 @@ class MainActivity : ComponentActivity() {
                             collapsedBound =
                                 bottomInset +
                                     (if (shouldShowNavigationBar && !useRail) floatingBarsBottomPadding else 0.dp) +
-                                     getBottomNavPadding() +
+                                    getBottomNavPadding() +
                                     (if (useNewMiniPlayerDesign) MiniPlayerBottomSpacing else 0.dp) +
                                     MiniPlayerHeight,
                             expandedBound = maxHeight,
@@ -1009,7 +1017,9 @@ class MainActivity : ComponentActivity() {
                                     contentColor = if(pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                     header = { Spacer(Modifier.height(24.dp)) }
                                 ) {
-                                    navigationItems.fastForEach { screen ->
+                                    val railItems = navigationItems.filter { it.route != Screens.MoodAndGenres.route }
+                                    
+                                    railItems.fastForEach { screen ->
                                         val isSelected = navBackStackEntry?.destination?.hierarchy?.any { it.route == screen.route } == true
                                         NavigationRailItem(
                                             selected = isSelected,
@@ -1028,9 +1038,6 @@ class MainActivity : ComponentActivity() {
                                                 val wasPlayerActive = playerBottomSheetState.isExpanded
                                                 if(wasPlayerActive) { playerBottomSheetState.collapse(spring()) }
                                                 
-                                                // ----------------------------------------------------
-                                                // FIXED: Rail Nav behavior
-                                                // ----------------------------------------------------
                                                 if (isSelected) {
                                                     if(wasPlayerActive) return@NavigationRailItem
                                                     navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
@@ -1045,9 +1052,121 @@ class MainActivity : ComponentActivity() {
                                             },
                                         )
                                     }
+
+                                    Spacer(Modifier.weight(1f))
+
+                                    var railMenuExpanded by rememberSaveable { mutableStateOf(false) }
+
+                                    Box {
+                                        NavigationRailItem(
+                                            selected = false,
+                                            onClick = { railMenuExpanded = true },
+                                            icon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.MoreVert,
+                                                    contentDescription = "More"
+                                                )
+                                            },
+                                            label = {
+                                                if (!slimNav) {
+                                                    Text(text = "More", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                }
+                                            }
+                                        )
+
+                                        DropdownMenu(
+                                            expanded = railMenuExpanded,
+                                            onDismissRequest = { railMenuExpanded = false },
+                                            shape = RoundedCornerShape(24.dp),
+                                            containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            tonalElevation = 6.dp,
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text("Identify Music") },
+                                                onClick = {
+                                                    railMenuExpanded = false
+                                                    navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute)
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Search, 
+                                                        contentDescription = null,
+                                                        tint = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                },
+                                                colors = MenuDefaults.itemColors(
+                                                    textColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            )
+                                            
+                                            DropdownMenuItem(
+                                                text = { Text("Mood & Genres") },
+                                                onClick = {
+                                                    railMenuExpanded = false
+                                                    navController.navigate(Screens.MoodAndGenres.route)
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.List, 
+                                                        contentDescription = null,
+                                                        tint = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                },
+                                                colors = MenuDefaults.itemColors(
+                                                    textColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            )
+
+                                            DropdownMenuItem(
+                                                text = { Text("Shuffle") },
+                                                onClick = {
+                                                    railMenuExpanded = false
+                                                    
+                                                    if (allLocalItems.isEmpty() && allYtItems.isEmpty()) return@DropdownMenuItem
+                                                    
+                                                    val useLocalSource = when {
+                                                        allLocalItems.isNotEmpty() && allYtItems.isNotEmpty() -> kotlin.random.Random.nextFloat() < 0.5f
+                                                        allLocalItems.isNotEmpty() -> true
+                                                        else -> false
+                                                    }
+                                                    
+                                                    coroutineScope.launch(Dispatchers.Main) {
+                                                        if (useLocalSource) {
+                                                            when (val luckyItem = allLocalItems.random()) {
+                                                                is Song -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
+                                                                is Album -> {
+                                                                    val albumWithSongs = withContext(Dispatchers.IO) { database.albumWithSongs(luckyItem.id).first() }
+                                                                    albumWithSongs?.let { playerConnection?.playQueue(LocalAlbumRadio(it)) }
+                                                                }
+                                                                is Artist -> Unit
+                                                                is Playlist -> Unit
+                                                            }
+                                                        } else {
+                                                            when (val luckyItem = allYtItems.random()) {
+                                                                is SongItem -> { playerConnection?.playQueue(YouTubeQueue.radio(luckyItem.toMediaMetadata())) }
+                                                                is AlbumItem -> { playerConnection?.playQueue(YouTubeAlbumRadio(luckyItem.playlistId)) }
+                                                                is ArtistItem -> { luckyItem.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
+                                                                is PlaylistItem -> { luckyItem.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.PlayArrow, 
+                                                        contentDescription = null,
+                                                        tint = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                },
+                                                colors = MenuDefaults.itemColors(
+                                                    textColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                            
+                             
                             Scaffold(
                                 topBar = {
                                     if (shouldShowTopBar) {
@@ -1130,6 +1249,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                     
+
                                     // ----------------------------------------------------
                                     // FIXED: TopSearch visibility updated
                                     // ----------------------------------------------------
@@ -1466,7 +1586,7 @@ class MainActivity : ComponentActivity() {
 
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
-                 if (playlistId.startsWith("OLAK5uy_")) {
+                if (playlistId.startsWith("OLAK5uy_")) {
                     coroutineScope.launch {
                         YouTube.albumSongs(playlistId).onSuccess { songs ->
                             songs.firstOrNull()?.album?.id?.let { browseId ->
@@ -1474,7 +1594,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }.onFailure { reportException(it) }
                     }
-                 } else {
+                } else {
                     navController.navigate("online_playlist/$playlistId")
                 }
             }
@@ -1492,10 +1612,10 @@ class MainActivity : ComponentActivity() {
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
-                         val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
+                        val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
                         result.onSuccess { queued ->
                             val mediaItem = queued.firstOrNull { it.id == vid }?.toMediaItem() ?: queued.firstOrNull()?.toMediaItem() ?: MediaItem.Builder().setMediaId(vid).setUri(vid).setCustomCacheKey(vid).build()
-                             pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
+                            pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
                             startMusicServiceSafely()
                             playPendingDeepLinkSongIfReady()
                         }.onFailure { reportException(it) }
@@ -1507,7 +1627,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startMusicServiceSafely() {
         runCatching { startService(Intent(this, com.j.m3play.playback.MusicService::class.java)) }
-             .onFailure { reportException(it) }
+            .onFailure { reportException(it) }
     }
 
     @SuppressLint("ObsoleteSdkInt")
