@@ -320,6 +320,7 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
+    // 🔥 METROLIST STATES 🔥
     var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     var isFullScreen by rememberSaveable { mutableStateOf(false) }
     
@@ -1112,7 +1113,6 @@ fun BottomSheetPlayer(
             )
         }
 
-        // 🔥 METROLIST FULLSCREEN LOGIC: Queue ko hide karna jab fullscreen active ho
         AnimatedVisibility(
             visible = !isFullScreen,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -1127,7 +1127,7 @@ fun BottomSheetPlayer(
                 TextBackgroundColor = TextBackgroundColor,
                 textButtonColor = textButtonColor,
                 iconButtonColor = iconButtonColor,
-                onShowLyrics = { showInlineLyrics = !showInlineLyrics }, // Original Button connects to new state
+                onShowLyrics = { showInlineLyrics = !showInlineLyrics },
                 pureBlack = pureBlack,
             )
         }
@@ -1135,7 +1135,6 @@ fun BottomSheetPlayer(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
     sliderPosition: Long?,
