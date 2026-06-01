@@ -35,9 +35,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.vector.ImageVector
+import com.j.m3play.R
 
 @Composable
 private fun QuickAccessCard(
@@ -105,13 +107,13 @@ fun HomeQuickAccessCards(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "Liked",
+                title = stringResource(id = R.string.liked),
                 icon = Icons.Filled.Favorite,
                 onClick = onLikedClick,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Downloads",
+                title = stringResource(id = R.string.downloads),
                 icon = Icons.Filled.Download,
                 onClick = onDownloadsClick,
                 modifier = Modifier.weight(1f),
@@ -123,13 +125,13 @@ fun HomeQuickAccessCards(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             QuickAccessCard(
-                title = "History",
+                title = stringResource(id = R.string.history),
                 icon = Icons.Filled.History,
                 onClick = onHistoryClick,
                 modifier = Modifier.weight(1f),
             )
             QuickAccessCard(
-                title = "Library",
+                title = stringResource(id = R.string.library),
                 icon = Icons.Filled.LibraryMusic,
                 onClick = onLibraryClick,
                 modifier = Modifier.weight(1f),
