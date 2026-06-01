@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1::OPTIMIZED
+ * Signature: M3PLAY::COMPONENT::V1::ULTRA_SMOOTH
  */
 
 package com.j.m3play.ui.component
@@ -12,9 +12,11 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,9 +41,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -139,8 +141,6 @@ import kotlin.math.abs
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
-private val V2Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
-private val LiquidFillEasing = CubicBezierEasing(0.0f, 0.0f, 0.15f, 1.0f)
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 // ──────────────────────────────────────────────────────────────────────
@@ -289,7 +289,6 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    // 🔥 IMPROVED: withFrameMillis for butter smooth Apple Music sync without battery drain
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         while (isActive) {
@@ -397,7 +396,7 @@ fun LyricsV2(
         ) {
             itemsIndexed(
                 items = entriesWithWords,
-                key = { index, entry -> (entry.time.hashCode() * 31) + index } // 🔥 IMPROVED: Faster key generation
+                key = { index, entry -> (entry.time.hashCode() * 31) + index }
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
                     Spacer(modifier = Modifier.height(120.dp))
@@ -409,7 +408,6 @@ fun LyricsV2(
 
                 val isActive = isSynced && index == currentLineIndex
                 val isPast = isSynced && index < currentLineIndex
-                val isFuture = isSynced && index > currentLineIndex
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
 
                 val lineAlpha = when {
@@ -815,11 +813,16 @@ private fun AnimatedWordV2(
     val isWordComplete = currentPositionMs >= wordEndMs
     val isWordActive = currentPositionMs in wordStartMs until wordEndMs
 
-    // 🔥 IMPROVED: Apple Music Float Effect
-    val floatTarget = if (isWordActive) -6f else 0f
+    // UPGRADE 1: Organic Spring Physics for the bounce
+    val floatTarget = if (isWordActive) -8f else 0f 
     val floatOffset by animateFloatAsState(
         targetValue = floatTarget,
-        animationSpec = tween(durationMillis = if (isWordActive) 80 else 400, easing = FastOutSlowInEasing)
+        animationSpec = if (isWordActive) {
+            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+        } else {
+            tween(durationMillis = 400, easing = FastOutSlowInEasing)
+        },
+        label = "word_bounce"
     )
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
@@ -827,22 +830,22 @@ private fun AnimatedWordV2(
 
     Box(
         modifier = Modifier.graphicsLayer {
-            // 🔥 IMPROVED: Math calculation pushed inside graphicsLayer to skip full recomposition
             val progress = when {
                 isWordComplete -> 1f
                 currentPositionMs <= wordStartMs -> 0f
                 else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
             }
+            
+            // UPGRADE 2: Smoother Scaling Math
             val sinProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
-            // Slightly stronger Apple-style zoom
-            val wordScale = 1f + (0.02f * sinProgress)
+            val wordScale = 1f + (0.04f * sinProgress) 
             
             translationY = floatOffset * density
             scaleX = wordScale
             scaleY = wordScale
         }
     ) {
-        // Layer 1: Base text (Dimmed)
+        // Layer 1: Base text (Dimmed - inactive state)
         Text(
             text = word.text,
             style = MaterialTheme.typography.headlineMedium.copy(
@@ -852,7 +855,7 @@ private fun AnimatedWordV2(
                 lineHeight = (actualFontSize * 1.35f).sp,
                 fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
             ),
-            color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha),
+            color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.6f else inactiveAlpha),
         )
 
         // Layer 2: Filled overlay with liquid sweep mask
@@ -866,26 +869,28 @@ private fun AnimatedWordV2(
                     lineHeight = (actualFontSize * 1.35f).sp,
                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                     shadow = if (isWordActive) {
-                        // Dynamic glow calculated inside shadow to prevent recomposition
                         val progress = ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                        val glowProgress = (progress * 2f).coerceAtMost(1f)
+                        val glowProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
                         Shadow(
-                            color = textColor.copy(alpha = glowProgress * 0.5f),
+                            color = textColor.copy(alpha = glowProgress * 0.6f),
                             offset = Offset.Zero,
-                            blurRadius = glowProgress * 16f,
+                            blurRadius = glowProgress * 20f,
                         )
                     } else null,
                 ),
-                color = textColor.copy(alpha = if (isBackground) 0.75f else 1f),
+                color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
                 modifier = if (isWordActive && !isWordComplete) {
                     Modifier
                         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .drawWithContent {
                             drawContent()
-                            // Mask calculation calculated exclusively during draw phase
+                            
                             val currentProg = ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                            val edgeWidth = 10.dp.toPx()
+                            
+                            //  UPGRADE 3: Ultra-soft mask edge
+                            val edgeWidth = 24.dp.toPx() 
                             val center = (size.width + edgeWidth * 2) * currentProg - edgeWidth
+                            
                             drawRect(
                                 brush = Brush.horizontalGradient(
                                     colors = listOf(Color.Black, Color.Transparent),
