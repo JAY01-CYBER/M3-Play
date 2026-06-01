@@ -20,6 +20,9 @@
     <string name="stats">统计数据</string>
     <string name="mood_and_genres">氛围与流派</string>
     <string name="account">账号</string>
+    <string name="liked">Liked</string>
+    <string name="downloads">Downloads</string>
+    <string name="library">Library</string>
     <string name="quick_picks">精选内容</string>
     <string name="quick_picks_empty">聆听更多歌曲，生成您的精选内容</string>
     <string name="speed_dial">Speed dial</string>
@@ -40,7 +43,7 @@
     <string name="yesterday">昨天</string>
     <string name="this_week">这周</string>
     <string name="last_week">上周</string>
-    <string name="most_played_songs">最多播放的歌曲</string>
+    <string name="most_played_songs">Most played artists</string>
     <string name="most_played_artists">播放次数最多的艺人</string>
     <string name="most_played_albums">被播放最多的专辑</string>
     <string name="search">搜索</string>
