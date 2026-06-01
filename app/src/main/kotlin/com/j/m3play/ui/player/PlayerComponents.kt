@@ -15,6 +15,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
@@ -33,6 +34,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +49,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,18 +78,22 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.platform.LocalContext
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
@@ -93,6 +101,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -116,16 +126,6 @@ import com.j.m3play.ui.theme.PlayerBackgroundColorUtils
 import com.j.m3play.ui.theme.PlayerSliderColors
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.makeTimeString
-import android.os.SystemClock
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToLong
 import kotlin.math.roundToInt
 
@@ -1489,8 +1489,7 @@ fun PlayerPlaybackControls(
 
 /**
  * Wrapper composable that combines all player control components.
- * This replaces the large inline controlsContent lambda in BottomSheetPlayer
- * to reduce JIT compilation overhead.
+ * Updated to support Inline Lyrics (Metrolist Style)
  */
 @Composable
 fun PlayerControlsContent(
@@ -1519,7 +1518,9 @@ fun PlayerControlsContent(
     context: Context,
     onSliderValueChange: (Long) -> Unit,
     onSliderValueChangeFinished: () -> Unit,
-    currentFormat: FormatEntity? = null 
+    currentFormat: FormatEntity? = null,
+    showInlineLyrics: Boolean = false, 
+    onToggleLyrics: () -> Unit = {}
 ) {
     val currentSong by playerConnection.currentSong.collectAsState(initial = null)
     val currentSongLiked = currentSong?.song?.liked == true
@@ -1537,6 +1538,29 @@ fun PlayerControlsContent(
             .fillMaxWidth()
             .padding(horizontal = PlayerHorizontalPadding),
     ) {
+        
+        AnimatedContent(
+            targetState = showInlineLyrics,
+            label = "CompactThumbnail",
+            transitionSpec = { fadeIn() togetherWith fadeOut() }
+        ) { showLyrics ->
+            if (showLyrics) {
+                Row {
+                    AsyncImage(
+                        model = mediaMetadata.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+            } else {
+                Spacer(modifier = Modifier.width(0.dp))
+            }
+        }
+
         Column(modifier = Modifier.weight(1f)) {
             PlayerTitleSection(
                 mediaMetadata = mediaMetadata,
@@ -1549,6 +1573,24 @@ fun PlayerControlsContent(
         }
 
         Spacer(modifier = Modifier.width(12.dp))
+
+        Surface(
+            onClick = onToggleLyrics,
+            shape = RoundedCornerShape(14.dp),
+            color = if (showInlineLyrics) textBackgroundColor.copy(alpha = 0.25f) else textBackgroundColor.copy(alpha = 0.12f),
+            modifier = Modifier.height(42.dp).width(42.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    painter = painterResource(R.drawable.lyrics), 
+                    contentDescription = "Toggle Lyrics",
+                    tint = textBackgroundColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
 
         PlayerTopActions(
             mediaMetadata = mediaMetadata,
@@ -1678,20 +1720,17 @@ fun PlayerBackground(
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            // Full screen artwork jaisa vivi me hota hai
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
                                     .data(thumbnailUrl)
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
-                                contentScale = ContentScale.Crop, // Poore screen par artwork failane ke liye
+                                contentScale = ContentScale.Crop, 
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    // Halka sa blur taaki text clear rahe
                                     .blur(if (disableBlur) 0.dp else 15.dp)
                             )
-                            // Niche ke UI controls clear rakhne ke liye dark gradient
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1756,15 +1795,15 @@ fun PlayerBackground(
                         Box(modifier = Modifier.fillMaxSize()) {
                             val gradientColorStops = if (colors.size >= 3) {
                                 arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.92f), // Top: primary vibrant color
-                                    0.5f to colors[1].copy(alpha = 0.75f), // Middle: darker variant
-                                    1.0f to colors[2].copy(alpha = 0.65f)  // Bottom: black-ish
+                                    0.0f to colors[0].copy(alpha = 0.92f), 
+                                    0.5f to colors[1].copy(alpha = 0.75f), 
+                                    1.0f to colors[2].copy(alpha = 0.65f)  
                                 )
                             } else {
                                 arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.9f), // Top: primary color
-                                    0.6f to colors[0].copy(alpha = 0.55f), // Middle: faded variant
-                                    1.0f to Color.Black.copy(alpha = 0.7f) // Bottom: black
+                                    0.0f to colors[0].copy(alpha = 0.9f), 
+                                    0.6f to colors[0].copy(alpha = 0.55f), 
+                                    1.0f to Color.Black.copy(alpha = 0.7f) 
                                 )
                             }
                             Box(
@@ -1772,7 +1811,6 @@ fun PlayerBackground(
                                     .fillMaxSize()
                                     .background(Brush.verticalGradient(colorStops = gradientColorStops))
                             )
-                            // Keep a gentle dark overlay to ensure text contrast on bright artwork
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1905,10 +1943,8 @@ fun PlayerBackground(
                                     val width = size.width
                                     val height = size.height
 
-                                    // Use a dark base, but the gradients will cover most of it
                                     val baseColor = Color(0xFF050505)
 
-                                    // Extract up to 6 colors
                                     val color1 = colors.getOrElse(0) { Color.DarkGray }
                                     val color2 = colors.getOrElse(1) { color1 }
                                     val color3 = colors.getOrElse(2) { color2 }
@@ -1916,7 +1952,6 @@ fun PlayerBackground(
                                     val color5 = colors.getOrElse(4) { color2 }
                                     val color6 = colors.getOrElse(5) { color3 }
 
-                                    // Top-Left Large Glow (Primary)
                                     val brush1 = Brush.radialGradient(
                                         colors = listOf(
                                             color1.copy(alpha = 0.8f),
@@ -1927,7 +1962,6 @@ fun PlayerBackground(
                                         radius = width * 1.2f
                                     )
 
-                                    // Bottom-Right Large Glow (Secondary)
                                     val brush2 = Brush.radialGradient(
                                         colors = listOf(
                                             color2.copy(alpha = 0.75f),
@@ -1938,7 +1972,6 @@ fun PlayerBackground(
                                         radius = width * 1.1f
                                     )
 
-                                    // Top-Right Glow (Tertiary)
                                     val brush3 = Brush.radialGradient(
                                         colors = listOf(
                                             color3.copy(alpha = 0.7f),
@@ -1949,7 +1982,6 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
-                                    // Bottom-Left (Quaternary)
                                     val brush4 = Brush.radialGradient(
                                         colors = listOf(
                                             color4.copy(alpha = 0.65f),
@@ -1960,7 +1992,6 @@ fun PlayerBackground(
                                         radius = width * 1.0f
                                     )
                                     
-                                    // Top-Center (Quinary)
                                     val brush5 = Brush.radialGradient(
                                         colors = listOf(
                                             color5.copy(alpha = 0.6f),
@@ -1971,7 +2002,6 @@ fun PlayerBackground(
                                         radius = width * 0.9f
                                     )
                                     
-                                    // Bottom-Center (Senary)
                                     val brush6 = Brush.radialGradient(
                                         colors = listOf(
                                             color6.copy(alpha = 0.6f),
@@ -2028,7 +2058,6 @@ fun PlayerBackground(
                         }
 
                         fun oscillate(min: Float, max: Float, phase: Float, speed: Float = 1f): Float {
-                            // speed MUST be an integer to ensure seamless looping when progress wraps from 1f to 0f.
                             val v = kotlin.math.sin(2f * kotlin.math.PI.toFloat() * (progress * speed + phase)).toFloat()
                             return min + (max - min) * ((v + 1f) * 0.5f)
                         }
