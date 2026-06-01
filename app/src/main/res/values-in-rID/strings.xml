@@ -23,6 +23,10 @@
     <string name="liked">Liked</string>
     <string name="downloads">Downloads</string>
     <string name="library">Library</string>
+    <string name="play_all">Play all</string>
+    <string name="identify_music">Identify Music</string>
+    <string name="lyrics_v2_experimental">Lyrics V2 (Experimental)</string>
+    <string name="lyrics_v2_description">Use the new fluid word-synced lyrics engine</string>
     <string name="quick_picks">Pilihan cepat</string>
     <string name="quick_picks_empty">Dengarkan lagu untuk menghasilkan pilihan cepat</string>
     <string name="speed_dial">Speed dial</string>
@@ -43,7 +47,7 @@
     <string name="yesterday">Kemarin</string>
     <string name="this_week">Minggu ini</string>
     <string name="last_week">Minggu lalu</string>
-    <string name="most_played_songs">Most played artists</string>
+    <string name="most_played_songs">Most played songs</string>
     <string name="most_played_artists">Artis yang paling sering diputar</string>
     <string name="most_played_albums">Album yang paling sering diputar</string>
     <string name="search">Penelusuran</string>
