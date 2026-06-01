@@ -24,6 +24,10 @@
     <string name="liked">Liked</string>
     <string name="downloads">Downloads</string>
     <string name="library">Library</string>
+    <string name="play_all">Play all</string>
+    <string name="identify_music">Identify Music</string>
+    <string name="lyrics_v2_experimental">Lyrics V2 (Experimental)</string>
+    <string name="lyrics_v2_description">Use the new fluid word-synced lyrics engine</string>
     <string name="quick_picks">Quick picks</string>
     <string name="quick_picks_empty">Listen to songs to generate your quick picks</string>
     <string name="speed_dial">Speed dial</string>
@@ -44,7 +48,7 @@
     <string name="yesterday">Yesterday</string>
     <string name="this_week">This week</string>
     <string name="last_week">Last week</string>
-    <string name="most_played_songs">Most played artists</string>
+    <string name="most_played_songs">Most played songs</string>
     <string name="most_played_artists">Most played artists</string>
     <string name="most_played_albums">Most played albums</string>
     <string name="search">Search</string>
