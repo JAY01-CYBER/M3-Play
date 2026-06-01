@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1::METROLIST_EDITION_FIXED
+ * Signature: M3PLAY::COMPONENT::V1::METROLIST_EDITION_FIXED_R8_SAFE
  */
 
 package com.j.m3play.ui.component
@@ -101,7 +101,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.LyricsClickKey
-import com.j.m3play.constants.LyricsScrollKey
 import com.j.m3play.constants.LyricsTextSizeKey
 import com.j.m3play.constants.LyricsLineSpacingKey
 import com.j.m3play.constants.LyricsRomanizeJapaneseKey
@@ -318,7 +317,7 @@ fun LyricsV2(
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionState by remember { mutableLongStateOf(0L) }
     
-    // 🔥 FIX 1: Split Highlight logic and Scroll logic entirely
+    // Split Highlight logic and Scroll logic entirely
     var currentPlayingLineIndex by rememberSaveable { mutableIntStateOf(0) }
     var focusScrollIndex by rememberSaveable { mutableIntStateOf(0) }
     
@@ -353,7 +352,7 @@ fun LyricsV2(
         }
     }
 
-    // 🔥 FIX 2: Resume Auto Scroll Timeout
+    // Resume Auto Scroll Timeout
     LaunchedEffect(isAutoScrollEnabled, lastManualScrollTime) {
         if (!isAutoScrollEnabled) {
             while (isActive) {
@@ -460,7 +459,7 @@ fun LyricsV2(
             }
         }
 
-        // 🔥 FIX 3: Timeout block to prevent permanent layout freezes
+        // Timeout block to prevent permanent layout freezes
         LaunchedEffect(lyrics, entriesWithWords.size) {
             if (entriesWithWords.isNotEmpty()) {
                 isInitialLayout = true
@@ -520,84 +519,83 @@ fun LyricsV2(
             ) {
                 entriesWithWords.forEachIndexed { listIndex, item ->
                     key(item.time.hashCode() * 31 + listIndex) {
-                        // 🔥 FIX 4: Measure the Intro Space dynamically to avoid offset breaks
+                        // 🔥 FINAL FIX: if/else block used instead of return@key!
                         if (item == HEAD_LYRICS_ENTRY) {
                             Spacer(modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp)
                                 .onSizeChanged { itemHeights[listIndex] = it.height }
                             )
-                            return@key
-                        }
-                        
-                        val distance = abs(listIndex - activeListIndex)
-                        val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
-                        val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
-                        
-                        LaunchedEffect(isAutoScrollEnabled, targetOffset, isInitialLayout) {
-                            if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
-                        }
-                        
-                        val animatedOffset by animateFloatAsState(
-                            targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
-                            animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
-                                            else tween(750, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
-                            label = "lyricStaggeredOffset_$listIndex"
-                        )
-
-                        val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
-                        val isActiveLine = currentPlayingLineIndex == listIndex
-                        val isSelected = selectedIndices.contains(listIndex)
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .layout { m, c -> 
-                                    val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
-                                    layout(p.width, 0) { p.place(0, 0) }
-                                }
-                                .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
-                        ) {
-                            MetrolistCanvasLyricsLine(
-                                index = listIndex,
-                                item = item,
-                                isSynced = isSynced,
-                                isActiveLine = isActiveLine,
-                                isBackground = isAllBackground,
-                                isSelected = isSelected,
-                                isSelectionModeActive = isSelectionModeActive,
-                                currentPositionState = currentPositionState, // Always perfectly synced!
-                                lyricsTextSize = lyricsTextSize,
-                                lyricsLineSpacing = lyricsLineSpacing,
-                                expressiveAccent = textColor,
-                                isAutoScrollEnabled = isAutoScrollEnabled,
-                                displayedCurrentLineIndex = currentPlayingLineIndex, // Sync alpha focus properly
-                                romanizeLyrics = (romanizeJapanese || romanizeKorean),
-                                lyricsFontFamily = lyricsFontFamily,
-                                onSizeChanged = { itemHeights[listIndex] = it },
-                                onClick = {
-                                    if (isSelectionModeActive) {
-                                        if (isSelected) {
-                                            selectedIndices.remove(listIndex)
-                                            if (selectedIndices.isEmpty()) isSelectionModeActive = false
-                                        } else if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(listIndex) else showMaxSelectionToast = true
-                                    } else if (lyricsClick && isSynced && item.time > 0) {
-                                        player.seekTo(item.time)
-                                        isAutoScrollEnabled = true
-                                    }
-                                },
-                                onLongClick = {
-                                    if (!isSelectionModeActive) {
-                                        isSelectionModeActive = true; selectedIndices.add(listIndex)
-                                    } else if (!isSelected && selectedIndices.size < maxSelectionLimit) selectedIndices.add(listIndex)
-                                }
+                        } else {
+                            val distance = abs(listIndex - activeListIndex)
+                            val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
+                            val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
+                            
+                            LaunchedEffect(isAutoScrollEnabled, targetOffset, isInitialLayout) {
+                                if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
+                            }
+                            
+                            val animatedOffset by animateFloatAsState(
+                                targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
+                                animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
+                                                else tween(750, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
+                                label = "lyricStaggeredOffset_$listIndex"
                             )
+
+                            val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
+                            val isActiveLine = currentPlayingLineIndex == listIndex
+                            val isSelected = selectedIndices.contains(listIndex)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .layout { m, c -> 
+                                        val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
+                                        layout(p.width, 0) { p.place(0, 0) }
+                                    }
+                                    .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
+                            ) {
+                                MetrolistCanvasLyricsLine(
+                                    index = listIndex,
+                                    item = item,
+                                    isSynced = isSynced,
+                                    isActiveLine = isActiveLine,
+                                    isBackground = isAllBackground,
+                                    isSelected = isSelected,
+                                    isSelectionModeActive = isSelectionModeActive,
+                                    currentPositionState = currentPositionState, // Always perfectly synced!
+                                    lyricsTextSize = lyricsTextSize,
+                                    lyricsLineSpacing = lyricsLineSpacing,
+                                    expressiveAccent = textColor,
+                                    isAutoScrollEnabled = isAutoScrollEnabled,
+                                    displayedCurrentLineIndex = currentPlayingLineIndex, // Sync alpha focus properly
+                                    romanizeLyrics = (romanizeJapanese || romanizeKorean),
+                                    lyricsFontFamily = lyricsFontFamily,
+                                    onSizeChanged = { itemHeights[listIndex] = it },
+                                    onClick = {
+                                        if (isSelectionModeActive) {
+                                            if (isSelected) {
+                                                selectedIndices.remove(listIndex)
+                                                if (selectedIndices.isEmpty()) isSelectionModeActive = false
+                                            } else if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(listIndex) else showMaxSelectionToast = true
+                                        } else if (lyricsClick && isSynced && item.time > 0) {
+                                            player.seekTo(item.time)
+                                            isAutoScrollEnabled = true
+                                        }
+                                    },
+                                    onLongClick = {
+                                        if (!isSelectionModeActive) {
+                                            isSelectionModeActive = true; selectedIndices.add(listIndex)
+                                        } else if (!isSelected && selectedIndices.size < maxSelectionLimit) selectedIndices.add(listIndex)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // 🔥 FIX 5: Show Manual "Resume" button
+            // Show Manual "Resume" button
             if (!isAutoScrollEnabled && isSynced) {
                 androidx.compose.material3.FilledTonalButton(
                     onClick = {
@@ -732,7 +730,7 @@ private fun MetrolistWordLevelCanvas(
     val textMeasurer = rememberTextMeasurer()
     val glowPaint = remember { android.graphics.Paint().apply { isAntiAlias = true } }
     
-    // 🔥 FIX 6: Use direct parent frame state to eliminate desync!
+    // Direct parent frame state to eliminate desync!
     val smoothPosition = currentPositionState
 
     val (effectiveWords, effectiveToOriginalIdx) = remember(words, isBackground) {
