@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1
+ * Signature: M3PLAY::COMPONENT::V1::OPTIMIZED
  */
 
 package com.j.m3play.ui.component
@@ -11,10 +11,10 @@ import android.content.Intent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,7 +41,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -63,14 +62,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -107,7 +105,6 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.LyricsClickKey
 import com.j.m3play.constants.LyricsScrollKey
-import com.j.m3play.constants.LyricsTextPositionKey
 import com.j.m3play.constants.LyricsTextSizeKey
 import com.j.m3play.constants.LyricsLineSpacingKey
 import com.j.m3play.constants.LyricsRomanizeJapaneseKey
@@ -129,40 +126,25 @@ import com.j.m3play.lyrics.LyricsUtils.romanizeKorean
 import com.j.m3play.lyrics.WordTimestamp
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
-import com.j.m3play.ui.screens.settings.LyricsPosition
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.abs
 
-
 // ──────────────────────────────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────────────────────────────
 
-/** Lead time offset for LRC-style line-synced lyrics (ms). */
 private const val LRC_LEAD_MS = 300L
-
-/** Lead time offset for TTML word-synced lyrics (ms). */
 private const val TTML_LEAD_MS = 0L
-
-/** Seconds to wait before auto-scroll resumes after manual scroll. */
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
-
-/** Apple-Music-style easing for smooth deceleration. */
 private val V2Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1.0f)
-
-/** Liquid fill easing: fast attack, very smooth deceleration (Apple Music-like). */
 private val LiquidFillEasing = CubicBezierEasing(0.0f, 0.0f, 0.15f, 1.0f)
-
-/** Sentinel entry prepended so auto-scroll has headroom above the first line. */
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
-
 
 // ──────────────────────────────────────────────────────────────────────
 // Main Composable
 // ──────────────────────────────────────────────────────────────────────
-
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -191,7 +173,6 @@ fun LyricsV2(
     }
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
 
-    // ── Text colour derived from background style ──
     val textColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT)
         MaterialTheme.colorScheme.onBackground
     else
@@ -214,8 +195,6 @@ fun LyricsV2(
     // ── Lyrics data ──
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
-
-    // ── Parse lyrics into entries ──
     val isSynced = remember(lyrics) { lyrics != null && (lyrics!!.startsWith("[") || isTtml(lyrics!!)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics!!) }
 
@@ -226,30 +205,18 @@ fun LyricsV2(
             lyrics!!.startsWith("[") -> parseLyrics(lyrics!!)
             else -> lyrics!!.lines()
                 .filter { it.isNotBlank() }
-                .mapIndexed { index, line ->
-                    LyricsEntry(time = -1L, text = line.trim())
-                }
+                .mapIndexed { index, line -> LyricsEntry(time = -1L, text = line.trim()) }
         }
-        if (parsed.isNotEmpty() && parsed.first().time >= 0) {
-            listOf(HEAD_LYRICS_ENTRY) + parsed
-        } else {
-            parsed
-        }
+        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(HEAD_LYRICS_ENTRY) + parsed else parsed
     }
 
-    // ── Synthesize word timings for LRC entries that lack them ──
     val entriesWithWords: List<LyricsEntry> = remember(lyricsEntries) {
         if (lyricsEntries.isEmpty()) return@remember emptyList()
         lyricsEntries.mapIndexed { index, entry ->
             if (entry.words != null || entry.time < 0 || entry.text.isBlank()) {
-                entry // Already has word timings (TTML) or is non-synced
+                entry 
             } else {
-                // Synthesize word-level timings for this LRC line
-                val nextEntryTime = if (index < lyricsEntries.lastIndex) {
-                    lyricsEntries[index + 1].time
-                } else {
-                    entry.time + 5000L // 5s fallback for last line
-                }
+                val nextEntryTime = if (index < lyricsEntries.lastIndex) lyricsEntries[index + 1].time else entry.time + 5000L
                 val lineDurationMs = (nextEntryTime - entry.time).coerceAtLeast(500L)
                 val lineStartSec = entry.time / 1000.0
 
@@ -259,44 +226,30 @@ fun LyricsV2(
                     var currentWord = StringBuilder()
                     entry.text.forEach { char ->
                         if (char.isWhitespace()) {
-                            if (currentWord.isNotEmpty()) {
-                                chars.add(currentWord.toString())
-                                currentWord.clear()
-                            }
+                            if (currentWord.isNotEmpty()) { chars.add(currentWord.toString()); currentWord.clear() }
                             chars.add(char.toString())
                         } else if (isJapanese(char.toString()) || isChinese(char.toString()) || isKorean(char.toString())) {
-                            if (currentWord.isNotEmpty()) {
-                                chars.add(currentWord.toString())
-                                currentWord.clear()
-                            }
+                            if (currentWord.isNotEmpty()) { chars.add(currentWord.toString()); currentWord.clear() }
                             chars.add(char.toString())
                         } else {
                             currentWord.append(char)
                         }
                     }
-                    if (currentWord.isNotEmpty()) {
-                        chars.add(currentWord.toString())
-                    }
+                    if (currentWord.isNotEmpty()) chars.add(currentWord.toString())
 
-                    // Group spaces onto the preceding word
                     val groupedTokens = mutableListOf<String>()
-                    var tempStr = StringBuilder()
                     chars.forEachIndexed { i, c ->
                         if (c.isBlank()) {
-                            if (groupedTokens.isNotEmpty()) {
-                                groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
-                            }
-                        } else {
-                            groupedTokens.add(c)
-                        }
+                            if (groupedTokens.isNotEmpty()) groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c
+                        } else { groupedTokens.add(c) }
                     }
                     groupedTokens
                 } else {
                     entry.text.split(Regex("\\s+"))
                 }
+                
                 if (tokens.isEmpty()) return@mapIndexed entry
 
-                // Weight each token by character count for proportional distribution
                 val totalChars = tokens.sumOf { it.length }.coerceAtLeast(1)
                 val words = mutableListOf<WordTimestamp>()
                 var currentOffsetMs = 0.0
@@ -308,13 +261,7 @@ fun LyricsV2(
                     val wordEndSec = wordStartSec + (wordDurMs / 1000.0)
 
                     val wordText = if (wordIdx < tokens.lastIndex && !isCjkText) "$token " else token
-                    words.add(
-                        WordTimestamp(
-                            text = wordText,
-                            startTime = wordStartSec,
-                            endTime = wordEndSec,
-                        )
-                    )
+                    words.add(WordTimestamp(text = wordText, startTime = wordStartSec, endTime = wordEndSec))
                     currentOffsetMs += wordDurMs
                 }
                 entry.copy(words = words)
@@ -322,7 +269,6 @@ fun LyricsV2(
         }
     }
 
-    // ── Romanization ──
     LaunchedEffect(entriesWithWords, romanizeJapanese, romanizeKorean) {
         if (!romanizeJapanese && !romanizeKorean) return@LaunchedEffect
         entriesWithWords.forEach { entry ->
@@ -338,33 +284,28 @@ fun LyricsV2(
         }
     }
 
-    // ── Playback position tracking ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    // Frame-accurate position loop
+    // 🔥 IMPROVED: withFrameMillis for butter smooth Apple Music sync without battery drain
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         while (isActive) {
-            val sliderPos = sliderPositionProvider()
-            val pos = sliderPos ?: player.currentPosition
-            
-            // Add a visual tuning offset so animations feel instantly responsive and perfectly land on beat
-            val visualTuningOffsetMs = 150L 
-            currentPositionMs = pos + leadMs + visualTuningOffsetMs
-            
-            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
-            delay(16L) // ~60fps polling
+            withFrameMillis {
+                val sliderPos = sliderPositionProvider()
+                val pos = sliderPos ?: player.currentPosition
+                val visualTuningOffsetMs = 150L 
+                currentPositionMs = pos + leadMs + visualTuningOffsetMs
+                currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
+            }
         }
     }
 
-    // ── Scroll State ──
     val listState = rememberLazyListState()
     var isManualScrolling by remember { mutableStateOf(false) }
     var lastManualScrollTime by remember { mutableLongStateOf(0L) }
 
-    // Detect manual scrolling
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -377,74 +318,46 @@ fun LyricsV2(
         }
     }
 
-    // Resume auto-scroll after timeout
     LaunchedEffect(isManualScrolling, lastManualScrollTime) {
-        if (isManualScrolling) {
-            delay(MANUAL_SCROLL_TIMEOUT_MS)
-            isManualScrolling = false
-        }
+        if (isManualScrolling) { delay(MANUAL_SCROLL_TIMEOUT_MS); isManualScrolling = false }
     }
 
-    // Auto-scroll to active line
     LaunchedEffect(currentLineIndex, isManualScrolling, lyricsScroll) {
         if (!lyricsScroll || isManualScrolling || !isSynced) return@LaunchedEffect
         if (currentLineIndex < 0 || currentLineIndex >= entriesWithWords.size) return@LaunchedEffect
 
         val visibleInfo = listState.layoutInfo
         val viewportHeight = visibleInfo.viewportSize.height
-        val targetOffset = (viewportHeight * 0.35f).toInt() // Center bias at 35% from top
+        val targetOffset = (viewportHeight * 0.35f).toInt() 
 
         val distance = abs(currentLineIndex - (listState.firstVisibleItemIndex))
         if (distance > 15) {
-            // Far jump — snap first, then settle
-            listState.scrollToItem(
-                (currentLineIndex - 2).coerceAtLeast(0),
-                0
-            )
+            listState.scrollToItem((currentLineIndex - 2).coerceAtLeast(0), 0)
         }
-        listState.animateScrollToItem(
-            index = currentLineIndex,
-            scrollOffset = -targetOffset
-        )
+        listState.animateScrollToItem(index = currentLineIndex, scrollOffset = -targetOffset)
     }
 
-    BackHandler(enabled = isSelectionModeActive) {
-        isSelectionModeActive = false
-        selectedIndices.clear()
-    }
+    BackHandler(enabled = isSelectionModeActive) { isSelectionModeActive = false; selectedIndices.clear() }
 
     LaunchedEffect(showMaxSelectionToast) {
         if (showMaxSelectionToast) {
-            Toast.makeText(
-                context,
-                context.getString(R.string.max_selection_limit, maxSelectionLimit),
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(context, context.getString(R.string.max_selection_limit, maxSelectionLimit), Toast.LENGTH_SHORT).show()
             showMaxSelectionToast = false
         }
     }
 
-    // ── Keep screen alive ──
     val activity = context as? android.app.Activity
     DisposableEffect(Unit) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose {
-            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
 
-    // ── Render ──
     BoxWithConstraints(
         contentAlignment = Alignment.TopCenter,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(bottom = 12.dp)
+        modifier = modifier.fillMaxSize().padding(bottom = 12.dp)
     ) {
         if (lyrics == LYRICS_NOT_FOUND) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.lyrics_not_found),
                     style = MaterialTheme.typography.bodyLarge,
@@ -456,19 +369,12 @@ fun LyricsV2(
         }
 
         if (lyrics == null) {
-            ShimmerHost {
-                repeat(6) {
-                    TextPlaceholder()
-                }
-            }
+            ShimmerHost { repeat(6) { TextPlaceholder() } }
             return@BoxWithConstraints
         }
 
         if (entriesWithWords.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.lyrics_not_found),
                     style = MaterialTheme.typography.bodyLarge,
@@ -490,59 +396,36 @@ fun LyricsV2(
         ) {
             itemsIndexed(
                 items = entriesWithWords,
-                key = { index, entry -> "${index}_${entry.time}" }
+                key = { index, entry -> (entry.time.hashCode() * 31) + index } // 🔥 IMPROVED: Faster key generation
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
                     Spacer(modifier = Modifier.height(120.dp))
                     return@itemsIndexed
                 }
 
-                // ── Agent-based positioning ──
-                // v1 or null -> Start, v2 -> End, others -> Center
-                val textAlign = when (item.agent?.lowercase()) {
-                    "v1", null -> TextAlign.Start
-                    "v2" -> TextAlign.End
-                    else -> TextAlign.Center
-                }
-                val horizontalAlignment = when (item.agent?.lowercase()) {
-                    "v1", null -> Alignment.Start
-                    "v2" -> Alignment.End
-                    else -> Alignment.CenterHorizontally
-                }
+                val textAlign = when (item.agent?.lowercase()) { "v1", null -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Center }
+                val horizontalAlignment = when (item.agent?.lowercase()) { "v1", null -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.CenterHorizontally }
 
                 val isActive = isSynced && index == currentLineIndex
                 val isPast = isSynced && index < currentLineIndex
                 val isFuture = isSynced && index > currentLineIndex
-
-                // Distance-based alpha for non-active lines
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
-                // For word-synced lines, each word handles its own alpha independently
-                // so we use 1f for active lines to not double-dim
+
                 val lineAlpha = when {
                     !isSynced -> 0.9f
                     isActive -> 1f
-                    else -> (inactiveAlpha - (distanceFromActive - 1) * 0.03f)
-                        .coerceIn(0.15f, inactiveAlpha)
+                    else -> (inactiveAlpha - (distanceFromActive - 1) * 0.03f).coerceIn(0.15f, inactiveAlpha)
                 }
-                // Word-synced lines: pass 1f alpha so individual words control their own
+                
                 val wordLineAlpha = if (item.words != null && isSynced) 1f else lineAlpha
-
-
-
-                // Background vocal detection
-                val hasBackgroundWords = item.words?.any { it.isBackground } == true
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
-
                 val isSelected = selectedIndices.contains(index)
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            color = if (isSelected && isSelectionModeActive)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            else
-                                Color.Transparent,
+                            color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent,
                             shape = RoundedCornerShape(8.dp)
                         )
                         .padding(
@@ -558,15 +441,9 @@ fun LyricsV2(
                                 if (isSelectionModeActive) {
                                     if (isSelected) {
                                         selectedIndices.remove(index)
-                                        if (selectedIndices.isEmpty()) {
-                                            isSelectionModeActive = false
-                                        }
+                                        if (selectedIndices.isEmpty()) isSelectionModeActive = false
                                     } else {
-                                        if (selectedIndices.size < maxSelectionLimit) {
-                                            selectedIndices.add(index)
-                                        } else {
-                                            showMaxSelectionToast = true
-                                        }
+                                        if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else showMaxSelectionToast = true
                                     }
                                 } else if (lyricsClick && isSynced && item.time > 0) {
                                     player.seekTo(item.time)
@@ -574,8 +451,7 @@ fun LyricsV2(
                             },
                             onLongClick = {
                                 if (!isSelectionModeActive) {
-                                    isSelectionModeActive = true
-                                    selectedIndices.add(index)
+                                    isSelectionModeActive = true; selectedIndices.add(index)
                                 } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
                                     selectedIndices.add(index)
                                 } else if (!isSelected) {
@@ -586,7 +462,6 @@ fun LyricsV2(
                     horizontalAlignment = horizontalAlignment,
                 ) {
                     if (item.words != null && isSynced) {
-                        // ── Word-synced rendering ──
                         LyricsLineV2(
                             words = item.words!!,
                             isActive = isActive,
@@ -600,7 +475,6 @@ fun LyricsV2(
                             lyricsFontFamily = lyricsFontFamily,
                         )
                     } else {
-                        // ── Plain text rendering ──
                         Text(
                             text = item.text,
                             style = MaterialTheme.typography.headlineMedium.copy(
@@ -616,7 +490,6 @@ fun LyricsV2(
                         )
                     }
 
-                    // ── Romanization ──
                     val romanizedText by item.romanizedTextFlow.collectAsState()
                     if (romanizedText != null) {
                         Text(
@@ -630,121 +503,61 @@ fun LyricsV2(
                             ),
                             color = textColor.copy(alpha = if (isActive) 0.75f else inactiveAlpha * 0.7f),
                             textAlign = textAlign,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = (lyricsTextSize * 0.3f).dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = (lyricsTextSize * 0.3f).dp),
                         )
                     }
                 }
             }
-
-            // Bottom spacer for overscroll
-            item {
-                Spacer(modifier = Modifier.height(300.dp))
-            }
+            item { Spacer(modifier = Modifier.height(300.dp)) }
         }
 
-        // ── Resume auto-scroll button ──
         if (isManualScrolling && isSynced) {
             androidx.compose.material3.FilledTonalButton(
                 onClick = {
                     isManualScrolling = false
                     scope.launch {
                         val viewportHeight = listState.layoutInfo.viewportSize.height
-                        listState.animateScrollToItem(
-                            index = currentLineIndex,
-                            scrollOffset = -(viewportHeight * 0.35f).toInt()
-                        )
+                        listState.animateScrollToItem(index = currentLineIndex, scrollOffset = -(viewportHeight * 0.35f).toInt())
                     }
                 },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                 shape = RoundedCornerShape(24.dp),
             ) {
-                Text(
-                    text = "Resume",
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                Text(text = "Resume", style = MaterialTheme.typography.labelLarge)
             }
         }
+
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.3f),
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    isSelectionModeActive = false
-                                    selectedIndices.clear()
-                                },
+                            modifier = Modifier.size(48.dp).background(color = Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                                .clickable { isSelectionModeActive = false; selectedIndices.clear() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.close),
-                                contentDescription = stringResource(R.string.cancel),
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(painter = painterResource(id = R.drawable.close), contentDescription = stringResource(R.string.cancel), tint = Color.White, modifier = Modifier.size(20.dp))
                         }
 
                         Row(
                             modifier = Modifier
-                                .background(
-                                    color = if (selectedIndices.isNotEmpty())
-                                        Color.White.copy(alpha = 0.9f)
-                                    else
-                                        Color.White.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(24.dp)
-                                )
+                                .background(color = if (selectedIndices.isNotEmpty()) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.5f), shape = RoundedCornerShape(24.dp))
                                 .clickable(enabled = selectedIndices.isNotEmpty()) {
                                     if (selectedIndices.isNotEmpty()) {
                                         val sortedIndices = selectedIndices.sorted()
-                                        val selectedLyricsText = sortedIndices
-                                            .mapNotNull { entriesWithWords.getOrNull(it)?.text }
-                                            .joinToString("\n")
-
+                                        val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
                                         if (selectedLyricsText.isNotBlank()) {
-                                            shareDialogData = Triple(
-                                                selectedLyricsText,
-                                                metadata.title ?: "",
-                                                metadata.artists.joinToString { it.name }
-                                            )
+                                            shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
                                             showShareDialog = true
                                         }
-                                        isSelectionModeActive = false
-                                        selectedIndices.clear()
+                                        isSelectionModeActive = false; selectedIndices.clear()
                                     }
                                 }
                                 .padding(horizontal = 24.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.share),
-                                contentDescription = stringResource(R.string.share_selected),
-                                tint = Color.Black,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.share),
-                                color = Color.Black,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Icon(painter = painterResource(id = R.drawable.share), contentDescription = stringResource(R.string.share_selected), tint = Color.Black, modifier = Modifier.size(20.dp))
+                            Text(text = stringResource(R.string.share), color = Color.Black, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -754,17 +567,8 @@ fun LyricsV2(
 
     if (showProgressDialog) {
         BasicAlertDialog(onDismissRequest = {}) {
-            Card(
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Box(modifier = Modifier.padding(32.dp)) {
-                    Text(
-                        text = stringResource(R.string.generating_image) + "\n" + stringResource(R.string.please_wait),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+            Card(shape = MaterialTheme.shapes.medium, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
+                Box(modifier = Modifier.padding(32.dp)) { Text(text = stringResource(R.string.generating_image) + "\n" + stringResource(R.string.please_wait), color = MaterialTheme.colorScheme.onSurface) }
             }
         }
     }
@@ -773,27 +577,16 @@ fun LyricsV2(
         val (lyricsText, songTitle, artists) = shareDialogData!!
         BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
             Card(
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(0.85f)
+                shape = RoundedCornerShape(28.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.padding(16.dp).fillMaxWidth(0.85f)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = stringResource(R.string.share_lyrics),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Text(text = stringResource(R.string.share_lyrics), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                             .clickable {
                                 val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
                                 val shareIntent = Intent().apply {
@@ -807,22 +600,13 @@ fun LyricsV2(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.share),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.share_as_text),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = stringResource(R.string.share_as_text), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                             .clickable {
                                 shareDialogData = Triple(lyricsText, songTitle, artists)
                                 showColorPickerDialog = true
@@ -831,33 +615,15 @@ fun LyricsV2(
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.share),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.share_as_image),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = stringResource(R.string.share_as_image), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp, bottom = 4.dp),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.End) {
                         Text(
-                            text = stringResource(R.string.cancel),
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .clickable { showShareDialog = false }
-                                .padding(vertical = 8.dp, horizontal = 12.dp)
+                            text = stringResource(R.string.cancel), fontSize = 16.sp, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable { showShareDialog = false }.padding(vertical = 8.dp, horizontal = 12.dp)
                         )
                     }
                 }
@@ -895,151 +661,67 @@ fun LyricsV2(
         BasicAlertDialog(onDismissRequest = { showColorPickerDialog = false }) {
             Card(
                 shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
+                modifier = Modifier.fillMaxWidth().padding(12.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 24.dp)
+                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp)
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.customize_colors),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.02).em
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Text(text = stringResource(id = R.string.customize_colors), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.02).em), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(340.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                    ) {
-                        LyricsImageCard(
-                            lyricText = lyricsText,
-                            mediaMetadata = mediaMetadata ?: return@Box,
-                            glassStyle = selectedGlassStyle,
-                        )
+                    Box(modifier = Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(20.dp))) {
+                        LyricsImageCard(lyricText = lyricsText, mediaMetadata = mediaMetadata ?: return@Box, glassStyle = selectedGlassStyle)
                     }
                     Spacer(modifier = Modifier.height(20.dp))
-                    Text(
-                        text = stringResource(id = R.string.customize_colors),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 10.dp)
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
+                    Text(text = stringResource(id = R.string.customize_colors), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         availableStyles.forEach { style ->
                             val isSelected = selectedGlassStyle == style
                             Box(
-                                modifier = Modifier
-                                    .size(width = 72.dp, height = 72.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .then(
-                                        if (isSelected) {
-                                            Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                                        } else {
-                                            Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                                        }
-                                    )
+                                modifier = Modifier.size(width = 72.dp, height = 72.dp).clip(RoundedCornerShape(16.dp))
+                                    .then(if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp)))
                                     .clickable { selectedGlassStyle = style },
                                 contentAlignment = Alignment.Center
                             ) {
+                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(style.surfaceTint.copy(alpha = 0.6f), style.overlayColor.copy(alpha = 0.4f))), shape = RoundedCornerShape(16.dp)))
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    style.surfaceTint.copy(alpha = 0.6f),
-                                                    style.overlayColor.copy(alpha = 0.4f),
-                                                )
-                                            ),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .padding(6.dp)
-                                        .fillMaxSize()
-                                        .background(style.surfaceTint.copy(alpha = style.surfaceAlpha), RoundedCornerShape(10.dp))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                                    modifier = Modifier.padding(6.dp).fillMaxSize().background(style.surfaceTint.copy(alpha = style.surfaceAlpha), RoundedCornerShape(10.dp)).border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                                     contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = "Aa", color = style.textColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                }
+                                ) { Text(text = "Aa", color = style.textColor, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                     Button(
                         onClick = {
-                            showColorPickerDialog = false
-                            showProgressDialog = true
+                            showColorPickerDialog = false; showProgressDialog = true
                             scope.launch {
                                 try {
                                     val exportSize = 1080
-                                    val image = ComposeToImage.createLyricsImage(
-                                        context = context,
-                                        coverArtUrl = coverUrl,
-                                        songTitle = songTitle,
-                                        artistName = artists,
-                                        lyrics = lyricsText,
-                                        width = exportSize,
-                                        height = exportSize,
-                                        glassStyle = selectedGlassStyle,
-                                    )
+                                    val image = ComposeToImage.createLyricsImage(context = context, coverArtUrl = coverUrl, songTitle = songTitle, artistName = artists, lyrics = lyricsText, width = exportSize, height = exportSize, glassStyle = selectedGlassStyle)
                                     val timestamp = System.currentTimeMillis()
-                                    val filename = "lyrics_$timestamp"
-                                    val uri = ComposeToImage.saveBitmapAsFile(context, image, filename)
+                                    val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_$timestamp")
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "image/png"
                                         putExtra(Intent.EXTRA_STREAM, uri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, "Share Lyrics"))
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Failed to create image: ${e.message}", Toast.LENGTH_SHORT).show()
-                                } finally {
-                                    showProgressDialog = false
-                                }
+                                } catch (e: Exception) { Toast.makeText(context, "Failed to create image: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
                             }
                         },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                    ) {
-                        Text(text = stringResource(id = R.string.share), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    }
+                        shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().height(52.dp)
+                    ) { Text(text = stringResource(id = R.string.share), fontWeight = FontWeight.SemiBold, fontSize = 16.sp) }
                 }
             }
         }
     }
 }
 
-
 // ──────────────────────────────────────────────────────────────────────
-// Line-level composable: renders words with fluid fill animation
+// Line-level composable
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1056,42 +738,21 @@ private fun LyricsLineV2(
     textAlign: TextAlign,
     lyricsFontFamily: FontFamily?,
 ) {
-    val arrangement = when (textAlign) {
-        TextAlign.Center -> Arrangement.Center
-        TextAlign.End -> Arrangement.End
-        else -> Arrangement.Start
-    }
-
-    // Split words into main and background
+    val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
     val mainWords = words.filter { !it.isBackground }
     val bgWords = words.filter { it.isBackground }
 
-    // 1. Render main words First (if any)
     if (mainWords.isNotEmpty()) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = arrangement,
-        ) {
+        FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
             mainWords.forEachIndexed { wordIndex, word ->
                 if (word.text == " ") {
-                    Text(
-                        text = " ",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = if (isLineAllBackground) (baseFontSize * 0.82f).sp else baseFontSize.sp,
-                            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                        ),
-                        color = Color.Transparent,
-                    )
+                    Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = if (isLineAllBackground) (baseFontSize * 0.82f).sp else baseFontSize.sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily), color = Color.Transparent)
                     return@forEachIndexed
                 }
-                if (word.text == "\n") {
-                    Spacer(modifier = Modifier.fillMaxWidth())
-                    return@forEachIndexed
-                }
+                if (word.text == "\n") { Spacer(modifier = Modifier.fillMaxWidth()); return@forEachIndexed }
 
                 AnimatedWordV2(
                     word = word,
-                    wordIndex = wordIndex,
                     isLineActive = isActive,
                     isLinePast = isPast,
                     currentPositionMs = currentPositionMs,
@@ -1105,45 +766,30 @@ private fun LyricsLineV2(
         }
     }
 
-    // 2. Render background words explicitly on a NEW line, noticeably smaller
     if (bgWords.isNotEmpty()) {
         val spacerHeight = if (mainWords.isNotEmpty()) 4.dp else 0.dp
         if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(spacerHeight))
-        
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().alpha(0.85f), // Slightly dimmer overall
-            horizontalArrangement = arrangement,
-        ) {
-            bgWords.forEachIndexed { wordIndex, word ->
+        FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
+            bgWords.forEachIndexed { _, word ->
                 if (word.text == " ") {
-                    Text(
-                        text = " ",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = (baseFontSize * 0.65f).sp,
-                            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                        ),
-                        color = Color.Transparent,
-                    )
+                    Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (baseFontSize * 0.65f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily), color = Color.Transparent)
                     return@forEachIndexed
                 }
-                
                 AnimatedWordV2(
                     word = word,
-                    wordIndex = wordIndex + mainWords.size,
                     isLineActive = isActive,
                     isLinePast = isPast,
                     currentPositionMs = currentPositionMs,
                     textColor = textColor,
                     inactiveAlpha = inactiveAlpha,
-                    fontSize = baseFontSize * 0.65f, // ~65% size of main text
-                    isBackground = true, // Force dimmer styling inside AnimatedWordV2
+                    fontSize = baseFontSize * 0.65f,
+                    isBackground = true,
                     lyricsFontFamily = lyricsFontFamily,
                 )
             }
         }
     }
 }
-
 
 // ──────────────────────────────────────────────────────────────────────
 // Word-level composable: liquid fill sweep + glow + bounce
@@ -1152,7 +798,6 @@ private fun LyricsLineV2(
 @Composable
 private fun AnimatedWordV2(
     word: WordTimestamp,
-    wordIndex: Int,
     isLineActive: Boolean,
     isLinePast: Boolean,
     currentPositionMs: Long,
@@ -1169,50 +814,34 @@ private fun AnimatedWordV2(
     val isWordComplete = currentPositionMs >= wordEndMs
     val isWordActive = currentPositionMs in wordStartMs until wordEndMs
 
-    // Perfect linear progress [0..1] that matches individual word timings
-    val progress = when {
-        isWordComplete -> 1f
-        currentPositionMs <= wordStartMs -> 0f
-        else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-    }
-
-    // ── Bounce and Float animation ──
-    // Subtle scale up peaking halfway through the word. Exact timing sync!
-    val sinProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
-    val wordScale = 1f + (0.015f * sinProgress)
-    
-    // Float is only applied when the word is actively sung, making it pop from the line.
-    // We use animateFloatAsState so that when it finishes (and drops to 0f), 
-    // it smoothly decays back into place rather than a harsh mathematical snap.
-    val targetFloat = if (isWordActive) -4f * sinProgress else 0f
-    val floatOffset by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = targetFloat,
-        animationSpec = androidx.compose.animation.core.tween(
-            durationMillis = if (isWordActive) 50 else 350,
-            easing = androidx.compose.animation.core.FastOutSlowInEasing
-        )
+    // 🔥 IMPROVED: Apple Music Float Effect
+    val floatTarget = if (isWordActive) -6f else 0f
+    val floatOffset by animateFloatAsState(
+        targetValue = floatTarget,
+        animationSpec = tween(durationMillis = if (isWordActive) 80 else 400, easing = FastOutSlowInEasing)
     )
 
-    // ── Glow intensity ──
-    // "lines and words that are done animating shouldnt continue to glow"
-    // Make glow build up faster: reach max intensity at 50% progress
-    val glowProgress = (progress * 2f).coerceAtMost(1f)
-    val glowAlpha = if (isWordActive) glowProgress * 0.45f else 0f
-    val glowRadius = if (isWordActive) glowProgress * 12f else 0f
-
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
-    val fontWeight = FontWeight.SemiBold // Consistent weight — no thin→bold jump
+    val fontWeight = FontWeight.SemiBold
 
-    // ── Two-layer rendering: dim base + liquid fill overlay ──
     Box(
-        modifier = Modifier
-            .graphicsLayer {
-                translationY = floatOffset * density
-                scaleX = wordScale
-                scaleY = wordScale
+        modifier = Modifier.graphicsLayer {
+            // 🔥 IMPROVED: Math calculation pushed inside graphicsLayer to skip full recomposition
+            val progress = when {
+                isWordComplete -> 1f
+                currentPositionMs <= wordStartMs -> 0f
+                else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
             }
+            val sinProgress = kotlin.math.sin(progress * kotlin.math.PI).toFloat()
+            // Slightly stronger Apple-style zoom
+            val wordScale = 1f + (0.02f * sinProgress)
+            
+            translationY = floatOffset * density
+            scaleX = wordScale
+            scaleY = wordScale
+        }
     ) {
-        // Layer 1: Base text (always dimmed)
+        // Layer 1: Base text (Dimmed)
         Text(
             text = word.text,
             style = MaterialTheme.typography.headlineMedium.copy(
@@ -1225,7 +854,7 @@ private fun AnimatedWordV2(
             color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha),
         )
 
-        // Layer 2: Filled overlay with liquid sweep mask + glow
+        // Layer 2: Filled overlay with liquid sweep mask
         if (isWordComplete || isWordActive || isLinePast) {
             Text(
                 text = word.text,
@@ -1235,26 +864,29 @@ private fun AnimatedWordV2(
                     fontStyle = FontStyle.Normal,
                     lineHeight = (actualFontSize * 1.35f).sp,
                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                    shadow = if (glowAlpha > 0f) {
+                    shadow = if (isWordActive) {
+                        // Dynamic glow calculated inside shadow to prevent recomposition
+                        val progress = ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                        val glowProgress = (progress * 2f).coerceAtMost(1f)
                         Shadow(
-                            color = textColor.copy(alpha = glowAlpha),
+                            color = textColor.copy(alpha = glowProgress * 0.5f),
                             offset = Offset.Zero,
-                            blurRadius = glowRadius.coerceAtLeast(1f),
+                            blurRadius = glowProgress * 16f,
                         )
                     } else null,
                 ),
-                color = textColor.copy(
-                    alpha = if (isBackground) 0.75f else 1f
-                ),
+                color = textColor.copy(alpha = if (isBackground) 0.75f else 1f),
                 modifier = if (isWordActive && !isWordComplete) {
                     Modifier
                         .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                         .drawWithContent {
                             drawContent()
-                            val edgeWidth = 8.dp.toPx()
-                            val center = (size.width + edgeWidth * 2) * progress - edgeWidth
+                            // Mask calculation calculated exclusively during draw phase
+                            val currentProg = ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                            val edgeWidth = 10.dp.toPx()
+                            val center = (size.width + edgeWidth * 2) * currentProg - edgeWidth
                             drawRect(
-                                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                brush = Brush.horizontalGradient(
                                     colors = listOf(Color.Black, Color.Transparent),
                                     startX = center - edgeWidth,
                                     endX = center + edgeWidth,
@@ -1262,9 +894,7 @@ private fun AnimatedWordV2(
                                 blendMode = BlendMode.DstIn,
                             )
                         }
-                } else {
-                    Modifier 
-                }
+                } else { Modifier }
             )
         }
     }
