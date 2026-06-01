@@ -23,11 +23,11 @@
     <string name="account">Compte</string>
     <string name="liked">Liked</string>
     <string name="downloads">Downloads</string>
-    <string name="library">Library</string>
+    <string name="library">Bibliothèque</string>
     <string name="play_all">Play all</string>
-    <string name="identify_music">Identify Music</string>
-    <string name="lyrics_v2_experimental">Lyrics V2 (Experimental)</string>
-    <string name="lyrics_v2_description">Use the new fluid word-synced lyrics engine</string>
+    <string name="identify_music">Identifier la musique</string>
+    <string name="lyrics_v2_experimental">Paroles V2 (Expérimental)</string>
+    <string name="lyrics_v2_description">Utilisez le nouveau moteur de paroles synchronisées avec le texte</string>
     <string name="quick_picks">Sélection Rapide</string>
     <string name="quick_picks_empty">Écoutez des titres pour générer votre Sélection Rapide</string>
     <string name="speed_dial">Accès Rapide</string>
