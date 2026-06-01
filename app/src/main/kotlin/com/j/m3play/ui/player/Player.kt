@@ -20,6 +20,7 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -233,6 +234,7 @@ fun BottomSheetPlayer(
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
+   
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
     var keyboardSkipMultiplier by remember { mutableStateOf(1) }
@@ -308,12 +310,15 @@ fun BottomSheetPlayer(
     var duration by rememberSaveable(mediaMetadata?.id) {
         mutableLongStateOf(playerConnection.player.duration)
     }
+  
     var sliderPosition by remember(mediaMetadata?.id) {
         mutableStateOf<Long?>(null)
     }
     var isUserSeeking by remember(mediaMetadata?.id) {
         mutableStateOf(false)
     }
+    // 🔥 NEW METROLIST STATE 🔥
+    var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
@@ -586,21 +591,13 @@ fun BottomSheetPlayer(
         collapsedBound = dismissedBound + 1.dp,
         initialAnchor = 1
     )
-    
-    val lyricsSheetState = rememberBottomSheetState(
-        dismissedBound = 0.dp,
-        expandedBound = state.expandedBound,
-        collapsedBound = 0.dp,
-        initialAnchor = 1
-    )
 
     BackHandler(
         enabled =
-        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) || (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+        (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
             (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
-            !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
             !state.isCollapsed && !state.isDismissed -> state.collapseSoft()
         }
@@ -704,7 +701,7 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            // 🔥 YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation Fixed!
+            //  YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation Fixed!
             Box(
                 modifier = Modifier.graphicsLayer {
                     val range = state.expandedBound - state.collapsedBound
@@ -777,6 +774,7 @@ fun BottomSheetPlayer(
             }
         }
 
+        // STATE PASSED TO CONTROLS 
         val controlsContent: @Composable ColumnScope.(MediaMetadata) -> Unit = { mediaMetadata ->
             PlayerControlsContent(
                 mediaMetadata = mediaMetadata,
@@ -804,6 +802,8 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
+                showInlineLyrics = showInlineLyrics,
+                onToggleLyrics = { showInlineLyrics = !showInlineLyrics }
             )
         }
 
@@ -1041,7 +1041,7 @@ fun BottomSheetPlayer(
                                                     playerBottomSheetState = state,
                                                     onShowDetailsDialog = {
                                                         bottomSheetPageState.show {
-                                                            ShowMediaInfo(metadata.id)
+                                                             ShowMediaInfo(metadata.id)
                                                         }
                                                     },
                                                     onDismiss = menuState::dismiss
@@ -1066,20 +1066,36 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .graphicsLayer {
                                     // 🌸 BEAUTIFUL SPRING REVEAL FOR ALBUM ART 🌸
-                                    // Scale from 75% to 100% with physical bottom sheet bounce
                                     val scale = 0.75f + (0.25f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    // Slide up distance kam kiya (150dp se 60dp) taaki smooth lage!
                                     translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
-                            Thumbnail(
-                                sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                isPlayerExpanded = state.isExpanded
-                            )
+                            // 🔥 METROLIST TRANSITION ANIMATED CONTENT 🔥
+                            AnimatedContent(
+                                targetState = showInlineLyrics,
+                                label = "LyricsTransition",
+                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
+                            ) { showLyrics ->
+                                if (showLyrics) {
+                                    enrichedMetadata?.let { metadata ->
+                                        InlineLyricsView(
+                                            mediaMetadata = metadata,
+                                            showLyrics = showLyrics,
+                                            positionProvider = { position },
+                                            textBackgroundColor = TextBackgroundColor
+                                        )
+                                    }
+                                } else {
+                                    Thumbnail(
+                                        sliderPositionProvider = { sliderPosition },
+                                        modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                        isPlayerExpanded = state.isExpanded
+                                    )
+                                }
+                            }
                         }
 
                         Column(
@@ -1126,37 +1142,11 @@ fun BottomSheetPlayer(
             TextBackgroundColor = TextBackgroundColor,
             textButtonColor = textButtonColor,
             iconButtonColor = iconButtonColor,
-            onShowLyrics = { lyricsSheetState.expandSoft() },
+            onShowLyrics = { /* Lyrics are now inline, queue button for lyrics is optional or can be removed */ },
             pureBlack = pureBlack,
         )
 
-        // Lyrics BottomSheet - separate from Queue
-        mediaMetadata?.let { metadata ->
-            BottomSheet(
-                state = lyricsSheetState,
-                backgroundColor = Color.Unspecified,
-                onDismiss = { /* Optional dismiss action */ },
-                collapsedContent = {
-                    // Empty collapsed content - fully hidden when collapsed
-                }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(
-                                alpha = lyricsSheetState.progress.coerceIn(0f, 1f)
-                            )
-                        )
-                ) {
-                    LyricsScreen(
-                        mediaMetadata = metadata,
-                        onBackClick = { lyricsSheetState.collapseSoft() },
-                        navController = navController
-                    )
-                }
-            }
-        }
+        // Note: Lyrics BottomSheet is removed as we now use InlineLyricsView
     }
 }
 
