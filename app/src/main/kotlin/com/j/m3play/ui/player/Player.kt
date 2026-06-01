@@ -1135,6 +1135,7 @@ fun BottomSheetPlayer(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
     sliderPosition: Long?,
