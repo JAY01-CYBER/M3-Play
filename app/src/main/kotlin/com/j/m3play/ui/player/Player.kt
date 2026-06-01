@@ -21,6 +21,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -320,7 +322,6 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    // 🔥 METROLIST STATES 🔥
     var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     var isFullScreen by rememberSaveable { mutableStateOf(false) }
     
@@ -821,6 +822,16 @@ fun BottomSheetPlayer(
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
+        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
+        val bottomPadding by animateDpAsState(
+            targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
+            label = "bottomPadding"
+        )
+        val landscapeBottomPadding by animateDpAsState(
+            targetValue = if (isFullScreen) 24.dp else (queueSheetState.collapsedBound + 48.dp),
+            label = "landscapeBottomPadding"
+        )
+
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
@@ -906,7 +917,8 @@ fun BottomSheetPlayer(
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound + 48.dp),
+                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
+                            .animateContentSize(),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -925,6 +937,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -1050,7 +1063,8 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound),
+                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
+                            .animateContentSize(),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -1067,6 +1081,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
