@@ -161,7 +161,6 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
-    // Loading Text vs Provider Text
     val providerBadgeText = remember(currentLyrics) {
         if (currentLyrics == null) {
             "LOADING LYRICS"
@@ -884,7 +883,7 @@ fun PremiumProviderBadge(
     }
 }
 
-//  NAYA COMPONENT FOR LYRICS
+// 🔥 INLINE LYRICS COMPONENT FOR PLAYER 🔥
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InlineLyricsView(
