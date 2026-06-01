@@ -261,9 +261,9 @@ fun PlayerTopActions(
     bottomSheetPageState: BottomSheetPageState,
     context: Context,
     currentSongLiked: Boolean,
-    showInlineLyrics: Boolean, // 🔥 METROLIST ADDITION
-    isFullScreen: Boolean,     // 🔥 METROLIST ADDITION
-    onToggleFullScreen: () -> Unit // 🔥 METROLIST ADDITION
+    showInlineLyrics: Boolean, 
+    isFullScreen: Boolean,     
+    onToggleFullScreen: () -> Unit 
 ) {
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
 
@@ -294,7 +294,7 @@ fun PlayerTopActions(
                                 .clickable(onClick = onToggleFullScreen)
                         ) {
                             Image(
-                                painter = painterResource(R.drawable.fullscreen),
+                                painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen),
                                 contentDescription = null,
                                 colorFilter = ColorFilter.tint(iconButtonColor),
                                 modifier = Modifier.align(Alignment.Center).size(24.dp)
@@ -386,7 +386,7 @@ fun PlayerTopActions(
                                 .clickable(onClick = onToggleFullScreen),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(painter = painterResource(R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                            Icon(painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
                         }
                     } else {
                         Box(
@@ -459,7 +459,7 @@ fun PlayerTopActions(
                             modifier = Modifier.height(44.dp).width(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(painter = painterResource(R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp))
+                                Icon(painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp))
                             }
                         }
                     } else {
@@ -518,7 +518,7 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Options (Hide when Lyrics are open to keep it clean)
+                // More Options (Hide when Lyrics are open)
                 AnimatedVisibility(visible = !showInlineLyrics) {
                     Surface(
                         onClick = {
@@ -564,7 +564,7 @@ fun PlayerTopActions(
                             modifier = Modifier.size(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(painterResource(R.drawable.fullscreen), null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                         }
                     } else {
@@ -649,7 +649,7 @@ fun PlayerTopActions(
                             modifier = Modifier.height(42.dp).width(42.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(painter = painterResource(R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(20.dp))
+                                Icon(painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(20.dp))
                             }
                         }
                     } else {
@@ -873,7 +873,6 @@ fun PlayerTimeLabel(
     ) {
         Text(text = makeTimeString(sliderPosition ?: position), style = MaterialTheme.typography.labelMedium, color = textBackgroundColor, maxLines = 1)
 
-        // Exclusive Glowing Codec Badge for V1
         if (playerDesignStyle == PlayerDesignStyle.V1 && currentFormat != null) {
             val codec = currentFormat.mimeType.substringAfter("/").uppercase()
             val label = when {
@@ -1600,7 +1599,6 @@ fun PlayerPlaybackControls(
 
 /**
  * Wrapper composable that combines all player control components.
- * Updated to support Metrolist Style Fullscreen & Morphing Buttons!
  */
 @Composable
 fun PlayerControlsContent(
@@ -1686,8 +1684,6 @@ fun PlayerControlsContent(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // 🔥 Galti theek kar di: Wo 2nd duplicate lyrics button completely hata diya gaya hai!
-
         PlayerTopActions(
             mediaMetadata = mediaMetadata,
             playerDesignStyle = playerDesignStyle,
@@ -1707,7 +1703,6 @@ fun PlayerControlsContent(
         )
     }
 
-    // 🔥 METROLIST FULLSCREEN LOGIC: Jab fullscreen on hoga to slider aur controls hide ho jayenge
     AnimatedVisibility(
         visible = !isFullScreen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -2263,244 +2258,6 @@ fun PlayerBackground(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LittlePlayerContent(
-    mediaMetadata: MediaMetadata,
-    sliderPosition: Long?,
-    positionMs: Long,
-    durationMs: Long,
-    textColor: Color,
-    liked: Boolean,
-    onCollapse: () -> Unit,
-    onToggleLike: () -> Unit,
-    onExpandQueue: () -> Unit,
-    onMenuClick: () -> Unit,
-) {
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val titleColor = textColor.copy(alpha = 0.95f)
-        val secondaryColor = textColor.copy(alpha = 0.6f)
-        val timeColor = textColor.copy(alpha = 0.85f)
-
-        val scale =
-            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
-                .coerceIn(0.78f, 1.15f)
-
-        val titleSize = (56f * scale).sp
-        val timeSize = (44f * scale).sp
-        val iconSize = (26f * scale).dp
-        val collapseIconSize = (28f * scale).dp
-        val horizontalPadding = (18f * scale).dp
-        val verticalPadding = (10f * scale).dp
-
-        val displayPositionMs = sliderPosition ?: positionMs
-
-        val timeText = remember(displayPositionMs, durationMs) {
-            val positionText = makeTimeString(displayPositionMs)
-            val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
-            if (durationText.isBlank()) positionText else "$positionText/$durationText"
-        }
-
-        val artistsText = remember(mediaMetadata.artists) {
-            mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
-        }
-
-        Column(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
-        ) {
-            Spacer(Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    AnimatedContent(
-                        targetState = mediaMetadata.title,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "little_title",
-                    ) { title ->
-                        Text(
-                            text = title,
-                            color = titleColor,
-                            fontSize = titleSize,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                    }
-
-                    Spacer(Modifier.height((10f * scale).dp))
-
-                    mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle ->
-                        AnimatedContent(
-                            targetState = albumTitle,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "little_album",
-                        ) { album ->
-                            Text(
-                                text = album,
-                                color = secondaryColor,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-                    }
-
-                    artistsText.takeIf { it.isNotBlank() }?.let { artists ->
-                        AnimatedContent(
-                            targetState = artists,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "little_artists",
-                        ) { artistLine ->
-                            Text(
-                                text = "by - $artistLine",
-                                color = secondaryColor,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.basicMarquee(),
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.width((16f * scale).dp))
-
-                Text(
-                    text = timeText,
-                    color = timeColor,
-                    fontSize = timeSize,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    modifier = Modifier.widthIn(min = (140f * scale).dp),
-                )
-            }
-
-            Spacer(Modifier.height((14f * scale).dp))
-
-            Spacer(Modifier.height((6f * scale).dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.expand_more),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.8f),
-                    modifier =
-                    Modifier
-                        .size(collapseIconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onCollapse,
-                        ),
-                )
-
-                Spacer(Modifier.weight(1f))
-
-                Icon(
-                    painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
-                    contentDescription = null,
-                    tint =
-                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-                    else textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleLike,
-                        ),
-                )
-
-                Spacer(Modifier.width((18f * scale).dp))
-
-                Icon(
-                    painter = painterResource(R.drawable.queue_music),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onExpandQueue,
-                        ),
-                )
-
-                Spacer(Modifier.width((18f * scale).dp))
-
-                Icon(
-                    painter = painterResource(R.drawable.more_vert),
-                    contentDescription = null,
-                    tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onMenuClick,
-                        ),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LandscapeLikeBox(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Layout(
-        content = content,
-        modifier = modifier.graphicsLayer { clip = true },
-    ) { measurables, constraints ->
-        val measurable = measurables.firstOrNull()
-        if (measurable == null) {
-            layout(constraints.minWidth, constraints.minHeight) {}
-        } else {
-            val swappedConstraints =
-                Constraints(
-                    minWidth = constraints.minHeight,
-                    maxWidth = constraints.maxHeight,
-                    minHeight = constraints.minWidth,
-                    maxHeight = constraints.maxWidth,
-                )
-
-            val placeable = measurable.measure(swappedConstraints)
-            val width = constraints.maxWidth
-            val height = constraints.maxHeight
-            val rotatedWidth = placeable.height
-            val rotatedHeight = placeable.width
-
-            val x = ((width - rotatedWidth) / 2).coerceAtLeast(0)
-            val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
-
-            layout(width, height) {
-                placeable.placeWithLayer(x, y) {
-                    transformOrigin = TransformOrigin(0f, 0f)
-                    rotationZ = 90f
-                    translationX = placeable.height.toFloat()
-                }
-            }
-        }
-    }
-}
-
 private fun Modifier.littlePlayerOverlayGestures(
     seekEnabled: Boolean,
     durationMs: Long,
