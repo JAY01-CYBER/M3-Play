@@ -283,7 +283,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share -> Fullscreen Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "ShareFullscreen") { showLyrics ->
                     if (showLyrics) {
                         Box(
@@ -325,7 +324,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // Favorite -> Lyrics Menu Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "FavoriteLyricsMenu") { showLyrics ->
                     if (showLyrics) {
                         Box(
@@ -375,7 +373,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share -> Fullscreen Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "ShareFullscreen") { showLyrics ->
                     if (showLyrics) {
                         Box(
@@ -408,7 +405,6 @@ fun PlayerTopActions(
                     }
                 }
                 
-                // Favorite -> Lyrics Menu Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "FavoriteLyricsMenu") { showLyrics ->
                     if (showLyrics) {
                         Box(
@@ -449,7 +445,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share -> Fullscreen Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "ShareFullscreen", transitionSpec = { fadeIn() togetherWith fadeOut() }) { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -459,7 +454,8 @@ fun PlayerTopActions(
                             modifier = Modifier.height(44.dp).width(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp))
+                                Icon(painter = painterResource(if (isFullScreen) R.drawable.fullscreen_exit else R.drawable.fullscreen), contentDescription = null, tint = textBackgroundColor, modifier = Modifier.size(22.dp)
+                                )
                             }
                         }
                     } else {
@@ -483,7 +479,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // Favorite -> Lyrics Menu Morph
                 AnimatedContent(targetState = showInlineLyrics, label = "LikeLyricsMenu", transitionSpec = { fadeIn() togetherWith fadeOut() }) { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -518,7 +513,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Options (Hide when Lyrics are open)
                 AnimatedVisibility(visible = !showInlineLyrics) {
                     Surface(
                         onClick = {
@@ -553,7 +547,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share -> Fullscreen
                 AnimatedContent(targetState = showInlineLyrics, label = "ShareFullscreen") { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -589,7 +582,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Options -> Lyrics Menu
                 AnimatedContent(targetState = showInlineLyrics, label = "MoreLyricsMenu") { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -639,7 +631,6 @@ fun PlayerTopActions(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Share -> Fullscreen
                 AnimatedContent(targetState = showInlineLyrics, label = "ShareFullscreen") { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -673,7 +664,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // Favorite -> Lyrics Menu
                 AnimatedContent(targetState = showInlineLyrics, label = "LikeLyricsMenu") { showLyrics ->
                     if (showLyrics) {
                         Surface(
@@ -704,7 +694,6 @@ fun PlayerTopActions(
                     }
                 }
 
-                // More Options (Hide in lyrics mode)
                 AnimatedVisibility(visible = !showInlineLyrics) {
                     Surface(
                         onClick = {
@@ -1384,7 +1373,7 @@ fun PlayerPlaybackControls(
 
                 // Next
                 Surface(
-                    onClick = playerConnection::seekToNext,
+                    onClick = { playerConnection.seekToNext() },
                     enabled = canSkipNext,
                     shape = RoundedCornerShape(50),
                     color = Color.White.copy(alpha = 0.1f),
@@ -1703,36 +1692,38 @@ fun PlayerControlsContent(
         )
     }
 
+    // 🔥 METROLIST FIX: Slider aur Time labels animation block se bahar hain taaki fullscreen me hide na hon 🔥
+    Spacer(Modifier.height(12.dp))
+
+    PlayerSlider(
+        sliderStyle = sliderStyle,
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        isPlaying = isPlaying,
+        textButtonColor = textButtonColor,
+        onValueChange = onSliderValueChange,
+        onValueChangeFinished = onSliderValueChangeFinished
+    )
+
+    Spacer(Modifier.height(4.dp))
+
+    PlayerTimeLabel(
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        textBackgroundColor = textBackgroundColor,
+        currentFormat = currentFormat,
+        playerDesignStyle = playerDesignStyle
+    )
+
+    // 🔥 SIRF CONTROL BUTTONS FULLSCREEN MEIN HIDE HONGE 🔥
     AnimatedVisibility(
         visible = !isFullScreen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
         exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut()
     ) {
         Column {
-            Spacer(Modifier.height(12.dp))
-
-            PlayerSlider(
-                sliderStyle = sliderStyle,
-                sliderPosition = sliderPosition,
-                position = position,
-                duration = duration,
-                isPlaying = isPlaying,
-                textButtonColor = textButtonColor,
-                onValueChange = onSliderValueChange,
-                onValueChangeFinished = onSliderValueChangeFinished
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            PlayerTimeLabel(
-                sliderPosition = sliderPosition,
-                position = position,
-                duration = duration,
-                textBackgroundColor = textBackgroundColor,
-                currentFormat = currentFormat,
-                playerDesignStyle = playerDesignStyle
-            )
-
             Spacer(Modifier.height(12.dp))
 
             PlayerPlaybackControls(
@@ -2340,7 +2331,7 @@ private fun Modifier.littlePlayerOverlayGestures(
                     lastTapUptimeMs = now
                     lastTapPosition = upPosition
                 }
-            }
-        }
+            }TouchSlop
+ TouchSlop        } touchSlop
     }
 }
