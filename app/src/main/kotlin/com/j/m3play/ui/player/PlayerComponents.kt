@@ -2331,7 +2331,7 @@ private fun Modifier.littlePlayerOverlayGestures(
                     lastTapUptimeMs = now
                     lastTapPosition = upPosition
                 }
-            }TouchSlop
- TouchSlop        } touchSlop
+            }
+        }
     }
 }
