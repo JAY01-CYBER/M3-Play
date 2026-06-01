@@ -21,6 +21,9 @@
     <string name="stats">Statistiques</string>
     <string name="mood_and_genres">Ambiance &amp; Genres</string>
     <string name="account">Compte</string>
+    <string name="liked">Liked</string>
+    <string name="downloads">Downloads</string>
+    <string name="library">Library</string>
     <string name="quick_picks">Sélection Rapide</string>
     <string name="quick_picks_empty">Écoutez des titres pour générer votre Sélection Rapide</string>
     <string name="speed_dial">Accès Rapide</string>
@@ -41,7 +44,7 @@
     <string name="yesterday">Hier</string>
     <string name="this_week">Cette semaine</string>
     <string name="last_week">Semaine dernière</string>
-    <string name="most_played_songs">Titres les plus écoutés</string>
+    <string name="most_played_songs">Most played artists</string>
     <string name="most_played_artists">Artistes les plus écoutés</string>
     <string name="most_played_albums">Albums les plus écoutés</string>
     <string name="search">Rechercher</string>
