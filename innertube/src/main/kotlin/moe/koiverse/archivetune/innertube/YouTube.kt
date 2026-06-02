@@ -79,10 +79,6 @@ import java.net.Proxy
 import java.util.Locale
 import kotlin.random.Random
 
-/**
- * Parse useful data with [InnerTube] sending requests.
- * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
- */
 object YouTube {
     private val innerTube = InnerTube()
 
@@ -185,8 +181,14 @@ object YouTube {
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
+        
+        // Handle layout A/B testing: Tabs vs direct SectionList
+        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
+            ?: response.contents?.sectionListRenderer?.contents
+            ?: emptyList()
+
         SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
+            summaries = sections.mapNotNull { it ->
                 if (it.musicCardShelfRenderer != null)
                     SearchSummary(
                         title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
@@ -200,25 +202,28 @@ object YouTube {
                             .distinctBy { it.id }
                             .ifEmpty { null } ?: return@mapNotNull null
                     )
-                else
+                else if (it.musicShelfRenderer != null)
                     SearchSummary(
-                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = it.musicShelfRenderer?.contents?.getItems()
+                        title = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer.contents?.getItems()
                             ?.mapNotNull {
                                 SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
                             }
                             ?.distinctBy { it.id }
                             ?.ifEmpty { null } ?: return@mapNotNull null
                     )
-            }!!
+                else null
+            }
         )
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
         
-        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents.orEmpty()
+        // Fallback for new un-tabbed layouts
+        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
+            ?: response.contents?.sectionListRenderer?.contents
+            ?: emptyList()
             
         // Look specifically for the musicShelfRenderer, ignoring ads or suggestion blocks at the end
         val targetShelf = sections.find { it.musicShelfRenderer != null }?.musicShelfRenderer
@@ -244,17 +249,15 @@ object YouTube {
     suspend fun album(browseId: String, withSongs: Boolean = true): Result<AlbumPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
         val contents = response.contents ?: throw IllegalStateException("Missing browse contents for $browseId")
-        val twoColumn = contents.twoColumnBrowseResultsRenderer
-            ?: throw IllegalStateException("Missing twoColumnBrowseResultsRenderer for $browseId")
-        val tabs = twoColumn.tabs ?: throw IllegalStateException("Missing tabs for $browseId")
-        val header = tabs.firstOrNull()
-            ?.tabRenderer
-            ?.content
-            ?.sectionListRenderer
-            ?.contents
-            ?.firstOrNull()
-            ?.musicResponsiveHeaderRenderer
+        
+        // Support Single Column Layout mapping
+        val tabs = contents.twoColumnBrowseResultsRenderer?.tabs 
+            ?: contents.singleColumnBrowseResultsRenderer?.tabs 
+            ?: throw IllegalStateException("Missing tabs for $browseId")
+            
+        val header = tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()?.musicResponsiveHeaderRenderer
             ?: throw IllegalStateException("Missing album header for $browseId")
+            
         val playlistId = response.microformat?.microformatDataRenderer?.urlCanonical?.substringAfterLast('=')!!
         val albumTitle = header.title.runs?.firstOrNull()?.text
             ?: throw IllegalStateException("Missing album title for $browseId")
@@ -273,6 +276,11 @@ object YouTube {
             .musicThumbnailRenderer
             ?.getThumbnailUrl()
             ?: throw IllegalStateException("Missing album thumbnail url for $browseId")
+            
+        val secondaryContents = contents.twoColumnBrowseResultsRenderer?.secondaryContents
+        val otherVersions = secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
+            ?: tabs.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.find { it.musicCarouselShelfRenderer != null }?.musicCarouselShelfRenderer?.contents
+            
         AlbumPage(
             album = AlbumItem(
                 browseId = browseId,
@@ -281,7 +289,7 @@ object YouTube {
                 artists = albumArtists,
                 year = albumYear,
                 thumbnail = albumThumbnail,
-                explicit = false, // TODO: Extract explicit badge for albums from YouTube response
+                explicit = false, 
             ),
             songs = if (withSongs) albumSongs(playlistId, AlbumItem(
                 browseId = browseId,
@@ -292,34 +300,34 @@ object YouTube {
                 thumbnail = albumThumbnail,
                 explicit = false
             )).getOrThrow() else emptyList(),
-            otherVersions = twoColumn.secondaryContents?.sectionListRenderer?.contents?.getOrNull(1)?.musicCarouselShelfRenderer?.contents
-                ?.mapNotNull { it.musicTwoRowItemRenderer }
-                ?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer)
-                .orEmpty()
+            otherVersions = otherVersions?.mapNotNull { it.musicTwoRowItemRenderer }?.mapNotNull(NewReleaseAlbumPage::fromMusicTwoRowItemRenderer).orEmpty()
         )
     }
 
     suspend fun albumSongs(playlistId: String, album: AlbumItem? = null): Result<List<SongItem>> = runCatching {
         var response = innerTube.browse(WEB_REMIX, "VL$playlistId").body<BrowseResponse>()
-        val songs = response.contents?.twoColumnBrowseResultsRenderer
-            ?.secondaryContents?.sectionListRenderer
-            ?.contents?.firstOrNull()
-            ?.musicPlaylistShelfRenderer?.contents?.getItems()
-            ?.mapNotNull {
-                AlbumPage.getSong(it, album)
-            }!!
-            .toMutableList()
-        var continuation = response.contents.twoColumnBrowseResultsRenderer.secondaryContents.sectionListRenderer
-            .contents.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation()
+        
+        val tabs = response.contents?.twoColumnBrowseResultsRenderer?.tabs 
+            ?: response.contents?.singleColumnBrowseResultsRenderer?.tabs
+            
+        val secondaryContents = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents
+        val shelfContents = secondaryContents?.sectionListRenderer?.contents 
+            ?: tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
+            
+        val shelf = shelfContents?.find { it.musicPlaylistShelfRenderer != null }?.musicPlaylistShelfRenderer
+        
+        val songs = shelf?.contents?.getItems()?.mapNotNull {
+            AlbumPage.getSong(it, album)
+        }?.toMutableList() ?: mutableListOf()
+        
+        var continuation = shelf?.continuations?.getContinuation()
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
-        val maxRequests = 50 // Prevent excessive API calls
+        val maxRequests = 50 
         
         var consecutiveEmptyResponses = 0
         while (continuation != null && requestCount < maxRequests) {
-            if (continuation in seenContinuations) {
-                break
-            }
+            if (continuation in seenContinuations) break
             seenContinuations.add(continuation)
             requestCount++
             
@@ -451,7 +459,12 @@ object YouTube {
             browseId = "VL$playlistId",
             setLogin = true
         ).body<BrowseResponse>()
-        val base = response.contents?.twoColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
+        
+        // Mobile mapping for layout shifts
+        val tabs = response.contents?.twoColumnBrowseResultsRenderer?.tabs 
+            ?: response.contents?.singleColumnBrowseResultsRenderer?.tabs
+            
+        val base = tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull()
         val header = base?.musicResponsiveHeaderRenderer ?: base?.musicEditablePlaylistDetailHeaderRenderer?.header?.musicResponsiveHeaderRenderer
         if (header == null) throw IllegalStateException("PLAYLIST_PRIVATE")
 
@@ -460,6 +473,13 @@ object YouTube {
             ?: throw IllegalStateException("PLAYLIST_PRIVATE")
 
         val editable = base?.musicEditablePlaylistDetailHeaderRenderer != null
+
+        // Locate shelf resiliently 
+        val secondaryContents = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents
+        val shelfContents = secondaryContents?.sectionListRenderer?.contents 
+            ?: tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
+            
+        val shelf = shelfContents?.find { it.musicPlaylistShelfRenderer != null }?.musicPlaylistShelfRenderer
 
         PlaylistPage(
             playlist = PlaylistItem(
@@ -480,14 +500,12 @@ object YouTube {
                 }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint,
                 isEditable = editable
             ),
-            songs = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getItems()?.mapNotNull {
-                    PlaylistPage.fromMusicResponsiveListItemRenderer(it)
-                } ?: emptyList(),
-            songsContinuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.contents?.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation(),
-            continuation = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
-                ?.continuations?.getContinuation()
+            songs = shelf?.contents?.getItems()?.mapNotNull {
+                PlaylistPage.fromMusicResponsiveListItemRenderer(it)
+            } ?: emptyList(),
+            songsContinuation = shelf?.continuations?.getContinuation(),
+            continuation = secondaryContents?.sectionListRenderer?.continuations?.getContinuation()
+                ?: tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.continuations?.getContinuation()
         )
     }
 
@@ -644,9 +662,17 @@ object YouTube {
 
     suspend fun browse(browseId: String, params: String?): Result<BrowseResult> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId = browseId, params = params).body<BrowseResponse>()
+        
+        // Add fallback support for different tab wrappers
+        val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs 
+            ?: response.contents?.twoColumnBrowseResultsRenderer?.tabs
+            
+        val sections = tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
+            ?: response.contents?.sectionListRenderer?.contents.orEmpty()
+            
         BrowseResult(
             title = response.header?.musicHeaderRenderer?.title?.runs?.firstOrNull()?.text,
-            items = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
+            items = sections.mapNotNull { content ->
                 when {
                     content.gridRenderer != null -> {
                         BrowseResult.Item(
@@ -780,14 +806,6 @@ object YouTube {
             }
         }.toMutableList()
 
-        /*
-         * We need to fetch the artist page when accessing the library because it allows to have
-         * a proper playEndpoint, which is needed to correctly report the playing indicator in
-         * the home page.
-         *
-         * Despite this, we need to use the old thumbnail because it's the proper format for a
-         * square picture, which is what we need.
-         */
         items.forEachIndexed { index, item ->
             if (item is ArtistItem) {
                 artist(item.id).getOrNull()?.artist?.let { fetchedArtist ->
@@ -1094,7 +1112,6 @@ object YouTube {
         val songs = items.map { it.first }
         val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
 
-        // load automix items
         playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
             return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
                 result.copy(
@@ -1152,7 +1169,7 @@ object YouTube {
 
     suspend fun queue(videoIds: List<String>? = null, playlistId: String? = null): Result<List<SongItem>> = runCatching {
         if (videoIds != null) {
-            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
+            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) 
         }
         innerTube.getQueue(WEB_REMIX, videoIds, playlistId).body<GetQueueResponse>().queueDatas
             .mapNotNull {
