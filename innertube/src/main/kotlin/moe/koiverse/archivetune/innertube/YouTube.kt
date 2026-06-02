@@ -42,7 +42,7 @@ import com.j.m3play.innertube.models.response.GetTranscriptResponse
 import com.j.m3play.innertube.models.response.NextResponse
 import com.j.m3play.innertube.models.response.PlayerResponse
 import com.j.m3play.innertube.models.response.SearchResponse
-import com.j.j.m3play.innertube.pages.AlbumPage
+import com.j.m3play.innertube.pages.AlbumPage
 import com.j.m3play.innertube.pages.ArtistItemsContinuationPage
 import com.j.m3play.innertube.pages.ArtistItemsPage
 import com.j.m3play.innertube.pages.ArtistPage
