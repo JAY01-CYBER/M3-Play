@@ -239,7 +239,11 @@ dependencies {
     implementation("com.github.therealbush:translator:1.1.1")
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
-    implementation("androidx.compose.animation:animation:1.7.5")
+    implementation("androidx.compose.animation:animation:1.7.5") 
+    
+    // NewPipe Extractor
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.2")
+    implementation("org.mozilla:rhino:1.7.14") // JS engine (Anti-bot ke liye)
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
