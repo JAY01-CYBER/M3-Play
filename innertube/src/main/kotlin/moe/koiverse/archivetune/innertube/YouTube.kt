@@ -79,6 +79,10 @@ import java.net.Proxy
 import java.util.Locale
 import kotlin.random.Random
 
+/**
+ * Parse useful data with [InnerTube] sending requests.
+ * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
+ */
 object YouTube {
     private val innerTube = InnerTube()
 
@@ -182,10 +186,7 @@ object YouTube {
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         
-        // Handle layout A/B testing: Tabs vs direct SectionList
-        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
-            ?: response.contents?.sectionListRenderer?.contents
-            ?: emptyList()
+        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents ?: emptyList()
 
         SearchSummaryPage(
             summaries = sections.mapNotNull { it ->
@@ -204,8 +205,8 @@ object YouTube {
                     )
                 else if (it.musicShelfRenderer != null)
                     SearchSummary(
-                        title = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = it.musicShelfRenderer.contents?.getItems()
+                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer?.contents?.getItems()
                             ?.mapNotNull {
                                 SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
                             }
@@ -220,12 +221,9 @@ object YouTube {
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
         
-        // Fallback for new un-tabbed layouts
-        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
-            ?: response.contents?.sectionListRenderer?.contents
-            ?: emptyList()
+        val sections = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents ?: emptyList()
             
-        // Look specifically for the musicShelfRenderer, ignoring ads or suggestion blocks at the end
+        // Ads aur random suggestion blocks ko ignore karke main shelf nikalna
         val targetShelf = sections.find { it.musicShelfRenderer != null }?.musicShelfRenderer
         
         SearchResult(
@@ -250,7 +248,6 @@ object YouTube {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
         val contents = response.contents ?: throw IllegalStateException("Missing browse contents for $browseId")
         
-        // Support Single Column Layout mapping
         val tabs = contents.twoColumnBrowseResultsRenderer?.tabs 
             ?: contents.singleColumnBrowseResultsRenderer?.tabs 
             ?: throw IllegalStateException("Missing tabs for $browseId")
@@ -460,7 +457,6 @@ object YouTube {
             setLogin = true
         ).body<BrowseResponse>()
         
-        // Mobile mapping for layout shifts
         val tabs = response.contents?.twoColumnBrowseResultsRenderer?.tabs 
             ?: response.contents?.singleColumnBrowseResultsRenderer?.tabs
             
@@ -474,7 +470,6 @@ object YouTube {
 
         val editable = base?.musicEditablePlaylistDetailHeaderRenderer != null
 
-        // Locate shelf resiliently 
         val secondaryContents = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents
         val shelfContents = secondaryContents?.sectionListRenderer?.contents 
             ?: tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents
@@ -663,7 +658,6 @@ object YouTube {
     suspend fun browse(browseId: String, params: String?): Result<BrowseResult> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId = browseId, params = params).body<BrowseResponse>()
         
-        // Add fallback support for different tab wrappers
         val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs 
             ?: response.contents?.twoColumnBrowseResultsRenderer?.tabs
             
