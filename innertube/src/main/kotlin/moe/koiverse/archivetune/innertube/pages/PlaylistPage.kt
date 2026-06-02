@@ -1,6 +1,5 @@
 /*
  * M3Play Data Layer
- *
  * Handles data, network & storage
  * Signature: M3PLAY::DATA::CORE::V1
  */
@@ -23,8 +22,14 @@ data class PlaylistPage(
 ) {
     companion object {
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+            // FALLBACK 1: Video ID nikalne ke multiple tarike dalo taaki fail na ho
+            val videoId = renderer.playlistItemData?.videoId 
+                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+                ?: return null
+
             return SongItem(
-                id = renderer.playlistItemData?.videoId ?: return null,
+                id = videoId,
                 title = renderer.flexColumns.firstOrNull()
                     ?.musicResponsiveListItemFlexColumnRenderer?.text
                     ?.runs?.firstOrNull()?.text ?: return null,
@@ -46,7 +51,9 @@ data class PlaylistPage(
                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                 } != null,
                 endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint,
-                setVideoId = renderer.playlistItemData.playlistSetVideoId ?: return null
+                
+                // FIX HERE: setVideoId agar null ho toh khali string ("") pass karo, return null mat karo!
+                setVideoId = renderer.playlistItemData?.playlistSetVideoId ?: ""
             )
         }
     }
