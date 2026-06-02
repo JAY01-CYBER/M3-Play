@@ -408,19 +408,25 @@ object YouTube {
                 continuation = gridRenderer.continuations?.getContinuation()
             )
         } else {
-            // Check for both shelf renderers
-            val shelfRenderer = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstNotNullOfOrNull {
-                    it.musicPlaylistShelfRenderer ?: it.musicShelfRenderer
+            // Safely check for the shelf renderer without confusing Kotlin's type inference
+            val shelfRendererContent = response.contents?.singleColumnBrowseResultsRenderer?.tabs?.firstOrNull()
+                ?.tabRenderer?.content?.sectionListRenderer?.contents?.firstOrNull {
+                    it.musicPlaylistShelfRenderer != null || it.musicShelfRenderer != null
                 }
-            val shelfContents = shelfRenderer?.contents ?: emptyList()
+                
+            val shelfContents = shelfRendererContent?.musicPlaylistShelfRenderer?.contents 
+                ?: shelfRendererContent?.musicShelfRenderer?.contents 
+                ?: emptyList()
+                
+            val shelfContinuations = shelfRendererContent?.musicPlaylistShelfRenderer?.continuations 
+                ?: shelfRendererContent?.musicShelfRenderer?.continuations
             
             ArtistItemsPage(
                 title = response.header?.musicHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: "Artist Items",
                 items = shelfContents.getItems()?.mapNotNull {
-                        ArtistItemsPage.fromMusicResponsiveListItemRenderer(it)
-                    } ?: emptyList(),
-                continuation = shelfRenderer?.continuations?.getContinuation()
+                    ArtistItemsPage.fromMusicResponsiveListItemRenderer(it)
+                } ?: emptyList(),
+                continuation = shelfContinuations?.getContinuation()
             )
         }
     }
@@ -494,11 +500,15 @@ object YouTube {
 
         val editable = base?.musicEditablePlaylistDetailHeaderRenderer != null
 
-        // Safe check for both array names
-        val shelfRenderer = response.safeSectionListRenderer?.contents?.firstNotNullOfOrNull { 
-            it.musicPlaylistShelfRenderer ?: it.musicShelfRenderer
+        // Extract content and continuations separately to maintain strict typing
+        val shelfRendererContent = response.safeSectionListRenderer?.contents?.firstOrNull { 
+            it.musicPlaylistShelfRenderer != null || it.musicShelfRenderer != null
         }
-        val shelfContents = shelfRenderer?.contents
+        val shelfContents = shelfRendererContent?.musicPlaylistShelfRenderer?.contents 
+            ?: shelfRendererContent?.musicShelfRenderer?.contents
+            
+        val shelfContinuations = shelfRendererContent?.musicPlaylistShelfRenderer?.continuations 
+            ?: shelfRendererContent?.musicShelfRenderer?.continuations
 
         PlaylistPage(
             playlist = PlaylistItem(
@@ -522,7 +532,7 @@ object YouTube {
             songs = shelfContents?.getItems()?.mapNotNull {
                 PlaylistPage.fromMusicResponsiveListItemRenderer(it)
             } ?: emptyList(),
-            songsContinuation = shelfRenderer?.continuations?.getContinuation(),
+            songsContinuation = shelfContinuations?.getContinuation(),
             continuation = response.safeSectionListRenderer?.continuations?.getContinuation()
         )
     }
@@ -591,13 +601,11 @@ object YouTube {
     }
 
     private suspend fun homeContinuation(continuation: String): Result<HomePage> = runCatching {
-        val response =
-            innerTube.browse(WEB_REMIX, continuation = continuation).body<BrowseResponse>()
+        val response = innerTube.browse(WEB_REMIX, continuation = continuation).body<BrowseResponse>()
         val sections = response.continuationContents?.sectionListContinuation?.contents
             ?.mapNotNull { it.musicCarouselShelfRenderer }
-            ?.mapNotNull {
-                HomePage.Section.fromMusicCarouselShelfRenderer(it)
-            }.orEmpty()
+            ?.mapNotNull { HomePage.Section.fromMusicCarouselShelfRenderer(it) }
+            .orEmpty()
         val nextContinuation = if (sections.isEmpty()) null else {
             response.continuationContents?.sectionListContinuation?.continuations?.getContinuation()
         }
@@ -709,9 +717,17 @@ object YouTube {
         val sectionListContents = tabs?.getOrNull(tabIndex)?.tabRenderer?.content?.sectionListRenderer?.contents
 
         val gridRenderer = sectionListContents?.firstNotNullOfOrNull { it.gridRenderer }
-        val musicShelfRenderer = sectionListContents?.firstNotNullOfOrNull { 
-            it.musicShelfRenderer ?: it.musicPlaylistShelfRenderer 
+        
+        // Safe resolution of shelf types
+        val shelfRendererContent = sectionListContents?.firstOrNull { 
+            it.musicShelfRenderer != null || it.musicPlaylistShelfRenderer != null 
         }
+        
+        val shelfContents = shelfRendererContent?.musicShelfRenderer?.contents 
+            ?: shelfRendererContent?.musicPlaylistShelfRenderer?.contents
+            
+        val shelfContinuations = shelfRendererContent?.musicShelfRenderer?.continuations 
+            ?: shelfRendererContent?.musicPlaylistShelfRenderer?.continuations
 
         when {
             gridRenderer != null -> {
@@ -723,12 +739,12 @@ object YouTube {
                 )
             }
 
-            musicShelfRenderer?.contents != null -> {
+            shelfContents != null -> {
                 LibraryPage(
-                    items = musicShelfRenderer.contents
+                    items = shelfContents
                         .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
                         .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) },
-                    continuation = musicShelfRenderer.continuations?.getContinuation()
+                    continuation = shelfContinuations?.getContinuation()
                 )
             }
 
@@ -845,7 +861,7 @@ object YouTube {
                 content.musicCarouselShelfRenderer?.let { renderer ->
                     val title = renderer.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text
                         ?: return@forEach
-                
+                 
                     val items = renderer.contents.mapNotNull { item ->
                         when {
                             item.musicResponsiveListItemRenderer != null -> 
@@ -1199,7 +1215,7 @@ object YouTube {
         val cueGroups = response.actions?.firstOrNull()?.updateEngagementPanelAction?.content?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups
         
         if (cueGroups.isNullOrEmpty()) return Result.failure(Exception("No transcript found"))
-        
+    
         cueGroups.joinToString(separator = "\n") { group ->
             val time = group.transcriptCueGroupRenderer.cues.getOrNull(0)?.transcriptCueRenderer?.startOffsetMs ?: 0
             val text = group.transcriptCueGroupRenderer.cues.getOrNull(0)?.transcriptCueRenderer?.cue?.simpleText
