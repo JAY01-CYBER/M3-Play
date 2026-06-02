@@ -30,21 +30,31 @@ class BrowseViewModel @Inject constructor(
     private val browseId: String? = savedStateHandle.get<String>("browseId")
  
     val items = MutableStateFlow<List<YTItem>?>(emptyList())
-    val title = MutableStateFlow<String?>("")
+    val title = MutableStateFlow<String?>("Loading...") // Initial state
  
     init {
         viewModelScope.launch {
-            browseId?.let {
-                YouTube.browse(browseId, null).onSuccess { result ->
-                    // Store the title
-                    title.value = result.title
- 
-                    // Flatten the nested structure to get all YTItems
+            browseId?.let { id ->
+                title.value = "Fetching data..." // UI progress update
+                
+                YouTube.browse(id, null).onSuccess { result ->
                     val allItems = result.items.flatMap { it.items }
                     items.value = allItems
-                }.onFailure {
-                    reportException(it)
+                    
+                    if (allItems.isEmpty()) {
+                        // Agar parsing successful rahi par list khali mili
+                        title.value = "Data Empty: Layout mismatch"
+                    } else {
+                        // Success par normal title set karega
+                        title.value = result.title ?: "No Title"
+                    }
+                }.onFailure { error ->
+                    reportException(error)
+                    // Yahan par actual exception app screen par dikhega
+                    title.value = "Crash: ${error.javaClass.simpleName} - ${error.message?.take(50)}"
                 }
+            } ?: run {
+                title.value = "Error: browseId is null"
             }
         }
     }
