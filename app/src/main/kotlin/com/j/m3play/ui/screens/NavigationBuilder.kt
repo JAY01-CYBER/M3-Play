@@ -108,19 +108,12 @@ fun NavGraphBuilder.navigationBuilder(
         HomeScreen(navController)
     }
 
-    
+    // Naya Search Route
     composable(Screens.Search.route) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        )
+        HomeScreen(navController) // White screen rokne ke liye
     }
-    
 
-    composable(
-        Screens.Library.route,
-    ) {
+    composable(Screens.Library.route) {
         LibraryScreen(navController)
     }
     composable("history") {
