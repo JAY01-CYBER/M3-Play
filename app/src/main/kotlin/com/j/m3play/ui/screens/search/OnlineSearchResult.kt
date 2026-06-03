@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1  
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -111,7 +111,7 @@ fun OnlineSearchResult(
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
         derivedStateOf {
-            searchFilter?.let { // FIX: Removed .value here for proper type inference
+            searchFilter?.value?.let {
                 viewModel.viewStateMap[it]
             }
         }
@@ -295,8 +295,7 @@ fun OnlineSearchResult(
             }
         }
 
-        if (searchFilter == null && searchSummary == null ||
-            searchFilter != null && itemsPage == null) {
+        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
             item {
                 ShimmerHost {
                     repeat(8) {
@@ -328,9 +327,8 @@ fun OnlineSearchResult(
             ),
             currentValue = searchFilter,
             onValueUpdate = {
-                // FIX: Called the new ViewModel function to safely update the StateFlow
                 if (viewModel.filter.value != it) {
-                    viewModel.updateFilter(it)
+                    viewModel.filter.value = it
                 }
                 coroutineScope.launch {
                     lazyListState.animateScrollToItem(0)
