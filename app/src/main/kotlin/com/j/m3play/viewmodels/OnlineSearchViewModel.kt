@@ -38,61 +38,73 @@ constructor(
     @ApplicationContext val context: Context,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-    val query = savedStateHandle.get<String>("query")!!
-    val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
-    var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
-    val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
+    val query = savedStateHandle.getStateFlow("query", "")
+    val filter = savedStateHandle.getStateFlow<YouTube.SearchFilter?>("filter", null)
 
-    init {
+    var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
+    var viewStateMap = mutableStateMapOf<YouTube.SearchFilter, ItemsPage>()
+
+    fun search(query: String) {
+        // Handle read-only state flow by updating its underlying value if needed, 
+        // though normally you'd map it. Assuming you have a way to update it, 
+        // but if query is just a flow from saved state, we trigger the search directly.
         viewModelScope.launch {
-            filter.collect { filter ->
-                if (filter == null) {
-                    if (summaryPage == null) {
-                        YouTube
-                            .searchSummary(query)
-                            .onSuccess {
-                                summaryPage = it.filterExplicit(context.dataStore.get(HideExplicitKey, false)).filterVideo(context.dataStore.get(HideVideoKey, false))
-                            }.onFailure {
-                                reportException(it)
-                            }
+            if (filter.value == null) {
+                YouTube.searchSummary(query)
+                    .onSuccess { resultPage ->
+                        // FIX 1: View model me hi directly safe mapping kar di taaki Type Mismatch na aaye
+                        val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                        summaryPage = if (hideExplicit) {
+                            resultPage.copy(summaries = resultPage.summaries.map { summary ->
+                                summary.copy(items = summary.items.filterExplicit(true))
+                            })
+                        } else {
+                            resultPage
+                        }
+                    }.onFailure {
+                        reportException(it)
                     }
-                } else {
-                    if (viewStateMap[filter.value] == null) {
-                        YouTube
-                            .search(query, filter)
-                            .onSuccess { result ->
-                                viewStateMap[filter.value] =
-                                    ItemsPage(
-                                        result.items
-                                            .distinctBy { it.id }
-                                            .filterExplicit(
-                                                context.dataStore.get(
-                                                    HideExplicitKey,
-                                                    false
-                                                )
-                                            ).filterVideo(context.dataStore.get(HideVideoKey, false)),
-                                        result.continuation,
-                                    )
-                            }.onFailure {
-                                reportException(it)
-                            }
+            } else {
+                val currentFilter = filter.value!!
+                YouTube.search(query, currentFilter)
+                    .onSuccess { result ->
+                        viewStateMap[currentFilter] =
+                            ItemsPage(
+                                result.items
+                                    .distinctBy { it.id }
+                                    .filterExplicit(
+                                        context.dataStore.get(
+                                            HideExplicitKey,
+                                            false
+                                        )
+                                    ).filterVideo(context.dataStore.get(HideVideoKey, false)),
+                                result.continuation,
+                            )
+                    }.onFailure {
+                        reportException(it)
                     }
-                }
             }
         }
     }
 
     fun loadMore() {
-        val filter = filter.value?.value
+        // FIX 2: filter.value?.value hata kar direct filter.value liya hai (Map key match karne ke liye)
+        val currentFilter = filter.value 
         viewModelScope.launch {
-            if (filter == null) return@launch
-            val viewState = viewStateMap[filter] ?: return@launch
+            if (currentFilter == null) return@launch
+            val viewState = viewStateMap[currentFilter] ?: return@launch
             val continuation = viewState.continuation
+            
             if (continuation != null) {
                 val searchResult =
                     YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
-                viewStateMap[filter] = ItemsPage(
-                    (viewState.items + searchResult.items).distinctBy { it.id },
+                    
+                viewStateMap[currentFilter] = ItemsPage(
+                    // FIX 3: Naye load hue items pe bhi explicit/video filter laga diya taaki list consistent rahe
+                    (viewState.items + searchResult.items)
+                        .distinctBy { it.id }
+                        .filterExplicit(context.dataStore.get(HideExplicitKey, false))
+                        .filterVideo(context.dataStore.get(HideVideoKey, false)),
                     searchResult.continuation
                 )
             }
