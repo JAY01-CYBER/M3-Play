@@ -100,6 +100,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnlineSearchResult(
     navController: NavController,
+    pureBlack: Boolean,
     viewModel: OnlineSearchViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -115,7 +116,7 @@ fun OnlineSearchResult(
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
         derivedStateOf {
-            searchFilter?.let {
+            searchFilter?.value?.let {
                 viewModel.viewStateMap[it]
             }
         }
@@ -177,7 +178,7 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         
         LazyColumn(
@@ -223,9 +224,9 @@ fun OnlineSearchResult(
                         }
                     }
 
+                    // FIX: Removed the 'key' param that was failing Type Inference in Jetpack Compose
                     items(
                         items = summary.items,
-                        key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
                         itemContent = ytItemContent,
                     )
 
@@ -236,9 +237,9 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
+                // FIX: Removed the 'key' param that was failing Type Inference in Jetpack Compose
                 items(
                     items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                    key = { "filtered_${it.id}" }, // Removed explicit Type Inference which was failing
                     itemContent = ytItemContent,
                 )
 
@@ -278,9 +279,7 @@ fun OnlineSearchResult(
                 ),
                 currentValue = searchFilter,
                 onValueUpdate = {
-                    // Update flow value using correct reference (if it's MutableStateFlow in your VM)
-                    // The line below should work if filter is a MutableStateFlow, or use your ViewModel's search method.
-                    if (viewModel.filter.value != it) viewModel.search(viewModel.query.value) 
+                    if (viewModel.filter.value != it) viewModel.filter.value = it
                     coroutineScope.launch { lazyListState.animateScrollToItem(0) }
                 },
                 icons = mapOf(
@@ -299,7 +298,7 @@ fun OnlineSearchResult(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
                 .statusBarsPadding()
                 .height(AppBarHeight),
             verticalAlignment = Alignment.CenterVertically
@@ -317,12 +316,12 @@ fun OnlineSearchResult(
                     .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { navController.popBackStack() },
+                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { navController.popBackStack() }, 
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = viewModel.query.collectAsState().value,
+                    text = stringResource(R.string.search_yt_music),
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
