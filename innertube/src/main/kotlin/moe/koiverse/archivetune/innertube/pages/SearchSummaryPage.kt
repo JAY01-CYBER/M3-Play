@@ -11,6 +11,9 @@ import com.j.m3play.innertube.models.Album
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.Artist
 import com.j.m3play.innertube.models.ArtistItem
+import com.j.m3play.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ALBUM
+import com.j.m3play.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_ARTIST
+import com.j.m3play.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_USER_CHANNEL
 import com.j.m3play.innertube.models.MusicCardShelfRenderer
 import com.j.m3play.innertube.models.MusicResponsiveListItemRenderer
 import com.j.m3play.innertube.models.PlaylistItem
@@ -28,10 +31,15 @@ data class SearchSummaryPage(
 ) {
     companion object {
         fun fromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): YTItem? {
+            val watchEndpoint = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchEndpoint
+                ?: renderer.title.runs?.firstOrNull()?.navigationEndpoint?.watchEndpoint
+            val browseEndpoint = renderer.title.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint
+            val pageType = browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType
+
             return when {
-                renderer.isSong -> {
+                watchEndpoint != null -> {
                     SongItem(
-                        id = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchEndpoint?.videoId ?: return null,
+                        id = watchEndpoint.videoId ?: return null,
                         title = renderer.title.runs?.firstOrNull()?.text ?: return null,
                         artists = renderer.subtitle.runs?.oddElements()?.map {
                             Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
@@ -40,14 +48,14 @@ data class SearchSummaryPage(
                         duration = null,
                         thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
                         explicit = renderer.subtitleBadges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true,
-                        endpoint = renderer.buttons.firstOrNull()?.buttonRenderer?.command?.watchEndpoint
+                        endpoint = watchEndpoint
                     )
                 }
-                renderer.isAlbum -> {
+                pageType == MUSIC_PAGE_TYPE_ALBUM -> {
                     AlbumItem(
-                        browseId = renderer.title.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
+                        browseId = browseEndpoint.browseId ?: return null,
                         playlistId = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint?.playlistId ?: return null,
-                        title = renderer.title.runs.firstOrNull()?.text ?: return null,
+                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
                         artists = renderer.subtitle.runs?.oddElements()?.map {
                             Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
                         }.orEmpty(),
@@ -56,10 +64,10 @@ data class SearchSummaryPage(
                         explicit = renderer.subtitleBadges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true,
                     )
                 }
-                renderer.isArtist -> {
+                pageType == MUSIC_PAGE_TYPE_ARTIST || pageType == MUSIC_PAGE_TYPE_USER_CHANNEL -> {
                     ArtistItem(
-                        id = renderer.title.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
-                        title = renderer.title.runs.firstOrNull()?.text ?: return null,
+                        id = browseEndpoint.browseId ?: return null,
+                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
                         thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
                         shuffleEndpoint = renderer.buttons?.getOrNull(1)?.buttonRenderer?.command?.watchPlaylistEndpoint,
                         radioEndpoint = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint,
