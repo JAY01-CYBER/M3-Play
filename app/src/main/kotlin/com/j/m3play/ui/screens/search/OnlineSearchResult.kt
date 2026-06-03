@@ -12,33 +12,26 @@ package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,32 +44,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
@@ -115,7 +96,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnlineSearchResult(
     navController: NavController,
-    pureBlack: Boolean,
     viewModel: OnlineSearchViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -131,7 +111,7 @@ fun OnlineSearchResult(
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
         derivedStateOf {
-            searchFilter?.let {
+            searchFilter?.value?.let {
                 viewModel.viewStateMap[it]
             }
         }
@@ -151,34 +131,72 @@ fun OnlineSearchResult(
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             menuState.show {
                 when (item) {
-                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = menuState::dismiss)
-                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
-                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
-                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
+                    is SongItem ->
+                        YouTubeSongMenu(
+                            song = item,
+                            navController = navController,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is AlbumItem ->
+                        YouTubeAlbumMenu(
+                            albumItem = item,
+                            navController = navController,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is ArtistItem ->
+                        YouTubeArtistMenu(
+                            artist = item,
+                            onDismiss = menuState::dismiss,
+                        )
+
+                    is PlaylistItem ->
+                        YouTubePlaylistMenu(
+                            playlist = item,
+                            coroutineScope = coroutineScope,
+                            onDismiss = menuState::dismiss,
+                        )
                 }
             }
         }
         YouTubeListItem(
             item = item,
-            isActive = when (item) {
+            isActive =
+            when (item) {
                 is SongItem -> mediaMetadata?.id == item.id
                 is AlbumItem -> mediaMetadata?.album?.id == item.id
                 else -> false
             },
             isPlaying = isPlaying,
             trailingContent = {
-                IconButton(onClick = longClick) {
-                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
+                IconButton(
+                    onClick = longClick,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert),
+                        contentDescription = null,
+                    )
                 }
             },
-            modifier = Modifier
+            modifier =
+            Modifier
                 .combinedClickable(
                     onClick = {
                         when (item) {
                             is SongItem -> {
-                                if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = item.id), item.toMediaMetadata()))
+                                if (item.id == mediaMetadata?.id) {
+                                    playerConnection.player.togglePlayPause()
+                                } else {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue(
+                                            WatchEndpoint(videoId = item.id),
+                                            item.toMediaMetadata()
+                                        )
+                                    )
+                                }
                             }
+
                             is AlbumItem -> navController.navigate("album/${item.id}")
                             is ArtistItem -> navController.navigate("artist/${item.id}")
                             is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
@@ -190,269 +208,141 @@ fun OnlineSearchResult(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+    LazyColumn(
+        state = lazyListState,
+        contentPadding =
+        LocalPlayerAwareWindowInsets.current
+            .add(WindowInsets(top = SearchFilterHeight + 8.dp))
+            .asPaddingValues(),
     ) {
-        
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier.fillMaxSize(),
-            
-            contentPadding = PaddingValues(
-                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            )
-        ) {
-            if (searchFilter == null) {
-                searchSummary?.summaries?.forEachIndexed { index, summary ->
-                    if (index > 0) {
-                        item(key = "divider_$index") {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        }
+        if (searchFilter == null) {
+            searchSummary?.summaries?.forEachIndexed { index, summary ->
+                if (index > 0) {
+                    item(key = "divider_$index") {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
                     }
-
-                    item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(18.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = summary.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-
-                    // FIX 1: 'key' hata diya taaki Type Inference error solve ho jaye
-                    items(
-                        items = summary.items,
-                        itemContent = ytItemContent,
-                    )
-
-                    item { Spacer(Modifier.height(4.dp)) }
                 }
 
-                if (searchSummary?.summaries?.isEmpty() == true) {
-                    item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = summary.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
-            } else {
-                // FIX 1: Yahan se bhi 'key' hata diya
+
                 items(
-                    items = itemsPage?.items.orEmpty().distinctBy { it.id },
+                    items = summary.items,
+                    key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
                     itemContent = ytItemContent,
                 )
 
-                if (itemsPage?.continuation != null) {
-                    item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
-                }
-
-                if (itemsPage?.items?.isEmpty() == true) {
-                    item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+                item {
+                    Spacer(Modifier.height(4.dp))
                 }
             }
 
-            if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
-                item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
-            }
-        }
-
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 1.dp,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = AppBarHeight)
-                .fillMaxWidth()
-        ) {
-            ChipsRow(
-                chips = listOf(
-                    null to stringResource(R.string.filter_all),
-                    FILTER_SONG to stringResource(R.string.filter_songs),
-                    FILTER_VIDEO to stringResource(R.string.filter_videos),
-                    FILTER_ALBUM to stringResource(R.string.filter_albums),
-                    FILTER_ARTIST to stringResource(R.string.filter_artists),
-                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                ),
-                currentValue = searchFilter,
-                onValueUpdate = {
-                    if (viewModel.filter.value != it) {
-                        viewModel.search(viewModel.query.value) 
-                    }
-                    coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                },
-                icons = mapOf(
-                    null to R.drawable.search,
-                    FILTER_SONG to R.drawable.music_note,
-                    FILTER_VIDEO to R.drawable.slow_motion_video,
-                    FILTER_ALBUM to R.drawable.album,
-                    FILTER_ARTIST to R.drawable.person,
-                    FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
-                    FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
-                ),
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
-                .statusBarsPadding()
-                .height(AppBarHeight),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(50))
-                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { navController.popBackStack() }, 
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    text = stringResource(R.string.search_yt_music),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun OnlineSearchResultTopBar(
-    navController: NavController,
-    query: String,
-    pureBlack: Boolean
-) {
-    val haptic = LocalHapticFeedback.current
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
-    
-    // FIX 2: 'val' ki jagah 'var' kar diya taaki Line 282 ka error solve ho jaye
-    var textFieldValue by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-        mutableStateOf(TextFieldValue(query))
-    }
-
-    LaunchedEffect(query) {
-        textFieldValue = TextFieldValue(text = query, selection = TextRange(query.length))
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
-            .statusBarsPadding()
-            .height(AppBarHeight)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(50))
-                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BasicTextField(
-                        value = textFieldValue,
-                        onValueChange = { textFieldValue = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 16.dp)
-                            .focusRequester(focusRequester),
-                        textStyle = TextStyle(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Normal
-                        ),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                if (textFieldValue.text.isNotEmpty()) {
-                                    focusManager.clearFocus()
-                                    navController.navigate("search_result/${textFieldValue.text}") {
-                                        popUpTo("search") { inclusive = false }
-                                    }
-                                }
-                            }
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        decorationBox = { innerTextField ->
-                            if (textFieldValue.text.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.search_yt_music),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    fontSize = 16.sp
-                                )
-                            }
-                            innerTextField()
-                        }
+            if (searchSummary?.summaries?.isEmpty() == true) {
+                item {
+                    EmptyPlaceholder(
+                        icon = R.drawable.search,
+                        text = stringResource(R.string.no_results_found),
                     )
+                }
+            }
+        } else {
+            items(
+                items = itemsPage?.items.orEmpty().distinctBy { it.id },
+                key = { "filtered_${it.id}" },
+                itemContent = ytItemContent,
+            )
 
-                    if (textFieldValue.text.isNotEmpty()) {
-                        IconButton(
-                            onClick = {
-                                textFieldValue = TextFieldValue("")
-                                focusRequester.requestFocus()
-                            }
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.close),
-                                contentDescription = "Clear",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+            if (itemsPage?.continuation != null) {
+                item(key = "loading") {
+                    ShimmerHost {
+                        repeat(3) {
+                            ListItemPlaceHolder()
                         }
                     }
                 }
             }
+
+            if (itemsPage?.items?.isEmpty() == true) {
+                item {
+                    EmptyPlaceholder(
+                        icon = R.drawable.search,
+                        text = stringResource(R.string.no_results_found),
+                    )
+                }
+            }
         }
+
+        if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
+            item {
+                ShimmerHost {
+                    repeat(8) {
+                        ListItemPlaceHolder()
+                    }
+                }
+            }
+        }
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top).add(WindowInsets(top = AppBarHeight)))
+            .fillMaxWidth()
+    ) {
+        ChipsRow(
+            chips =
+            listOf(
+                null to stringResource(R.string.filter_all),
+                FILTER_SONG to stringResource(R.string.filter_songs),
+                FILTER_VIDEO to stringResource(R.string.filter_videos),
+                FILTER_ALBUM to stringResource(R.string.filter_albums),
+                FILTER_ARTIST to stringResource(R.string.filter_artists),
+                FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+            ),
+            currentValue = searchFilter,
+            onValueUpdate = {
+                if (viewModel.filter.value != it) {
+                    viewModel.filter.value = it
+                }
+                coroutineScope.launch {
+                    lazyListState.animateScrollToItem(0)
+                }
+            },
+            icons = mapOf(
+                null to R.drawable.search,
+                FILTER_SONG to R.drawable.music_note,
+                FILTER_VIDEO to R.drawable.slow_motion_video,
+                FILTER_ALBUM to R.drawable.album,
+                FILTER_ARTIST to R.drawable.person,
+                FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
+                FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
+            ),
+        )
     }
 }
