@@ -67,8 +67,14 @@ data class ArtistPage(
         }
 
         private fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+            // Enhanced videoId fallback mechanism
+            val videoId = renderer.playlistItemData?.videoId 
+                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+                ?: return null
+
             return SongItem(
-                id = renderer.playlistItemData?.videoId ?: return null,
+                id = videoId,
                 title = renderer.flexColumns.firstOrNull()
                     ?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()
                     ?.text ?: return null,
@@ -132,7 +138,6 @@ data class ArtistPage(
                 }
 
                 renderer.isPlaylist -> {
-                    // Playlist from YouTube Music
                     PlaylistItem(
                         id = renderer.navigationEndpoint.browseEndpoint?.browseId?.removePrefix("VL") ?: return null,
                         title = renderer.title.runs?.firstOrNull()?.text ?: return null,

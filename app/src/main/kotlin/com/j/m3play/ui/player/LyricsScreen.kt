@@ -161,7 +161,6 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
-    // Loading Text vs Provider Text
     val providerBadgeText = remember(currentLyrics) {
         if (currentLyrics == null) {
             "LOADING LYRICS"
@@ -881,5 +880,81 @@ fun PremiumProviderBadge(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             )
         )
+    }
+}
+
+// 🔥 INLINE LYRICS COMPONENT FOR PLAYER 🔥
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InlineLyricsView(
+    mediaMetadata: MediaMetadata,
+    showLyrics: Boolean,
+    positionProvider: () -> Long,
+    textBackgroundColor: Color
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val coroutineScope = rememberCoroutineScope()
+    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
+
+    val providerBadgeText = remember(currentLyrics) {
+        if (currentLyrics == null) "LOADING LYRICS"
+        else "LYRICS BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+    }
+
+    LaunchedEffect(mediaMetadata.id, currentLyrics) {
+        if (currentLyrics == null) {
+            delay(500)
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                        context.applicationContext,
+                        com.j.m3play.di.LyricsHelperEntryPoint::class.java
+                    )
+                    val lyricsHelper = entryPoint.lyricsHelper()
+                    val result = lyricsHelper.getLyrics(mediaMetadata)
+                    database.query {
+                        upsert(LyricsEntity(mediaMetadata.id, result.lyrics, result.providerName))
+                    }
+                } catch (e: Exception) { }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp)),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        PremiumProviderBadge(
+            text = providerBadgeText, 
+            textColor = textBackgroundColor,
+            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+        )
+        
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (currentLyrics == null) {
+                CircularProgressIndicator(color = textBackgroundColor, modifier = Modifier.align(Alignment.Center))
+            } else if (currentLyrics?.lyrics == LyricsEntity.LYRICS_NOT_FOUND) {
+                Text(
+                    text = stringResource(R.string.lyrics_not_found),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textBackgroundColor.copy(alpha = 0.7f),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                if (useLyricsV2) {
+                    LyricsV2(sliderPositionProvider = { positionProvider() })
+                } else {
+                    Lyrics(sliderPositionProvider = { positionProvider() })
+                }
+            }
+        }
     }
 }
