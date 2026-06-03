@@ -19,6 +19,7 @@ import com.j.m3play.innertube.models.MusicResponsiveListItemRenderer
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.YTItem
+import com.j.m3play.innertube.models.filterExplicit
 import com.j.m3play.innertube.models.oddElements
 
 data class SearchSummary(
@@ -29,18 +30,27 @@ data class SearchSummary(
 data class SearchSummaryPage(
     val summaries: List<SearchSummary>,
 ) {
+    // Ye function OnlineSearchViewModel mein use hoga taaki explicit content hide ho sake
+    fun filterExplicit(enabled: Boolean = true) =
+        if (enabled) {
+            copy(summaries = summaries.map {
+                it.copy(items = it.items.filterExplicit())
+            })
+        } else this
+
     companion object {
         fun fromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): YTItem? {
-            val watchEndpoint = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchEndpoint
-                ?: renderer.title.runs?.firstOrNull()?.navigationEndpoint?.watchEndpoint
-            val browseEndpoint = renderer.title.runs?.firstOrNull()?.navigationEndpoint?.browseEndpoint
+            // Warning fix: Removed unnecessary safe calls (?. and ?:) where data is strictly non-null
+            val watchEndpoint = renderer.buttons.firstOrNull()?.buttonRenderer?.command?.watchEndpoint
+                ?: renderer.title.runs.firstOrNull()?.navigationEndpoint?.watchEndpoint
+            val browseEndpoint = renderer.title.runs.firstOrNull()?.navigationEndpoint?.browseEndpoint
             val pageType = browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType
 
             return when {
                 watchEndpoint != null -> {
                     SongItem(
                         id = watchEndpoint.videoId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+                        title = renderer.title.runs.firstOrNull()?.text ?: return null,
                         artists = renderer.subtitle.runs?.oddElements()?.map {
                             Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
                         }.orEmpty(),
@@ -53,9 +63,9 @@ data class SearchSummaryPage(
                 }
                 pageType == MUSIC_PAGE_TYPE_ALBUM -> {
                     AlbumItem(
-                        browseId = browseEndpoint.browseId ?: return null,
-                        playlistId = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint?.playlistId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+                        browseId = browseEndpoint.browseId, // Strictly non-null string expected here
+                        playlistId = renderer.buttons.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint?.playlistId ?: return null,
+                        title = renderer.title.runs.firstOrNull()?.text ?: return null,
                         artists = renderer.subtitle.runs?.oddElements()?.map {
                             Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
                         }.orEmpty(),
@@ -66,11 +76,11 @@ data class SearchSummaryPage(
                 }
                 pageType == MUSIC_PAGE_TYPE_ARTIST || pageType == MUSIC_PAGE_TYPE_USER_CHANNEL -> {
                     ArtistItem(
-                        id = browseEndpoint.browseId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+                        id = browseEndpoint.browseId,
+                        title = renderer.title.runs.firstOrNull()?.text ?: return null,
                         thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                        shuffleEndpoint = renderer.buttons?.getOrNull(1)?.buttonRenderer?.command?.watchPlaylistEndpoint,
-                        radioEndpoint = renderer.buttons?.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint,
+                        shuffleEndpoint = renderer.buttons.getOrNull(1)?.buttonRenderer?.command?.watchPlaylistEndpoint,
+                        radioEndpoint = renderer.buttons.firstOrNull()?.buttonRenderer?.command?.watchPlaylistEndpoint,
                     )
                 }
                 else -> null
