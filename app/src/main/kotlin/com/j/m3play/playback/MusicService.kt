@@ -1493,7 +1493,7 @@ class MusicService :
             .onFailure { reportException(it) }
     }
 
-    private suspend fun recoverSong(
+        private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
@@ -1633,7 +1633,6 @@ class MusicService :
 
             var index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            // 👇 BUG FIX: SEARCH VS LOCAL PLAYLISTS 👇
             val preloadedId = queue.preloadItem?.id 
             if (preloadedId != null) {
                 val realIndex = items.indexOfFirst { it.mediaId == preloadedId || it.mediaId.endsWith("/$preloadedId") }
@@ -1648,7 +1647,6 @@ class MusicService :
                     }
                 }
             }
-            // 👆 FIX END 👆
 
             val isPlayingPreload = queue.preloadItem != null && 
                     player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId &&
@@ -1671,6 +1669,20 @@ class MusicService :
                 applyCurrentFirstShuffleOrder()
             }
         }
+    }
+
+    private fun applyCurrentFirstShuffleOrder() {
+        val count = player.mediaItemCount
+        if (count <= 1) return
+        val currentIndex = player.currentMediaItemIndex.coerceIn(0, count - 1)
+        val shuffledIndices = IntArray(count) { it }
+        shuffledIndices.shuffle()
+        val currentPos = shuffledIndices.indexOf(currentIndex)
+        if (currentPos >= 0) {
+            shuffledIndices[currentPos] = shuffledIndices[0]
+        }
+        shuffledIndices[0] = currentIndex
+        player.setShuffleOrder(androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
     fun startRadioSeamlessly() {
