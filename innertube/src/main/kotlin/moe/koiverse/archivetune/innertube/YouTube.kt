@@ -1035,10 +1035,13 @@ object YouTube {
         innerTube.deletePlaylist(WEB_REMIX, playlistId)
     }
 
+    
     suspend fun player(videoId: String, playlistId: String? = null, client: YouTubeClient, signatureTimestamp: Int? = null, poToken: String? = null): Result<PlayerResponse> = runCatching {
-        val resolvedPoToken = resolvePlayerPoToken(client, videoId, poToken)
-        innerTube.player(client, videoId, playlistId, signatureTimestamp, resolvedPoToken).body<PlayerResponse>()
+        val bypassClient = YouTubeClient.IOS
+        val resolvedPoToken = resolvePlayerPoToken(bypassClient, videoId, poToken)
+        innerTube.player(bypassClient, videoId, playlistId, signatureTimestamp, resolvedPoToken).body<PlayerResponse>()
     }
+    
 
     suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
         val cpn = (1..16).map {
