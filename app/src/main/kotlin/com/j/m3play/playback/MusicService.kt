@@ -1493,7 +1493,7 @@ class MusicService :
             .onFailure { reportException(it) }
     }
 
-        private suspend fun recoverSong(
+    private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
@@ -1633,13 +1633,14 @@ class MusicService :
 
             var index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            // 👇 GOOGLE API INDEXING BUG FIX 👇
-            val preloadedId = player.currentMediaItem?.mediaId
+            // 👇 BUG FIX: SEARCH VS LOCAL PLAYLISTS 👇
+            val preloadedId = queue.preloadItem?.id 
             if (preloadedId != null) {
-                val realIndex = items.indexOfFirst { it.mediaId == preloadedId }
+                val realIndex = items.indexOfFirst { it.mediaId == preloadedId || it.mediaId.endsWith("/$preloadedId") }
+                
                 if (realIndex != -1) {
                     index = realIndex 
-                } else {
+                } else if (queue is com.j.m3play.playback.queues.YouTubeQueue) {
                     val preloadItemAsMedia = queue.preloadItem?.toMediaItem()
                     if (preloadItemAsMedia != null) {
                         items = listOf(preloadItemAsMedia) + items
@@ -1670,20 +1671,6 @@ class MusicService :
                 applyCurrentFirstShuffleOrder()
             }
         }
-    }
-
-    private fun applyCurrentFirstShuffleOrder() {
-        val count = player.mediaItemCount
-        if (count <= 1) return
-        val currentIndex = player.currentMediaItemIndex.coerceIn(0, count - 1)
-        val shuffledIndices = IntArray(count) { it }
-        shuffledIndices.shuffle()
-        val currentPos = shuffledIndices.indexOf(currentIndex)
-        if (currentPos >= 0) {
-            shuffledIndices[currentPos] = shuffledIndices[0]
-        }
-        shuffledIndices[0] = currentIndex
-        player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
     fun startRadioSeamlessly() {
@@ -3497,7 +3484,7 @@ class MusicService :
         )
     }
 
-         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
     clearStreamRefreshGuards(
