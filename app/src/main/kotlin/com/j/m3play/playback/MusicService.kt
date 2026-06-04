@@ -761,13 +761,14 @@ class MusicService :
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
+                // 👇 Yahan getLyrics ko result se fetch karenge
                 val result = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
                     upsert(
                         LyricsEntity(
                             id = mediaMetadata.id,
                             lyrics = result.lyrics,
-                            provider = result.providerName
+                            provider = result.providerName // 👇 Provider save hoga
                         ),
                     )
                 }
@@ -1492,7 +1493,8 @@ class MusicService :
         runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
             .onFailure { reportException(it) }
     }
-        private suspend fun recoverSong(
+
+    private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
@@ -1626,28 +1628,11 @@ class MusicService :
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
-            
-            var items = initialStatus.items
+            val items = initialStatus.items
             if (items.isEmpty()) return@launch
 
-            var index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
-            // 👇 GOOGLE API INDEXING BUG FIX 👇
-            val preloadedId = player.currentMediaItem?.mediaId
-            if (preloadedId != null) {
-                val realIndex = items.indexOfFirst { it.mediaId == preloadedId }
-                if (realIndex != -1) {
-                    index = realIndex 
-                } else {
-                    val preloadItemAsMedia = queue.preloadItem?.toMediaItem()
-                    if (preloadItemAsMedia != null) {
-                        items = listOf(preloadItemAsMedia) + items
-                        index = 0
-                    }
-                }
-            }
-            // 👆 FIX END 👆
-
             val isPlayingPreload = queue.preloadItem != null && 
                     player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId &&
                     player.mediaItemCount == 1
@@ -3496,7 +3481,7 @@ class MusicService :
         )
     }
 
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
     clearStreamRefreshGuards(
@@ -4988,4 +4973,3 @@ class MusicService :
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
     }
 }
-
