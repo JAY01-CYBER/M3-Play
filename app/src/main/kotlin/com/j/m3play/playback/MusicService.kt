@@ -1492,3 +1492,2007 @@ class MusicService :
         runCatching { super.onUpdateNotification(mediaSession, player.isPlaying) }
             .onFailure { reportException(it) }
     }
+        private suspend fun recoverSong(
+        mediaId: String,
+        playbackData: YTPlayerUtils.PlaybackData? = null
+    ) {
+        val song = database.song(mediaId).first()
+        val mediaMetadata = withContext(Dispatchers.Main) {
+            player.findNextMediaItemById(mediaId)?.metadata
+        } ?: return
+        val duration = song?.song?.duration?.takeIf { it != -1 }
+            ?: mediaMetadata.duration.takeIf { it != -1 }
+            ?: (playbackData?.videoDetails ?: YTPlayerUtils.playerResponseForMetadata(mediaId)
+                .getOrNull()?.videoDetails)?.lengthSeconds?.toInt()
+            ?: -1
+        database.query {
+            if (song == null) insert(mediaMetadata.copy(duration = duration))
+            else if (song.song.duration == -1) update(song.song.copy(duration = duration))
+        }
+        if (!database.hasRelatedSongs(mediaId)) {
+            val relatedEndpoint =
+                YouTube.next(WatchEndpoint(videoId = mediaId)).getOrNull()?.relatedEndpoint
+                    ?: return
+            val relatedPage = YouTube.related(relatedEndpoint).getOrNull() ?: return
+            database.query {
+                relatedPage.songs
+                    .map(SongItem::toMediaMetadata)
+                    .onEach(::insert)
+                    .map {
+                        RelatedSongMap(
+                            songId = mediaId,
+                            relatedSongId = it.id
+                        )
+                    }
+                    .forEach(::insert)
+            }
+        }
+    }
+
+    fun playQueue(
+        queue: Queue,
+        playWhenReady: Boolean = true,
+    ) {
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (!isTogetherApplyingRemote() && joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_DISABLED")
+                return
+            }
+            ensureScopesActive()
+            scope.launch(SilentHandler) {
+                val initialStatus =
+                    withContext(Dispatchers.IO) {
+                        queue.getInitialStatus()
+                            .filterExplicit(dataStore.get(HideExplicitKey, false))
+                            .filterVideo(dataStore.get(HideVideoKey, false))
+                    }
+
+                val targetItem =
+                    initialStatus.items.getOrNull(initialStatus.mediaItemIndex)
+                        ?: queue.preloadItem?.toMediaItem()
+
+                val meta = targetItem?.metadata
+                val trackId =
+                    meta?.id?.trim().orEmpty().ifBlank {
+                        targetItem?.mediaId?.trim().orEmpty()
+                    }
+                if (trackId.isBlank()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_NO_TRACK")
+                    return@launch
+                }
+
+                val track =
+                    com.j.m3play.together.TogetherTrack(
+                        id = trackId,
+                        title = meta?.title ?: trackId,
+                        artists = meta?.artists?.map { it.name }.orEmpty(),
+                        durationSec = meta?.duration ?: -1,
+                        thumbnailUrl = meta?.thumbnailUrl,
+                    )
+
+                val ops =
+                    com.j.m3play.together.TogetherGuestPlaybackPlanner.planPlayTrackNow(
+                        roomState = joined.roomState,
+                        track = track,
+                        positionMs = initialStatus.position,
+                        playWhenReady = playWhenReady,
+                    )
+
+                if (ops.isEmpty()) {
+                    showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_PLAYQUEUE_BLOCKED")
+                    return@launch
+                }
+
+                showTogetherNotice(getString(R.string.together_requesting_song_change), key = "GUEST_PLAYQUEUE_REQUEST")
+                ops.forEach { op ->
+                    when (op) {
+                        is com.j.m3play.together.TogetherGuestOp.Control -> requestTogetherControl(op.action)
+                        is com.j.m3play.together.TogetherGuestOp.AddTrack -> requestTogetherAddTrack(op.track, op.mode)
+                    }
+                }
+            }
+            return
+        }
+        if (playWhenReady) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        }
+        ensureScopesActive()
+        suppressAutoPlayback = false
+        currentQueue = queue
+        queueTitle = null
+        val permanentShuffle = dataStore.get(PermanentShuffleKey, false)
+        if (!permanentShuffle) {
+            player.shuffleModeEnabled = false
+        }
+        
+        clearAutomix()
+        automixSeedMediaId = null
+        autoAddedMediaIds.clear()
+        
+        if (queue.preloadItem != null) {
+            player.setMediaItem(queue.preloadItem!!.toMediaItem())
+            player.prepare()
+            player.playWhenReady = playWhenReady
+        }
+        
+        scope.launch(SilentHandler) {
+            val initialStatus =
+                withContext(Dispatchers.IO) {
+                    queue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
+                }
+            if (initialStatus.title != null) {
+                queueTitle = initialStatus.title
+            }
+            
+            var items = initialStatus.items
+            if (items.isEmpty()) return@launch
+
+            var index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            
+            // 👇 GOOGLE API INDEXING BUG FIX 👇
+            val preloadedId = player.currentMediaItem?.mediaId
+            if (preloadedId != null) {
+                val realIndex = items.indexOfFirst { it.mediaId == preloadedId }
+                if (realIndex != -1) {
+                    index = realIndex 
+                } else {
+                    val preloadItemAsMedia = queue.preloadItem?.toMediaItem()
+                    if (preloadItemAsMedia != null) {
+                        items = listOf(preloadItemAsMedia) + items
+                        index = 0
+                    }
+                }
+            }
+            // 👆 FIX END 👆
+
+            val isPlayingPreload = queue.preloadItem != null && 
+                    player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId &&
+                    player.mediaItemCount == 1
+                    
+            if (isPlayingPreload) {
+                if (index < items.size - 1) {
+                    player.addMediaItems(items.subList(index + 1, items.size))
+                }
+                if (index > 0) {
+                    player.addMediaItems(0, items.subList(0, index))
+                }
+            } else {
+                player.setMediaItems(items, index, initialStatus.position)
+                player.prepare()
+                player.playWhenReady = playWhenReady
+            }
+            
+            if (player.shuffleModeEnabled) {
+                applyCurrentFirstShuffleOrder()
+            }
+        }
+    }
+
+    private fun applyCurrentFirstShuffleOrder() {
+        val count = player.mediaItemCount
+        if (count <= 1) return
+        val currentIndex = player.currentMediaItemIndex.coerceIn(0, count - 1)
+        val shuffledIndices = IntArray(count) { it }
+        shuffledIndices.shuffle()
+        val currentPos = shuffledIndices.indexOf(currentIndex)
+        if (currentPos >= 0) {
+            shuffledIndices[currentPos] = shuffledIndices[0]
+        }
+        shuffledIndices[0] = currentIndex
+        player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+    }
+
+    fun startRadioSeamlessly() {
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (!isTogetherApplyingRemote() && joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_DISABLED")
+                return
+            }
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_RADIO_UNSUPPORTED")
+            return
+        }
+        suppressAutoPlayback = false
+        val currentMediaMetadata = player.currentMetadata ?: return
+
+        val currentIndex = player.currentMediaItemIndex
+        val currentMediaId = currentMediaMetadata.id
+
+        scope.launch(SilentHandler) {
+            val radioQueue = YouTubeQueue(
+                endpoint = WatchEndpoint(videoId = currentMediaId)
+            )
+            val initialStatus = withContext(Dispatchers.IO) {
+                radioQueue.getInitialStatus().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
+            }
+
+            if (initialStatus.title != null) {
+                queueTitle = initialStatus.title
+            }
+
+            val radioItems = initialStatus.items.filter { item ->
+                item.mediaId != currentMediaId
+            }
+            
+            if (radioItems.isNotEmpty()) {
+                val itemCount = player.mediaItemCount
+                
+                if (itemCount > currentIndex + 1) {
+                    player.removeMediaItems(currentIndex + 1, itemCount)
+                }
+                
+                player.addMediaItems(currentIndex + 1, radioItems)
+            }
+
+            currentQueue = radioQueue
+        }
+    }
+
+    fun getAutomixAlbum(albumId: String) {
+        scope.launch(Dispatchers.IO + SilentHandler) {
+            YouTube
+                .album(albumId)
+                .onSuccess {
+                    getAutomix(it.album.playlistId)
+                }
+        }
+    }
+
+    fun getAutomix(playlistId: String) {
+        if (dataStore.get(AutoLoadMoreKey, true) && 
+            player.repeatMode == REPEAT_MODE_OFF) {
+            scope.launch(Dispatchers.IO + SilentHandler) {
+                val seedAtRequest =
+                    withContext(Dispatchers.Main) {
+                        player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
+                    }
+                YouTube
+                    .next(WatchEndpoint(playlistId = playlistId))
+                    .onSuccess {
+                        YouTube
+                            .next(WatchEndpoint(playlistId = it.endpoint.playlistId))
+                            .onSuccess {
+                                val mediaItems = it.items.map { song -> song.toMediaItem() }
+                                withContext(Dispatchers.Main) {
+                                    val currentSeed =
+                                        player.currentMetadata?.id?.trim()?.takeIf { it.isNotBlank() }
+                                    if (seedAtRequest != null && currentSeed != seedAtRequest) return@withContext
+                                    automixItems.value = mediaItems
+                                    automixSeedMediaId = currentSeed
+                                }
+                            }
+                    }
+            }
+        }
+    }
+
+    fun addToQueueAutomix(
+        item: MediaItem,
+        position: Int,
+    ) {
+        automixItems.value =
+            automixItems.value.toMutableList().apply {
+                removeAt(position)
+            }
+        addToQueue(listOf(item))
+    }
+
+    fun playNextAutomix(
+        item: MediaItem,
+        position: Int,
+    ) {
+        automixItems.value =
+            automixItems.value.toMutableList().apply {
+                removeAt(position)
+            }
+        playNext(listOf(item))
+    }
+
+    fun clearAutomix() {
+        automixJob?.cancel()
+        automixJob = null
+        automixItems.value = emptyList()
+        automixLoading.value = false
+        automixError.value = null
+        automixSeedMediaId = null
+    }
+
+    private fun refreshAutomixForCurrentMedia(force: Boolean) {
+        if (!dataStore.get(AutoLoadMoreKey, true)) return
+        if (player.repeatMode != REPEAT_MODE_OFF) return
+        if (suppressAutoPlayback) return
+        if (player.mediaItemCount == 0) return
+
+        val currentMeta = player.currentMetadata ?: return
+        val seedMediaId = currentMeta.id.trim().ifBlank { return }
+
+        if (!force && automixSeedMediaId == seedMediaId && automixItems.value.isNotEmpty() && automixJob?.isActive == true) return
+
+        automixJob?.cancel()
+        automixJob = null
+        automixItems.value = emptyList()
+        automixLoading.value = true
+        automixError.value = null
+        automixSeedMediaId = seedMediaId
+
+        val hideExplicit = dataStore.get(HideExplicitKey, false)
+        val hideVideo = dataStore.get(HideVideoKey, false)
+
+        automixJob = scope.launch {
+            try {
+                val nextResult = withContext(Dispatchers.IO) {
+                    YouTube.next(WatchEndpoint(videoId = seedMediaId))
+                }
+
+                nextResult
+                    .onSuccess { result ->
+                        if (automixSeedMediaId != seedMediaId) {
+                            automixLoading.value = false
+                            return@onSuccess
+                        }
+
+                        val queueIds =
+                            (0 until player.mediaItemCount)
+                                .map { player.getMediaItemAt(it).mediaId }
+                                .toSet()
+
+                        val fromNext =
+                            result.items
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId !in queueIds }
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+
+                        val relatedCandidates =
+                            result.relatedEndpoint
+                                ?.let { endpoint ->
+                                    withContext(Dispatchers.IO) { YouTube.related(endpoint) }
+                                        .getOrNull()
+                                        ?.songs
+                                        .orEmpty()
+                                }
+                                .orEmpty()
+
+                        val related =
+                            relatedCandidates
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId !in queueIds }
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+
+                        val poolBase =
+                            (fromNext + related)
+                                .asSequence()
+                                .distinctBy { it.mediaId }
+                                .take(50)
+                                .toList()
+
+                        val pool =
+                            if (poolBase.size >= 25 || result.endpoint.playlistId.isNullOrBlank()) {
+                                poolBase
+                            } else {
+                                val playlistId = result.endpoint.playlistId
+                                val extra =
+                                    withContext(Dispatchers.IO) {
+                                        YouTube.next(WatchEndpoint(playlistId = playlistId))
+                                    }.getOrNull()
+                                        ?.items
+                                        .orEmpty()
+                                        .map { it.toMediaItem() }
+                                        .filter { it.mediaId !in queueIds }
+                                        .filterExplicit(hideExplicit)
+                                        .filterVideo(hideVideo)
+
+                                (poolBase + extra)
+                                    .asSequence()
+                                    .distinctBy { it.mediaId }
+                                    .take(75)
+                                    .toList()
+                            }
+
+                        if (automixSeedMediaId != seedMediaId) {
+                            automixLoading.value = false
+                            return@onSuccess
+                        }
+
+                        automixItems.value = pool
+                        if (pool.isEmpty()) {
+                            automixError.value = getString(R.string.error_no_similar_songs)
+                        }
+                        automixLoading.value = false
+                    }
+                    .onFailure { throwable ->
+                        if (automixSeedMediaId == seedMediaId) {
+                            automixLoading.value = false
+                            automixError.value =
+                                throwable.localizedMessage ?: getString(R.string.error_automix_failed)
+                        }
+                    }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (automixSeedMediaId == seedMediaId) {
+                    automixLoading.value = false
+                    automixError.value = e.localizedMessage ?: getString(R.string.error_automix_failed)
+                }
+            }
+        }
+    }
+
+    fun onInfiniteQueueDisabled() {
+        automixJob?.cancel()
+        automixJob = null
+        automixLoading.value = false
+        automixError.value = null
+        val currentIndex = player.currentMediaItemIndex
+        val idsToRemove = synchronized(autoAddedMediaIds) { autoAddedMediaIds.toSet() }
+        if (idsToRemove.isEmpty()) {
+            clearAutomix()
+            return
+        }
+        for (i in player.mediaItemCount - 1 downTo 0) {
+            if (i == currentIndex) continue
+            val item = player.getMediaItemAt(i)
+            if (item.mediaId in idsToRemove) {
+                player.removeMediaItem(i)
+            }
+        }
+        autoAddedMediaIds.clear()
+        clearAutomix()
+    }
+
+    fun onInfiniteQueueEnabled() {
+        val currentMeta = player.currentMetadata
+        if (currentMeta == null) {
+            automixError.value = getString(R.string.error_no_song_playing)
+            return
+        }
+
+        automixJob?.cancel()
+        automixLoading.value = true
+        automixError.value = null
+        automixItems.value = emptyList()
+        automixSeedMediaId = currentMeta.id.trim().ifBlank { null }
+
+        val hideExplicit = dataStore.get(HideExplicitKey, false)
+        val hideVideo = dataStore.get(HideVideoKey, false)
+
+        automixJob = scope.launch {
+            try {
+                val nextResult = withContext(Dispatchers.IO) {
+                    YouTube.next(WatchEndpoint(videoId = currentMeta.id))
+                }
+
+                nextResult
+                    .onSuccess { result ->
+                        if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) {
+                            automixLoading.value = false
+                            return@onSuccess
+                        }
+                        val initialQueueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                        val filteredFromNext =
+                            result.items
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId !in initialQueueIds }
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+
+                        val addedNow = ArrayList<MediaItem>(32)
+
+                        if (filteredFromNext.isNotEmpty()) {
+                            val toAdd = filteredFromNext.take(25)
+                            player.addMediaItems(toAdd)
+                            toAdd.forEach { autoAddedMediaIds.add(it.mediaId) }
+                            addedNow.addAll(toAdd)
+                        }
+
+                        val queueIdsAfterNext = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                        val relatedCandidates =
+                            result.relatedEndpoint?.let { relatedEndpoint ->
+                                withContext(Dispatchers.IO) {
+                                    YouTube.related(relatedEndpoint)
+                                }.getOrNull()?.songs.orEmpty()
+                            }.orEmpty()
+
+                        val filteredRelated =
+                            relatedCandidates
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId !in queueIdsAfterNext }
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+
+                        if (addedNow.isEmpty() && filteredRelated.isNotEmpty()) {
+                            val toAdd = filteredRelated.take(25)
+                            player.addMediaItems(toAdd)
+                            toAdd.forEach { autoAddedMediaIds.add(it.mediaId) }
+                            addedNow.addAll(toAdd)
+                        }
+
+                        val queueIdsAfterAdds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+                        val playlistId = result.endpoint.playlistId
+                        val automixCandidates =
+                            if (playlistId.isNullOrBlank()) {
+                                emptyList()
+                            } else {
+                                withContext(Dispatchers.IO) {
+                                    YouTube.next(WatchEndpoint(playlistId = playlistId))
+                                }.getOrNull()?.items.orEmpty()
+                            }
+
+                        val filteredAutomix =
+                            automixCandidates
+                                .map { it.toMediaItem() }
+                                .filter { it.mediaId !in queueIdsAfterAdds }
+                                .filterExplicit(hideExplicit)
+                                .filterVideo(hideVideo)
+
+                        val addedIds = addedNow.map { it.mediaId }.toSet()
+                        val pool =
+                            (filteredFromNext + filteredRelated + filteredAutomix)
+                                .asSequence()
+                                .distinctBy { it.mediaId }
+                                .filter { it.mediaId !in addedIds }
+                                .take(75)
+                                .toList()
+
+                        automixItems.value = pool
+
+                        if (addedNow.isEmpty() && pool.isEmpty()) {
+                            automixError.value = getString(R.string.error_no_similar_songs)
+                        }
+                        automixLoading.value = false
+                    }
+                    .onFailure { throwable ->
+                        automixLoading.value = false
+                        automixError.value = throwable.localizedMessage ?: getString(R.string.error_automix_failed)
+                    }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                automixLoading.value = false
+                automixError.value = e.localizedMessage ?: getString(R.string.error_automix_failed)
+            }
+        }
+    }
+
+    fun stopAndClearPlayback() {
+        suppressAutoPlayback = true
+        clearAutomix()
+        currentQueue = EmptyQueue
+        queueTitle = null
+        clearStreamRefreshGuards()
+        waitingForNetworkConnection.value = false
+        currentMediaMetadata.value = null
+        player.playWhenReady = false
+        player.stop()
+        player.clearMediaItems()
+        abandonAudioFocus()
+        closeAudioEffectSession()
+        consecutivePlaybackErr = 0
+    }
+
+    fun playNext(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    com.j.m3play.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.asReversed().forEach { track ->
+                requestTogetherAddTrack(track, com.j.m3play.together.AddTrackMode.PLAY_NEXT)
+            }
+            return
+        }
+        suppressAutoPlayback = false
+        player.addMediaItems(
+            if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1,
+            items
+        )
+        player.prepare()
+    }
+
+    fun addToQueue(items: List<MediaItem>) {
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!joined.roomState.settings.allowGuestsToAddTracks) {
+                return
+            }
+            val tracks =
+                items.mapNotNull { it.metadata }.map { meta ->
+                    com.j.m3play.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+            tracks.forEach { track ->
+                requestTogetherAddTrack(track, com.j.m3play.together.AddTrackMode.ADD_TO_QUEUE)
+            }
+            return
+        }
+        suppressAutoPlayback = false
+        player.addMediaItems(items)
+        player.prepare()
+    }
+
+    fun startTogetherHost(
+        port: Int,
+        displayName: String,
+        settings: com.j.m3play.together.TogetherRoomSettings,
+    ) {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = com.j.m3play.together.TogetherSessionState.Idle
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = false
+
+            val localIp = getLocalIpv4Address()
+            val sessionId = java.util.UUID.randomUUID().toString()
+            val sessionKey = java.util.UUID.randomUUID().toString()
+            val joinInfo =
+                com.j.m3play.together.TogetherJoinInfo(
+                    host = localIp ?: "127.0.0.1",
+                    port = port,
+                    sessionId = sessionId,
+                    sessionKey = sessionKey,
+                )
+            val joinLink = com.j.m3play.together.TogetherLink.encode(joinInfo)
+
+            val server =
+                com.j.m3play.together.TogetherServer(
+                    scope = ioScope,
+                    sessionId = sessionId,
+                    sessionKey = sessionKey,
+                    hostDisplayName = displayName.trim().ifBlank { getString(R.string.app_name) },
+                    initialSettings = settings,
+                )
+
+            server.onEvent = { event ->
+                ioScope.launch(SilentHandler) {
+                    handleTogetherHostEvent(event) { server.currentSettings() }
+                }
+            }
+
+            server.start(port)
+            togetherServer = server
+
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.Hosting(
+                        sessionId = sessionId,
+                        joinLink = joinLink,
+                        localAddressHint = localIp,
+                        port = port,
+                        settings = settings,
+                        roomState = null,
+                    )
+            }
+
+            togetherBroadcastJob =
+                ioScope.launch(SilentHandler) {
+                    while (togetherServer === server) {
+                        val state = buildTogetherRoomState(sessionId = sessionId, hostId = togetherHostId)
+                        server.broadcastRoomState(state)
+                        scope.launch(SilentHandler) {
+                            val hosting = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Hosting
+                            if (hosting?.sessionId == sessionId) {
+                                togetherSessionState.value =
+                                    hosting.copy(
+                                        settings = server.currentSettings(),
+                                        roomState = state.copy(
+                                            participants = server.currentParticipants(),
+                                            settings = server.currentSettings(),
+                                        ),
+                                    )
+                            }
+                        }
+                        kotlinx.coroutines.delay(750)
+                    }
+                }
+        }
+    }
+
+    private fun togetherOnlineErrorMessage(t: Throwable): String {
+        if (t is com.j.m3play.together.TogetherOnlineApiException) {
+            val code = t.statusCode
+            return when {
+                code == 404 -> getString(R.string.together_session_not_found)
+                code != null && code in 500..599 -> getString(R.string.together_server_error)
+                else -> t.message ?: getString(R.string.network_unavailable)
+            }
+        }
+        val root = generateSequence(t) { it.cause }.lastOrNull() ?: t
+        return when (root) {
+            is UnknownHostException -> getString(R.string.together_server_unreachable)
+            is ConnectException -> getString(R.string.together_server_unreachable)
+            is SocketTimeoutException -> getString(R.string.together_connection_timed_out)
+            is javax.net.ssl.SSLHandshakeException -> getString(R.string.together_server_unreachable)
+            else -> getString(R.string.network_unavailable)
+        }
+    }
+
+    fun startTogetherOnlineHost(
+        displayName: String,
+        settings: com.j.m3play.together.TogetherRoomSettings,
+    ) {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = com.j.m3play.together.TogetherSessionState.Idle
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = true
+
+            val baseUrl = com.j.m3play.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val togetherToken = com.j.m3play.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = com.j.m3play.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
+            val hostName = displayName.trim().ifBlank { getString(R.string.app_name) }
+
+            val created =
+                runCatching {
+                    api.createSession(
+                        hostDisplayName = hostName,
+                        settings = settings,
+                    )
+                }.getOrElse { t ->
+                    scope.launch(SilentHandler) {
+                        togetherSessionState.value =
+                            com.j.m3play.together.TogetherSessionState.Error(
+                                message = togetherOnlineErrorMessage(t),
+                                recoverable = true,
+                            )
+                    }
+                    reportException(t)
+                    return@launch
+                }
+
+            val onlineHost =
+                com.j.m3play.together.TogetherOnlineHost(
+                    externalScope = ioScope,
+                    sessionId = created.sessionId,
+                    sessionKey = created.hostKey,
+                    hostId = togetherHostId,
+                    hostDisplayName = hostName,
+                    initialSettings = created.settings,
+                    clientId = getOrCreateTogetherClientId(),
+                    bearerToken = togetherToken,
+                )
+
+            onlineHost.onEvent = { event ->
+                ioScope.launch(SilentHandler) {
+                    handleTogetherHostEvent(event) { onlineHost.currentSettings() }
+                }
+            }
+
+            togetherOnlineHost = onlineHost
+
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.HostingOnline(
+                        sessionId = created.sessionId,
+                        code = created.code,
+                        settings = created.settings,
+                        roomState = null,
+                    )
+            }
+
+            val wsUrl =
+                com.j.m3play.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = created.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
+            togetherOnlineConnectJob?.cancel()
+            togetherOnlineConnectJob =
+                ioScope.launch(SilentHandler) {
+                    onlineHost.connect(wsUrl)
+                }
+
+            togetherBroadcastJob =
+                ioScope.launch(SilentHandler) {
+                    while (togetherOnlineHost === onlineHost) {
+                        val state =
+                            buildTogetherRoomState(
+                                sessionId = created.sessionId,
+                                hostId = togetherHostId,
+                            )
+                        onlineHost.broadcastRoomState(state)
+                        scope.launch(SilentHandler) {
+                            val hosting =
+                                togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.HostingOnline
+                            if (hosting?.sessionId == created.sessionId) {
+                                val currentSettings = onlineHost.currentSettings()
+                                togetherSessionState.value =
+                                    hosting.copy(
+                                        settings = currentSettings,
+                                        roomState =
+                                            state.copy(
+                                                participants = onlineHost.currentParticipants(),
+                                                settings = currentSettings,
+                                            ),
+                                    )
+                            }
+                        }
+                        kotlinx.coroutines.delay(750)
+                    }
+                }
+        }
+    }
+
+    fun joinTogether(
+        rawLink: String,
+        displayName: String,
+    ) {
+        ensureScopesActive()
+        val joinInfo = com.j.m3play.together.TogetherLink.decode(rawLink)
+        if (joinInfo == null) {
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.Error(
+                        message = getString(R.string.invalid_link),
+                        recoverable = true,
+                    )
+            }
+            return
+        }
+
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = com.j.m3play.together.TogetherSessionState.Joining(joinInfo.toDeepLink())
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = false
+            val client =
+                com.j.m3play.together.TogetherClient(
+                    ioScope,
+                    clientId = getOrCreateTogetherClientId(),
+                )
+            togetherClient = client
+            togetherClock = com.j.m3play.together.TogetherClock()
+            togetherSelfParticipantId = null
+            togetherLastAppliedQueueHash = null
+
+            togetherClientEventsJob?.cancel()
+            togetherClientEventsJob =
+                ioScope.launch(SilentHandler) {
+                client.events.collect { event ->
+                    when (event) {
+                        is com.j.m3play.together.TogetherClientEvent.Welcome -> {
+                            togetherSelfParticipantId = event.welcome.participantId
+                            scope.launch(SilentHandler) {
+                                val state = togetherSessionState.value
+                                if (state is com.j.m3play.together.TogetherSessionState.Joining) {
+                                    val selfName = displayName.trim().ifBlank { getString(R.string.together_role_guest) }
+                                    val initial =
+                                        com.j.m3play.together.TogetherRoomState(
+                                            sessionId = joinInfo.sessionId,
+                                            hostId = togetherHostId,
+                                            participants =
+                                                listOf(
+                                                    com.j.m3play.together.TogetherParticipant(
+                                                        id = event.welcome.participantId,
+                                                        name = selfName,
+                                                        isHost = false,
+                                                        isPending = event.welcome.isPending,
+                                                        isConnected = true,
+                                                    ),
+                                                ),
+                                            settings = event.welcome.settings,
+                                            queue = emptyList(),
+                                            queueHash = "",
+                                            currentIndex = 0,
+                                            isPlaying = false,
+                                            positionMs = 0L,
+                                            repeatMode = 0,
+                                            shuffleEnabled = false,
+                                            sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+                                        )
+                                    togetherSessionState.value =
+                                        com.j.m3play.together.TogetherSessionState.Joined(
+                                            role = com.j.m3play.together.TogetherRole.Guest,
+                                            sessionId = joinInfo.sessionId,
+                                            selfParticipantId = event.welcome.participantId,
+                                            roomState = initial,
+                                        )
+                                }
+                            }
+                            startTogetherHeartbeat(joinInfo.sessionId, client)
+                        }
+
+                        is com.j.m3play.together.TogetherClientEvent.RoomState -> {
+                            applyRemoteRoomState(event.state)
+                        }
+
+                        is com.j.m3play.together.TogetherClientEvent.JoinDecision -> {
+                            if (!event.decision.approved) {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        com.j.m3play.together.TogetherSessionState.Error(
+                                            message = getString(R.string.not_allowed),
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+                        }
+
+                        is com.j.m3play.together.TogetherClientEvent.ServerIssue -> {
+                            Timber.tag("Together").w("server issue (lan) code=${event.code.orEmpty()} message=${event.message}")
+                            when (event.code) {
+                                "GUEST_CONTROL_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                    val joined =
+                                        togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+                                    if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+                                        togetherPendingGuestControl = null
+                                        togetherLastSentControlAction = null
+                                        scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                    }
+                                }
+
+                                "GUEST_ADD_DISABLED" -> {
+                                    showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                }
+
+                                "HOST_OFFLINE" -> {
+                                    showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                }
+
+                                else -> {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            com.j.m3play.together.TogetherSessionState.Error(
+                                                message = event.message,
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+                        }
+
+                        is com.j.m3play.together.TogetherClientEvent.HeartbeatPong -> {
+                            val clock = togetherClock ?: return@collect
+                            clock.onPong(
+                                sentAtElapsedMs = event.pong.clientElapsedRealtimeMs,
+                                receivedAtElapsedMs = event.receivedAtElapsedRealtimeMs,
+                                serverElapsedMs = event.pong.serverElapsedRealtimeMs,
+                            )
+                        }
+
+                        is com.j.m3play.together.TogetherClientEvent.Error -> {
+                            scope.launch(SilentHandler) {
+                                togetherSessionState.value =
+                                    com.j.m3play.together.TogetherSessionState.Error(
+                                        message = event.message,
+                                        recoverable = true,
+                                    )
+                            }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                        }
+
+                        com.j.m3play.together.TogetherClientEvent.Disconnected -> {
+                            val current = togetherSessionState.value
+                            if (current is com.j.m3play.together.TogetherSessionState.Idle) return@collect
+                            scope.launch(SilentHandler) {
+                                val currentState = togetherSessionState.value
+                                togetherSessionState.value =
+                                    com.j.m3play.together.TogetherSessionState.Error(
+                                        message =
+                                            if (currentState is com.j.m3play.together.TogetherSessionState.Joined &&
+                                                currentState.role is com.j.m3play.together.TogetherRole.Guest
+                                            ) {
+                                                getString(R.string.together_host_left_session)
+                                            } else {
+                                                getString(R.string.network_unavailable)
+                                            },
+                                        recoverable = true,
+                                    )
+                            }
+                            ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                        }
+                    }
+                }
+            }
+
+            client.connect(joinInfo, displayName.trim().ifBlank { getString(R.string.together_role_guest) })
+        }
+    }
+
+    fun joinTogetherOnline(
+        code: String,
+        displayName: String,
+    ) {
+        ensureScopesActive()
+        val trimmedCode = code.trim()
+        if (trimmedCode.isBlank()) {
+            scope.launch(SilentHandler) {
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.Error(
+                        message = getString(R.string.invalid_code),
+                        recoverable = true,
+                    )
+            }
+            return
+        }
+
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = com.j.m3play.together.TogetherSessionState.JoiningOnline(trimmedCode)
+        }
+
+        ioScope.launch(SilentHandler) {
+            stopTogetherInternal()
+            togetherIsOnlineSession = true
+
+            val baseUrl = com.j.m3play.together.TogetherOnlineEndpoint.baseUrlOrNull(dataStore)
+            if (baseUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_online_not_configured),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val togetherToken = com.j.m3play.BuildConfig.TOGETHER_BEARER_TOKEN.trim().takeIf { it.isNotBlank() }
+            if (togetherToken == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = getString(R.string.together_token_missing),
+                            recoverable = true,
+                        )
+                }
+                return@launch
+            }
+
+            val api = com.j.m3play.together.TogetherOnlineApi(baseUrl = baseUrl, bearerToken = togetherToken)
+            val resolved =
+                runCatching { api.resolveCode(trimmedCode) }
+                    .getOrElse { t ->
+                        scope.launch(SilentHandler) {
+                            togetherSessionState.value =
+                                com.j.m3play.together.TogetherSessionState.Error(
+                                    message = togetherOnlineErrorMessage(t),
+                                    recoverable = true,
+                                )
+                        }
+                        reportException(t)
+                        return@launch
+                    }
+
+            val client =
+                com.j.m3play.together.TogetherClient(
+                    ioScope,
+                    clientId = getOrCreateTogetherClientId(),
+                    bearerToken = togetherToken,
+                )
+            togetherClient = client
+            togetherClock = com.j.m3play.together.TogetherClock()
+            togetherSelfParticipantId = null
+            togetherLastAppliedQueueHash = null
+
+            togetherClientEventsJob?.cancel()
+            togetherClientEventsJob =
+                ioScope.launch(SilentHandler) {
+                    client.events.collect { event ->
+                        when (event) {
+                            is com.j.m3play.together.TogetherClientEvent.Welcome -> {
+                                togetherSelfParticipantId = event.welcome.participantId
+                                scope.launch(SilentHandler) {
+                                    val state = togetherSessionState.value
+                                    if (state is com.j.m3play.together.TogetherSessionState.JoiningOnline) {
+                                        val selfName = displayName.trim().ifBlank { getString(R.string.together_role_guest) }
+                                        val initial =
+                                            com.j.m3play.together.TogetherRoomState(
+                                                sessionId = resolved.sessionId,
+                                                hostId = togetherHostId,
+                                                participants =
+                                                    listOf(
+                                                        com.j.m3play.together.TogetherParticipant(
+                                                            id = event.welcome.participantId,
+                                                            name = selfName,
+                                                            isHost = false,
+                                                            isPending = event.welcome.isPending,
+                                                            isConnected = true,
+                                                        ),
+                                                    ),
+                                                settings = event.welcome.settings,
+                                                queue = emptyList(),
+                                                queueHash = "",
+                                                currentIndex = 0,
+                                                isPlaying = false,
+                                                positionMs = 0L,
+                                                repeatMode = 0,
+                                                shuffleEnabled = false,
+                                                sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+                                            )
+                                        togetherSessionState.value =
+                                            com.j.m3play.together.TogetherSessionState.Joined(
+                                                role = com.j.m3play.together.TogetherRole.Guest,
+                                                sessionId = resolved.sessionId,
+                                                selfParticipantId = event.welcome.participantId,
+                                                roomState = initial,
+                                            )
+                                    }
+                                }
+                                startTogetherHeartbeat(resolved.sessionId, client)
+                            }
+
+                            is com.j.m3play.together.TogetherClientEvent.RoomState -> {
+                                applyRemoteRoomState(event.state)
+                            }
+
+                            is com.j.m3play.together.TogetherClientEvent.JoinDecision -> {
+                                if (!event.decision.approved) {
+                                    scope.launch(SilentHandler) {
+                                        togetherSessionState.value =
+                                            com.j.m3play.together.TogetherSessionState.Error(
+                                                message = getString(R.string.not_allowed),
+                                                recoverable = true,
+                                            )
+                                    }
+                                    ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                }
+                            }
+
+                            is com.j.m3play.together.TogetherClientEvent.ServerIssue -> {
+                                Timber.tag("Together").w("server issue (online) code=${event.code.orEmpty()} message=${event.message}")
+                                when (event.code) {
+                                    "GUEST_CONTROL_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_CONTROL_DISABLED")
+                                        val joined =
+                                            togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+                                        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+                                            togetherPendingGuestControl = null
+                                            togetherLastSentControlAction = null
+                                            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                                        }
+                                    }
+
+                                    "GUEST_ADD_DISABLED" -> {
+                                        showTogetherNotice(event.message, key = "GUEST_ADD_DISABLED")
+                                    }
+
+                                    "HOST_OFFLINE" -> {
+                                        showTogetherNotice(event.message, key = "HOST_OFFLINE")
+                                    }
+
+                                    else -> {
+                                        scope.launch(SilentHandler) {
+                                            togetherSessionState.value =
+                                                com.j.m3play.together.TogetherSessionState.Error(
+                                                    message = event.message,
+                                                    recoverable = true,
+                                                )
+                                        }
+                                        ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                                    }
+                                }
+                            }
+
+                            is com.j.m3play.together.TogetherClientEvent.HeartbeatPong -> {
+                                val clock = togetherClock ?: return@collect
+                                clock.onPong(
+                                    sentAtElapsedMs = event.pong.clientElapsedRealtimeMs,
+                                    receivedAtElapsedMs = event.receivedAtElapsedRealtimeMs,
+                                    serverElapsedMs = event.pong.serverElapsedRealtimeMs,
+                                )
+                            }
+
+                            is com.j.m3play.together.TogetherClientEvent.Error -> {
+                                scope.launch(SilentHandler) {
+                                    togetherSessionState.value =
+                                        com.j.m3play.together.TogetherSessionState.Error(
+                                            message = event.message,
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+
+                            com.j.m3play.together.TogetherClientEvent.Disconnected -> {
+                                val current = togetherSessionState.value
+                                if (current is com.j.m3play.together.TogetherSessionState.Idle) return@collect
+                                scope.launch(SilentHandler) {
+                                    val currentState = togetherSessionState.value
+                                    togetherSessionState.value =
+                                        com.j.m3play.together.TogetherSessionState.Error(
+                                            message =
+                                                if (currentState is com.j.m3play.together.TogetherSessionState.Joined &&
+                                                    currentState.role is com.j.m3play.together.TogetherRole.Guest
+                                                ) {
+                                                    getString(R.string.together_host_left_session)
+                                                } else {
+                                                    getString(R.string.network_unavailable)
+                                                },
+                                            recoverable = true,
+                                        )
+                                }
+                                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                            }
+                        }
+                    }
+                }
+
+            val wsUrl =
+                com.j.m3play.together.TogetherOnlineEndpoint.onlineWebSocketUrlOrNull(
+                    rawWsUrl = resolved.wsUrl,
+                    baseUrl = baseUrl,
+                )
+            if (wsUrl == null) {
+                scope.launch(SilentHandler) {
+                    togetherSessionState.value =
+                        com.j.m3play.together.TogetherSessionState.Error(
+                            message = "Connection failed: Invalid server websocket URL",
+                            recoverable = true,
+                        )
+                }
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+                return@launch
+            }
+
+            client.connect(
+                wsUrl = wsUrl,
+                sessionId = resolved.sessionId,
+                sessionKey = resolved.guestKey,
+                displayName = displayName.trim().ifBlank { getString(R.string.together_role_guest) },
+            )
+        }
+    }
+
+    fun leaveTogether() {
+        ensureScopesActive()
+        scope.launch(SilentHandler) {
+            togetherSessionState.value = com.j.m3play.together.TogetherSessionState.Idle
+        }
+        ioScope.launch(SilentHandler) { stopTogetherInternal() }
+    }
+
+    fun updateTogetherSettings(settings: com.j.m3play.together.TogetherRoomSettings) {
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
+        ioScope.launch(SilentHandler) {
+            server?.updateSettings(settings)
+            onlineHost?.updateSettings(settings)
+        }
+    }
+
+    fun approveTogetherParticipant(participantId: String, approved: Boolean) {
+        val server = togetherServer
+        val onlineHost = togetherOnlineHost
+        if (server == null && onlineHost == null) return
+        ioScope.launch(SilentHandler) {
+            server?.approveParticipant(participantId, approved)
+            onlineHost?.approveParticipant(participantId, approved)
+        }
+    }
+
+    fun kickTogetherParticipant(participantId: String, reason: String? = null) {
+        val onlineHost = togetherOnlineHost ?: return
+        ioScope.launch(SilentHandler) {
+            onlineHost.kickParticipant(participantId, reason)
+        }
+    }
+
+    fun banTogetherParticipant(participantId: String, reason: String? = null) {
+        val onlineHost = togetherOnlineHost ?: return
+        ioScope.launch(SilentHandler) {
+            onlineHost.banParticipant(participantId, reason)
+        }
+    }
+
+    fun requestTogetherControl(action: com.j.m3play.together.ControlAction) {
+        val client =
+            togetherClient ?: run {
+                showTogetherNotice(getString(R.string.network_unavailable), key = "TOGETHER_CLIENT_MISSING")
+                return
+            }
+        val state = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined ?: return
+        if (state.role !is com.j.m3play.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToControlPlayback) {
+            Timber.tag("Together").i("control blocked locally (disabled) action=${action::class.java.simpleName}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_CONTROL_DISABLED_LOCAL")
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val lastAction = togetherLastSentControlAction
+        val lastAt = togetherLastSentControlAtElapsedMs
+        if (lastAction == action && now - lastAt < 350L) return
+        togetherLastSentControlAction = action
+        togetherLastSentControlAtElapsedMs = now
+
+        val timeout = if (togetherIsOnlineSession) 5000L else 2000L
+        togetherPendingGuestControl =
+            when (action) {
+                com.j.m3play.together.ControlAction.Play ->
+                    TogetherPendingGuestControl(desiredIsPlaying = true, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                com.j.m3play.together.ControlAction.Pause ->
+                    TogetherPendingGuestControl(desiredIsPlaying = false, requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                is com.j.m3play.together.ControlAction.SeekToIndex ->
+                    TogetherPendingGuestControl(desiredIndex = action.index.coerceAtLeast(0), requestedAtElapsedMs = now, expiresAtElapsedMs = now + timeout)
+                is com.j.m3play.together.ControlAction.SeekToTrack ->
+                    TogetherPendingGuestControl(
+                        desiredTrackId = action.trackId.trim().ifBlank { null },
+                        requestedAtElapsedMs = now,
+                        expiresAtElapsedMs = now + timeout,
+                    )
+                else -> togetherPendingGuestControl
+            }
+        client.requestControl(state.sessionId, action)
+    }
+
+    fun requestTogetherAddTrack(
+        track: com.j.m3play.together.TogetherTrack,
+        mode: com.j.m3play.together.AddTrackMode,
+    ) {
+        val client = togetherClient ?: return
+        val state = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined ?: return
+        if (state.role !is com.j.m3play.together.TogetherRole.Guest) return
+        if (!state.roomState.settings.allowGuestsToAddTracks) {
+            Timber.tag("Together").i("add blocked locally (disabled) mode=$mode trackId=${track.id}")
+            showTogetherNotice(getString(R.string.not_allowed), key = "GUEST_ADD_DISABLED_LOCAL")
+            return
+        }
+        client.requestAddTrack(state.sessionId, track, mode)
+    }
+
+    private suspend fun handleTogetherHostEvent(
+        event: com.j.m3play.together.TogetherServerEvent,
+        currentSettings: suspend () -> com.j.m3play.together.TogetherRoomSettings,
+    ) {
+        when (event) {
+            is com.j.m3play.together.TogetherServerEvent.ControlRequested -> {
+                val settings = currentSettings()
+                if (!settings.allowGuestsToControlPlayback) return
+                applyHostControl(event.request.action)
+            }
+
+            is com.j.m3play.together.TogetherServerEvent.AddTrackRequested -> {
+                val settings = currentSettings()
+                if (!settings.allowGuestsToAddTracks) return
+                applyHostAddTrack(event.request.track, event.request.mode)
+            }
+
+            is com.j.m3play.together.TogetherServerEvent.Error -> {
+                val current = togetherSessionState.value
+                if (current is com.j.m3play.together.TogetherSessionState.Idle) return
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.Error(
+                        message = event.message,
+                        recoverable = true,
+                    )
+                ioScope.launch(SilentHandler) { stopTogetherInternal() }
+            }
+
+            else -> Unit
+        }
+    }
+
+    private suspend fun applyHostControl(action: com.j.m3play.together.ControlAction) {
+        withContext(Dispatchers.Main) {
+            when (action) {
+                com.j.m3play.together.ControlAction.Play -> {
+                    if (!player.playWhenReady) {
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                com.j.m3play.together.ControlAction.Pause -> {
+                    if (player.playWhenReady) {
+                        player.playWhenReady = false
+                    }
+                }
+
+                is com.j.m3play.together.ControlAction.SeekTo -> {
+                    player.seekTo(action.positionMs.coerceAtLeast(0L))
+                    player.prepare()
+                }
+
+                com.j.m3play.together.ControlAction.SkipNext -> {
+                    if (player.hasNextMediaItem()) {
+                        player.seekToNext()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                com.j.m3play.together.ControlAction.SkipPrevious -> {
+                    if (player.hasPreviousMediaItem()) {
+                        player.seekToPrevious()
+                        player.prepare()
+                        player.playWhenReady = true
+                    }
+                }
+
+                is com.j.m3play.together.ControlAction.SeekToTrack -> {
+                    val trackId = action.trackId.trim()
+                    if (trackId.isNotBlank()) {
+                        val idx =
+                            player.mediaItems.indexOfFirst {
+                                val metaId = it.metadata?.id
+                                it.mediaId == trackId || metaId == trackId
+                            }
+                        if (idx >= 0 && idx < player.mediaItemCount) {
+                            player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                            player.prepare()
+                        }
+                    }
+                }
+
+                is com.j.m3play.together.ControlAction.SeekToIndex -> {
+                    val idx = action.index.coerceAtLeast(0)
+                    if (idx < player.mediaItemCount) {
+                        player.seekTo(idx, action.positionMs.coerceAtLeast(0L))
+                        player.prepare()
+                    }
+                }
+
+                is com.j.m3play.together.ControlAction.SetRepeatMode -> {
+                    if (player.repeatMode != action.repeatMode) {
+                        player.repeatMode = action.repeatMode
+                    }
+                }
+
+                is com.j.m3play.together.ControlAction.SetShuffleEnabled -> {
+                    if (player.shuffleModeEnabled != action.shuffleEnabled) {
+                        player.shuffleModeEnabled = action.shuffleEnabled
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun applyHostAddTrack(
+        track: com.j.m3play.together.TogetherTrack,
+        mode: com.j.m3play.together.AddTrackMode,
+    ) {
+        val mediaItem = track.toMediaMetadata().toMediaItem()
+        withContext(Dispatchers.Main) {
+            when (mode) {
+                com.j.m3play.together.AddTrackMode.PLAY_NEXT -> playNext(listOf(mediaItem))
+                com.j.m3play.together.AddTrackMode.ADD_TO_QUEUE -> addToQueue(listOf(mediaItem))
+            }
+        }
+    }
+
+    private suspend fun buildTogetherRoomState(
+        sessionId: String,
+        hostId: String,
+    ): com.j.m3play.together.TogetherRoomState {
+        return withContext(Dispatchers.Main) {
+            val tracks =
+                player.mediaItems.mapNotNull { it.metadata }.map { meta ->
+                    com.j.m3play.together.TogetherTrack(
+                        id = meta.id,
+                        title = meta.title,
+                        artists = meta.artists.map { it.name },
+                        durationSec = meta.duration,
+                        thumbnailUrl = meta.thumbnailUrl,
+                    )
+                }
+
+            val queueHash = com.j.m3play.utils.md5(tracks.joinToString(separator = "|") { it.id })
+
+            com.j.m3play.together.TogetherRoomState(
+                sessionId = sessionId,
+                hostId = hostId,
+                settings = com.j.m3play.together.TogetherRoomSettings(),
+                participants = emptyList(),
+                queue = tracks,
+                queueHash = queueHash,
+                currentIndex = player.currentMediaItemIndex.coerceAtLeast(0),
+                isPlaying = player.playWhenReady && player.playbackState != Player.STATE_ENDED,
+                positionMs = player.currentPosition.coerceAtLeast(0L),
+                repeatMode = player.repeatMode,
+                shuffleEnabled = player.shuffleModeEnabled,
+                sentAtElapsedRealtimeMs = android.os.SystemClock.elapsedRealtime(),
+            )
+        }
+    }
+
+    private suspend fun applyRemoteRoomState(state: com.j.m3play.together.TogetherRoomState) {
+        val pid = togetherSelfParticipantId ?: return
+        val now = android.os.SystemClock.elapsedRealtime()
+
+        val pending = togetherPendingGuestControl
+        if (pending != null) {
+            val currentTrackId = state.queue.getOrNull(state.currentIndex.coerceAtLeast(0))?.id
+            val mismatch =
+                (pending.desiredIsPlaying != null && state.isPlaying != pending.desiredIsPlaying) ||
+                    (pending.desiredIndex != null && state.currentIndex != pending.desiredIndex) ||
+                    (pending.desiredTrackId != null && currentTrackId != pending.desiredTrackId)
+            if (now >= pending.expiresAtElapsedMs) {
+                if ((pending.desiredIndex != null || pending.desiredTrackId != null) &&
+                    now - pending.requestedAtElapsedMs >= 1200L &&
+                    mismatch
+                ) {
+                    showTogetherNotice(getString(R.string.together_song_change_failed), key = "GUEST_SEEK_TIMEOUT")
+                }
+                togetherPendingGuestControl = null
+            } else {
+                if (mismatch) return
+                togetherPendingGuestControl = null
+            }
+        }
+
+        val lastSentAt = togetherLastAppliedRoomStateSentAtElapsedMs
+        val sentAt = state.sentAtElapsedRealtimeMs
+        if (sentAt > 0L && lastSentAt > 0L && sentAt <= lastSentAt) return
+
+        val offset = if (togetherIsOnlineSession) 0L else (togetherClock?.snapshot()?.estimatedOffsetMs ?: 0L)
+        val correctedSentAt = sentAt + offset
+        val estimatedOnlineLatency = if (togetherIsOnlineSession) 1200L else 0L
+        val delta = if (togetherIsOnlineSession) estimatedOnlineLatency else (now - correctedSentAt).coerceAtLeast(0L)
+        val targetPos =
+            if (state.isPlaying) (state.positionMs + delta).coerceAtLeast(0L) else state.positionMs.coerceAtLeast(0L)
+
+        withContext(Dispatchers.Main) {
+            togetherApplyingRemote = true
+            togetherSuppressEchoUntilElapsedMs = android.os.SystemClock.elapsedRealtime() + 450L
+            try {
+                val desiredItems = state.queue.map { it.toMediaMetadata().toMediaItem() }
+                val desiredIds = state.queue.map { it.id }
+                val desiredHash = state.queueHash
+                val localIds = player.mediaItems.mapNotNull { it.metadata?.id ?: it.mediaId }.filter { it.isNotBlank() }
+                val localHash = if (localIds.isEmpty()) "" else com.j.m3play.utils.md5(localIds.joinToString(separator = "|"))
+                val needsRebuild =
+                    desiredItems.isNotEmpty() &&
+                        (
+                            (desiredHash.isNotBlank() && desiredHash != localHash) ||
+                                (desiredHash.isBlank() && desiredIds != localIds)
+                        )
+
+                if (desiredItems.isNotEmpty() && needsRebuild) {
+                    togetherLastAppliedQueueHash = desiredHash.ifBlank { localHash }
+                    val startIndex = state.currentIndex.coerceIn(0, desiredItems.lastIndex)
+                    suppressAutoPlayback = false
+                    currentQueue =
+                        com.j.m3play.playback.queues.ListQueue(
+                            title = getString(R.string.music_player),
+                            items = desiredItems,
+                            startIndex = startIndex,
+                            position = targetPos,
+                        )
+                    queueTitle = null
+                    player.setMediaItems(desiredItems, startIndex, targetPos)
+                    player.prepare()
+                    player.repeatMode = state.repeatMode
+                    player.shuffleModeEnabled = state.shuffleEnabled
+                    player.playWhenReady = state.isPlaying
+                    togetherLastRemoteAppliedIndex = startIndex
+                } else {
+                    val index = state.currentIndex.coerceAtLeast(0)
+                    val indexChanged = player.mediaItemCount > 0 && index != player.currentMediaItemIndex
+                    val stateChanged =
+                        player.repeatMode != state.repeatMode ||
+                            player.shuffleModeEnabled != state.shuffleEnabled ||
+                            player.playWhenReady != state.isPlaying
+
+                    if (indexChanged) {
+                        player.seekTo(index.coerceAtMost(player.mediaItemCount - 1), targetPos)
+                        player.prepare()
+                        player.playWhenReady = state.isPlaying
+                    } else if (stateChanged) {
+                        if (player.repeatMode != state.repeatMode) player.repeatMode = state.repeatMode
+                        if (player.shuffleModeEnabled != state.shuffleEnabled) player.shuffleModeEnabled = state.shuffleEnabled
+                        if (player.playWhenReady != state.isPlaying) {
+                            player.playWhenReady = state.isPlaying
+                            val drift = kotlin.math.abs(player.currentPosition - targetPos)
+                            if (drift > 100) {
+                                player.seekTo(targetPos)
+                                player.prepare()
+                            }
+                        }
+                    } else {
+                        val drift = kotlin.math.abs(player.currentPosition - targetPos)
+                        val seekThreshold = if (togetherIsOnlineSession) 4000L else 2000L
+                        val threshold = if (state.isPlaying) seekThreshold else 200L
+                        
+                        if (drift > threshold) {
+                            player.seekTo(targetPos)
+                            player.prepare()
+                        }
+                    }
+                    togetherLastRemoteAppliedIndex = index
+                }
+                togetherLastRemoteAppliedPlayWhenReady = state.isPlaying
+                togetherLastAppliedRoomStateSentAtElapsedMs = sentAt
+
+                togetherSessionState.value =
+                    com.j.m3play.together.TogetherSessionState.Joined(
+                        role = com.j.m3play.together.TogetherRole.Guest,
+                        sessionId = state.sessionId,
+                        selfParticipantId = pid,
+                        roomState = state,
+                    )
+            } finally {
+                togetherApplyingRemote = false
+            }
+        }
+    }
+
+    private fun startTogetherHeartbeat(sessionId: String, client: com.j.m3play.together.TogetherClient) {
+        togetherHeartbeatJob?.cancel()
+        togetherHeartbeatJob =
+            ioScope.launch(SilentHandler) {
+                var pingId = 0L
+                while (togetherClient === client) {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    client.sendHeartbeat(sessionId = sessionId, pingId = pingId++, clientElapsedRealtimeMs = now)
+                    kotlinx.coroutines.delay(2000)
+                }
+            }
+    }
+
+    private suspend fun stopTogetherInternal() {
+        togetherBroadcastJob?.cancel()
+        togetherBroadcastJob = null
+
+        togetherOnlineConnectJob?.cancel()
+        togetherOnlineConnectJob = null
+
+        togetherClientEventsJob?.cancel()
+        togetherClientEventsJob = null
+
+        togetherHeartbeatJob?.cancel()
+        togetherHeartbeatJob = null
+
+        togetherClock = null
+        togetherSelfParticipantId = null
+        togetherLastAppliedQueueHash = null
+        togetherIsOnlineSession = false
+        togetherApplyingRemote = false
+        togetherSuppressEchoUntilElapsedMs = 0L
+        togetherLastAppliedRoomStateSentAtElapsedMs = 0L
+        togetherLastRemoteAppliedPlayWhenReady = null
+        togetherLastRemoteAppliedIndex = -1
+        togetherLastSentControlAtElapsedMs = 0L
+        togetherLastSentControlAction = null
+        togetherPendingGuestControl = null
+
+        try {
+            togetherClient?.disconnect()
+        } catch (_: Exception) {}
+        togetherClient = null
+
+        try {
+            togetherOnlineHost?.disconnect()
+        } catch (_: Exception) {}
+        togetherOnlineHost = null
+
+        try {
+            togetherServer?.stop()
+        } catch (_: Exception) {}
+        togetherServer = null
+    }
+
+    private fun com.j.m3play.together.TogetherTrack.toMediaMetadata(): com.j.m3play.models.MediaMetadata {
+        return com.j.m3play.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists.map { name -> com.j.m3play.models.MediaMetadata.Artist(id = null, name = name) },
+            duration = durationSec,
+            thumbnailUrl = thumbnailUrl,
+            album = null,
+            setVideoId = null,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+        )
+    }
+
+    private fun getLocalIpv4Address(): String? {
+        return runCatching {
+            java.net.NetworkInterface.getNetworkInterfaces().toList()
+                .asSequence()
+                .filter { it.isUp && !it.isLoopback }
+                .flatMap { it.inetAddresses.toList().asSequence() }
+                .filterIsInstance<java.net.Inet4Address>()
+                .map { it.hostAddress }
+                .firstOrNull { it.isNotBlank() && it != "127.0.0.1" }
+        }.getOrNull()
+    }
+
+    private fun toggleLibrary() {
+        database.query {
+            currentSong.value?.let {
+                update(it.song.toggleLibrary())
+            }
+        }
+    }
+
+    fun toggleLike() {
+         database.query {
+             currentSong.value?.let {
+                 val song = it.song.toggleLike()
+                 update(song)
+                 syncUtils.likeSong(song)
+
+                 if (dataStore.get(AutoDownloadOnLikeKey, false) && song.liked) {
+                     val downloadRequest = androidx.media3.exoplayer.offline.DownloadRequest
+                         .Builder(song.id, song.id.toUri())
+                         .setCustomCacheKey(song.id)
+                         .setData(song.title.toByteArray())
+                         .build()
+                     androidx.media3.exoplayer.offline.DownloadService.sendAddDownload(
+                         this@MusicService,
+                         ExoDownloadService::class.java,
+                         downloadRequest,
+                         false
+                     )
+                 }
+             }
+         }
+     }
+
+    fun toggleStartRadio() {
+        startRadioSeamlessly()
+    }
+
+    private fun decodeBandLevelsMb(raw: String?): List<Int> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching { EqualizerJson.json.decodeFromString<List<Int>>(raw) }.getOrNull() ?: emptyList()
+    }
+
+    private fun encodeBandLevelsMb(levelsMb: List<Int>): String {
+        return runCatching { EqualizerJson.json.encodeToString(levelsMb) }.getOrNull().orEmpty()
+    }
+
+    private fun readEqSettingsFromPrefs(prefs: Preferences): EqSettings {
+        val levels = decodeBandLevelsMb(prefs[EqualizerBandLevelsMbKey])
+        return EqSettings(
+            enabled = prefs[EqualizerEnabledKey] ?: false,
+            bandLevelsMb = levels,
+            outputGainEnabled = prefs[EqualizerOutputGainEnabledKey] ?: false,
+            outputGainMb = prefs[EqualizerOutputGainMbKey] ?: 0,
+            bassBoostEnabled = prefs[EqualizerBassBoostEnabledKey] ?: false,
+            bassBoostStrength = (prefs[EqualizerBassBoostStrengthKey] ?: 0).coerceIn(0, 1000),
+            virtualizerEnabled = prefs[EqualizerVirtualizerEnabledKey] ?: false,
+            virtualizerStrength = (prefs[EqualizerVirtualizerStrengthKey] ?: 0).coerceIn(0, 1000),
+        )
+    }
+
+    fun applyEqFlatPreset() {
+        ioScope.launch {
+            val caps = eqCapabilities.value
+            val bandCount = caps?.bandCount ?: runCatching { equalizer?.numberOfBands?.toInt() }.getOrNull() ?: 0
+            val encoded = encodeBandLevelsMb(List(bandCount.coerceAtLeast(0)) { 0 })
+            dataStore.edit { prefs ->
+                prefs[EqualizerEnabledKey] = true
+                prefs[EqualizerBandLevelsMbKey] = encoded
+                prefs[EqualizerSelectedProfileIdKey] = "flat"
+            }
+        }
+    }
+
+    fun applySystemEqPreset(presetIndex: Int) {
+        scope.launch {
+            ensureAudioEffects(player.audioSessionId)
+            val eq = equalizer ?: return@launch
+            val maxPreset = runCatching { eq.numberOfPresets.toInt() }.getOrNull() ?: 0
+            if (presetIndex !in 0 until maxPreset) return@launch
+
+            runCatching { eq.usePreset(presetIndex.toShort()) }.getOrNull() ?: return@launch
+
+            val bandCount = runCatching { eq.numberOfBands.toInt() }.getOrNull() ?: 0
+            val levels =
+                (0 until bandCount).map { band ->
+                    runCatching { eq.getBandLevel(band.toShort()).toInt() }.getOrNull() ?: 0
+                }
+
+            val encoded = encodeBandLevelsMb(levels)
+            if (encoded.isBlank()) return@launch
+
+            ioScope.launch {
+                dataStore.edit { prefs ->
+                    prefs[EqualizerEnabledKey] = true
+                    prefs[EqualizerBandLevelsMbKey] = encoded
+                    prefs[EqualizerSelectedProfileIdKey] = "system:$presetIndex"
+                }
+            }
+        }
+    }
+
+    private fun resampleLevelsByIndex(levelsMb: List<Int>, targetCount: Int): List<Int> {
+        if (targetCount <= 0) return emptyList()
+        if (levelsMb.isEmpty()) return List(targetCount) { 0 }
+        if (levelsMb.size == targetCount) return levelsMb
+        if (targetCount == 1) return listOf(levelsMb.sum() / levelsMb.size)
+
+        val lastIndex = levelsMb.lastIndex.toFloat().coerceAtLeast(1f)
+        return List(targetCount) { i ->
+            val pos = i.toFloat() * lastIndex / (targetCount - 1).toFloat()
+            val lo = kotlin.math.floor(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+            val hi = kotlin.math.ceil(pos).toInt().coerceIn(0, levelsMb.lastIndex)
+            val t = (pos - lo.toFloat()).coerceIn(0f, 1f)
+            val a = levelsMb[lo]
+            val b = levelsMb[hi]
+            (a + ((b - a) * t)).toInt()
+        }
+    }
+
+    private fun updateEqCapabilitiesFromEffect(eq: Equalizer) {
+        val bandCount = eq.numberOfBands.toInt().coerceAtLeast(0)
+        val range = runCatching { eq.bandLevelRange }.getOrNull()
+        val minMb = range?.getOrNull(0)?.toInt() ?: -1500
+        val maxMb = range?.getOrNull(1)?.toInt() ?: 1500
+        val center =
+            (0 until bandCount).map { band ->
+                (runCatching { eq.getCenterFreq(band.toShort()) }.getOrNull() ?: 0) / 1000
+            }
+        val presets =
+            (0 until eq.numberOfPresets.toInt()).map { idx ->
+                runCatching { eq.getPresetName(idx.toShort()).toString() }.getOrNull() ?: "Preset ${idx + 1}"
+            }
+        eqCapabilities.value =
+            EqCapabilities(
+                bandCount = bandCount,
+                minBandLevelMb = minMb,
+                maxBandLevelMb = maxMb,
+                centerFreqHz = center,
+                systemPresets = presets,
+            )
+    }
+
+    private fun releaseAudioEffects() {
+        audioEffectsSessionId = null
+        try {
+            equalizer?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            bassBoost?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            virtualizer?.release()
+        } catch (_: Exception) {
+        }
+        try {
+            loudnessEnhancer?.release()
+        } catch (_: Exception) {
+        }
+        equalizer = null
+        bassBoost = null
+        virtualizer = null
+        loudnessEnhancer = null
+        eqCapabilities.value = null
+    }
+
+    private fun ensureAudioEffects(sessionId: Int) {
+        if (sessionId <= 0) return
+        if (audioEffectsSessionId == sessionId && equalizer != null) return
+
+        releaseAudioEffects()
+        audioEffectsSessionId = sessionId
+
+        equalizer = runCatching { Equalizer(0, sessionId) }.getOrNull()
+        bassBoost = runCatching { BassBoost(0, sessionId) }.getOrNull()
+        virtualizer = runCatching { Virtualizer(0, sessionId) }.getOrNull()
+        loudnessEnhancer = runCatching { LoudnessEnhancer(sessionId) }.getOrNull()
+
+        equalizer?.let(::updateEqCapabilitiesFromEffect)
+        applyEqSettingsToEffects(desiredEqSettings.value)
+    }
+
+    private fun applyEqSettingsToEffects(settings: EqSettings) {
+        val eq = equalizer ?: return
+        val caps = eqCapabilities.value
+        val bandCount = caps?.bandCount ?: eq.numberOfBands.toInt()
+        val minMb = caps?.minBandLevelMb ?: runCatching { eq.bandLevelRange.getOrNull(0)?.toInt() }.getOrNull() ?: -1500
+        val maxMb = caps?.maxBandLevelMb ?: runCatching { eq.bandLevelRange.getOrNull(1)?.toInt() }.getOrNull() ?: 1500
+
+        val levels = resampleLevelsByIndex(settings.bandLevelsMb, bandCount)
+        runCatching { eq.enabled = settings.enabled }
+
+        for (band in 0 until bandCount) {
+            val levelMb = levels.getOrNull(band)?.coerceIn(minMb, maxMb) ?: 0
+            runCatching { eq.setBandLevel(band.toShort(), levelMb.toShort()) }
+        }
+
+        bassBoost?.let { bb ->
+            runCatching { bb.enabled = settings.bassBoostEnabled }
+            runCatching { bb.setStrength(settings.bassBoostStrength.toShort()) }
+        }
+
+        virtualizer?.let { v ->
+            runCatching { v.enabled = settings.virtualizerEnabled }
+            runCatching { v.setStrength(settings.virtualizerStrength.toShort()) }
+        }
+
+        loudnessEnhancer?.let { le ->
+            val gainMb = if (settings.outputGainEnabled) settings.outputGainMb.coerceIn(-1500, 1500) else 0
+            runCatching { le.setTargetGain(gainMb) }
+            runCatching { le.enabled = settings.outputGainEnabled }
+        }
+    }
+
+    private fun openAudioEffectSession() {
+        if (isAudioEffectSessionOpened) return
+        val sessionId = player.audioSessionId
+        if (sessionId <= 0) return
+        isAudioEffectSessionOpened = true
+        openedAudioSessionId = sessionId
+        ensureAudioEffects(sessionId)
+        sendBroadcast(
+            Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            },
+        )
+    }
+
+    private fun closeAudioEffectSession() {
+        if (!isAudioEffectSessionOpened) return
+        isAudioEffectSessionOpened = false
+        val sessionId = openedAudioSessionId ?: player.audioSessionId
+        openedAudioSessionId = null
+        releaseAudioEffects()
+        if (sessionId <= 0) return
+        sendBroadcast(
+            Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+            },
+        )
+    }
+
