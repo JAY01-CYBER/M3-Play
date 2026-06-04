@@ -3496,3 +3496,1496 @@ class MusicService :
         )
     }
 
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+    super.onMediaItemTransition(mediaItem, reason)
+
+    clearStreamRefreshGuards(
+        mediaItem?.mediaId
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: player.currentMediaItem?.mediaId
+    )
+
+    crossfadeAudio?.onMediaItemTransition(mediaItem, reason)
+
+    val currentIndex = player.currentMediaItemIndex
+    val queue = player.mediaItems.mapNotNull { it.metadata }
+    if (queue.isNotEmpty()) {
+        lyricsPreloadManager?.onSongChanged(currentIndex, queue)
+    }
+
+    val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+    if (joined?.role is com.j.m3play.together.TogetherRole.Guest &&
+        reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val index = player.currentMediaItemIndex.coerceAtLeast(0)
+        val isEcho =
+            isTogetherApplyingRemote() ||
+            (now < togetherSuppressEchoUntilElapsedMs && togetherLastRemoteAppliedIndex == index)
+        if (!isEcho) {
+            val trackId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
+            requestTogetherControl(
+                if (trackId.isBlank()) {
+                    com.j.m3play.together.ControlAction.SeekToIndex(
+                        index = index,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                } else {
+                    com.j.m3play.together.ControlAction.SeekToTrack(
+                        trackId = trackId,
+                        positionMs = player.currentPosition.coerceAtLeast(0L),
+                    )
+                },
+            )
+        }
+    }
+
+    val timelineEmpty = player.currentTimeline.isEmpty || player.mediaItemCount == 0 || player.currentMediaItem == null
+    currentMediaMetadata.value = if (timelineEmpty) null else (mediaItem?.metadata ?: player.currentMetadata)
+
+    scrobbleManager?.onSongStop()
+
+    if (!timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.repeatMode == REPEAT_MODE_OFF
+    ) {
+        val isNearEndWithoutPaging =
+            player.mediaItemCount - player.currentMediaItemIndex <= 3 && !currentQueue.hasNextPage()
+
+        if (!isNearEndWithoutPaging) {
+            val force =
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK ||
+                reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED
+
+            val currentId = (mediaItem?.metadata ?: player.currentMetadata)?.id?.trim().orEmpty()
+            if (force || (currentId.isNotBlank() && automixSeedMediaId != currentId)) {
+                refreshAutomixForCurrentMedia(force = force)
+            }
+        }
+    }
+
+    if (!suppressAutoPlayback &&
+        !timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.mediaItemCount - player.currentMediaItemIndex <= 5 &&
+        currentQueue.hasNextPage() &&
+        player.repeatMode == REPEAT_MODE_OFF
+    ) {
+        scope.launch(SilentHandler) {
+            val mediaItems =
+                currentQueue.nextPage().filterExplicit(dataStore.get(HideExplicitKey, false)).filterVideo(dataStore.get(HideVideoKey, false))
+            if (player.playbackState != STATE_IDLE) {
+                player.addMediaItems(mediaItems.drop(1))
+            } else {
+                scope.launch { discordRpc?.stopActivity() }
+            }
+        }
+    }
+    
+    if (!suppressAutoPlayback &&
+        !timelineEmpty &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        reason != Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT &&
+        player.repeatMode == REPEAT_MODE_OFF &&
+        player.mediaItemCount - player.currentMediaItemIndex <= 3 &&
+        !currentQueue.hasNextPage()
+    ) {
+        scope.launch(SilentHandler) {
+            if (suppressAutoPlayback || player.mediaItemCount == 0) return@launch
+            val queueIds = (0 until player.mediaItemCount).map { player.getMediaItemAt(it).mediaId }.toSet()
+            val currentMediaMetadata = player.currentMetadata
+            val currentMediaId = currentMediaMetadata?.id?.trim().orEmpty()
+            val existingSeed = automixSeedMediaId?.trim().orEmpty()
+            val existingAutomix =
+                if (currentMediaId.isNotBlank() && existingSeed == currentMediaId) {
+                    automixItems.value
+                } else {
+                    if (automixItems.value.isNotEmpty()) {
+                        clearAutomix()
+                    }
+                    emptyList()
+                }
+            if (existingAutomix.isNotEmpty()) {
+                if (player.playbackState == STATE_IDLE) return@launch
+                val filteredAutomix = existingAutomix.filter { it.mediaId != null && it.mediaId !in queueIds }
+                if (filteredAutomix.isNotEmpty()) {
+                    player.addMediaItems(filteredAutomix)
+                    filteredAutomix.forEach { autoAddedMediaIds.add(it.mediaId) }
+                }
+                clearAutomix()
+            } else {
+                if (currentMediaMetadata != null) {
+                    refreshAutomixForCurrentMedia(force = true)
+                }
+            }
+        }
+    }
+
+    if (player.playWhenReady && player.playbackState == Player.STATE_READY) {
+        scrobbleManager?.onSongStart(player.currentMetadata, duration = player.duration)
+    }
+
+    scope.launch {
+        val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+        if (shouldSave) {
+            saveQueueToDisk()
+        }
+    }
+    ensurePresenceManager()
+}
+
+    override fun onPlaybackStateChanged(@Player.State playbackState: Int) {
+    super.onPlaybackStateChanged(playbackState)
+
+    val activeMediaId = player.currentMediaItem?.mediaId
+    clearStreamRefreshGuards(activeMediaId)
+    if (
+        playbackState == Player.STATE_READY &&
+        player.playWhenReady &&
+        player.isPlaying &&
+        activeMediaId != null &&
+        pendingStreamRefreshValidationMediaId == activeMediaId
+    ) {
+        refreshValidatedPlayingMediaId = activeMediaId
+        pendingStreamRefreshValidationMediaId = null
+        streamRecoveryState.remove(activeMediaId)
+        Timber.tag("MusicService").i("Stream refresh validated and playback resumed for $activeMediaId")
+    }
+
+    scope.launch {
+        val shouldSave = withContext(Dispatchers.IO) { dataStore.get(PersistentQueueKey, true) }
+        if (shouldSave) {
+            saveQueueToDisk()
+        }
+    }
+
+    if (playbackState == Player.STATE_IDLE || playbackState == Player.STATE_ENDED) {
+        crossfadeAudio?.stop(resetMainFade = true)
+        scrobbleManager?.onSongStop()
+    }
+    
+    if (!suppressAutoPlayback &&
+        playbackState == Player.STATE_ENDED &&
+        dataStore.get(AutoLoadMoreKey, true) &&
+        player.repeatMode == REPEAT_MODE_OFF &&
+        player.currentMediaItem != null
+    ) {
+        scope.launch(SilentHandler) {
+            if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@launch
+            val lastMediaMetadata = player.currentMetadata
+            val existingAutomix = automixItems.value
+            if (existingAutomix.isNotEmpty()) {
+                val filteredAutomix = existingAutomix.filter { it.mediaId != lastMediaMetadata?.id }
+                if (filteredAutomix.isNotEmpty()) {
+                    autoAddedMediaIds.clear()
+                    player.setMediaItems(filteredAutomix, 0, 0)
+                    player.prepare()
+                    player.play()
+                    filteredAutomix.forEach { autoAddedMediaIds.add(it.mediaId) }
+                }
+                clearAutomix()
+            } else {
+                if (lastMediaMetadata != null) {
+                    withContext(Dispatchers.IO) {
+                        YouTube.next(WatchEndpoint(videoId = lastMediaMetadata.id))
+                    }.onSuccess { nextResult ->
+                        if (suppressAutoPlayback || player.playbackState == STATE_IDLE || player.mediaItemCount == 0) return@onSuccess
+                        val hideExplicit = dataStore.get(HideExplicitKey, false)
+                        val hideVideo = dataStore.get(HideVideoKey, false)
+                        val radioItems = nextResult.items
+                            .map { it.toMediaItem() }
+                            .filter { it.mediaId != lastMediaMetadata.id }
+                            .filterExplicit(hideExplicit)
+                            .filterVideo(hideVideo)
+
+                        if (radioItems.isNotEmpty()) {
+                            autoAddedMediaIds.clear()
+                            player.setMediaItems(radioItems, 0, 0)
+                            player.prepare()
+                            player.play()
+                            radioItems.forEach { autoAddedMediaIds.add(it.mediaId) }
+
+                            withContext(Dispatchers.IO) {
+                                YouTube.next(WatchEndpoint(playlistId = nextResult.endpoint.playlistId))
+                            }.onSuccess { automixResult ->
+                                if (suppressAutoPlayback || player.playbackState == STATE_IDLE) return@onSuccess
+                                automixItems.value = automixResult.items
+                                    .map { it.toMediaItem() }
+                                    .filter { it.mediaId != lastMediaMetadata.id }
+                                    .filterExplicit(hideExplicit)
+                                    .filterVideo(hideVideo)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ensurePresenceManager()
+    scope.launch {
+        try {
+            val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
+            if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                val mediaId = player.currentMediaItem?.mediaId
+                val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
+
+                if (canUpdatePresence()) {
+                    val success = withContext(Dispatchers.IO) {
+                        DiscordPresenceManager.updateNow(
+                            context = this@MusicService,
+                            token = token,
+                            song = finalSong,
+                            positionMs = player.currentPosition,
+                            isPaused = !player.playWhenReady,
+                        )
+                    }
+                    if (!success) {
+                        Timber.tag("MusicService").w("immediate presence update returned false — attempting restart")
+                        if (DiscordPresenceManager.isRunning()) {
+                            try {
+                                if (DiscordPresenceManager.restart()) {
+                                    Timber.tag("MusicService").d("presence manager restarted after failed update")
+                                }
+                            } catch (ex: Exception) {
+                                Timber.tag("MusicService").e(ex, "restart after failed presence update threw")
+                            }
+                        }
+                    }
+
+                    try {
+                        val lbEnabled = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzEnabledKey, false) }
+                        val lbToken = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzTokenKey, "") }
+                        if (lbEnabled && !lbToken.isNullOrBlank()) {
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                } catch (ie: Exception) {
+                                    Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed")
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (e: Exception) {
+            Timber.tag("MusicService").v(e, "immediate presence update failed")
+        }
+    }
+}
+
+
+    override fun onEvents(player: Player, events: Player.Events) {
+        if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+        }
+    val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+    if (joined?.role is com.j.m3play.together.TogetherRole.Guest &&
+        events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
+    ) {
+        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+        } else {
+            val now = android.os.SystemClock.elapsedRealtime()
+            val playWhenReady = this.player.playWhenReady
+            val isEcho =
+                isTogetherApplyingRemote() ||
+                (now < togetherSuppressEchoUntilElapsedMs &&
+                        togetherLastRemoteAppliedPlayWhenReady != null &&
+                        togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
+            if (!isEcho) {
+                val action =
+                    if (playWhenReady) {
+                        com.j.m3play.together.ControlAction.Play
+                    } else {
+                        com.j.m3play.together.ControlAction.Pause
+                    }
+                requestTogetherControl(action)
+            }
+        }
+    }
+    if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
+        handleDeviceMuteStateChanged()
+    }
+    if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
+        handleDeviceMuteStateChanged()
+    }
+    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+        (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
+    ) {
+        wasAutoPausedByDeviceMute = false
+    }
+    if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
+        val newSessionId = this.player.audioSessionId
+        val oldSessionId = openedAudioSessionId
+        if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
+            sendBroadcast(
+                Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, oldSessionId)
+                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                },
+            )
+            openedAudioSessionId = newSessionId
+            ensureAudioEffects(newSessionId)
+            sendBroadcast(
+                Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, newSessionId)
+                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                    putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                },
+            )
+        }
+    }
+    if (events.containsAny(
+            Player.EVENT_PLAYBACK_STATE_CHANGED,
+            Player.EVENT_PLAY_WHEN_READY_CHANGED
+        )
+    ) {
+        val playbackState = player.playbackState
+        val keepAudioEffectSessionOpen =
+            playbackState == Player.STATE_BUFFERING ||
+            playbackState == Player.STATE_READY
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            requestAudioFocus()
+        }
+        if (keepAudioEffectSessionOpen) {
+            openAudioEffectSession()
+        } else {
+            closeAudioEffectSession()
+        }
+        updateWakeLock()
+        if (player.playWhenReady && keepAudioEffectSessionOpen) {
+            cancelIdleStop()
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        } else {
+            scheduleStopIfIdle()
+        }
+    }
+
+       if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+            scope.launch {
+                try {
+                    val token = dataStore.get(DiscordTokenKey, "")
+                    if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                        val mediaId = player.currentMediaItem?.mediaId
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
+
+                        if (canUpdatePresence()) {
+                            val success = DiscordPresenceManager.updateNow(
+                                context = this@MusicService,
+                                token = token,
+                                song = finalSong,
+                                positionMs = player.currentPosition,
+                                isPaused = !player.isPlaying,
+                            )
+                            if (!success) {
+                                Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
+                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
+                            }
+                            try {
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed on transition")
+                                        }
+                                    }
+                                }
+                                
+                            } catch (_: Exception) {}
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("MusicService").v(e, "immediate presence update failed on transition")
+                }
+            }
+        }
+
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+            val currentMediaId = player.currentMediaItem?.mediaId
+            val currentMetadata = player.currentMetadata
+            val currentPosition = player.currentPosition
+            val isPlaying = player.isPlaying
+
+            scope.launch {
+                try {
+                    val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
+                    if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
+                        val song = if (currentMediaId != null) withContext(Dispatchers.IO) { database.song(currentMediaId).first() } else null
+                        val finalSong = song ?: currentMetadata?.let { createTransientSongFromMedia(it) }
+
+                        if (canUpdatePresence()) {
+                            val success = withContext(Dispatchers.IO) {
+                                DiscordPresenceManager.updateNow(
+                                    context = this@MusicService,
+                                    token = token,
+                                    song = finalSong,
+                                    positionMs = currentPosition,
+                                    isPaused = !isPlaying,
+                                )
+                            }
+                            if (!success) {
+                                Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
+                                if (DiscordPresenceManager.isRunning()) {
+                                    try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
+                                }
+                            }
+                            try {
+                                val lbEnabled = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzEnabledKey, false) }
+                                val lbToken = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzTokenKey, "") }
+                                if (lbEnabled && !lbToken.isNullOrBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        try {
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, currentPosition)
+                                        } catch (ie: Exception) {
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
+                                        }
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.tag("MusicService").v(e, "immediate presence update failed for isPlaying/mediaTransition")
+                }
+            }
+        }
+
+   if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+        ensurePresenceManager()
+        scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
+    } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+        ensurePresenceManager()
+    } else {
+        ensurePresenceManager()
+    }
+  }
+
+
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        updateNotification()
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    com.j.m3play.together.ControlAction.SetShuffleEnabled(
+                        shuffleEnabled = shuffleModeEnabled,
+                    ),
+                )
+            }
+            return
+        }
+        if (shuffleModeEnabled) {
+            applyCurrentFirstShuffleOrder()
+        }
+        
+        scope.launch {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
+        }
+    }
+
+    override fun onRepeatModeChanged(repeatMode: Int) {
+        updateNotification()
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    com.j.m3play.together.ControlAction.SetRepeatMode(
+                        repeatMode = repeatMode,
+                    ),
+                )
+            }
+            return
+        }
+        scope.launch {
+            dataStore.edit { settings ->
+                settings[RepeatModeKey] = repeatMode
+            }
+        }
+        
+        scope.launch {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
+        }
+    }
+
+    override fun onPlayerError(error: PlaybackException) {
+        super.onPlayerError(error)
+        val isConnectionError = (error.cause?.cause is PlaybackException) &&
+            (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+
+        if (!isNetworkConnected.value || isConnectionError) {
+            waitOnNetworkError()
+            return
+        }
+
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val httpStatusCode = error.httpStatusCodeOrNull()
+
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
+
+        if (currentMediaId != null && YTPlayerUtils.isBotDetectionException(error)) {
+            if (markAndCheckRecoveryAllowance(currentMediaId)) {
+                Timber.tag("MusicService").w("Bot detection error for $currentMediaId")
+                YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+                playbackUrlCache.remove(currentMediaId)
+                pendingStreamRefreshValidationMediaId = currentMediaId
+                
+                player.seekTo(savedIndex, savedPosition)
+                player.prepare()
+                player.playWhenReady = true
+                return
+            }
+        }
+
+        val shouldAttemptStreamRefresh =
+            currentMediaId != null && (
+                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
+                    httpStatusCode in setOf(403, 404, 410, 416, 429, 500, 502, 503)
+                )
+
+        if (currentMediaId != null && error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
+            scope.launch(Dispatchers.IO) {
+                runCatching { downloadCache.removeResource(currentMediaId) }
+                runCatching { playerCache.removeResource(currentMediaId) }
+            }
+        }
+
+        if (shouldAttemptStreamRefresh && currentMediaId != null && shouldSkipRedundantStreamRefresh(currentMediaId)) {
+            Timber.tag("MusicService").w("Skipping redundant stream refresh for $currentMediaId")
+            refreshValidatedPlayingMediaId = null
+            
+            player.seekTo(savedIndex, savedPosition)
+            player.prepare()
+            player.playWhenReady = true
+            return
+        }
+
+        if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
+            val failingStreamClientKey =
+                playbackUrlCache[currentMediaId]
+                    ?.first
+                    ?.toHttpUrlOrNull()
+                    ?.queryParameter("c")
+                    ?.trim()
+            Timber.tag("MusicService").w("Attempting stream refresh for $currentMediaId")
+            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode)
+            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode)
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+            playbackUrlCache.remove(currentMediaId)
+            pendingStreamRefreshValidationMediaId = currentMediaId
+            
+            player.seekTo(savedIndex, savedPosition)
+            player.prepare()
+            player.playWhenReady = true
+            return
+        }
+
+        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
+        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
+        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
+            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
+        )
+
+        if (looksLikeSilenceProcessor) {
+            scope.launch {
+                try {
+                    dataStore.edit { settings ->
+                        settings[SkipSilenceKey] = false
+                    }
+                    player.skipSilenceEnabled = false
+                    val targetPos = min(savedPosition + 1500L, if (player.duration > 0) player.duration - 1000L else savedPosition + 1500L)
+                    player.seekTo(savedIndex, targetPos)
+                    player.prepare()
+                    player.play()
+                    return@launch
+                } catch (t: Throwable) {}
+                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+                    skipOnError()
+                } else {
+                    stopOnError()
+                }
+            }
+            return
+        }
+
+        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+            skipOnError()
+        } else {
+            stopOnError()
+        }
+    }
+
+    private suspend fun trimPlayerCacheToBytes(limitBytes: Long) {
+        if (limitBytes <= 0L) return
+
+        withContext(Dispatchers.IO) {
+            val cacheDir = filesDir.resolve("exoplayer")
+            val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
+            var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
+            if (totalBytes <= limitBytes) return@withContext
+
+            data class Candidate(
+                val key: String,
+                val lastTouchTimestamp: Long,
+                val sizeBytes: Long,
+            )
+
+            val candidates =
+                runCatching {
+                    playerCache.keys.mapNotNull { key ->
+                        runCatching {
+                            val spans = playerCache.getCachedSpans(key)
+                            if (spans.isEmpty()) return@runCatching null
+                            val oldestTouch = spans.minOf { it.lastTouchTimestamp }
+                            val sizeBytes = spans.sumOf { it.length }
+                            Candidate(key = key, lastTouchTimestamp = oldestTouch, sizeBytes = sizeBytes)
+                        }.getOrNull()
+                    }.sortedBy { it.lastTouchTimestamp }
+                }.getOrNull().orEmpty()
+
+            for (candidate in candidates) {
+                if (totalBytes <= limitBytes) break
+                val removedSize = candidate.sizeBytes.coerceAtLeast(0L)
+                runCatching { playerCache.removeResource(candidate.key) }
+                totalBytes -= removedSize
+            }
+        }
+    }
+
+    private fun createCacheDataSource(): CacheDataSource.Factory =
+        CacheDataSource
+            .Factory()
+            .setCache(downloadCache)
+            .setUpstreamDataSourceFactory(
+                CacheDataSource
+                    .Factory()
+                    .setCache(playerCache)
+                    .setUpstreamDataSourceFactory(
+                        DefaultDataSource.Factory(
+                            this,
+                            OkHttpDataSource.Factory(
+                                mediaOkHttpClient,
+                            ),
+                        ),
+                    )
+                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+            ).setCacheWriteDataSinkFactory(null)
+            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+
+    private fun createDataSourceFactory(): DataSource.Factory {
+        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+            val mediaId = dataSpec.key ?: error("No media id")
+
+            val requiredCachedLength =
+                if (dataSpec.length >= 0) {
+                    dataSpec.length
+                } else {
+                    val contentLength =
+                        runBlocking(Dispatchers.IO) {
+                            database.format(mediaId).first()?.contentLength
+                        } ?: runCatching {
+                            downloadCache
+                                .getContentMetadata(mediaId)
+                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                            playerCache
+                                .getContentMetadata(mediaId)
+                                 .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L }
+
+                    contentLength?.let { nonNullContentLength ->
+                        (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
+                    }
+                }
+
+            if (requiredCachedLength != null) {
+                val isFullyCached =
+                    downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) || playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
+                if (isFullyCached) {
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    return@Factory dataSpec
+                }
+            }
+
+            playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
+            }
+
+            val playbackData = runBlocking(Dispatchers.IO) {
+                YTPlayerUtils.playerResponseForPlayback(
+                    mediaId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
+                    avoidCodecs = avoidStreamCodecs,
+                )
+            }.getOrElse { throwable ->
+                when (throwable) {
+                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_confirmation),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
+                    is PlaybackException -> throw throwable
+
+                    is java.net.ConnectException, is java.net.UnknownHostException -> {
+                        throw PlaybackException(
+                            getString(R.string.error_no_internet),
+                            throwable,
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+                        )
+                    }
+
+                    is java.net.SocketTimeoutException -> {
+                        throw PlaybackException(
+                            getString(R.string.error_timeout),
+                            throwable,
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                        )
+                    }
+
+                    else -> throw PlaybackException(
+                        getString(R.string.error_unknown),
+                        throwable,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR
+                    )
+                }
+            }
+
+            val nonNullPlayback = requireNotNull(playbackData) {
+                getString(R.string.error_unknown)
+            }
+            run {
+                val format = nonNullPlayback.format
+                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+
+                database.query {
+                    upsert(
+                        FormatEntity(
+                            id = mediaId,
+                            itag = format.itag,
+                            mimeType = format.mimeType.split(";")[0],
+                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                            bitrate = format.bitrate,
+                            sampleRate = format.audioSampleRate,
+                            contentLength = format.contentLength!!,
+                            loudnessDb = loudnessDb,
+                            perceptualLoudnessDb = perceptualLoudnessDb,
+                            playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                        )
+                    )
+                }
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+
+                val streamUrl = nonNullPlayback.streamUrl
+
+                playbackUrlCache[mediaId] =
+                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
+            }
+        }
+    }
+
+    fun retryCurrentFromFreshStream() {
+        val mediaId = player.currentMediaItem?.mediaId ?: return
+        clearStreamRefreshGuards(mediaId)
+        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
+        playbackUrlCache.remove(mediaId)
+        pendingStreamRefreshValidationMediaId = mediaId
+        
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
+        
+        player.seekTo(savedIndex, savedPosition)
+        player.prepare()
+        player.playWhenReady = true
+    }
+
+    private fun PlaybackException.httpStatusCodeOrNull(): Int? {
+        var t: Throwable? = cause
+        while (t != null) {
+            if (t is HttpDataSource.InvalidResponseCodeException) return t.responseCode
+            t = t.cause
+        }
+        return null
+    }
+
+    private fun markAndCheckRecoveryAllowance(mediaId: String): Boolean {
+        val now = System.currentTimeMillis()
+        val (count, lastAt) = streamRecoveryState[mediaId] ?: (0 to 0L)
+        val nextCount = if (now - lastAt > 45_000L) 1 else count + 1
+        if (nextCount > 2) return false
+        streamRecoveryState[mediaId] = nextCount to now
+        return true
+    }
+
+    private fun shouldSkipRedundantStreamRefresh(mediaId: String): Boolean {
+        if (refreshValidatedPlayingMediaId != mediaId) return false
+        val expiresAt = playbackUrlCache[mediaId]?.second ?: return false
+        if (expiresAt <= System.currentTimeMillis()) {
+            refreshValidatedPlayingMediaId = null
+            return false
+        }
+        return true
+    }
+
+    private fun clearStreamRefreshGuards(activeMediaId: String? = null) {
+        val normalizedActiveMediaId = activeMediaId?.trim()?.takeIf { it.isNotBlank() }
+        if (normalizedActiveMediaId == null || refreshValidatedPlayingMediaId != normalizedActiveMediaId) {
+            refreshValidatedPlayingMediaId = null
+        }
+        if (normalizedActiveMediaId == null || pendingStreamRefreshValidationMediaId != normalizedActiveMediaId) {
+            pendingStreamRefreshValidationMediaId = null
+        }
+    }
+
+    private fun deviceSupportsMimeType(mimeType: String): Boolean {
+        return runCatching {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            codecList.codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun createMediaSourceFactory() =
+        DefaultMediaSourceFactory(
+            createDataSourceFactory(),
+            ExtractorsFactory {
+                arrayOf(Mp4Extractor(), FragmentedMp4Extractor(), MatroskaExtractor())
+            },
+        )
+
+    private fun updateAudioOffload(enabled: Boolean) {
+        runCatching {
+            val builder = player.trackSelectionParameters.buildUpon()
+            val audioOffloadPrefsClass = Class.forName("androidx.media3.common.AudioOffloadPreferences")
+            val audioOffloadPrefsBuilderClass = Class.forName("androidx.media3.common.AudioOffloadPreferences\$Builder")
+
+            val modeFieldName = if (enabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
+            val mode = audioOffloadPrefsClass.getField(modeFieldName).getInt(null)
+
+            val prefsBuilder = audioOffloadPrefsBuilderClass.getDeclaredConstructor().newInstance()
+            audioOffloadPrefsBuilderClass.getMethod("setAudioOffloadMode", Int::class.javaPrimitiveType).invoke(prefsBuilder, mode)
+            val prefs = audioOffloadPrefsBuilderClass.getMethod("build").invoke(prefsBuilder)
+
+            val setMethod =
+                builder.javaClass.methods.firstOrNull { method ->
+                    method.name == "setAudioOffloadPreferences" && method.parameterTypes.size == 1
+                }
+            if (setMethod != null) {
+                setMethod.invoke(builder, prefs)
+                player.trackSelectionParameters = builder.build()
+            }
+        }
+        player.setOffloadEnabled(enabled)
+    }
+
+    private fun updateWakeLock() {
+        val wl = wakeLock ?: return
+        val shouldHold = wakelockEnabled && player.isPlaying
+        if (shouldHold && !wl.isHeld) {
+            wl.acquire()
+        } else if (!shouldHold && wl.isHeld) {
+            wl.release()
+        }
+    }
+
+    private fun createRenderersFactory() =
+        object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ) = DefaultAudioSink
+                .Builder(this@MusicService)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessorChain(
+                    DefaultAudioSink.DefaultAudioProcessorChain(
+                        SilenceSkippingAudioProcessor(
+                            1_500_000L,
+                            0.35f,
+                            500_000L,
+                            10,
+                            150.toShort(),
+                        ),
+                        SonicAudioProcessor(),
+                    ),
+                ).build()
+        }
+
+    override fun onPlaybackStatsReady(
+        eventTime: AnalyticsListener.EventTime,
+        playbackStats: PlaybackStats,
+    ) {
+        val mediaItem = eventTime.timeline.getWindow(eventTime.windowIndex, Timeline.Window()).mediaItem
+
+        if (playbackStats.totalPlayTimeMs >= (
+                dataStore[HistoryDuration]?.times(1000f)
+                    ?: 30000f
+            ) &&
+            !dataStore.get(PauseListenHistoryKey, false)
+        ) {
+            database.query {
+                incrementTotalPlayTime(mediaItem.mediaId, playbackStats.totalPlayTimeMs)
+                try {
+                    insert(
+                        Event(
+                            songId = mediaItem.mediaId,
+                            timestamp = LocalDateTime.now(),
+                            playTime = playbackStats.totalPlayTimeMs,
+                        ),
+                    )
+                } catch (_: SQLException) {
+                }
+            }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val song = database.song(mediaItem.mediaId).first()
+                        ?: return@launch
+
+                    val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                    val lbToken = dataStore.get(ListenBrainzTokenKey, "")
+                    if (lbEnabled && !lbToken.isNullOrBlank()) {
+                        val endMs = System.currentTimeMillis()
+                        val startMs = endMs - playbackStats.totalPlayTimeMs
+                        try {
+                            ListenBrainzManager.submitFinished(this@MusicService, lbToken, song, startMs, endMs)
+                        } catch (ie: Exception) {
+                        }
+                    }
+                } catch (_: Exception) {
+                 }
+            }
+
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatching { registerRemoteListeningHistory(mediaItem.mediaId) }
+            }
+        }
+    }
+
+    private suspend fun registerRemoteListeningHistory(mediaId: String) {
+        if (!isRemoteHistorySyncAllowed()) return
+
+        val attemptedUrls = LinkedHashSet<String>()
+
+        suspend fun registerTrackingUrl(url: String): Boolean {
+            attemptedUrls += url
+            return YouTube.registerPlayback(playbackTracking = url)
+                .onFailure {
+                    reportException(it)
+                }.isSuccess
+        }
+
+        val cachedPlaybackUrl = database.format(mediaId).first()?.playbackUrl
+        val cachedSuccess = cachedPlaybackUrl?.let { registerTrackingUrl(it) } == true
+        if (cachedSuccess) return
+
+        val playbackTracking =
+            YTPlayerUtils.playerResponseForMetadata(mediaId, null)
+                .getOrNull()
+                ?.playbackTracking
+                  ?: return
+
+        for (
+            trackingUrl in listOfNotNull(
+                playbackTracking.videostatsPlaybackUrl?.baseUrl,
+                playbackTracking.videostatsWatchtimeUrl?.baseUrl,
+            )
+        ) {
+            if (trackingUrl.isBlank() || trackingUrl in attemptedUrls) continue
+            registerTrackingUrl(trackingUrl)
+        }
+    }
+
+    private suspend fun isRemoteHistorySyncAllowed(): Boolean {
+        if (!dataStore.getAsync(YtmSyncKey, true)) return false
+        val cookie = dataStore.getAsync(InnerTubeCookieKey, "")
+        return cookie.isNotBlank() && cookie.contains("SAPISID")
+    }
+
+    private fun createTransientSongFromMedia(media: com.j.m3play.models.MediaMetadata): Song {
+        val songEntity = SongEntity(
+            id = media.id,
+            title = media.title,
+            duration = media.duration,
+            thumbnailUrl = media.thumbnailUrl,
+            albumId = media.album?.id,
+            albumName = media.album?.title,
+            explicit = media.explicit,
+        )
+
+        val artists = media.artists.map { artist ->
+            ArtistEntity(
+                id = artist.id ?: "LA_unknown_${artist.name}",
+                name = artist.name,
+                thumbnailUrl = if (!artist.thumbnailUrl.isNullOrBlank()) artist.thumbnailUrl else media.thumbnailUrl,
+            )
+        }
+
+        val album = media.album?.let { alb ->
+            AlbumEntity(
+                id = alb.id,
+                playlistId = null,
+                title = alb.title,
+                year = null,
+                thumbnailUrl = media.thumbnailUrl,
+                themeColor = null,
+                songCount = 1,
+                duration = media.duration,
+            )
+        }
+
+        return Song(
+            song = songEntity,
+            artists = artists,
+            album = album,
+            format = null,
+        )
+    }
+
+    private inline fun <reified T> readPersistentObject(fileName: String): T? {
+        val persistentFile = filesDir.resolve(fileName)
+        if (!persistentFile.exists() || !persistentFile.isFile) return null
+
+        return synchronized(persistentStateLock) {
+            try {
+                java.io.ObjectInputStream(java.io.FileInputStream(persistentFile)).use { 
+                    it.readObject() as T 
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runCatching { persistentFile.delete() }
+                null
+            }
+        }
+    }
+
+    private inline fun <reified T> writePersistentObject(fileName: String, payload: T) {
+        val persistentFile = filesDir.resolve(fileName)
+        val tempFile = filesDir.resolve("$fileName.tmp")
+
+        synchronized(persistentStateLock) {
+            try {
+                java.io.ObjectOutputStream(java.io.FileOutputStream(tempFile)).use { 
+                    it.writeObject(payload) 
+                }
+                
+                if (persistentFile.exists() && !persistentFile.delete()) {
+                    // Ignored intentionally 
+                }
+                if (!tempFile.renameTo(persistentFile)) {
+                     // Ignored intentionally
+                 }
+            } catch (e: Exception) {
+                runCatching { tempFile.delete() }
+            }
+        }
+    }
+
+    private fun MediaItem.toPersistableMetadata(): com.j.m3play.models.MediaMetadata? {
+        val tagged = metadata
+        if (tagged != null) return tagged
+
+        val id =
+            mediaId.trim().ifBlank {
+                localConfiguration?.uri?.toString()?.trim().orEmpty()
+            }.takeIf { it.isNotBlank() } ?: return null
+
+        val title =
+            mediaMetadata.title?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: id
+
+        val artistText =
+            mediaMetadata.artist?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+                ?: mediaMetadata.subtitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+
+        val artists =
+            artistText
+                ?.split(",")
+                ?.mapNotNull { it.trim().takeIf(String::isNotBlank) }
+                ?.map { name -> com.j.m3play.models.MediaMetadata.Artist(id = null, name = name) }
+                .orEmpty()
+
+        val thumbnailUrl = mediaMetadata.artworkUri?.toString()
+        val albumTitle = mediaMetadata.albumTitle?.toString()?.trim().takeIf { !it.isNullOrBlank() }
+        
+        val album =
+            albumTitle?.let { titleValue ->
+                com.j.m3play.models.MediaMetadata.Album(id = titleValue, title = titleValue)
+            }
+
+        return com.j.m3play.models.MediaMetadata(
+            id = id,
+            title = title,
+            artists = artists,
+            duration = -1,
+            thumbnailUrl = thumbnailUrl,
+            album = album,
+            explicit = false,
+            liked = false,
+            likedDate = null,
+            inLibrary = null,
+         )
+    }
+
+    private fun saveQueueToDiskSync() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+        if (mediaItemsSnapshot.isEmpty()) {
+            Timber.tag("Persist").e("Nothing to save, metadata empty")
+            return
+        }
+
+        val currentMediaItemIndex = player.currentMediaItemIndex
+        val currentPosition = player.currentPosition
+        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+        
+        val playWhenReady = player.playWhenReady
+        val repeatMode = player.repeatMode
+        val shuffleModeEnabled = player.shuffleModeEnabled
+        val volume = playerVolume.value
+        val playbackState = player.playbackState
+
+        val persistQueue = PersistQueue(
+            title = queueTitle,
+            items = mediaItemsSnapshot,
+            mediaItemIndex = currentMediaItemIndex,
+            position = currentPosition,
+            queueType = QueueType.LIST
+        )
+        val persistAutomix = PersistQueue(
+            title = "automix",
+            items = automixSnapshot,
+            mediaItemIndex = 0,
+            position = 0,
+            queueType = QueueType.LIST
+        )
+         val persistPlayerState = PersistPlayerState(
+            playWhenReady = playWhenReady,
+            repeatMode = repeatMode,
+            shuffleModeEnabled = shuffleModeEnabled,
+            volume = volume,
+            currentPosition = currentPosition,
+            currentMediaItemIndex = currentMediaItemIndex,
+            playbackState = playbackState
+        )
+
+        writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+        writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
+        writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+    }
+
+    private suspend fun saveQueueToDisk() {
+        val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.toPersistableMetadata() }
+        if (mediaItemsSnapshot.isEmpty()) {
+            Timber.tag("Persist").e("Nothing to save, metadata empty")
+            return
+        }
+
+        val currentMediaItemIndex = player.currentMediaItemIndex
+        val currentPosition = player.currentPosition
+        val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+        val playWhenReady = player.playWhenReady
+        val repeatMode = player.repeatMode
+        val shuffleModeEnabled = player.shuffleModeEnabled
+        val volume = playerVolume.value
+        val playbackState = player.playbackState
+
+        withContext(Dispatchers.IO) {
+            val persistQueue = PersistQueue(
+                title = queueTitle,
+                items = mediaItemsSnapshot,
+                mediaItemIndex = currentMediaItemIndex,
+                position = currentPosition,
+                queueType = QueueType.LIST
+            )
+             
+            val persistAutomix = PersistQueue(
+                title = "automix",
+                items = automixSnapshot,
+                mediaItemIndex = 0,
+                position = 0,
+                queueType = QueueType.LIST
+            )
+                
+            val persistPlayerState = PersistPlayerState(
+                playWhenReady = playWhenReady,
+                repeatMode = repeatMode,
+                shuffleModeEnabled = shuffleModeEnabled,
+                volume = volume,
+                currentPosition = currentPosition,
+                currentMediaItemIndex = currentMediaItemIndex, 
+                playbackState = playbackState
+            )
+            
+            writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+            writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
+            writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+        }
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterBluetoothReceiver()
+        try {
+            scope.launch { stopTogetherInternal() }
+        } catch (_: Exception) {}
+        try {
+            DiscordPresenceManager.stop()
+        } catch (_: Exception) {}
+        try {
+            discordRpc?.closeRPC()
+        } catch (_: Exception) {}
+        discordRpc = null
+        try {
+            connectivityObserver.unregister()
+        } catch (_: Exception) {}
+        abandonAudioFocus()
+        try {
+            releaseAudioEffects()
+        } catch (_: Exception) {}
+        try {
+            if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                val mediaItemsSnapshot = player.mediaItems.mapNotNull { it.metadata }
+                val currentMediaItemIndex = player.currentMediaItemIndex
+                val currentPosition = player.currentPosition
+                val automixSnapshot = automixItems.value.mapNotNull { it.metadata }
+                val repeatMode = player.repeatMode
+                val shuffleModeEnabled = player.shuffleModeEnabled
+                val volume = playerVolume.value
+                val playbackState = player.playbackState
+                val playWhenReady = player.playWhenReady
+                runBlocking(Dispatchers.IO) {
+                    val persistQueue = PersistQueue(
+                        title = queueTitle,
+                        items = mediaItemsSnapshot,
+                        mediaItemIndex = currentMediaItemIndex,
+                        position = currentPosition,
+                        queueType = QueueType.LIST
+                    )
+                    val persistAutomix = PersistQueue(
+                        title = "automix",
+                        items = automixSnapshot,
+                        mediaItemIndex = 0,
+                        position = 0,
+                        queueType = QueueType.LIST
+                    )
+                    val persistPlayerState = PersistPlayerState(
+                        playWhenReady = playWhenReady,
+                        repeatMode = repeatMode,
+                        shuffleModeEnabled = shuffleModeEnabled,
+                        volume = volume,
+                        currentPosition = currentPosition,
+                        currentMediaItemIndex = currentMediaItemIndex,
+                        playbackState = playbackState
+                    )
+
+                    writePersistentObject(PERSISTENT_QUEUE_FILE, persistQueue)
+                    writePersistentObject(PERSISTENT_AUTOMIX_FILE, persistAutomix)
+                    writePersistentObject(PERSISTENT_PLAYER_STATE_FILE, persistPlayerState)
+                }
+            }
+        } catch (_: Exception) {}
+        try {
+            mediaSession.release()
+        } catch (_: Exception) {}
+        try {
+            crossfadeAudio?.release()
+            crossfadeAudio = null
+        } catch (_: Exception) {}
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+        } catch (_: Exception) {}
+        try {
+            player.removeListener(this)
+            player.removeListener(sleepTimer)
+            player.release()
+        } catch (_: Exception) {}
+        scopeJob.cancel()
+    }
+
+    override fun onBind(intent: Intent?): android.os.IBinder? {
+        hasBoundClients = true
+        cancelIdleStop()
+        val result = super.onBind(intent) ?: binder
+        
+        if (player.mediaItemCount > 0) {
+            val currentMeta = player.currentMediaItem?.metadata ?: player.currentMetadata
+            if (currentMeta != null) {
+                currentMediaMetadata.value = currentMeta
+            }
+            scope.launch {
+                delay(50)
+                updateNotification()
+            }
+        }
+        return result
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        hasBoundClients = false
+        scheduleStopIfIdle()
+        return super.onUnbind(intent)
+    }
+
+    override fun onRebind(intent: Intent?) {
+        hasBoundClients = true
+        cancelIdleStop()
+        super.onRebind(intent)
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        
+        try {
+            if (player.mediaItemCount > 0) {
+                saveQueueToDiskSync()
+            }
+        } catch (e: Exception) {
+            Timber.tag("MusicService").e(e, "CRITICAL: Failed to save queue on task clear")
+        }
+
+        try {
+            scope.launch {
+                try { discordRpc?.stopActivity() } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
+        try {
+            if (discordRpc?.isRpcRunning() == true) {
+                try { discordRpc?.closeRPC() } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+        discordRpc = null
+        try { DiscordPresenceManager.stop() } catch (_: Exception) {}
+        lastPresenceToken = null
+
+        val stopMusicOnTaskClearEnabled = dataStore.get(StopMusicOnTaskClearKey, false)
+
+        try {
+            val state = togetherSessionState.value
+            val isHostSessionActive =
+                state is com.j.m3play.together.TogetherSessionState.Hosting ||
+                    state is com.j.m3play.together.TogetherSessionState.HostingOnline ||
+                    (state is com.j.m3play.together.TogetherSessionState.Joined &&
+                        state.role is com.j.m3play.together.TogetherRole.Host)
+
+            val isPlaybackInactive = player.playbackState == Player.STATE_IDLE || player.mediaItemCount == 0
+
+            if (shouldStopServiceOnTaskRemoved(stopMusicOnTaskClearEnabled, isHostSessionActive, isPlaybackInactive)) {
+                if (isHostSessionActive && isPlaybackInactive) {
+                    runCatching { scope.launch { stopTogetherInternal() } }
+                    runCatching { togetherSessionState.value = com.j.m3play.together.TogetherSessionState.Idle }
+                    stopSelf()
+                    return
+                }
+
+                if (stopMusicOnTaskClearEnabled) {
+                    if (dataStore.get(PersistentQueueKey, true) && player.mediaItemCount > 0) {
+                        saveQueueToDiskSync() 
+                    }
+                    runCatching { stopAndClearPlayback() }
+                    runCatching {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                        } else {
+                            stopForeground(true)
+                        }
+                    }
+                    stopSelf()
+                    return
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        return START_NOT_STICKY
+    }
+
+    override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
+        if (startInForegroundRequired) ensureStartedAsForeground()
+        runCatching { super.onUpdateNotification(session, startInForegroundRequired) }
+             .onFailure { reportException(it) }
+    }
+
+    inner class MusicBinder : Binder() {
+        val service: MusicService
+            get() = this@MusicService
+    }
+
+    companion object {
+        internal fun shouldStopServiceOnTaskRemoved(
+            stopMusicOnTaskClearEnabled: Boolean,
+            isHostSessionActive: Boolean,
+            isPlaybackInactive: Boolean,
+        ): Boolean = (isHostSessionActive && isPlaybackInactive) || stopMusicOnTaskClearEnabled
+
+        const val ROOT = "root"
+        const val SONG = "song"
+        const val ARTIST = "artist"
+        const val ALBUM = "album"
+        const val PLAYLIST = "playlist"
+
+        const val CHANNEL_ID = "music_channel_01"
+        const val NOTIFICATION_ID = 888
+        const val ERROR_CODE_NO_STREAM = 1000001
+        const val CHUNK_LENGTH = 512 * 1024L
+        const val PERSISTENT_QUEUE_FILE = "persistent_queue.data"
+        const val PERSISTENT_AUTOMIX_FILE = "persistent_automix.data"
+        const val PERSISTENT_PLAYER_STATE_FILE = "persistent_player_state.data"
+        const val MAX_CONSECUTIVE_ERR = 5
+        const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
+    }
+}
+
