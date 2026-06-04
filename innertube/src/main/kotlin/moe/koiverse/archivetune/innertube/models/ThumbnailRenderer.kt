@@ -25,7 +25,20 @@ data class ThumbnailRenderer(
         val thumbnailCrop: String?,
         val thumbnailScale: String?,
     ) {
-        fun getThumbnailUrl() = thumbnail.thumbnails.lastOrNull()?.url
+        fun getThumbnailUrl(): String? {
+            // Sabse badi width wali image find karein
+            val highestResUrl = thumbnail.thumbnails.maxByOrNull { it.width ?: 0 }?.url
+                ?: thumbnail.thumbnails.lastOrNull()?.url
+
+            // Agar URL mein size defined hai (=w120-h120 type), toh usko 512x512 se replace kar dein
+            return highestResUrl?.let { url ->
+                if (url.contains(Regex("=w\\d+-h\\d+"))) {
+                    url.replace(Regex("=w\\d+-h\\d+"), "=w512-h512")
+                } else {
+                    url
+                }
+            }
+        }
     }
 
     @Serializable

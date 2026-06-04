@@ -107,6 +107,14 @@ class InnerTube {
             append("X-Goog-Api-Format-Version", "1")
             append("X-YouTube-Client-Name", client.clientId)
             append("X-YouTube-Client-Version", client.clientVersion)
+            
+            // 👇 GOOGLE SPOOFING BYPASS: Yeh headers ab ensure karenge ki spoofing 100% legit lage
+            client.osName?.let { append("X-YouTube-Os-Name", it) }
+            client.osVersion?.let { append("X-YouTube-Os-Version", it) }
+            client.deviceMake?.let { append("X-YouTube-Device-Make", it) }
+            client.deviceModel?.let { append("X-YouTube-Device-Model", it) }
+            // 👆
+            
             append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
             append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
             visitorData?.let { append("X-Goog-Visitor-Id", it) }
