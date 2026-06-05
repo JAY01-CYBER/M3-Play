@@ -239,6 +239,7 @@ fun BottomSheetPlayer(
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
+    
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
@@ -803,7 +804,7 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.APPLE) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -822,7 +823,7 @@ fun BottomSheetPlayer(
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
-        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
+        
         val bottomPadding by animateDpAsState(
             targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
             label = "bottomPadding"
@@ -834,7 +835,38 @@ fun BottomSheetPlayer(
 
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
-                if (playerDesignStyle == PlayerDesignStyle.V5) {
+                if (playerDesignStyle == PlayerDesignStyle.APPLE) {
+                    val displayPositionMs = sliderPosition ?: position
+                    enrichedMetadata?.let { metadata ->
+                        ApplePlayerStyle(
+                            title = metadata.title,
+                            artist = metadata.artists.joinToString(", ") { it.name },
+                            artworkUri = metadata.thumbnailUrl,
+                            isPlaying = isPlaying,
+                            position = displayPositionMs,
+                            duration = duration,
+                            onPlayPause = {
+                                if (playbackState == STATE_ENDED) {
+                                    playerConnection.player.seekTo(0, 0)
+                                    playerConnection.player.playWhenReady = true
+                                } else {
+                                    playerConnection.player.togglePlayPause()
+                                }
+                            },
+                            onNext = { playerConnection.seekToNext() },
+                            onPrev = { playerConnection.seekToPrevious() },
+                            onLyricsClick = { showInlineLyrics = !showInlineLyrics },
+                            onTimerClick = { showSleepTimerDialog = true },
+                            onQueueClick = { queueSheetState.expandSoft() },
+                            onSeek = { newPosition ->
+                                isUserSeeking = true
+                                sliderPosition = newPosition
+                                playerConnection.player.seekTo(newPosition)
+                                isUserSeeking = false
+                            }
+                        )
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
@@ -917,7 +949,7 @@ fun BottomSheetPlayer(
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
+                            .padding(bottom = landscapeBottomPadding)
                             .animateContentSize(),
                     ) {
                         Box(
@@ -937,7 +969,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
+                                modifier = Modifier.fillMaxSize(), 
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -977,7 +1009,38 @@ fun BottomSheetPlayer(
             }
 
             else -> {
-                if (playerDesignStyle == PlayerDesignStyle.V5) {
+                if (playerDesignStyle == PlayerDesignStyle.APPLE) {
+                    val displayPositionMs = sliderPosition ?: position
+                    enrichedMetadata?.let { metadata ->
+                        ApplePlayerStyle(
+                            title = metadata.title,
+                            artist = metadata.artists.joinToString(", ") { it.name },
+                            artworkUri = metadata.thumbnailUrl,
+                            isPlaying = isPlaying,
+                            position = displayPositionMs,
+                            duration = duration,
+                            onPlayPause = {
+                                if (playbackState == STATE_ENDED) {
+                                    playerConnection.player.seekTo(0, 0)
+                                    playerConnection.player.playWhenReady = true
+                                } else {
+                                    playerConnection.player.togglePlayPause()
+                                }
+                            },
+                            onNext = { playerConnection.seekToNext() },
+                            onPrev = { playerConnection.seekToPrevious() },
+                            onLyricsClick = { showInlineLyrics = !showInlineLyrics },
+                            onTimerClick = { showSleepTimerDialog = true },
+                            onQueueClick = { queueSheetState.expandSoft() },
+                            onSeek = { newPosition ->
+                                isUserSeeking = true
+                                sliderPosition = newPosition
+                                playerConnection.player.seekTo(newPosition)
+                                isUserSeeking = false
+                            }
+                        )
+                    }
+                } else if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
@@ -1063,7 +1126,7 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
+                            .padding(bottom = bottomPadding) 
                             .animateContentSize(),
                     ) {
                         Box(
@@ -1081,7 +1144,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
+                                modifier = Modifier.fillMaxSize(), 
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
