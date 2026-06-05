@@ -239,7 +239,6 @@ fun BottomSheetPlayer(
     val (playerCustomContrast) = rememberPreference(PlayerCustomContrastKey, 1f)
     val (playerCustomBrightness) = rememberPreference(PlayerCustomBrightnessKey, 1f)
     
-    
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showCodecOnPlayer) = rememberPreference(booleanPreferencesKey("show_codec_on_player"), false)
     val (incrementalSeekSkipEnabled) = rememberPreference(com.j.m3play.constants.SeekExtraSeconds, defaultValue = false)
@@ -581,7 +580,7 @@ fun BottomSheetPlayer(
     }
 
     val dynamicQueuePeekHeight =
-        if (playerDesignStyle == PlayerDesignStyle.V5) {
+        if (playerDesignStyle == PlayerDesignStyle.V5 || playerDesignStyle == PlayerDesignStyle.APPLE) {
             0.dp
         } else if (showCodecOnPlayer) {
             88.dp
@@ -823,7 +822,7 @@ fun BottomSheetPlayer(
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
-        
+        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
         val bottomPadding by animateDpAsState(
             targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
             label = "bottomPadding"
@@ -837,11 +836,15 @@ fun BottomSheetPlayer(
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.APPLE) {
                     val displayPositionMs = sliderPosition ?: position
+                    
+                    // FIX: Thumbnail High Res
+                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
+                    
                     enrichedMetadata?.let { metadata ->
                         ApplePlayerStyle(
                             title = metadata.title,
                             artist = metadata.artists.joinToString(", ") { it.name },
-                            artworkUri = metadata.thumbnailUrl,
+                            artworkUri = highResThumb,
                             isPlaying = isPlaying,
                             position = displayPositionMs,
                             duration = duration,
@@ -858,10 +861,14 @@ fun BottomSheetPlayer(
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
                             onTimerClick = { showSleepTimerDialog = true },
                             onQueueClick = { queueSheetState.expandSoft() },
-                            onSeek = { newPosition ->
+                            onSeekChange = { newPosition ->
                                 isUserSeeking = true
                                 sliderPosition = newPosition
-                                playerConnection.player.seekTo(newPosition)
+                            },
+                            onSeekFinished = {
+                                sliderPosition?.let {
+                                    playerConnection.player.seekTo(it)
+                                }
                                 isUserSeeking = false
                             }
                         )
@@ -949,7 +956,7 @@ fun BottomSheetPlayer(
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = landscapeBottomPadding)
+                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
                             .animateContentSize(),
                     ) {
                         Box(
@@ -969,7 +976,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), 
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -1011,11 +1018,15 @@ fun BottomSheetPlayer(
             else -> {
                 if (playerDesignStyle == PlayerDesignStyle.APPLE) {
                     val displayPositionMs = sliderPosition ?: position
+                    
+                    // FIX: Thumbnail High Res
+                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
+                    
                     enrichedMetadata?.let { metadata ->
                         ApplePlayerStyle(
                             title = metadata.title,
                             artist = metadata.artists.joinToString(", ") { it.name },
-                            artworkUri = metadata.thumbnailUrl,
+                            artworkUri = highResThumb,
                             isPlaying = isPlaying,
                             position = displayPositionMs,
                             duration = duration,
@@ -1032,10 +1043,14 @@ fun BottomSheetPlayer(
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
                             onTimerClick = { showSleepTimerDialog = true },
                             onQueueClick = { queueSheetState.expandSoft() },
-                            onSeek = { newPosition ->
+                            onSeekChange = { newPosition ->
                                 isUserSeeking = true
                                 sliderPosition = newPosition
-                                playerConnection.player.seekTo(newPosition)
+                            },
+                            onSeekFinished = {
+                                sliderPosition?.let {
+                                    playerConnection.player.seekTo(it)
+                                }
                                 isUserSeeking = false
                             }
                         )
@@ -1126,7 +1141,7 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding) 
+                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
                             .animateContentSize(),
                     ) {
                         Box(
@@ -1144,7 +1159,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), 
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
