@@ -35,7 +35,7 @@ fun ApplePlayerStyle(
     onNext: () -> Unit,
     onPrev: () -> Unit,
     onLyricsClick: () -> Unit,
-    onCastClick: () -> Unit,
+    onTimerClick: () -> Unit,
     onQueueClick: () -> Unit,
     onSeekChange: (Long) -> Unit,
     onSeekFinished: () -> Unit,
@@ -43,9 +43,8 @@ fun ApplePlayerStyle(
     backgroundColor: Color,
     thumbnailContent: @Composable () -> Unit
 ) {
-    // Thoda dark background Apple feel ke liye
     val darkBg = Color(0xFF1E1E1E) 
-    val blendColor = backgroundColor.copy(alpha = 0.4f) // Theme se match karne ke liye
+    val blendColor = backgroundColor.copy(alpha = 0.4f)
 
     Box(
         modifier = Modifier
@@ -54,17 +53,14 @@ fun ApplePlayerStyle(
             .background(blendColor)
     ) {
         
-        // 1. TOP HALF: FULL WIDTH CANVAS / ARTWORK
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.65f) // Screen ka top 65% area artwork/canvas lega
+                .fillMaxHeight(0.65f)
                 .align(Alignment.TopCenter)
         ) {
-            // Yeh tumhara Canvas ya Thumbnail render karega
             thumbnailContent()
 
-            // Smooth Fade Effect (Artwork se dark background me blend hone ke liye)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -89,7 +85,6 @@ fun ApplePlayerStyle(
             )
         }
 
-        // 2. BOTTOM HALF: CONTROLS & INFO
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,7 +93,6 @@ fun ApplePlayerStyle(
             verticalArrangement = Arrangement.Bottom
         ) {
             
-            // SONG INFO & ACTION BUTTONS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,7 +118,6 @@ fun ApplePlayerStyle(
                 }
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // Favorite Icon
                     Surface(
                         shape = CircleShape,
                         color = Color.White.copy(alpha = 0.2f),
@@ -140,7 +133,6 @@ fun ApplePlayerStyle(
                         }
                     }
                     
-                    // Menu Icon
                     Surface(
                         shape = CircleShape,
                         color = Color.White.copy(alpha = 0.2f),
@@ -160,7 +152,6 @@ fun ApplePlayerStyle(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // APPLE STYLE PROGRESS SLIDER
             val safeDuration = if (duration > 0) duration.toFloat() else 1f
             val safePosition = position.toFloat().coerceIn(0f, safeDuration)
 
@@ -170,14 +161,13 @@ fun ApplePlayerStyle(
                 onValueChange = { onSeekChange(it.toLong()) },
                 onValueChangeFinished = onSeekFinished,
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.Transparent, // No thumb, like Apple Music
+                    thumbColor = Color.Transparent,
                     activeTrackColor = Color.White.copy(alpha = 0.9f),
                     inactiveTrackColor = Color.White.copy(alpha = 0.25f)
                 ),
                 modifier = Modifier.fillMaxWidth().height(16.dp)
             )
 
-            // TIME & LOSSLESS BADGE ROW
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -230,7 +220,6 @@ fun ApplePlayerStyle(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // MAIN PLAYBACK CONTROLS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -266,7 +255,6 @@ fun ApplePlayerStyle(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // BOTTOM UTILITY BAR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -276,17 +264,17 @@ fun ApplePlayerStyle(
             ) {
                 IconButton(onClick = onLyricsClick) {
                     Icon(
-                        painter = painterResource(R.drawable.more_horiz), // Safe Icon
+                        painter = painterResource(R.drawable.more_horiz),
                         contentDescription = "Lyrics",
                         tint = Color.White.copy(alpha = 0.6f),
                         modifier = Modifier.size(24.dp)
                     )
                 }
 
-                IconButton(onClick = onCastClick) {
+                IconButton(onClick = onTimerClick) {
                     Icon(
-                        painter = painterResource(R.drawable.cast),
-                        contentDescription = "Cast",
+                        painter = painterResource(R.drawable.bedtime),
+                        contentDescription = "Sleep Timer",
                         tint = Color.White.copy(alpha = 0.6f),
                         modifier = Modifier.size(24.dp)
                     )
