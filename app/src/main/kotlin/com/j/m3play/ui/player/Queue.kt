@@ -288,7 +288,8 @@ fun Queue(
                     )
                 }
                 
-                PlayerDesignStyle.V4, PlayerDesignStyle.V6 -> {
+            
+                PlayerDesignStyle.V4, PlayerDesignStyle.V6, PlayerDesignStyle.APPLE -> {
                     QueueCollapsedContentV4(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
@@ -552,7 +553,6 @@ fun Queue(
                         .weight(1f)
                         .nestedScroll(state.preUpPostDownNestedScrollConnection)
                 ) {
-                
                     item {
                         Spacer(
                             modifier = Modifier
