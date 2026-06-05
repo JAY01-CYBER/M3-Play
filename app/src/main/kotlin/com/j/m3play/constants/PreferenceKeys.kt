@@ -390,7 +390,7 @@ enum class PlayerDesignStyle {
     V4,
     V5,
     V6,
-    Apple,
+    APPLE,
 }
 
 enum class PlayerBackgroundStyle {
