@@ -722,6 +722,7 @@ fun PlayerTopActions(
                 }
             }
         }
+        PlayerDesignStyle.APPLE -> { /* Apple style is rendered separately */ }
     }
 }
 
@@ -1583,6 +1584,7 @@ fun PlayerPlaybackControls(
                 }
             }
         }
+        PlayerDesignStyle.APPLE -> { /* Apple style is rendered separately */ }
     }
 }
 
@@ -1692,7 +1694,7 @@ fun PlayerControlsContent(
         )
     }
 
-    // 🔥 METROLIST FIX: Slider aur Time labels animation block se bahar hain taaki fullscreen me hide na hon 🔥
+    
     Spacer(Modifier.height(12.dp))
 
     PlayerSlider(
@@ -1717,7 +1719,7 @@ fun PlayerControlsContent(
         playerDesignStyle = playerDesignStyle
     )
 
-    // 🔥 SIRF CONTROL BUTTONS FULLSCREEN MEIN HIDE HONGE 🔥
+
     AnimatedVisibility(
         visible = !isFullScreen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
