@@ -836,22 +836,13 @@ fun BottomSheetPlayer(
                 if (playerDesignStyle == PlayerDesignStyle.APPLE) {
                     val displayPositionMs = sliderPosition ?: position
                     
-                    val safeBackgroundColor = if (gradientColors.isNotEmpty()) gradientColors.first() else Color(0xFF222222)
+                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
                     
-                    val formatLabelText = currentFormat?.let {
-                        val codec = it.mimeType.substringAfter("/").uppercase()
-                        when {
-                            codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
-                            codec.contains("OPUS") -> "High-Res"
-                            codec.contains("AAC") || codec.contains("MP4A") -> "AAC"
-                            else -> codec
-                        }
-                    }
-
                     enrichedMetadata?.let { metadata ->
                         ApplePlayerStyle(
                             title = metadata.title,
                             artist = metadata.artists.joinToString(", ") { it.name },
+                            artworkUri = highResThumb,
                             isFavorite = currentSongLiked,
                             onFavoriteClick = { playerConnection.toggleLike() },
                             onMenuClick = {
@@ -881,7 +872,7 @@ fun BottomSheetPlayer(
                             onNext = { playerConnection.seekToNext() },
                             onPrev = { playerConnection.seekToPrevious() },
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onTimerClick = { showSleepTimerDialog = true }, // ✅ FIXED HERE
+                            onTimerClick = { showSleepTimerDialog = true }, 
                             onQueueClick = { queueSheetState.expandSoft() },
                             onSeekChange = { newPosition ->
                                 isUserSeeking = true
@@ -893,8 +884,6 @@ fun BottomSheetPlayer(
                                 }
                                 isUserSeeking = false
                             },
-                            formatLabel = formatLabelText,
-                            backgroundColor = safeBackgroundColor,
                             thumbnailContent = {
                                 Thumbnail(
                                     sliderPositionProvider = { sliderPosition },
@@ -937,7 +926,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .playerOverlayGestures( // ✅ RENAMED TO AVOID CLASH
+                                .m3PlayerOverlayGestures( 
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -955,8 +944,8 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                PlayerLandscapeBox(modifier = Modifier.fillMaxSize()) { // ✅ RENAMED
-                                    PlayerLittleContent( // ✅ RENAMED
+                                M3LandscapeLikeBox(modifier = Modifier.fillMaxSize()) { 
+                                    M3LittlePlayerContent( 
                                         mediaMetadata = metadata,
                                         sliderPosition = sliderPosition,
                                         positionMs = position,
@@ -1051,22 +1040,13 @@ fun BottomSheetPlayer(
                 if (playerDesignStyle == PlayerDesignStyle.APPLE) {
                     val displayPositionMs = sliderPosition ?: position
                     
-                    val safeBackgroundColor = if (gradientColors.isNotEmpty()) gradientColors.first() else Color(0xFF222222)
-                    
-                    val formatLabelText = currentFormat?.let {
-                        val codec = it.mimeType.substringAfter("/").uppercase()
-                        when {
-                            codec.contains("FLAC") || codec.contains("ALAC") -> "Lossless"
-                            codec.contains("OPUS") -> "High-Res"
-                            codec.contains("AAC") || codec.contains("MP4A") -> "AAC"
-                            else -> codec
-                        }
-                    }
+                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
 
                     enrichedMetadata?.let { metadata ->
                         ApplePlayerStyle(
                             title = metadata.title,
                             artist = metadata.artists.joinToString(", ") { it.name },
+                            artworkUri = highResThumb,
                             isFavorite = currentSongLiked,
                             onFavoriteClick = { playerConnection.toggleLike() },
                             onMenuClick = {
@@ -1096,7 +1076,7 @@ fun BottomSheetPlayer(
                             onNext = { playerConnection.seekToNext() },
                             onPrev = { playerConnection.seekToPrevious() },
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onTimerClick = { showSleepTimerDialog = true }, // ✅ FIXED HERE
+                            onTimerClick = { showSleepTimerDialog = true }, 
                             onQueueClick = { queueSheetState.expandSoft() },
                             onSeekChange = { newPosition ->
                                 isUserSeeking = true
@@ -1108,8 +1088,6 @@ fun BottomSheetPlayer(
                                 }
                                 isUserSeeking = false
                             },
-                            formatLabel = formatLabelText,
-                            backgroundColor = safeBackgroundColor,
                             thumbnailContent = {
                                 Thumbnail(
                                     sliderPositionProvider = { sliderPosition },
@@ -1153,7 +1131,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .playerOverlayGestures( // ✅ RENAMED
+                                .m3PlayerOverlayGestures( 
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -1171,7 +1149,7 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                PlayerLittleContent( // ✅ RENAMED
+                                M3LittlePlayerContent( 
                                     mediaMetadata = metadata,
                                     sliderPosition = sliderPosition,
                                     positionMs = position,
@@ -1289,11 +1267,9 @@ fun BottomSheetPlayer(
     }
 }
 
-// ✅ NEW RENAMED FUNCTIONS AVOID CONFLICT WITH PlayerComponents.kt
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlayerLittleContent(
+private fun M3LittlePlayerContent(
     mediaMetadata: MediaMetadata,
     sliderPosition: Long?,
     positionMs: Long,
@@ -1436,7 +1412,7 @@ private fun PlayerLittleContent(
 }
 
 @Composable
-private fun PlayerLandscapeBox(
+private fun M3LandscapeLikeBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -1474,7 +1450,7 @@ private fun PlayerLandscapeBox(
     }
 }
 
-private fun Modifier.playerOverlayGestures(
+private fun Modifier.m3PlayerOverlayGestures(
     seekEnabled: Boolean,
     durationMs: Long,
     progressFraction: Float,
@@ -1494,38 +1470,25 @@ private fun Modifier.playerOverlayGestures(
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = true)
             val pointerId = down.id
-
             var upPosition = down.position
             val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx =
-                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown =
-                seekEnabled &&
-                    durationMs > 0L &&
-                    durationMs != C.TIME_UNSET &&
-                    down.position.y <= overlayHeightPx
-
+            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
             var isSeeking = false
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
                 upPosition = change.position
-
                 if (!change.pressed) break
-
                 if (!isSeeking && seekAllowedFromDown) {
                     val distanceFromDown = (change.position - down.position).getDistance()
                     if (distanceFromDown > touchSlop) isSeeking = true
                 }
-
                 if (isSeeking) {
-                    val fraction =
-                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
-
-                    val targetMs =
-                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
                     onSeekToPositionMs(targetMs)
                     change.consume()
                 }
@@ -1538,10 +1501,7 @@ private fun Modifier.playerOverlayGestures(
             } else {
                 val now = SystemClock.uptimeMillis()
                 val previousTapPosition = lastTapPosition
-                val isDoubleTap =
-                    previousTapPosition != null &&
-                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
-                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+                val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
 
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f
