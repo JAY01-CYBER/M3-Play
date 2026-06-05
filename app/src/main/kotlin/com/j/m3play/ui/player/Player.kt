@@ -881,7 +881,7 @@ fun BottomSheetPlayer(
                             onNext = { playerConnection.seekToNext() },
                             onPrev = { playerConnection.seekToPrevious() },
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onCastClick = { showSleepTimerDialog = true }, // Updated here
+                            onTimerClick = { showSleepTimerDialog = true }, // ✅ FIXED HERE
                             onQueueClick = { queueSheetState.expandSoft() },
                             onSeekChange = { newPosition ->
                                 isUserSeeking = true
@@ -937,7 +937,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .littlePlayerOverlayGestures(
+                                .playerOverlayGestures( // ✅ RENAMED TO AVOID CLASH
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -955,8 +955,8 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
-                                    LittlePlayerContent(
+                                PlayerLandscapeBox(modifier = Modifier.fillMaxSize()) { // ✅ RENAMED
+                                    PlayerLittleContent( // ✅ RENAMED
                                         mediaMetadata = metadata,
                                         sliderPosition = sliderPosition,
                                         positionMs = position,
@@ -1096,7 +1096,7 @@ fun BottomSheetPlayer(
                             onNext = { playerConnection.seekToNext() },
                             onPrev = { playerConnection.seekToPrevious() },
                             onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onCastClick = { showSleepTimerDialog = true }, // Updated here
+                            onTimerClick = { showSleepTimerDialog = true }, // ✅ FIXED HERE
                             onQueueClick = { queueSheetState.expandSoft() },
                             onSeekChange = { newPosition ->
                                 isUserSeeking = true
@@ -1153,7 +1153,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .littlePlayerOverlayGestures(
+                                .playerOverlayGestures( // ✅ RENAMED
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -1171,7 +1171,7 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                LittlePlayerContent(
+                                PlayerLittleContent( // ✅ RENAMED
                                     mediaMetadata = metadata,
                                     sliderPosition = sliderPosition,
                                     positionMs = position,
@@ -1289,9 +1289,11 @@ fun BottomSheetPlayer(
     }
 }
 
+// ✅ NEW RENAMED FUNCTIONS AVOID CONFLICT WITH PlayerComponents.kt
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LittlePlayerContent(
+private fun PlayerLittleContent(
     mediaMetadata: MediaMetadata,
     sliderPosition: Long?,
     positionMs: Long,
@@ -1434,7 +1436,7 @@ fun LittlePlayerContent(
 }
 
 @Composable
-fun LandscapeLikeBox(
+private fun PlayerLandscapeBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -1472,7 +1474,7 @@ fun LandscapeLikeBox(
     }
 }
 
-fun Modifier.littlePlayerOverlayGestures(
+private fun Modifier.playerOverlayGestures(
     seekEnabled: Boolean,
     durationMs: Long,
     progressFraction: Float,
@@ -1492,25 +1494,38 @@ fun Modifier.littlePlayerOverlayGestures(
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = true)
             val pointerId = down.id
+
             var upPosition = down.position
             val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
+            val overlayHeightPx =
+                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown =
+                seekEnabled &&
+                    durationMs > 0L &&
+                    durationMs != C.TIME_UNSET &&
+                    down.position.y <= overlayHeightPx
+
             var isSeeking = false
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
                 upPosition = change.position
+
                 if (!change.pressed) break
+
                 if (!isSeeking && seekAllowedFromDown) {
                     val distanceFromDown = (change.position - down.position).getDistance()
                     if (distanceFromDown > touchSlop) isSeeking = true
                 }
+
                 if (isSeeking) {
-                    val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val fraction =
+                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
-                    val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+
+                    val targetMs =
+                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
                     onSeekToPositionMs(targetMs)
                     change.consume()
                 }
@@ -1523,7 +1538,10 @@ fun Modifier.littlePlayerOverlayGestures(
             } else {
                 val now = SystemClock.uptimeMillis()
                 val previousTapPosition = lastTapPosition
-                val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+                val isDoubleTap =
+                    previousTapPosition != null &&
+                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
+                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
 
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f
