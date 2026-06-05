@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.j.m3play.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApplePlayerStyle(
     title: String,
@@ -32,7 +33,8 @@ fun ApplePlayerStyle(
     onLyricsClick: () -> Unit,
     onTimerClick: () -> Unit,
     onQueueClick: () -> Unit,
-    onSeek: (Long) -> Unit
+    onSeekChange: (Long) -> Unit,
+    onSeekFinished: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         
@@ -52,11 +54,11 @@ fun ApplePlayerStyle(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.2f),
-                            Color.Black.copy(alpha = 0.8f),
+                            Color.Black.copy(alpha = 0.3f),
+                            Color.Black.copy(alpha = 0.85f),
                             Color.Black
                         ),
-                        startY = 500f
+                        startY = 400f
                     )
                 )
         )
@@ -65,8 +67,7 @@ fun ApplePlayerStyle(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .systemBarsPadding() // FIX: Prevents overlap with system navigation bar
                 .padding(horizontal = 28.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
@@ -95,35 +96,38 @@ fun ApplePlayerStyle(
                     )
                 }
                 
-                // Screenshot style Star & Menu icons
                 Row {
-                    IconButton(onClick = { /* Fav logic */ }) {
-                        Icon(painterResource(R.drawable.apple_timer), null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(24.dp))
+                    IconButton(onClick = onTimerClick) {
+                        Icon(painterResource(R.drawable.bedtime), null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(24.dp))
                     }
-                    IconButton(onClick = { /* Menu logic */ }) {
-                        Icon(painterResource(R.drawable.apple_queue), null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(24.dp))
+                    IconButton(onClick = onQueueClick) {
+                        Icon(painterResource(R.drawable.queue_music), null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(24.dp))
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // APPLE STYLE PROGRESS SLIDER
-            val progress = if (duration > 0) position.toFloat() / duration else 0f
+            // APPLE STYLE PROGRESS SLIDER (Fixed Seek Logic)
+            val safeDuration = if (duration > 0) duration.toFloat() else 1f
+            val safePosition = position.toFloat().coerceIn(0f, safeDuration)
+
             Slider(
-                value = progress,
-                onValueChange = { onSeek((it * duration).toLong()) },
+                value = safePosition,
+                valueRange = 0f..safeDuration,
+                onValueChange = { onSeekChange(it.toLong()) },
+                onValueChangeFinished = onSeekFinished,
                 colors = SliderDefaults.colors(
-                    thumbColor = Color.Transparent, // Hidden thumb like Apple
+                    thumbColor = Color.Transparent, 
                     activeTrackColor = Color.White,
                     inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                 ),
-                modifier = Modifier.fillMaxWidth().height(4.dp)
+                modifier = Modifier.fillMaxWidth().height(16.dp)
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // MAIN PLAYBACK CONTROLS (Play, Pause, Skip)
+            // MAIN PLAYBACK CONTROLS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround,
@@ -131,7 +135,7 @@ fun ApplePlayerStyle(
             ) {
                 IconButton(onClick = onPrev) {
                     Icon(
-                        painter = painterResource(R.drawable.apple_prev),
+                        painter = painterResource(R.drawable.skip_previous),
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(44.dp)
@@ -140,7 +144,7 @@ fun ApplePlayerStyle(
 
                 IconButton(onClick = onPlayPause, modifier = Modifier.size(80.dp)) {
                     Icon(
-                        painter = painterResource(if (isPlaying) R.drawable.apple_pause else R.drawable.apple_play),
+                        painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.fillMaxSize(0.8f)
@@ -149,7 +153,7 @@ fun ApplePlayerStyle(
 
                 IconButton(onClick = onNext) {
                     Icon(
-                        painter = painterResource(R.drawable.apple_next),
+                        painter = painterResource(R.drawable.skip_next),
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(44.dp)
@@ -157,9 +161,9 @@ fun ApplePlayerStyle(
                 }
             }
 
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // BOTTOM UTILITY BAR (Lyrics, Sleep Timer, Queue)
+            // BOTTOM UTILITY BAR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -168,8 +172,9 @@ fun ApplePlayerStyle(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onLyricsClick) {
+                    // Changed to standard chat/notes icon in case apple_lyrics doesn't exist
                     Icon(
-                        painter = painterResource(R.drawable.apple_lyrics),
+                        painter = painterResource(R.drawable.chat), 
                         contentDescription = "Lyrics",
                         tint = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.size(22.dp)
@@ -178,7 +183,7 @@ fun ApplePlayerStyle(
 
                 IconButton(onClick = onTimerClick) {
                     Icon(
-                        painter = painterResource(R.drawable.apple_timer),
+                        painter = painterResource(R.drawable.bedtime),
                         contentDescription = "Sleep Timer",
                         tint = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.size(22.dp)
@@ -187,7 +192,7 @@ fun ApplePlayerStyle(
 
                 IconButton(onClick = onQueueClick) {
                     Icon(
-                        painter = painterResource(R.drawable.apple_queue),
+                        painter = painterResource(R.drawable.queue_music),
                         contentDescription = "Queue",
                         tint = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.size(22.dp)
