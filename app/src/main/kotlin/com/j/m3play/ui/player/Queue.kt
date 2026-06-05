@@ -288,8 +288,7 @@ fun Queue(
                     )
                 }
                 
-            
-                PlayerDesignStyle.V4, PlayerDesignStyle.V6, PlayerDesignStyle.APPLE -> {
+                PlayerDesignStyle.V4, PlayerDesignStyle.V6 -> {
                     QueueCollapsedContentV4(
                         showCodecOnPlayer = showCodecOnPlayer,
                         currentFormat = currentFormat,
@@ -309,6 +308,11 @@ fun Queue(
                         },
                         onShowLyrics = onShowLyrics
                     )
+                }
+                
+                // 🔥 FIX: Apple style ka default queue bottom bar overlap hide ho gaya 🔥
+                PlayerDesignStyle.APPLE -> {
+                    Spacer(modifier = Modifier.height(0.dp))
                 }
                 
                 PlayerDesignStyle.V1 -> {
@@ -722,9 +726,9 @@ fun Queue(
                                                         selection = true
                                                     }
                                                     selectedSongs.clear()
-                                                    selectedItems.clear() // M3 FIX
+                                                    selectedItems.clear()
                                                     selectedSongs.add(window.mediaItem.metadata!!)
-                                                    selectedItems.add(currentItem) // M3 FIX
+                                                    selectedItems.add(currentItem)
                                                 },
                                             ),
                                     )
@@ -824,7 +828,6 @@ fun Queue(
                 }
             }
 
-            // --- NAYA MATERIAL 3 EXPRESSIVE SELECTION BAR ---
             AnimatedVisibility(
                 visible = selection,
                 enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -883,7 +886,6 @@ fun Queue(
                         )
                     }
 
-                    // Direct Remove Option
                     IconButton(onClick = {
                         val indicesToRemove = selectedItems.map { it.firstPeriodIndex }.sortedDescending()
                         indicesToRemove.forEach { indexToRemove ->
@@ -893,7 +895,6 @@ fun Queue(
                         selectedSongs.clear()
                         selectedItems.clear()
                     }) {
-                        // Agar project me R.drawable.delete nahi hai to uski jagah R.drawable.close use kar lena
                         Icon(
                             painter = painterResource(R.drawable.delete), 
                             contentDescription = "Remove",
