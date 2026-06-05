@@ -45,7 +45,22 @@ class ExoDownloadService : DownloadService(
                 downloadManager.removeDownload(download.request.id)
             }
         }
-        return super.onStartCommand(intent, flags, startId)
+        
+    
+        return try {
+            super.onStartCommand(intent, flags, startId)
+        } catch (e: Exception) {
+            // Android 12+ strict background foreground-service rules bypass
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && 
+                e is android.app.ForegroundServiceStartNotAllowedException) {
+                android.util.Log.e("ExoDownloadService", "Background foreground-service start blocked by Android", e)
+                // Crash rokne ke liye silently return kar do. App open hone par khud resume ho jayega.
+                START_NOT_STICKY
+            } else {
+                throw e
+            }
+        }
+        
     }
 
     override fun getDownloadManager() = downloadUtil.downloadManager
