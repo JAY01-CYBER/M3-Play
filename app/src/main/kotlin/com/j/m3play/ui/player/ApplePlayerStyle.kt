@@ -67,7 +67,7 @@ fun ApplePlayerStyle(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding() // FIX: Prevents overlap with system navigation bar
+                .systemBarsPadding() // Prevents overlap with system navigation bar
                 .padding(horizontal = 28.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
@@ -108,7 +108,7 @@ fun ApplePlayerStyle(
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // APPLE STYLE PROGRESS SLIDER (Fixed Seek Logic)
+            // APPLE STYLE PROGRESS SLIDER
             val safeDuration = if (duration > 0) duration.toFloat() else 1f
             val safePosition = position.toFloat().coerceIn(0f, safeDuration)
 
@@ -172,9 +172,9 @@ fun ApplePlayerStyle(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onLyricsClick) {
-                    // Changed to standard chat/notes icon in case apple_lyrics doesn't exist
+                    
                     Icon(
-                        painter = painterResource(R.drawable.chat), 
+                        painter = painterResource(R.drawable.more_horiz), 
                         contentDescription = "Lyrics",
                         tint = Color.White.copy(alpha = 0.5f),
                         modifier = Modifier.size(22.dp)
