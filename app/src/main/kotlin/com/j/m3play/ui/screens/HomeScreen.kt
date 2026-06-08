@@ -18,8 +18,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -96,7 +94,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -119,8 +116,7 @@ import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.TimeGreetingCard
-import com.j.m3play.ui.component.BouncyLoadingIndicator 
-import com.j.m3play.ui.component.CrinkledProgressRing 
+import com.j.m3play.ui.component.BouncyLoadingIndicator // Tumhara M3E animation
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
@@ -177,8 +173,7 @@ fun GlossyCarouselCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.song.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .crossfade(true)
-                    .build(),
+                    .build(), // <-- Optimization: Removed crossfade for butter smooth fast-scrolling
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = imageModifier,
@@ -325,6 +320,8 @@ fun HomeScreen(
                     .fillMaxSize(0.75f) 
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
+                    // <-- Optimization: Caches the heavy background drawing on GPU
+                    .graphicsLayer() 
                     .drawWithCache {
                         val width = this.size.width
                         val height = this.size.height
@@ -375,7 +372,8 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
             ) {
                 if (showHomeCategoryChips) {
-                    item {
+                    // <-- Optimization: contentType added to all items for recycling
+                    item(key = "chips", contentType = "chips") {
                         ChipsRow(
                             chips = homePage?.chips.orEmpty().map { it to it.title },
                             currentValue = selectedChip,
@@ -384,13 +382,13 @@ fun HomeScreen(
                     }
                 }
 
-                item {
+                item(key = "greeting", contentType = "greeting") {
                     TimeGreetingCard(
                         onSearchClick = { runCatching { navController.navigate("search/") } }
                     )
                 }
                 
-                item {
+                item(key = "actions_1", contentType = "actions") {
                     Row(
                          modifier = Modifier
                             .fillMaxWidth()
@@ -402,7 +400,7 @@ fun HomeScreen(
                     }
                 }
 
-                item {
+                item(key = "actions_2", contentType = "actions") {
                     Row(
                          modifier = Modifier
                             .fillMaxWidth()
@@ -417,20 +415,24 @@ fun HomeScreen(
                 }
                 
                 communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                    item {
+                    item(key = "community_title", contentType = "title") {
                         NavigationTitle(
                             title = stringResource(R.string.from_the_community),
                             modifier = Modifier.animateItem()
                         )
                     }
 
-                    item {
+                    item(key = "community_row", contentType = "row") {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.animateItem(),
                         ) {
-                            items(playlists) { item ->
+                            items(
+                                items = playlists,
+                                key = { it.playlist.id },
+                                contentType = { "community_card" } // <-- Optimization
+                            ) { item ->
                                 CommunityPlaylistCard(
                                     item = item,
                                     onClick = {
@@ -445,13 +447,11 @@ fun HomeScreen(
                                         )
                                     },
                                     onMenuClick = { song: SongItem ->
-                                        // 3-DOT BUTTON MENU
                                         menuState.show {
                                             YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss)
                                         }
                                     },
                                     onSaveClick = {
-                                        // BOOKMARK BUTTON PLAYLIST MENU
                                         menuState.show {
                                             YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss)
                                         }
@@ -463,7 +463,7 @@ fun HomeScreen(
                 }
 
                 quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                    item {
+                    item(key = "quick_picks_title", contentType = "title") {
                         val title = stringResource(R.string.quick_picks)
                         NavigationTitle(
                             title = title,
@@ -471,7 +471,7 @@ fun HomeScreen(
                         )
                     }
 
-                    item {
+                    item(key = "quick_picks_carousel", contentType = "carousel") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -504,55 +504,44 @@ fun HomeScreen(
                 }
 
                 metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
-                    item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
-                    item {
+                    item(key = "metro_speed_dial_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
+                    item(key = "metro_speed_dial_section", contentType = "section") {
                         MetroSpeedDialSection(items = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic)
                     }
                 }
 
                 speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
-                    item { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
-                    item {
+                    item(key = "speed_dial_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
+                    item(key = "speed_dial_section", contentType = "section") {
                         SpeedDialSection(speedDialSongs = songs, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic)
                     }
                 }
 
                 keepListening?.takeIf { it.isNotEmpty() }?.let { items ->
-                    item { NavigationTitle(title = stringResource(R.string.keep_listening), modifier = Modifier.animateItem()) }
-                    item { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
+                    item(key = "keep_listening_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.keep_listening), modifier = Modifier.animateItem()) }
+                    item(key = "keep_listening_section", contentType = "section") { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
                 AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
                 forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
-                    item { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
-                    item { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = forgottenFavoritesLazyGridState, snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
+                    item(key = "forgotten_favorites_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
+                    item(key = "forgotten_favorites_section", contentType = "section") { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = forgottenFavoritesLazyGridState, snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                 }
 
                 SimilarRecommendationsContainer(viewModel = viewModel, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
-                homePage?.sections?.forEach { section ->
-                    item { HomePageSectionTitle(section = section, navController = navController, modifier = Modifier.animateItem()) }
-                    item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
+                homePage?.sections?.forEachIndexed { index, section ->
+                    item(key = "section_title_${section.title}_$index", contentType = "title") { HomePageSectionTitle(section = section, navController = navController, modifier = Modifier.animateItem()) }
+                    item(key = "section_content_${section.title}_$index", contentType = "section") { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
-                // BOTTOM PAGINATION LOADING (Replaced with M3E Wavy Ring)
                 if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
-                    item { 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp)
-                                .animateItem(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CrinkledProgressRing()
-                        }
-                    }
+                    item(key = "loading_shimmer", contentType = "loading") { HomeLoadingShimmer(modifier = Modifier.animateItem()) }
                 }
             }
 
-            // NEW M3E PULL TO REFRESH (BOUNCY SHAPE)
+            // <-- NEW M3E PULL TO REFRESH INTEGRATION
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
