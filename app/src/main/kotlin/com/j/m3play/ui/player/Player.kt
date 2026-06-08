@@ -580,7 +580,7 @@ fun BottomSheetPlayer(
     }
 
     val dynamicQueuePeekHeight =
-        if (playerDesignStyle == PlayerDesignStyle.V5 || playerDesignStyle == PlayerDesignStyle.APPLE) {
+        if (playerDesignStyle == PlayerDesignStyle.V5) {
             0.dp
         } else if (showCodecOnPlayer) {
             88.dp
@@ -803,7 +803,7 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5 && playerDesignStyle != PlayerDesignStyle.APPLE) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -822,6 +822,7 @@ fun BottomSheetPlayer(
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
+        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
         val bottomPadding by animateDpAsState(
             targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
             label = "bottomPadding"
@@ -833,67 +834,7 @@ fun BottomSheetPlayer(
 
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
-                if (playerDesignStyle == PlayerDesignStyle.APPLE) {
-                    val displayPositionMs = sliderPosition ?: position
-                    
-                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
-                    
-                    enrichedMetadata?.let { metadata ->
-                        ApplePlayerStyle(
-                            title = metadata.title,
-                            artist = metadata.artists.joinToString(", ") { it.name },
-                            artworkUri = highResThumb,
-                            isFavorite = currentSongLiked,
-                            onFavoriteClick = { playerConnection.toggleLike() },
-                            onMenuClick = {
-                                menuState.show {
-                                    PlayerMenu(
-                                        mediaMetadata = metadata,
-                                        navController = navController,
-                                        playerBottomSheetState = state,
-                                        onShowDetailsDialog = {
-                                            bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
-                                        },
-                                        onDismiss = menuState::dismiss
-                                    )
-                                }
-                            },
-                            isPlaying = isPlaying,
-                            position = displayPositionMs,
-                            duration = duration,
-                            onPlayPause = {
-                                if (playbackState == STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
-                            },
-                            onNext = { playerConnection.seekToNext() },
-                            onPrev = { playerConnection.seekToPrevious() },
-                            onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onTimerClick = { showSleepTimerDialog = true }, 
-                            onQueueClick = { queueSheetState.expandSoft() },
-                            onSeekChange = { newPosition ->
-                                isUserSeeking = true
-                                sliderPosition = newPosition
-                            },
-                            onSeekFinished = {
-                                sliderPosition?.let {
-                                    playerConnection.player.seekTo(it)
-                                }
-                                isUserSeeking = false
-                            },
-                            thumbnailContent = {
-                                Thumbnail(
-                                    sliderPositionProvider = { sliderPosition },
-                                    modifier = Modifier.fillMaxSize(),
-                                    isPlayerExpanded = state.isExpanded
-                                )
-                            }
-                        )
-                    }
-                } else if (playerDesignStyle == PlayerDesignStyle.V5) {
+                if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
@@ -905,7 +846,8 @@ fun BottomSheetPlayer(
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
 
                     Box(
-                        modifier = Modifier
+                        modifier =
+                        Modifier
                             .fillMaxSize()
                             .background(littleBackground)
                             .graphicsLayer {
@@ -926,7 +868,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .m3PlayerOverlayGestures( 
+                                .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -944,32 +886,30 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                M3LandscapeLikeBox(modifier = Modifier.fillMaxSize()) { 
-                                    M3LittlePlayerContent( 
-                                        mediaMetadata = metadata,
-                                        sliderPosition = sliderPosition,
-                                        positionMs = position,
-                                        durationMs = duration,
-                                        textColor = littleTextColor,
-                                        liked = currentSongLiked,
-                                        onCollapse = state::collapseSoft,
-                                        onToggleLike = playerConnection::toggleLike,
-                                        onExpandQueue = queueSheetState::expandSoft,
-                                        onMenuClick = {
-                                            menuState.show {
-                                                PlayerMenu(
-                                                    mediaMetadata = metadata,
-                                                    navController = navController,
-                                                    playerBottomSheetState = state,
-                                                    onShowDetailsDialog = {
-                                                        bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
-                                                    },
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
-                                        },
-                                    )
-                                }
+                                LittlePlayerContent(
+                                    mediaMetadata = metadata,
+                                    sliderPosition = sliderPosition,
+                                    positionMs = position,
+                                    durationMs = duration,
+                                    textColor = littleTextColor,
+                                    liked = currentSongLiked,
+                                    onCollapse = state::collapseSoft,
+                                    onToggleLike = playerConnection::toggleLike,
+                                    onExpandQueue = queueSheetState::expandSoft,
+                                    onMenuClick = {
+                                        menuState.show {
+                                            PlayerMenu(
+                                                mediaMetadata = metadata,
+                                                navController = navController,
+                                                playerBottomSheetState = state,
+                                                onShowDetailsDialog = {
+                                                    bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
+                                                },
+                                                onDismiss = menuState::dismiss
+                                            )
+                                        }
+                                    },
+                                )
                             }
                         }
                     }
@@ -977,7 +917,7 @@ fun BottomSheetPlayer(
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = landscapeBottomPadding)
+                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
                             .animateContentSize(),
                     ) {
                         Box(
@@ -997,7 +937,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -1037,67 +977,7 @@ fun BottomSheetPlayer(
             }
 
             else -> {
-                if (playerDesignStyle == PlayerDesignStyle.APPLE) {
-                    val displayPositionMs = sliderPosition ?: position
-                    
-                    val highResThumb = enrichedMetadata?.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w1080-h1080")
-
-                    enrichedMetadata?.let { metadata ->
-                        ApplePlayerStyle(
-                            title = metadata.title,
-                            artist = metadata.artists.joinToString(", ") { it.name },
-                            artworkUri = highResThumb,
-                            isFavorite = currentSongLiked,
-                            onFavoriteClick = { playerConnection.toggleLike() },
-                            onMenuClick = {
-                                menuState.show {
-                                    PlayerMenu(
-                                        mediaMetadata = metadata,
-                                        navController = navController,
-                                        playerBottomSheetState = state,
-                                        onShowDetailsDialog = {
-                                            bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
-                                        },
-                                        onDismiss = menuState::dismiss
-                                    )
-                                }
-                            },
-                            isPlaying = isPlaying,
-                            position = displayPositionMs,
-                            duration = duration,
-                            onPlayPause = {
-                                if (playbackState == STATE_ENDED) {
-                                    playerConnection.player.seekTo(0, 0)
-                                    playerConnection.player.playWhenReady = true
-                                } else {
-                                    playerConnection.player.togglePlayPause()
-                                }
-                            },
-                            onNext = { playerConnection.seekToNext() },
-                            onPrev = { playerConnection.seekToPrevious() },
-                            onLyricsClick = { showInlineLyrics = !showInlineLyrics },
-                            onTimerClick = { showSleepTimerDialog = true }, 
-                            onQueueClick = { queueSheetState.expandSoft() },
-                            onSeekChange = { newPosition ->
-                                isUserSeeking = true
-                                sliderPosition = newPosition
-                            },
-                            onSeekFinished = {
-                                sliderPosition?.let {
-                                    playerConnection.player.seekTo(it)
-                                }
-                                isUserSeeking = false
-                            },
-                            thumbnailContent = {
-                                Thumbnail(
-                                    sliderPositionProvider = { sliderPosition },
-                                    modifier = Modifier.fillMaxSize(),
-                                    isPlayerExpanded = state.isExpanded
-                                )
-                            }
-                        )
-                    }
-                } else if (playerDesignStyle == PlayerDesignStyle.V5) {
+                if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
                     val littleTextColor = MaterialTheme.colorScheme.onPrimaryContainer
                     val displayPositionMs = sliderPosition ?: position
@@ -1131,7 +1011,7 @@ fun BottomSheetPlayer(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .m3PlayerOverlayGestures( 
+                                .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
                                     durationMs = duration,
                                     progressFraction = progressFraction,
@@ -1149,30 +1029,32 @@ fun BottomSheetPlayer(
                                 ),
                         ) {
                             enrichedMetadata?.let { metadata ->
-                                M3LittlePlayerContent( 
-                                    mediaMetadata = metadata,
-                                    sliderPosition = sliderPosition,
-                                    positionMs = position,
-                                    durationMs = duration,
-                                    textColor = littleTextColor,
-                                    liked = currentSongLiked,
-                                    onCollapse = state::collapseSoft,
-                                    onToggleLike = playerConnection::toggleLike,
-                                    onExpandQueue = queueSheetState::expandSoft,
-                                    onMenuClick = {
-                                        menuState.show {
-                                            PlayerMenu(
-                                                mediaMetadata = metadata,
-                                                navController = navController,
-                                                playerBottomSheetState = state,
-                                                onShowDetailsDialog = {
-                                                    bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
-                                                },
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
-                                    },
-                                )
+                                LandscapeLikeBox(modifier = Modifier.fillMaxSize()) {
+                                    LittlePlayerContent(
+                                        mediaMetadata = metadata,
+                                        sliderPosition = sliderPosition,
+                                        positionMs = position,
+                                        durationMs = duration,
+                                        textColor = littleTextColor,
+                                        liked = currentSongLiked,
+                                        onCollapse = state::collapseSoft,
+                                        onToggleLike = playerConnection::toggleLike,
+                                        onExpandQueue = queueSheetState::expandSoft,
+                                        onMenuClick = {
+                                            menuState.show {
+                                                PlayerMenu(
+                                                    mediaMetadata = metadata,
+                                                    navController = navController,
+                                                    playerBottomSheetState = state,
+                                                    onShowDetailsDialog = {
+                                                        bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
+                                                    },
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -1181,7 +1063,7 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding)
+                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
                             .animateContentSize(),
                     ) {
                         Box(
@@ -1199,7 +1081,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -1269,7 +1151,7 @@ fun BottomSheetPlayer(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun M3LittlePlayerContent(
+private fun LittlePlayerContent(
     mediaMetadata: MediaMetadata,
     sliderPosition: Long?,
     positionMs: Long,
@@ -1412,7 +1294,7 @@ private fun M3LittlePlayerContent(
 }
 
 @Composable
-private fun M3LandscapeLikeBox(
+private fun LandscapeLikeBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -1450,7 +1332,7 @@ private fun M3LandscapeLikeBox(
     }
 }
 
-private fun Modifier.m3PlayerOverlayGestures(
+private fun Modifier.littlePlayerOverlayGestures(
     seekEnabled: Boolean,
     durationMs: Long,
     progressFraction: Float,
