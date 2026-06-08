@@ -139,7 +139,7 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
-import com.j.m3play.ui.component.CrinkledProgressRing 
+import com.j.m3play.ui.component.CrinkledProgressRing // M3E ANIMATION IMPORT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -1244,10 +1244,9 @@ fun MetroSpeedDialSection(
                     )
                 }
                 
-                // M3E WAVY RING ADDED HERE
+                // M3E WAVY RING ADDED HERE (FIXED)
                 if (isRandomizing) {
                     CrinkledProgressRing(
-                        waveAmplitude = 4f,
                         modifier = Modifier.size(32.dp)
                     )
                 }
