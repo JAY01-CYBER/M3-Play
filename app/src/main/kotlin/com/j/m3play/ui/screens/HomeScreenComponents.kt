@@ -129,6 +129,7 @@ import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
 import com.j.m3play.ui.component.ArtistGridItem
+import com.j.m3play.ui.component.CrinkledProgressRing // <-- FIXED IMPORT HERE
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
@@ -138,7 +139,6 @@ import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
-import com.j.m3play.ui.component.CrinkledProgressRing // <-- FIXED IMPORT
 import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.ArtistMenu
 import com.j.m3play.ui.menu.SongMenu
@@ -183,8 +183,7 @@ fun YTPremiumDiscoverCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(item.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .crossfade(true)
-                    .build(),
+                    .build(), // <-- Crossfade removed for better scroll performance
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -567,7 +566,7 @@ fun QuickPicksSection(
                 )
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(song.song.thumbnailUrl).crossfade(true).build(),
+                model = ImageRequest.Builder(LocalContext.current).data(song.song.thumbnailUrl).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -932,7 +931,7 @@ fun AccountPlaylistsTitle(
         title = accountName,
         thumbnail = {
             if (accountImageUrl != null) {
-                AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(accountImageUrl).diskCachePolicy(CachePolicy.ENABLED).diskCacheKey(accountImageUrl).crossfade(true).build(), placeholder = painterResource(id = R.drawable.person), error = painterResource(id = R.drawable.person), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(ListThumbnailSize).clip(CircleShape))
+                AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(accountImageUrl).diskCachePolicy(CachePolicy.ENABLED).diskCacheKey(accountImageUrl).build(), placeholder = painterResource(id = R.drawable.person), error = painterResource(id = R.drawable.person), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(ListThumbnailSize).clip(CircleShape))
             } else {
                 Icon(painter = painterResource(id = R.drawable.person), contentDescription = null, modifier = Modifier.size(ListThumbnailSize))
             }
@@ -1251,8 +1250,9 @@ fun MetroSpeedDialSection(
                             .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
                     )
                 }
+                
                 if (isRandomizing) {
-                    com.j.m3play.ui.component.CrinkledProgressRing(
+                    CrinkledProgressRing(
                         modifier = Modifier.size(32.dp)
                     )
                 }
