@@ -14,7 +14,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import moe.rukamori.archivetune.LocalPlayerAwareWindowInsets
+import com.j.m3play.LocalPlayerAwareWindowInsets
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
