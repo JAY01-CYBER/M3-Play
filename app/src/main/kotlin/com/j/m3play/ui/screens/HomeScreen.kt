@@ -16,6 +16,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -57,7 +63,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.surfaceColorAtElevation
@@ -114,6 +119,8 @@ import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.TimeGreetingCard
+import com.j.m3play.ui.component.BouncyLoadingIndicator 
+import com.j.m3play.ui.component.CrinkledProgressRing 
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
@@ -385,10 +392,10 @@ fun HomeScreen(
                 
                 item {
                     Row(
-                        modifier = Modifier
+                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
                         ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
@@ -397,14 +404,14 @@ fun HomeScreen(
 
                 item {
                     Row(
-                        modifier = Modifier
+                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
                         ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = {
-                            if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") }
+                             if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") }
                         }, modifier = Modifier.weight(1f))
                     }
                 }
@@ -529,18 +536,46 @@ fun HomeScreen(
                     item { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                 }
 
+                // BOTTOM PAGINATION LOADING (Replaced with M3E Wavy Ring)
                 if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
-                    item { HomeLoadingShimmer(modifier = Modifier.animateItem()) }
+                    item { 
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp)
+                                .animateItem(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CrinkledProgressRing()
+                        }
+                    }
                 }
             }
 
-            Indicator(
-                isRefreshing = isRefreshing,
-                state = pullRefreshState,
+            // NEW M3E PULL TO REFRESH (BOUNCY SHAPE)
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
-            )
+                    .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+                    .padding(top = 16.dp)
+            ) {
+                AnimatedVisibility(
+                    visible = isRefreshing,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            BouncyLoadingIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+            }
         }
     }
 }
