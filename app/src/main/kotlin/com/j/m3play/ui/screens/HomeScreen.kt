@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues // <-- FIXED IMPORT
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -157,7 +157,7 @@ fun GlossyCarouselCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.song.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .build(), 
+                    .build(), // Scroll smoothness ke liye crossfade hataya gaya hai
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = imageModifier,
@@ -215,7 +215,7 @@ fun HomeScreen(
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
     
     val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
@@ -295,6 +295,7 @@ fun HomeScreen(
             ) {}
         }
 
+        // Native M3 Expressive Pull-To-Refresh integration
         ExpressivePullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = viewModel::refresh,
@@ -317,7 +318,9 @@ fun HomeScreen(
                         }
                     }
 
-                    item(key = "greeting", contentType = "greeting") { TimeGreetingCard(onSearchClick = { runCatching { navController.navigate("search/") } }) }
+                    item(key = "greeting", contentType = "greeting") { 
+                        TimeGreetingCard(onSearchClick = { runCatching { navController.navigate("search/") } }) 
+                    }
                     
                     item(key = "actions_1", contentType = "actions") {
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -334,7 +337,9 @@ fun HomeScreen(
                     }
                     
                     communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                        item(key = "community_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) }
+                        item(key = "community_title", contentType = "title") { 
+                            NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) 
+                        }
                         item(key = "community_row", contentType = "row") {
                             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
                                 items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
@@ -345,7 +350,9 @@ fun HomeScreen(
                     }
 
                     quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                        item(key = "quick_picks_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.quick_picks), modifier = Modifier.animateItem()) }
+                        item(key = "quick_picks_title", contentType = "title") { 
+                            NavigationTitle(title = stringResource(R.string.quick_picks), modifier = Modifier.animateItem()) 
+                        }
                         item(key = "quick_picks_carousel", contentType = "carousel") {
                             Box(modifier = Modifier.fillMaxWidth().height(290.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
                                 val carouselState = rememberCarouselState { minOf(picks.size, 10) }
