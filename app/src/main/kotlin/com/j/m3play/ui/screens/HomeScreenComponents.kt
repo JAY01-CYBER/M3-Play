@@ -21,10 +21,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -58,7 +56,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,11 +63,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -81,7 +75,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -132,7 +125,6 @@ import com.j.m3play.ui.component.ArtistGridItem
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
-import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
@@ -147,6 +139,7 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
+import com.j.m3play.ui.component.CrinkledProgressRing 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -418,7 +411,7 @@ fun CommunityPlaylistCard(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(
@@ -1039,7 +1032,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 
+// METRO SPEED DIAL SECTION 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MetroSpeedDialSection(
@@ -1250,11 +1243,12 @@ fun MetroSpeedDialSection(
                             .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
                     )
                 }
+                
+                // M3E WAVY RING ADDED HERE
                 if (isRandomizing) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(28.dp),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    CrinkledProgressRing(
+                        waveAmplitude = 4f,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
