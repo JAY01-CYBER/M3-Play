@@ -129,7 +129,6 @@ import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.AlbumGridItem
 import com.j.m3play.ui.component.ArtistGridItem
-import com.j.m3play.ui.component.CrinkledProgressRing // <-- FIXED IMPORT HERE
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
@@ -183,7 +182,7 @@ fun YTPremiumDiscoverCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(item.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .build(), // <-- Crossfade removed for better scroll performance
+                    .build(), 
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -1251,9 +1250,12 @@ fun MetroSpeedDialSection(
                     )
                 }
                 
+                // BACK TO ORIGINAL MATERIAL 3 PROGRESS INDICATOR
                 if (isRandomizing) {
-                    CrinkledProgressRing(
-                        modifier = Modifier.size(32.dp)
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(28.dp),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
             }
