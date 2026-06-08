@@ -15,12 +15,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -44,12 +42,10 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -86,6 +82,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.j.m3play.LocalAnimatedVisibilityScope
+import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.LocalSharedTransitionScope
@@ -102,7 +99,7 @@ import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChipsRow
-import com.j.m3play.ui.component.ExpressivePullToRefreshBox 
+import com.j.m3play.ui.component.ExpressivePullToRefreshBox
 import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
@@ -115,7 +112,6 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.PaddingValues
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -127,6 +123,7 @@ fun GlossyCarouselCard(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
 
@@ -138,7 +135,9 @@ fun GlossyCarouselCard(
                 onClick = onClick,
                 onLongClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = { menuState.dismiss() }) }
+                    menuState.show {
+                        SongMenu(originalSong = song, navController = navController, onDismiss = { menuState.dismiss() })
+                    }
                 },
             ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -146,6 +145,7 @@ fun GlossyCarouselCard(
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+
             var imageModifier: Modifier = Modifier.fillMaxSize()
             if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                 with(sharedTransitionScope) {
@@ -160,7 +160,7 @@ fun GlossyCarouselCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.song.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .build(), // No crossfade for 60fps fast scrolling
+                    .build(), // <-- Optimization: Crossfade removed for scroll smoothness
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = imageModifier,
@@ -168,20 +168,46 @@ fun GlossyCarouselCard(
 
             if (maxWidth > 200.dp) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f), Color.Black.copy(alpha = 0.85f)),
-                        )
-                    )
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.3f),
+                                    Color.Black.copy(alpha = 0.85f),
+                                ),
+                            ),
+                        ),
                 )
 
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.Bottom, 
                 ) {
-                    Text(text = "Based on your history", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.padding(bottom = 2.dp))
-                    Text(text = song.song.title, style = MaterialTheme.typography.titleMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(text = song.artists.joinToString(", ") { it.name }, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        text = "Based on your history",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                    Text(
+                        text = song.song.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.artists.joinToString(", ") { it.name },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -195,7 +221,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
-    val bottomSheetPageState = LocalBottomSheetPageState.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val haptic = LocalHapticFeedback.current
 
@@ -218,11 +243,14 @@ fun HomeScreen(
 
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
+ 
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val (showHomeCategoryChips) = rememberPreference(ShowHomeCategoryChipsKey, true)
     
-    val isLoggedIn = remember(innerTubeCookie) { "SAPISID" in parseCookieString(innerTubeCookie) }
+    val isLoggedIn = remember(innerTubeCookie) {
+        "SAPISID" in parseCookieString(innerTubeCookie)
+    }
     val url = if (isLoggedIn) accountImageUrl else null
 
     val scope = rememberCoroutineScope()
@@ -247,13 +275,19 @@ fun HomeScreen(
             }
     }
 
-    if (selectedChip != null) { BackHandler { viewModel.toggleChip(selectedChip) } }
-
-    LaunchedEffect(showHomeCategoryChips, selectedChip) {
-        if (!showHomeCategoryChips && selectedChip != null) { viewModel.toggleChip(selectedChip) }
+    if (selectedChip != null) {
+        BackHandler { viewModel.toggleChip(selectedChip) }
     }
 
-    LaunchedEffect(forgottenFavorites) { forgottenFavoritesLazyGridState.scrollToItem(0) }
+    LaunchedEffect(showHomeCategoryChips, selectedChip) {
+        if (!showHomeCategoryChips && selectedChip != null) {
+            viewModel.toggleChip(selectedChip)
+        }
+    }
+
+    LaunchedEffect(forgottenFavorites) {
+        forgottenFavoritesLazyGridState.scrollToItem(0)
+    }
 
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
@@ -271,7 +305,7 @@ fun HomeScreen(
                     .fillMaxSize(0.75f) 
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
-                    .graphicsLayer() 
+                    .graphicsLayer()
                     .drawWithCache {
                         val width = this.size.width
                         val height = this.size.height
@@ -299,17 +333,20 @@ fun HomeScreen(
             ) {}
         }
 
-        // <-- Yahan ab ArchiveTune wala custom Box laga diya gaya hai!
+        // Custom Expressive PullToRefreshBox surrounds everything!
         ExpressivePullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize()
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
                 val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
                 val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
-                    SnapLayoutInfoProvider(lazyGridState = forgottenFavoritesLazyGridState, positionInLayout = { layoutSize, itemSize -> (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f) })
+                    SnapLayoutInfoProvider(
+                        lazyGridState = forgottenFavoritesLazyGridState,
+                        positionInLayout = { layoutSize, itemSize -> (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f) }
+                    )
                 }
 
                 LazyColumn(
@@ -318,52 +355,116 @@ fun HomeScreen(
                 ) {
                     if (showHomeCategoryChips) {
                         item(key = "chips", contentType = "chips") {
-                            ChipsRow(chips = homePage?.chips.orEmpty().map { it to it.title }, currentValue = selectedChip, onValueUpdate = { viewModel.toggleChip(it) })
+                            ChipsRow(
+                                chips = homePage?.chips.orEmpty().map { it to it.title },
+                                currentValue = selectedChip,
+                                onValueUpdate = { viewModel.toggleChip(it) }
+                            )
                         }
                     }
 
-                    item(key = "greeting", contentType = "greeting") { TimeGreetingCard(onSearchClick = { runCatching { navController.navigate("search/") } }) }
+                    item(key = "greeting", contentType = "greeting") {
+                        TimeGreetingCard(
+                            onSearchClick = { runCatching { navController.navigate("search/") } }
+                        )
+                    }
                     
                     item(key = "actions_1", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
                             ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
                         }
                     }
 
                     item(key = "actions_2", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = { if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") } }, modifier = Modifier.weight(1f))
+                            ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = {
+                                if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") }
+                            }, modifier = Modifier.weight(1f))
                         }
                     }
                     
                     communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                        item(key = "community_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) }
+                        item(key = "community_title", contentType = "title") {
+                            NavigationTitle(
+                                title = stringResource(R.string.from_the_community),
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+
                         item(key = "community_row", contentType = "row") {
-                            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
-                                items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
-                                    CommunityPlaylistCard(item = item, onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") }, onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }, onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } })
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.animateItem(),
+                            ) {
+                                items(
+                                    items = playlists,
+                                    key = { it.playlist.id },
+                                    contentType = { "community_card" }
+                                ) { item ->
+                                    CommunityPlaylistCard(
+                                        item = item,
+                                        onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") },
+                                        onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) },
+                                        onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } },
+                                        onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } }
+                                    )
                                 }
                             }
                         }
                     }
 
                     quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
-                        item(key = "quick_picks_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.quick_picks), modifier = Modifier.animateItem()) }
+                        item(key = "quick_picks_title", contentType = "title") {
+                            NavigationTitle(
+                                title = stringResource(R.string.quick_picks),
+                                modifier = Modifier.animateItem()
+                            )
+                        }
+
                         item(key = "quick_picks_carousel", contentType = "carousel") {
-                            Box(modifier = Modifier.fillMaxWidth().height(290.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(290.dp)
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
                                 val carouselState = rememberCarouselState { minOf(picks.size, 10) }
-                                HorizontalMultiBrowseCarousel(state = carouselState, preferredItemWidth = 280.dp, itemSpacing = 16.dp, modifier = Modifier.fillMaxWidth().height(290.dp)) { i ->
-                                    GlossyCarouselCard(song = picks[i], onClick = { playerConnection.playQueue(YouTubeQueue.radio(picks[i].toMediaMetadata())) }, navController = navController, modifier = Modifier.maskClip(RoundedCornerShape(24.dp)))
+                                HorizontalMultiBrowseCarousel(
+                                    state = carouselState,
+                                    preferredItemWidth = 280.dp,
+                                    itemSpacing = 16.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(290.dp),
+                                ) { i ->
+                                    GlossyCarouselCard(
+                                        song = picks[i],
+                                        onClick = { playerConnection.playQueue(YouTubeQueue.radio(picks[i].toMediaMetadata())) },
+                                        navController = navController,
+                                        modifier = Modifier.maskClip(RoundedCornerShape(24.dp)),
+                                    )
                                 }
                             }
                         }
                     }
 
                     metroSpeedDialItems.takeIf { it.isNotEmpty() }?.let { items ->
-                        item(key = "metro_speed_dial_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
-                        item(key = "metro_speed_dial_section", contentType = "section") { MetroSpeedDialSection(items = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
+                        item(key = "metro_speed_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.speed_dial), modifier = Modifier.animateItem()) }
+                        item(key = "metro_speed_section", contentType = "section") { MetroSpeedDialSection(items = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
                     }
 
                     speedDialSongs.takeIf { it.isNotEmpty() }?.let { songs ->
@@ -429,9 +530,21 @@ fun ActionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Icon(
+                painter = painterResource(icon), 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary, 
+                modifier = Modifier.size(20.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = title, 
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold, 
+                color = MaterialTheme.colorScheme.onSurface, 
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
