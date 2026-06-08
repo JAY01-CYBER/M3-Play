@@ -21,8 +21,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -56,6 +58,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,8 +66,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -75,6 +81,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -125,11 +132,13 @@ import com.j.m3play.ui.component.ArtistGridItem
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.SongGridItem
+import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
+import com.j.m3play.ui.component.CrinkledProgressRing // <-- FIXED IMPORT
 import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.ArtistMenu
 import com.j.m3play.ui.menu.SongMenu
@@ -139,7 +148,6 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
-import com.j.m3play.ui.component.CrinkledProgressRing // M3E ANIMATION IMPORT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -411,7 +419,7 @@ fun CommunityPlaylistCard(
                     }
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(
@@ -1243,10 +1251,8 @@ fun MetroSpeedDialSection(
                             .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
                     )
                 }
-                
-                // M3E WAVY RING ADDED HERE (FIXED)
                 if (isRandomizing) {
-                    CrinkledProgressRing(
+                    com.j.m3play.ui.component.CrinkledProgressRing(
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -1339,11 +1345,9 @@ fun HomePageSectionContent(
     
     val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
-    //  Listen Again, Mixed for you, Discover (Standard Square Cards)
     val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar")
     
     when {
-        // 1. Listen Again, Mixes, Discover (Square Cards 1:1 format)
         isSquareGridSection -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
@@ -1379,7 +1383,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 2. Large Video Cards
         isVideoSection -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
@@ -1401,7 +1404,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 3. 4-Row Lists (Trending, Covers)
         isSongsOnlySection -> {
             BoxWithConstraints {
                 val horizontalLazyGridItemWidth = maxWidth * 0.92f
@@ -1436,7 +1438,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 4. Default Fallback
         else -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
