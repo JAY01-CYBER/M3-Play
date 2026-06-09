@@ -10,14 +10,6 @@
 
 package com.j.m3play.ui.screens.settings
 
-fun filterQuickActions(
-    actions: List<SettingsQuickAction>,
-    query: String,
-): List<SettingsQuickAction> {
-    if (query.isBlank()) return actions
-    return actions.filter { it.label.contains(query, ignoreCase = true) }
-}
-
 fun filterSettingsGroups(
     groups: List<SettingsGroup>,
     query: String,
@@ -52,12 +44,4 @@ fun filterInternalItems(
 ): List<SettingsItem> {
     if (query.isBlank()) return emptyList()
     return items.filter { matchesQuery(it, query) }
-}
-
-fun filterIntegrations(
-    integrations: List<SettingsIntegrationAction>,
-    query: String,
-): List<SettingsIntegrationAction> {
-    if (query.isBlank()) return integrations
-    return integrations.filter { it.label.contains(query, ignoreCase = true) }
 }
