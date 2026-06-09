@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import android.content.ActivityNotFoundException
@@ -32,295 +22,255 @@ fun buildSettingsGroups(
     hasUpdate: Boolean,
     context: Context,
     resetSearch: () -> Unit,
-): List<SettingsGroup> =
-    buildList {
-        // Consolidated Quick Actions
-        add(
-            SettingsGroup(
-                title = "QUICK ACCESS",
-                items = listOf(
-                    SettingsItem(
-                        icon = painterResource(R.drawable.palette),
-                        title = stringResource(R.string.appearance),
-                        subtitle = "Theme, scaling",
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        onClick = { resetSearch(); navController.navigate("settings/appearance") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.play),
-                        title = stringResource(R.string.player_and_audio),
-                        subtitle = "Audio quality, playback controls",
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        onClick = { resetSearch(); navController.navigate("settings/player") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.storage),
-                        title = stringResource(R.string.storage),
-                        subtitle = "Cache, data usage",
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        onClick = { resetSearch(); navController.navigate("settings/storage") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.security),
-                        title = stringResource(R.string.privacy),
-                        subtitle = "Listen history, tracking",
-                        accentColor = MaterialTheme.colorScheme.error,
-                        onClick = { resetSearch(); navController.navigate("settings/privacy") },
-                    ),
-                )
+): List<SettingsGroup> = buildList {
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.settings_section_ui),
+            items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.palette),
+                    title = stringResource(R.string.appearance),
+                    subtitle = stringResource(R.string.dark_theme),
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    keywords = listOf("theme", "palette", "material you", "dynamic color", "font", "ui"),
+                    onClick = { resetSearch(); navController.navigate("settings/appearance") },
+                ),
+            ),
+        ),
+    )
+
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.settings_section_player_content),
+            items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.play),
+                    title = stringResource(R.string.player_and_audio),
+                    subtitle = stringResource(R.string.audio_quality),
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    keywords = listOf("audio", "playback", "volume", "quality", "equalizer", "crossfade"),
+                    onClick = { resetSearch(); navController.navigate("settings/player") },
+                ),
+                SettingsItem(
+                    icon = painterResource(R.drawable.language),
+                    title = stringResource(R.string.content),
+                    subtitle = stringResource(R.string.content_language),
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    keywords = listOf("language", "content", "lyrics", "translation", "region"),
+                    onClick = { resetSearch(); navController.navigate("settings/content") },
+                ),
+                SettingsItem(
+                    icon = painterResource(R.drawable.token),
+                    title = stringResource(R.string.po_token_generation),
+                    subtitle = stringResource(R.string.po_token_generation_subtitle),
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    keywords = listOf("po token", "token", "web client", "visitor data", "gvs", "player"),
+                    onClick = { resetSearch(); navController.navigate("settings/po_token") },
+                ),
+            ),
+        ),
+    )
+
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.settings_section_privacy),
+            items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.security),
+                    title = stringResource(R.string.privacy),
+                    subtitle = stringResource(R.string.pause_listen_history),
+                    accentColor = MaterialTheme.colorScheme.error,
+                    keywords = listOf("privacy", "history", "tracking", "security", "permissions"),
+                    onClick = { resetSearch(); navController.navigate("settings/privacy") },
+                ),
+            ),
+        ),
+    )
+
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.settings_section_storage),
+            items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.storage),
+                    title = stringResource(R.string.storage),
+                    subtitle = stringResource(R.string.cache),
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    keywords = listOf("storage", "cache", "offline", "downloads", "cleanup"),
+                    onClick = { resetSearch(); navController.navigate("settings/storage") },
+                ),
+                SettingsItem(
+                    icon = painterResource(R.drawable.restore),
+                    title = stringResource(R.string.backup_restore),
+                    subtitle = stringResource(R.string.action_backup),
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    keywords = listOf("backup", "restore", "import", "export", "migration"),
+                    onClick = { resetSearch(); navController.navigate("settings/backup_restore") },
+                ),
+            ),
+        ),
+    )
+
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.integration),
+            items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.discord),
+                    title = stringResource(R.string.discord),
+                    subtitle = "Sync with Discord",
+                    accentColor = Color(0xFF5865F2),
+                    onClick = { resetSearch(); navController.navigate("settings/discord") },
+                ),
+                SettingsItem(
+                    icon = painterResource(R.drawable.integration),
+                    title = stringResource(R.string.integration),
+                    subtitle = "Manage external integrations",
+                    accentColor = MaterialTheme.colorScheme.secondary,
+                    onClick = { resetSearch(); navController.navigate("settings/integration") },
+                ),
+                SettingsItem(
+                    icon = painterResource(R.drawable.fire),
+                    title = stringResource(R.string.music_together),
+                    subtitle = "Listen with friends",
+                    accentColor = MaterialTheme.colorScheme.tertiary,
+                    onClick = { resetSearch(); navController.navigate("settings/music_together") },
+                ),
             )
         )
+    )
 
-        // Consolidated Integrations
-        add(
-            SettingsGroup(
-                title = "INTEGRATIONS",
-                items = listOf(
+    add(
+        SettingsGroup(
+            title = stringResource(R.string.settings_section_system),
+            items = buildList {
+                if (isAndroid12OrLater) {
+                    add(
+                        SettingsItem(
+                            icon = painterResource(R.drawable.link),
+                            title = stringResource(R.string.default_links),
+                            subtitle = stringResource(R.string.open_supported_links),
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            keywords = listOf("links", "deeplink", "default", "supported links"),
+                            onClick = {
+                                resetSearch()
+                                try {
+                                    val intent = Intent(
+                                        Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
+                                        Uri.parse("package:${context.packageName}")
+                                    )
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, R.string.open_app_settings_error, Toast.LENGTH_LONG).show()
+                                }
+                            },
+                        ),
+                    )
+                }
+                add(
                     SettingsItem(
-                        icon = painterResource(R.drawable.discord),
-                        title = stringResource(R.string.discord),
-                        subtitle = "Sync with Discord",
-                        accentColor = Color(0xFF5865F2),
-                        onClick = { resetSearch(); navController.navigate("settings/discord") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.integration),
-                        title = stringResource(R.string.integration),
-                        subtitle = "Manage external integrations",
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        onClick = { resetSearch(); navController.navigate("settings/integration") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.fire),
-                        title = stringResource(R.string.music_together),
-                        subtitle = "Listen with friends",
+                        icon = painterResource(R.drawable.experiment),
+                        title = stringResource(R.string.experiment_settings),
+                        subtitle = stringResource(R.string.misc),
                         accentColor = MaterialTheme.colorScheme.tertiary,
-                        onClick = { resetSearch(); navController.navigate("settings/music_together") },
+                        keywords = listOf("experimental", "debug", "developer", "labs", "internal"),
+                        onClick = { resetSearch(); navController.navigate("settings/misc") },
                     ),
                 )
-            )
-        )
-
-        add(
-            SettingsGroup(
-                title = stringResource(R.string.settings_section_ui),
-                items = listOf(
+                add(
                     SettingsItem(
-                        icon = painterResource(R.drawable.palette),
-                        title = stringResource(R.string.appearance),
-                        subtitle = stringResource(R.string.dark_theme),
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        keywords = listOf("theme", "palette", "material you", "dynamic color", "font", "ui"),
-                        onClick = { resetSearch(); navController.navigate("settings/appearance") },
+                        icon = painterResource(R.drawable.update),
+                        title = stringResource(R.string.updates),
+                        subtitle = if (hasUpdate) stringResource(R.string.new_version_available) else BuildConfig.VERSION_NAME,
+                        showUpdateIndicator = hasUpdate,
+                        accentColor = if (hasUpdate) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                        keywords = listOf("update", "version", "release", "changelog"),
+                        onClick = { resetSearch(); navController.navigate("settings/update") },
                     ),
-                ),
-            ),
-        )
-
-        add(
-            SettingsGroup(
-                title = stringResource(R.string.settings_section_player_content),
-                items = listOf(
+                )
+                add(
                     SettingsItem(
-                        icon = painterResource(R.drawable.play),
-                        title = stringResource(R.string.player_and_audio),
-                        subtitle = stringResource(R.string.audio_quality),
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        keywords = listOf("audio", "playback", "volume", "quality", "equalizer", "crossfade"),
-                        onClick = { resetSearch(); navController.navigate("settings/player") },
+                        icon = painterResource(R.drawable.info),
+                        title = stringResource(R.string.about),
+                        subtitle = "M3Play",
+                        accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        keywords = listOf("about", "app info", "license", "contributors"),
+                        onClick = { resetSearch(); navController.navigate("settings/about") },
                     ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.language),
-                        title = stringResource(R.string.content),
-                        subtitle = stringResource(R.string.content_language),
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        keywords = listOf("language", "content", "lyrics", "translation", "region"),
-                        onClick = { resetSearch(); navController.navigate("settings/content") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.token),
-                        title = stringResource(R.string.po_token_generation),
-                        subtitle = stringResource(R.string.po_token_generation_subtitle),
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        keywords = listOf("po token", "token", "web client", "visitor data", "gvs", "player"),
-                        onClick = { resetSearch(); navController.navigate("settings/po_token") },
-                    ),
-                ),
-            ),
-        )
-
-        add(
-            SettingsGroup(
-                title = stringResource(R.string.settings_section_privacy),
-                items = listOf(
-                    SettingsItem(
-                        icon = painterResource(R.drawable.security),
-                        title = stringResource(R.string.privacy),
-                        subtitle = stringResource(R.string.pause_listen_history),
-                        accentColor = MaterialTheme.colorScheme.error,
-                        keywords = listOf("privacy", "history", "tracking", "security", "permissions"),
-                        onClick = { resetSearch(); navController.navigate("settings/privacy") },
-                    ),
-                ),
-            ),
-        )
-
-        add(
-            SettingsGroup(
-                title = stringResource(R.string.settings_section_storage),
-                items = listOf(
-                    SettingsItem(
-                        icon = painterResource(R.drawable.storage),
-                        title = stringResource(R.string.storage),
-                        subtitle = stringResource(R.string.cache),
-                        accentColor = MaterialTheme.colorScheme.secondary,
-                        keywords = listOf("storage", "cache", "offline", "downloads", "cleanup"),
-                        onClick = { resetSearch(); navController.navigate("settings/storage") },
-                    ),
-                    SettingsItem(
-                        icon = painterResource(R.drawable.restore),
-                        title = stringResource(R.string.backup_restore),
-                        subtitle = stringResource(R.string.action_backup),
-                        accentColor = MaterialTheme.colorScheme.tertiary,
-                        keywords = listOf("backup", "restore", "import", "export", "migration"),
-                        onClick = { resetSearch(); navController.navigate("settings/backup_restore") },
-                    ),
-                ),
-            ),
-        )
-
-        add(
-            SettingsGroup(
-                title = stringResource(R.string.settings_section_system),
-                items = buildList {
-                    if (isAndroid12OrLater) {
-                        add(
-                            SettingsItem(
-                                icon = painterResource(R.drawable.link),
-                                title = stringResource(R.string.default_links),
-                                subtitle = stringResource(R.string.open_supported_links),
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                keywords = listOf("links", "deeplink", "default", "supported links"),
-                                onClick = {
-                                    resetSearch()
-                                    try {
-                                        val intent = Intent(
-                                            Settings.ACTION_APP_OPEN_BY_DEFAULT_SETTINGS,
-                                            Uri.parse("package:${context.packageName}")
-                                        )
-                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, R.string.open_app_settings_error, Toast.LENGTH_LONG).show()
-                                    }
-                                },
-                            ),
-                        )
-                    }
-                    add(
-                        SettingsItem(
-                            icon = painterResource(R.drawable.experiment),
-                            title = stringResource(R.string.experiment_settings),
-                            subtitle = stringResource(R.string.misc),
-                            accentColor = MaterialTheme.colorScheme.tertiary,
-                            keywords = listOf("experimental", "debug", "developer", "labs", "internal"),
-                            onClick = { resetSearch(); navController.navigate("settings/misc") },
-                        ),
-                    )
-                    add(
-                        SettingsItem(
-                            icon = painterResource(R.drawable.update),
-                            title = stringResource(R.string.updates),
-                            subtitle = if (hasUpdate) stringResource(R.string.new_version_available) else BuildConfig.VERSION_NAME,
-                            showUpdateIndicator = hasUpdate,
-                            accentColor = if (hasUpdate) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                            keywords = listOf("update", "version", "release", "changelog"),
-                            onClick = { resetSearch(); navController.navigate("settings/update") },
-                        ),
-                    )
-                    add(
-                        SettingsItem(
-                            icon = painterResource(R.drawable.info),
-                            title = stringResource(R.string.about),
-                            subtitle = "M3Play",
-                            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            keywords = listOf("about", "app info", "license", "contributors"),
-                            onClick = { resetSearch(); navController.navigate("settings/about") },
-                        ),
-                    )
-                },
-            ),
-        )
-    }
+                )
+            },
+        ),
+    )
+}
 
 @Composable
 fun buildInternalItems(
     navController: NavController,
     resetSearch: () -> Unit,
-): List<SettingsItem> =
-    listOf(
-        SettingsItem(
-            icon = painterResource(R.drawable.palette),
-            title = stringResource(R.string.theme_creator_title),
-            subtitle = stringResource(R.string.theme_creator_subtitle),
-            accentColor = MaterialTheme.colorScheme.primary,
-            keywords = listOf("theme", "creator", "seed", "material", "palette", "import", "export"),
-            onClick = { resetSearch(); navController.navigate("settings/appearance/theme_creator") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.palette),
-            title = stringResource(R.string.customize_colors),
-            subtitle = stringResource(R.string.appearance),
-            accentColor = MaterialTheme.colorScheme.primary,
-            keywords = listOf("palette", "color", "accent", "tone", "dynamic color"),
-            onClick = { resetSearch(); navController.navigate("settings/appearance/palette_picker") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.image),
-            title = stringResource(R.string.customize_background_title),
-            subtitle = stringResource(R.string.appearance),
-            accentColor = MaterialTheme.colorScheme.secondary,
-            keywords = listOf("background", "wallpaper", "image", "blur", "gradient"),
-            onClick = { resetSearch(); navController.navigate("customize_background") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.discord),
-            title = stringResource(R.string.discord_integration),
-            subtitle = stringResource(R.string.integration),
-            accentColor = Color(0xFF5865F2),
-            keywords = listOf("discord", "rpc", "rich presence", "status", "activity"),
-            onClick = { resetSearch(); navController.navigate("settings/discord") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.security),
-            title = stringResource(R.string.advanced_login),
-            subtitle = stringResource(R.string.discord),
-            accentColor = Color(0xFF5865F2),
-            keywords = listOf("token", "login", "authentication", "discord login"),
-            onClick = { resetSearch(); navController.navigate("settings/discord/login") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.experiment),
-            title = stringResource(R.string.experimental_features),
-            subtitle = stringResource(R.string.experimental_features_description),
-            accentColor = MaterialTheme.colorScheme.tertiary,
-            keywords = listOf("experimental", "labs", "advanced", "discord experimental", "internal"),
-            onClick = { resetSearch(); navController.navigate("settings/discord/experimental") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.integration),
-            title = stringResource(R.string.lastfm_integration),
-            subtitle = stringResource(R.string.integration),
-            accentColor = MaterialTheme.colorScheme.secondary,
-            keywords = listOf("lastfm", "last.fm", "scrobble", "listening history"),
-            onClick = { resetSearch(); navController.navigate("settings/lastfm") },
-        ),
-        SettingsItem(
-            icon = painterResource(R.drawable.fire),
-            title = stringResource(R.string.music_together),
-            subtitle = stringResource(R.string.integration),
-            accentColor = MaterialTheme.colorScheme.tertiary,
-            keywords = listOf("together", "session", "sync", "party", "join", "host"),
-            onClick = { resetSearch(); navController.navigate("settings/music_together") },
-        ),
-    )
+): List<SettingsItem> = listOf(
+    SettingsItem(
+        icon = painterResource(R.drawable.palette),
+        title = stringResource(R.string.theme_creator_title),
+        subtitle = stringResource(R.string.theme_creator_subtitle),
+        accentColor = MaterialTheme.colorScheme.primary,
+        keywords = listOf("theme", "creator", "seed", "material", "palette", "import", "export"),
+        onClick = { resetSearch(); navController.navigate("settings/appearance/theme_creator") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.palette),
+        title = stringResource(R.string.customize_colors),
+        subtitle = stringResource(R.string.appearance),
+        accentColor = MaterialTheme.colorScheme.primary,
+        keywords = listOf("palette", "color", "accent", "tone", "dynamic color"),
+        onClick = { resetSearch(); navController.navigate("settings/appearance/palette_picker") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.image),
+        title = stringResource(R.string.customize_background_title),
+        subtitle = stringResource(R.string.appearance),
+        accentColor = MaterialTheme.colorScheme.secondary,
+        keywords = listOf("background", "wallpaper", "image", "blur", "gradient"),
+        onClick = { resetSearch(); navController.navigate("customize_background") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.discord),
+        title = stringResource(R.string.discord_integration),
+        subtitle = stringResource(R.string.integration),
+        accentColor = Color(0xFF5865F2),
+        keywords = listOf("discord", "rpc", "rich presence", "status", "activity"),
+        onClick = { resetSearch(); navController.navigate("settings/discord") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.security),
+        title = stringResource(R.string.advanced_login),
+        subtitle = stringResource(R.string.discord),
+        accentColor = Color(0xFF5865F2),
+        keywords = listOf("token", "login", "authentication", "discord login"),
+        onClick = { resetSearch(); navController.navigate("settings/discord/login") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.experiment),
+        title = stringResource(R.string.experimental_features),
+        subtitle = stringResource(R.string.experimental_features_description),
+        accentColor = MaterialTheme.colorScheme.tertiary,
+        keywords = listOf("experimental", "labs", "advanced", "discord experimental", "internal"),
+        onClick = { resetSearch(); navController.navigate("settings/discord/experimental") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.integration),
+        title = stringResource(R.string.lastfm_integration),
+        subtitle = stringResource(R.string.integration),
+        accentColor = MaterialTheme.colorScheme.secondary,
+        keywords = listOf("lastfm", "last.fm", "scrobble", "listening history"),
+        onClick = { resetSearch(); navController.navigate("settings/lastfm") },
+    ),
+    SettingsItem(
+        icon = painterResource(R.drawable.fire),
+        title = stringResource(R.string.music_together),
+        subtitle = stringResource(R.string.integration),
+        accentColor = MaterialTheme.colorScheme.tertiary,
+        keywords = listOf("together", "session", "sync", "party", "join", "host"),
+        onClick = { resetSearch(); navController.navigate("settings/music_together") },
+    ),
+)
