@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 fun filterSettingsGroups(
