@@ -5,7 +5,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -55,35 +58,37 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
-// मॉडर्न पिक्सेल स्टाइल ग्रुप कार्ड (Rounded Surface के साथ)
+// प्रीमियम पिक्सेल स्टाइल ग्रुप कार्ड
 @Composable
 fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        // सेक्शन टाइटल (बाहर की तरफ)
+        // सेक्शन टाइटल (Premium Letter Spacing और कलर के साथ)
         Text(
             text = group.title.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.2.dp,
+            modifier = Modifier.padding(start = 16.dp, top = 28.dp, bottom = 10.dp)
         )
 
-        // राउंडेड कंटेनर (Pixel UI का मेन लुक)
+        // राउंडेड कंटेनर
         Surface(
-            shape = RoundedCornerShape(28.dp), // Extra Large Corners
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), // हल्का प्रीमियम बैकग्राउंड
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
                 group.items.forEachIndexed { index, item ->
                     PixelSettingsListItem(item = item)
 
-                    // आइटम्स के बीच में Inset Divider (सिर्फ टेक्स्ट के नीचे)
+                    // परफेक्ट अलाइनमेंट वाला Inset Divider (टेक्स्ट के ठीक नीचे)
                     if (index < group.items.size - 1) {
                         HorizontalDivider(
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.padding(start = 64.dp, end = 16.dp)
+                            thickness = 0.8.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            // 16dp padding + 44dp icon box + 16dp spacer = 76dp start padding
+                            modifier = Modifier.padding(start = 76.dp, end = 16.dp)
                         )
                     }
                 }
@@ -92,34 +97,51 @@ fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) 
     }
 }
 
-// मॉडर्न पिक्सेल स्टाइल लिस्ट आइटम
+// प्रीमियम पिक्सेल स्टाइल लिस्ट आइटम (शेप वाले आइकॉन के साथ)
 @Composable
 fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
+    // आइकॉन और उसके बैकग्राउंड का कलर तय करना
+    val iconTint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.primary
+    val iconBackground = iconTint.copy(alpha = 0.15f) // आइकॉन के पीछे का हल्का (Tinted) कलर
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = item.onClick)
-            .padding(horizontal = 20.dp, vertical = 18.dp), // ज्यादा पैडिंग (Expressive Look)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = item.icon,
-            contentDescription = null,
-            tint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(26.dp)
-        )
-        Spacer(modifier = Modifier.width(18.dp))
+        // शेप के अंदर आइकॉन (प्रीमियम लुक)
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(color = iconBackground, shape = CircleShape), // सर्कल शेप
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = item.icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        // टाइटल और सबटाइटल
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.titleMedium, // थोड़ा बड़ा और बोल्ड टाइटल
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (item.subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = item.subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
         }
@@ -160,14 +182,14 @@ fun AdaptiveSettingsLayout(
                 AnimatedVisibility(
                     visible = bannerVisible && state.showPermissionBanner,
                 ) {
-                    /* SettingsPermissionBanner(onRequestPermission = state.onRequestPermission) */
+                    /* SettingsPermissionBanner(...) */
                 }
             }
             item(key = "update") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showUpdateBanner,
                 ) {
-                    /* SettingsUpdateBanner(latestVersion = state.latestVersion, onClick = state.onUpdateClick) */
+                    /* SettingsUpdateBanner(...) */
                 }
             }
         }
@@ -175,7 +197,7 @@ fun AdaptiveSettingsLayout(
         if (state.isSearchActive && !state.hasSearchResults) {
             item(key = "empty") {
                 Spacer(modifier = Modifier.height(24.dp))
-                // SettingsSearchEmpty()
+                /* SettingsSearchEmpty() */
             }
         } else {
             if (state.internalGroup != null && state.internalGroup.items.isNotEmpty()) {
