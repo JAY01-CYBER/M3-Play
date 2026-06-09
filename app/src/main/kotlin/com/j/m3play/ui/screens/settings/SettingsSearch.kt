@@ -1,5 +1,13 @@
 package com.j.m3play.ui.screens.settings
 
+fun filterSettingsItems(
+    items: List<SettingsItem>,
+    query: String,
+): List<SettingsItem> {
+    if (query.isBlank()) return items
+    return items.filter { matchesQuery(it, query) }
+}
+
 fun filterSettingsGroups(
     groups: List<SettingsGroup>,
     query: String,
@@ -15,23 +23,8 @@ fun filterSettingsGroups(
     }
 }
 
-fun matchesQuery(
-    item: SettingsItem,
-    query: String,
-): Boolean {
+fun matchesQuery(item: SettingsItem, query: String): Boolean {
     if (item.title.contains(query, ignoreCase = true)) return true
     if (item.subtitle?.contains(query, ignoreCase = true) == true) return true
-    if (item.badge?.contains(query, ignoreCase = true) == true) return true
-    return item.keywords.any { keyword ->
-        keyword.contains(query, ignoreCase = true) ||
-            query.contains(keyword, ignoreCase = true)
-    }
-}
-
-fun filterInternalItems(
-    items: List<SettingsItem>,
-    query: String,
-): List<SettingsItem> {
-    if (query.isBlank()) return emptyList()
-    return items.filter { matchesQuery(it, query) }
+    return item.keywords.any { it.contains(query, ignoreCase = true) }
 }
