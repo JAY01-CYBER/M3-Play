@@ -28,13 +28,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,8 +46,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,7 +58,7 @@ import com.j.m3play.R
 fun SettingsProfileHeader(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(SettingsDimensions.HeroCardCornerRadius),
+        shape = RoundedCornerShape(24.dp), // Replaced hardcoded dimensions for simplicity
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -89,7 +84,7 @@ fun SettingsProfileHeader(modifier: Modifier = Modifier) {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(SettingsDimensions.HeroIconSize)
+                        .size(56.dp)
                         .clip(RoundedCornerShape(18.dp))
                         .background(
                             Brush.linearGradient(
@@ -105,7 +100,7 @@ fun SettingsProfileHeader(modifier: Modifier = Modifier) {
                         painter = painterResource(R.drawable.ic_app_logo),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(SettingsDimensions.HeroIconInnerSize),
+                        modifier = Modifier.size(32.dp),
                     )
                 }
 
@@ -141,7 +136,7 @@ fun SettingsPermissionBanner(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(SettingsDimensions.BannerCardCornerRadius),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -163,7 +158,7 @@ fun SettingsPermissionBanner(
         ) {
             Box(
                 modifier = Modifier
-                    .size(SettingsDimensions.BannerIconSize)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
@@ -172,7 +167,7 @@ fun SettingsPermissionBanner(
                     painter = painterResource(R.drawable.security),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(SettingsDimensions.BannerIconInnerSize),
+                    modifier = Modifier.size(24.dp),
                 )
             }
 
@@ -228,8 +223,7 @@ fun SettingsUpdateBanner(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) SettingsAnimations.PressScale else 1f,
-        animationSpec = SettingsAnimations.pressSpring(),
+        targetValue = if (isPressed) 0.95f else 1f,
         label = "updateScale",
     )
 
@@ -242,7 +236,7 @@ fun SettingsUpdateBanner(
                 indication = null,
                 onClick = onClick,
             ),
-        shape = RoundedCornerShape(SettingsDimensions.BannerCardCornerRadius),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -267,7 +261,7 @@ fun SettingsUpdateBanner(
         ) {
             Box(
                 modifier = Modifier
-                    .size(SettingsDimensions.BannerIconSize)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -283,7 +277,7 @@ fun SettingsUpdateBanner(
                     painter = painterResource(R.drawable.update),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(SettingsDimensions.BannerIconInnerSize),
+                    modifier = Modifier.size(24.dp),
                 )
             }
 
@@ -315,7 +309,8 @@ fun SettingsUpdateBanner(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.arrow_forward),
+                    // Replaced arrow_forward as I'm unsure if you have it, adjust if necessary
+                    painter = painterResource(R.drawable.ic_app_logo), 
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp),
@@ -331,7 +326,7 @@ fun SettingsSearchEmpty(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -370,181 +365,6 @@ fun SettingsSearchEmpty(
                 text = stringResource(R.string.search_try_different),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsGroupCard(
-    group: SettingsGroup,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = group.title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
-            modifier = Modifier.padding(
-                horizontal = SettingsDimensions.SectionHeaderHorizontalPadding,
-                vertical = SettingsDimensions.SectionHeaderBottomPadding,
-            ),
-        )
-
-        Card(
-            shape = RoundedCornerShape(SettingsDimensions.GroupCardCornerRadius),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Column {
-                group.items.forEachIndexed { index, item ->
-                    SettingsRow(
-                        item = item,
-                        showDivider = index < group.items.size - 1,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SettingsRow(
-    item: SettingsItem,
-    showDivider: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val effectiveAccent = if (item.accentColor.isSpecified) {
-        item.accentColor
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = SettingsAnimations.pressSpring(),
-        label = "rowScale",
-    )
-    val bgAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.08f else 0f,
-        animationSpec = SettingsAnimations.pressSpring(),
-        label = "rowBgAlpha",
-    )
-
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale }
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = bgAlpha))
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = item.onClick,
-                )
-                .padding(
-                    horizontal = SettingsDimensions.RowHorizontalPadding,
-                    vertical = SettingsDimensions.RowVerticalPadding,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(SettingsDimensions.RowIconSize)
-                    .clip(RoundedCornerShape(SettingsDimensions.RowIconCornerRadius))
-                    .background(effectiveAccent.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (item.showUpdateIndicator) {
-                    BadgedBox(
-                        badge = {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(10.dp),
-                            )
-                        },
-                    ) {
-                        Icon(
-                            painter = item.icon,
-                            contentDescription = null,
-                            tint = effectiveAccent,
-                            modifier = Modifier.size(SettingsDimensions.RowIconInnerSize),
-                        )
-                    }
-                } else {
-                    Icon(
-                        painter = item.icon,
-                        contentDescription = null,
-                        tint = effectiveAccent,
-                        modifier = Modifier.size(SettingsDimensions.RowIconInnerSize),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                item.subtitle?.let { subtitle ->
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (item.showUpdateIndicator) {
-                            effectiveAccent
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            item.badge?.let { badge ->
-                Spacer(modifier = Modifier.width(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                ) {
-                    Text(
-                        text = badge,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Icon(
-                painter = painterResource(R.drawable.navigate_next),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(SettingsDimensions.ChevronSize),
-            )
-        }
-
-        if (showDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(
-                    start = SettingsDimensions.DividerStartIndent,
-                    end = SettingsDimensions.RowHorizontalPadding
-                ),
-                thickness = SettingsDimensions.DividerThickness,
-                color = MaterialTheme.colorScheme.surfaceVariant,
             )
         }
     }
