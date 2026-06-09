@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import android.Manifest
@@ -85,7 +75,7 @@ fun SettingsScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
-    val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION.CODES.TIRAMISU) {
+    val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.POST_NOTIFICATIONS
     } else {
         null
@@ -122,7 +112,6 @@ fun SettingsScreen(
         focusManager.clearFocus()
     }
 
-    // Now simply builds the groups
     val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context, resetSearch)
     val internalItems = buildInternalItems(navController, resetSearch)
 
