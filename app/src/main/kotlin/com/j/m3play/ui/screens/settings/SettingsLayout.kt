@@ -1,32 +1,16 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,11 +22,10 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,22 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.window.core.layout.WindowSizeClass
 import com.j.m3play.LocalPlayerAwareWindowInsets
 
-enum class SettingsLayoutMode { COMPACT, MEDIUM, EXPANDED }
-
-@Composable
-fun resolveLayoutMode(): SettingsLayoutMode {
-    val windowInfo = currentWindowAdaptiveInfo().windowSizeClass
-    return when {
-        windowInfo.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) -> SettingsLayoutMode.EXPANDED
-        windowInfo.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) -> SettingsLayoutMode.MEDIUM
-        else -> SettingsLayoutMode.COMPACT
-    }
-}
-
-// Updated State Class (Quick Actions / Integrations removed as they are now standard groups)
 data class SettingsContentState(
     val groups: List<SettingsGroup>,
     val internalGroup: SettingsGroup?,
@@ -83,7 +52,6 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
-// NEW: Pixel Style Settings Group Component
 @Composable
 fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -97,7 +65,7 @@ fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
         group.items.forEach { item ->
             SettingsListItem(item = item)
         }
-        Divider(
+        HorizontalDivider(
             thickness = 0.5.dp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp)
@@ -105,7 +73,6 @@ fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     }
 }
 
-// NEW: Pixel Style List Item
 @Composable
 fun SettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
     Row(
@@ -146,22 +113,17 @@ fun AdaptiveSettingsLayout(
     listState: LazyListState = rememberLazyListState(),
     topPadding: Dp = 0.dp,
 ) {
-    val layoutMode = resolveLayoutMode()
-    var heroVisible by remember { mutableStateOf(false) }
     var bannerVisible by remember { mutableStateOf(false) }
     var categoriesVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val anim = Animatable(0f)
-        anim.animateTo(1f, tween(50))
-        heroVisible = true
         anim.animateTo(1f, tween(60))
         bannerVisible = true
         anim.animateTo(1f, tween(70))
         categoriesVisible = true
     }
 
-    // Simplified fallback to a standard list for all modes for consistency with Pixel design
     LazyColumn(
         state = listState,
         modifier = modifier
@@ -174,21 +136,25 @@ fun AdaptiveSettingsLayout(
         contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
     ) {
         if (!state.isSearchActive) {
-            // Uncomment or add your hero header back if needed:
-            // item(key = "hero") { SettingsProfileHeader(...) }
-
             item(key = "permission") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showPermissionBanner,
                 ) {
-                    // Placeholder for SettingsPermissionBanner(onRequestPermission = state.onRequestPermission)
+                    SettingsPermissionBanner(
+                        onRequestPermission = state.onRequestPermission,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
             }
             item(key = "update") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showUpdateBanner,
                 ) {
-                     // Placeholder for SettingsUpdateBanner(latestVersion = state.latestVersion, onClick = state.onUpdateClick)
+                    SettingsUpdateBanner(
+                        latestVersion = state.latestVersion,
+                        onClick = state.onUpdateClick,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
             }
         }
@@ -196,7 +162,7 @@ fun AdaptiveSettingsLayout(
         if (state.isSearchActive && !state.hasSearchResults) {
             item(key = "empty") {
                 Spacer(modifier = Modifier.height(24.dp))
-                // SettingsSearchEmpty()
+                SettingsSearchEmpty()
             }
         } else {
             if (state.internalGroup != null && state.internalGroup.items.isNotEmpty()) {
