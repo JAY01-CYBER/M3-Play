@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.j.m3play.LocalPlayerAwareWindowInsets
 
 data class SettingsContentState(
@@ -68,7 +69,7 @@ fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) 
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.2.dp,
+            letterSpacing = 1.2.sp, // यहाँ .dp की जगह .sp कर दिया गया है
             modifier = Modifier.padding(start = 16.dp, top = 28.dp, bottom = 10.dp)
         )
 
