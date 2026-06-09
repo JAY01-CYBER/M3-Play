@@ -22,9 +22,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -52,49 +55,64 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
-// नाम बदल दिया गया है ताकि पुरानी फाइल्स से Conflict न हो
+// मॉडर्न पिक्सेल स्टाइल ग्रुप कार्ड (Rounded Surface के साथ)
 @Composable
 fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        // सेक्शन टाइटल (बाहर की तरफ)
         Text(
             text = group.title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
         )
-        group.items.forEach { item ->
-            PixelSettingsListItem(item = item)
+
+        // राउंडेड कंटेनर (Pixel UI का मेन लुक)
+        Surface(
+            shape = RoundedCornerShape(28.dp), // Extra Large Corners
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), // हल्का प्रीमियम बैकग्राउंड
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                group.items.forEachIndexed { index, item ->
+                    PixelSettingsListItem(item = item)
+
+                    // आइटम्स के बीच में Inset Divider (सिर्फ टेक्स्ट के नीचे)
+                    if (index < group.items.size - 1) {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.padding(start = 64.dp, end = 16.dp)
+                        )
+                    }
+                }
+            }
         }
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp)
-        )
     }
 }
 
-// नाम बदल दिया गया है ताकि पुरानी फाइल्स से Conflict न हो
+// मॉडर्न पिक्सेल स्टाइल लिस्ट आइटम
 @Composable
 fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = item.onClick)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 18.dp), // ज्यादा पैडिंग (Expressive Look)
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = item.icon,
             contentDescription = null,
             tint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(26.dp)
         )
-        Spacer(modifier = Modifier.width(20.dp))
+        Spacer(modifier = Modifier.width(18.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium, // थोड़ा बड़ा और बोल्ड टाइटल
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (item.subtitle != null) {
@@ -135,34 +153,21 @@ fun AdaptiveSettingsLayout(
                     WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                 )
             ),
-        contentPadding = PaddingValues(top = topPadding, bottom = 32.dp),
+        contentPadding = PaddingValues(top = topPadding, bottom = 48.dp),
     ) {
         if (!state.isSearchActive) {
             item(key = "permission") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showPermissionBanner,
                 ) {
-                    // अगर आपके पास SettingsPermissionBanner नाम का फंक्शन है तो यहाँ अनकमेंट कर सकते हैं
-                    /*
-                    SettingsPermissionBanner(
-                        onRequestPermission = state.onRequestPermission,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                    */
+                    /* SettingsPermissionBanner(onRequestPermission = state.onRequestPermission) */
                 }
             }
             item(key = "update") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showUpdateBanner,
                 ) {
-                    // SettingsUpdateBanner 
-                    /*
-                    SettingsUpdateBanner(
-                        latestVersion = state.latestVersion,
-                        onClick = state.onUpdateClick,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                    */
+                    /* SettingsUpdateBanner(latestVersion = state.latestVersion, onClick = state.onUpdateClick) */
                 }
             }
         }
