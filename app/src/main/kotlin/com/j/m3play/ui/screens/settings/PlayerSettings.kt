@@ -1,32 +1,28 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -36,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -56,7 +53,6 @@ import com.j.m3play.constants.AutoSkipNextOnErrorKey
 import com.j.m3play.constants.PauseOnDeviceMuteKey
 import com.j.m3play.constants.PermanentShuffleKey
 import com.j.m3play.constants.PersistentQueueKey
-
 import com.j.m3play.constants.SkipSilenceKey
 import com.j.m3play.constants.StopMusicOnTaskClearKey
 import com.j.m3play.constants.WakelockKey
@@ -119,12 +115,10 @@ fun PlayerSettings(
         AudioOffload,
         defaultValue = false
     )
-
     val (seekExtraSeconds, onSeekExtraSeconds) = rememberPreference(
         SeekExtraSeconds,
         defaultValue = false
     )
-
     val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(
         AutoDownloadOnLikeKey,
         defaultValue = false
@@ -149,12 +143,10 @@ fun PlayerSettings(
         HistoryDuration,
         defaultValue = 30f
     )
-
     val (audioCrossfadeSeconds, onAudioCrossfadeSecondsChange) = rememberPreference(
         AudioCrossfadeDurationKey,
         defaultValue = 0
     )
-
     val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
         ArtistSeparatorsKey,
         defaultValue = ",;/&"
@@ -167,7 +159,6 @@ fun PlayerSettings(
         ExternalDownloaderPackageKey,
         defaultValue = ""
     )
-
     val (wakelockEnabled, onWakelockChange) = rememberPreference(
         WakelockKey,
         defaultValue = false
@@ -217,13 +208,13 @@ fun PlayerSettings(
         ) {
             items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
                 Row(
-                    modifier =
-                    Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             onPlayerStreamClientChange(value)
                             showPlayerStreamClientDialog = false
-                        }.padding(horizontal = 16.dp, vertical = 12.dp),
+                        }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     RadioButton(
                         selected = value == playerStreamClient,
@@ -232,8 +223,7 @@ fun PlayerSettings(
 
                     Column(modifier = Modifier.padding(start = 16.dp)) {
                         Text(
-                            text =
-                            when (value) {
+                            text = when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
                                 else -> stringResource(R.string.player_stream_client_web_remix)
                             },
@@ -241,8 +231,7 @@ fun PlayerSettings(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text =
-                            when (value) {
+                            text = when (value) {
                                 PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
                                 else -> stringResource(R.string.player_stream_client_web_remix_desc)
                             },
@@ -255,220 +244,236 @@ fun PlayerSettings(
         }
     }
 
-    Column(
-        Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-            .verticalScroll(rememberScrollState())
-    ) {
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection), // FIXED THE SCROLL ISSUE HERE
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.player_and_audio)) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
             )
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.player)
-        )
-
-        EnumListPreference(
-            title = { Text(stringResource(R.string.audio_quality)) },
-            icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
-            selectedValue = audioQuality,
-            onValueSelected = onAudioQualityChange,
-            valueText = {
-                when (it) {
-                    AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_max)
-                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
-                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
-                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
+            contentPadding = PaddingValues(bottom = 32.dp, top = 8.dp), // Smooth padding at bottom
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                PreferenceGroupTitle(title = stringResource(R.string.player))
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    Column(Modifier.padding(vertical = 8.dp)) {
+                        EnumListPreference(
+                            title = { Text(stringResource(R.string.audio_quality)) },
+                            icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
+                            selectedValue = audioQuality,
+                            onValueSelected = onAudioQualityChange,
+                            valueText = {
+                                when (it) {
+                                    AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_max)
+                                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
+                                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+                                }
+                            }
+                        )
+                        PreferenceEntry(
+                            title = { Text(stringResource(R.string.player_stream_client)) },
+                            description = when (playerStreamClient) {
+                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                                else -> stringResource(R.string.player_stream_client_web_remix)
+                            },
+                            icon = { Icon(painterResource(R.drawable.integration), null) },
+                            onClick = { showPlayerStreamClientDialog = true }
+                        )
+                    }
                 }
             }
-        )
 
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.player_stream_client)) },
-            description =
-            when (playerStreamClient) {
-                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                else -> stringResource(R.string.player_stream_client_web_remix)
-            },
-            icon = { Icon(painterResource(R.drawable.integration), null) },
-            onClick = { showPlayerStreamClientDialog = true }
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.network_metered_title)) },
-            description = stringResource(R.string.network_metered_description),
-            icon = { Icon(painterResource(R.drawable.android_cell), null) },
-            checked = networkMetered,
-            onCheckedChange = onNetworkMeteredChange
-        )
-
-        SliderPreference(
-            title = { Text(stringResource(R.string.history_duration)) },
-            icon = { Icon(painterResource(R.drawable.history), null) },
-            value = historyDuration,
-            onValueChange = onHistoryDurationChange,
-        )
-
-        CrossfadeSliderPreference(
-            value = audioCrossfadeSeconds,
-            onValueChange = onAudioCrossfadeSecondsChange,
-            isEnabled = !audioOffload,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.skip_silence)) },
-            icon = { Icon(painterResource(R.drawable.fast_forward), null) },
-            checked = skipSilence,
-            onCheckedChange = onSkipSilenceChange,
-            isEnabled = !audioOffload,
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.audio_normalization)) },
-            icon = { Icon(painterResource(R.drawable.volume_up), null) },
-            checked = audioNormalization,
-            onCheckedChange = onAudioNormalizationChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.audio_offload)) },
-            description = stringResource(R.string.audio_offload_desc),
-            icon = { Icon(painterResource(R.drawable.speed), null) },
-            checked = audioOffload,
-            onCheckedChange = { enabled ->
-                onAudioOffloadChange(enabled)
-                if (enabled) {
-                    onSkipSilenceChange(false)
+            item {
+                PreferenceGroupTitle(title = "Playback & Audio")
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    Column(Modifier.padding(vertical = 8.dp)) {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.network_metered_title)) },
+                            description = stringResource(R.string.network_metered_description),
+                            icon = { Icon(painterResource(R.drawable.android_cell), null) },
+                            checked = networkMetered,
+                            onCheckedChange = onNetworkMeteredChange
+                        )
+                        SliderPreference(
+                            title = { Text(stringResource(R.string.history_duration)) },
+                            icon = { Icon(painterResource(R.drawable.history), null) },
+                            value = historyDuration,
+                            onValueChange = onHistoryDurationChange,
+                        )
+                        CrossfadeSliderPreference(
+                            value = audioCrossfadeSeconds,
+                            onValueChange = onAudioCrossfadeSecondsChange,
+                            isEnabled = !audioOffload,
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.skip_silence)) },
+                            icon = { Icon(painterResource(R.drawable.fast_forward), null) },
+                            checked = skipSilence,
+                            onCheckedChange = onSkipSilenceChange,
+                            isEnabled = !audioOffload,
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.audio_normalization)) },
+                            icon = { Icon(painterResource(R.drawable.volume_up), null) },
+                            checked = audioNormalization,
+                            onCheckedChange = onAudioNormalizationChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.audio_offload)) },
+                            description = stringResource(R.string.audio_offload_desc),
+                            icon = { Icon(painterResource(R.drawable.speed), null) },
+                            checked = audioOffload,
+                            onCheckedChange = { enabled ->
+                                onAudioOffloadChange(enabled)
+                                if (enabled) onSkipSilenceChange(false)
+                            }
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.seek_seconds_addup)) },
+                            description = stringResource(R.string.seek_seconds_addup_description),
+                            icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
+                            checked = seekExtraSeconds,
+                            onCheckedChange = onSeekExtraSeconds
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.pause_on_device_mute)) },
+                            description = stringResource(R.string.pause_on_device_mute_desc),
+                            icon = { Icon(painterResource(R.drawable.volume_off), null) },
+                            checked = pauseOnDeviceMute,
+                            onCheckedChange = onPauseOnDeviceMuteChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.auto_start_on_bluetooth)) },
+                            description = stringResource(R.string.auto_start_on_bluetooth_desc),
+                            icon = { Icon(painterResource(R.drawable.bluetooth), null) },
+                            checked = autoStartOnBluetooth,
+                            onCheckedChange = onAutoStartOnBluetoothChange
+                        )
+                    }
                 }
             }
-        )
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.seek_seconds_addup)) },
-            description = stringResource(R.string.seek_seconds_addup_description),
-            icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
-            checked = seekExtraSeconds,
-            onCheckedChange = onSeekExtraSeconds
-        )
+            item {
+                PreferenceGroupTitle(title = stringResource(R.string.queue))
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    Column(Modifier.padding(vertical = 8.dp)) {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.persistent_queue)) },
+                            description = stringResource(R.string.persistent_queue_desc),
+                            icon = { Icon(painterResource(R.drawable.queue_music), null) },
+                            checked = persistentQueue,
+                            onCheckedChange = onPersistentQueueChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.permanent_shuffle)) },
+                            description = stringResource(R.string.permanent_shuffle_desc),
+                            icon = { Icon(painterResource(R.drawable.shuffle), null) },
+                            checked = permanentShuffle,
+                            onCheckedChange = onPermanentShuffleChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.auto_download_on_like)) },
+                            description = stringResource(R.string.auto_download_on_like_desc),
+                            icon = { Icon(painterResource(R.drawable.download), null) },
+                            checked = autoDownloadOnLike,
+                            onCheckedChange = onAutoDownloadOnLikeChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.auto_skip_next_on_error)) },
+                            description = stringResource(R.string.auto_skip_next_on_error_desc),
+                            icon = { Icon(painterResource(R.drawable.skip_next), null) },
+                            checked = autoSkipNextOnError,
+                            onCheckedChange = onAutoSkipNextOnErrorChange
+                        )
+                    }
+                }
+            }
 
-        SwitchPreference(
-            title = { Text(stringResource(R.string.pause_on_device_mute)) },
-            description = stringResource(R.string.pause_on_device_mute_desc),
-            icon = { Icon(painterResource(R.drawable.volume_off), null) },
-            checked = pauseOnDeviceMute,
-            onCheckedChange = onPauseOnDeviceMuteChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_start_on_bluetooth)) },
-            description = stringResource(R.string.auto_start_on_bluetooth_desc),
-            icon = { Icon(painterResource(R.drawable.bluetooth), null) },
-            checked = autoStartOnBluetooth,
-            onCheckedChange = onAutoStartOnBluetoothChange
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.queue)
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.persistent_queue)) },
-            description = stringResource(R.string.persistent_queue_desc),
-            icon = { Icon(painterResource(R.drawable.queue_music), null) },
-            checked = persistentQueue,
-            onCheckedChange = onPersistentQueueChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.permanent_shuffle)) },
-            description = stringResource(R.string.permanent_shuffle_desc),
-            icon = { Icon(painterResource(R.drawable.shuffle), null) },
-            checked = permanentShuffle,
-            onCheckedChange = onPermanentShuffleChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_download_on_like)) },
-            description = stringResource(R.string.auto_download_on_like_desc),
-            icon = { Icon(painterResource(R.drawable.download), null) },
-            checked = autoDownloadOnLike,
-            onCheckedChange = onAutoDownloadOnLikeChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.auto_skip_next_on_error)) },
-            description = stringResource(R.string.auto_skip_next_on_error_desc),
-            icon = { Icon(painterResource(R.drawable.skip_next), null) },
-            checked = autoSkipNextOnError,
-            onCheckedChange = onAutoSkipNextOnErrorChange
-        )
-
-        PreferenceGroupTitle(
-            title = stringResource(R.string.misc)
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
-            icon = { Icon(painterResource(R.drawable.clear_all), null) },
-            checked = stopMusicOnTaskClear,
-            onCheckedChange = onStopMusicOnTaskClearChange
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.wakelock)) },
-            description = stringResource(R.string.wakelock_desc),
-            icon = { Icon(painterResource(R.drawable.bolt), null) },
-            checked = wakelockEnabled,
-            onCheckedChange = onWakelockChange
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.artist_separators)) },
-            description = artistSeparators.map { "\"$it\"" }.joinToString("  "),
-            icon = { Icon(painterResource(R.drawable.artist), null) },
-            onClick = { showArtistSeparatorsDialog = true }
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.manage_playlist_tags)) },
-            description = stringResource(R.string.manage_playlist_tags_desc),
-            icon = { Icon(painterResource(R.drawable.style), null) },
-            onClick = { showTagsManagementDialog = true }
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.external_downloader)) },
-            description = stringResource(R.string.external_downloader_desc),
-            icon = { Icon(painterResource(R.drawable.download), null) },
-            checked = externalDownloaderEnabled,
-            onCheckedChange = onExternalDownloaderEnabledChange
-        )
-
-        PreferenceEntry(
-            title = { Text(stringResource(R.string.external_downloader_package)) },
-            description = externalDownloaderPackage.ifEmpty { stringResource(R.string.external_downloader_package_desc) },
-            icon = { Icon(painterResource(R.drawable.integration), null) },
-            onClick = { showExternalDownloaderPackageDialog = true },
-            isEnabled = externalDownloaderEnabled
-        )
-    }
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.player_and_audio)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null
-                )
+            item {
+                PreferenceGroupTitle(title = stringResource(R.string.misc))
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    Column(Modifier.padding(vertical = 8.dp)) {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
+                            icon = { Icon(painterResource(R.drawable.clear_all), null) },
+                            checked = stopMusicOnTaskClear,
+                            onCheckedChange = onStopMusicOnTaskClearChange
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.wakelock)) },
+                            description = stringResource(R.string.wakelock_desc),
+                            icon = { Icon(painterResource(R.drawable.bolt), null) },
+                            checked = wakelockEnabled,
+                            onCheckedChange = onWakelockChange
+                        )
+                        PreferenceEntry(
+                            title = { Text(stringResource(R.string.artist_separators)) },
+                            description = artistSeparators.map { "\"$it\"" }.joinToString("  "),
+                            icon = { Icon(painterResource(R.drawable.artist), null) },
+                            onClick = { showArtistSeparatorsDialog = true }
+                        )
+                        PreferenceEntry(
+                            title = { Text(stringResource(R.string.manage_playlist_tags)) },
+                            description = stringResource(R.string.manage_playlist_tags_desc),
+                            icon = { Icon(painterResource(R.drawable.style), null) },
+                            onClick = { showTagsManagementDialog = true }
+                        )
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.external_downloader)) },
+                            description = stringResource(R.string.external_downloader_desc),
+                            icon = { Icon(painterResource(R.drawable.download), null) },
+                            checked = externalDownloaderEnabled,
+                            onCheckedChange = onExternalDownloaderEnabledChange
+                        )
+                        PreferenceEntry(
+                            title = { Text(stringResource(R.string.external_downloader_package)) },
+                            description = externalDownloaderPackage.ifEmpty { stringResource(R.string.external_downloader_package_desc) },
+                            icon = { Icon(painterResource(R.drawable.integration), null) },
+                            onClick = { showExternalDownloaderPackageDialog = true },
+                            isEnabled = externalDownloaderEnabled
+                        )
+                    }
+                }
             }
         }
-    )
+    }
 }
