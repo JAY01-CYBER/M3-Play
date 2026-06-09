@@ -1,11 +1,10 @@
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -29,22 +28,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.j.m3play.R
 import com.j.m3play.LocalPlayerAwareWindowInsets
 
 data class SettingsContentState(
@@ -59,61 +58,6 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
-// MD3 Premium Inline Search Bar
-@Composable
-fun SettingsInlineSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        placeholder = { 
-            Text(
-                "Search settings", 
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            ) 
-        },
-        leadingIcon = {
-            Icon(
-                painter = painterResource(R.drawable.search), 
-                contentDescription = "Search", 
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp)
-            )
-        },
-        trailingIcon = {
-            AnimatedVisibility(visible = query.isNotEmpty(), enter = fadeIn(), exit = fadeOut()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        painter = painterResource(R.drawable.close),
-                        contentDescription = "Clear",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        shape = RoundedCornerShape(24.dp), // Fully rounded like screenshot
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-            cursorColor = MaterialTheme.colorScheme.primary
-        ),
-        singleLine = true,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .height(56.dp)
-    )
-}
-
-// प्रीमियम पिक्सेल स्टाइल ग्रुप कार्ड
 @Composable
 fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -129,8 +73,7 @@ fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) 
         Surface(
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-            // animateContentSize() से सर्च करने पर कार्ड्स झटके से नहीं बल्कि बहुत स्मूदली सिकुड़ेंगे 
-            modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = tween(400)) 
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column {
                 group.items.forEachIndexed { index, item ->
@@ -199,13 +142,20 @@ fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
 @Composable
 fun AdaptiveSettingsLayout(
     state: SettingsContentState,
-    query: String,
-    onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     topPadding: Dp = 0.dp,
 ) {
-    // पुराना LaunchedEffect एनीमेशन यहाँ से हटा दिया गया है ताकि स्क्रॉल खराब न हो।
+    var bannerVisible by remember { mutableStateOf(false) }
+    var categoriesVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val anim = Animatable(0f)
+        anim.animateTo(1f, tween(60))
+        bannerVisible = true
+        anim.animateTo(1f, tween(70))
+        categoriesVisible = true
+    }
 
     LazyColumn(
         state = listState,
@@ -218,34 +168,36 @@ fun AdaptiveSettingsLayout(
             ),
         contentPadding = PaddingValues(top = topPadding, bottom = 48.dp),
     ) {
-        // 1. Header & Search Bar
-        item(key = "header_search") {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 24.dp, bottom = 4.dp)
-                )
-                Text(
-                    text = "Customize your listening experience",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, bottom = 24.dp)
-                )
-                
-                SettingsInlineSearchBar(query = query, onQueryChange = onQueryChange)
-                Spacer(modifier = Modifier.height(8.dp))
+        if (!state.isSearchActive) {
+            item(key = "permission") {
+                AnimatedVisibility(
+                    visible = bannerVisible && state.showPermissionBanner,
+                ) {
+                    SettingsPermissionBanner(
+                        onRequestPermission = state.onRequestPermission,
+                        // PADDING ERROR FIXED HERE
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp) 
+                    )
+                }
+            }
+            item(key = "update") {
+                AnimatedVisibility(
+                    visible = bannerVisible && state.showUpdateBanner,
+                ) {
+                    SettingsUpdateBanner(
+                        latestVersion = state.latestVersion,
+                        onClick = state.onUpdateClick,
+                        // PADDING ERROR FIXED HERE
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp) 
+                    )
+                }
             }
         }
 
-        // 2. Main Content
         if (state.isSearchActive && !state.hasSearchResults) {
             item(key = "empty") {
-                Spacer(modifier = Modifier.height(32.dp))
-                // अगर आपके पास SettingsSearchEmpty है, तो यहाँ दिखाएं 
-                // SettingsSearchEmpty()
+                Spacer(modifier = Modifier.height(24.dp))
+                SettingsSearchEmpty()
             }
         } else {
             if (state.internalGroup != null && state.internalGroup.items.isNotEmpty()) {
@@ -259,7 +211,12 @@ fun AdaptiveSettingsLayout(
                 key = { state.groups[it].title },
             ) { index ->
                 val group = state.groups[index]
-                PixelSettingsGroupCard(group = group)
+                AnimatedVisibility(
+                    visible = categoriesVisible,
+                    enter = fadeIn(tween(300)) + slideInVertically(initialOffsetY = { it / 5 }),
+                ) {
+                    PixelSettingsGroupCard(group = group)
+                }
             }
         }
     }
