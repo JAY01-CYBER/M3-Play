@@ -5,15 +5,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,26 +18,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.core.content.ContextCompat // IMPORT ERROR FIXED HERE
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.j.m3play.BuildConfig
 import com.j.m3play.R
 import com.j.m3play.ui.component.IconButton
-import com.j.m3play.ui.component.TopSearch
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.Updater
 
@@ -55,19 +44,10 @@ fun SettingsScreen(
     latestVersionName: String,
 ) {
     val context = LocalContext.current
-    val focusManager = LocalFocusManager.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val listState = rememberLazyListState()
 
-    var isSearching by remember { mutableStateOf(false) }
-    var query by remember { mutableStateOf(TextFieldValue()) }
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(isSearching) {
-        if (isSearching) {
-            focusRequester.requestFocus()
-        }
-    }
+    var query by remember { mutableStateOf("") }
 
     val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -107,16 +87,14 @@ fun SettingsScreen(
     val hasUpdate = !Updater.isSameVersion(latestVersionName, BuildConfig.VERSION_NAME)
 
     val resetSearch: () -> Unit = {
-        isSearching = false
-        query = TextFieldValue()
-        focusManager.clearFocus()
+        query = ""
     }
 
     val settingsGroups = buildSettingsGroups(navController, isAndroid12OrLater, hasUpdate, context, resetSearch)
     val internalItems = buildInternalItems(navController, resetSearch)
 
-    val queryText = query.text.trim()
-    val showSearchBar = isSearching || queryText.isNotBlank()
+    val queryText = query.trim()
+    val isSearchActive = queryText.isNotBlank()
 
     val filteredGroups = filterSettingsGroups(settingsGroups, queryText)
     val filteredInternalItems = filterInternalItems(internalItems, queryText)
@@ -138,12 +116,12 @@ fun SettingsScreen(
     } else null
 
     val contentState = SettingsContentState(
-        groups = if (queryText.isBlank()) settingsGroups else filteredGroups,
-        internalGroup = if (queryText.isNotBlank()) internalGroup else null,
+        groups = if (isSearchActive) filteredGroups else settingsGroups,
+        internalGroup = if (isSearchActive) internalGroup else null,
         showPermissionBanner = shouldShowPermissionHint,
         showUpdateBanner = hasUpdate,
         latestVersion = latestVersionName,
-        isSearchActive = queryText.isNotBlank(),
+        isSearchActive = isSearchActive,
         hasSearchResults = hasSearchResults,
         onRequestPermission = {
             val toRequest = buildList {
@@ -161,117 +139,44 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            if (!showSearchBar) {
-                LargeTopAppBar(
-                    title = {
-                        Text(
-                            text = stringResource(R.string.settings),
-                            fontWeight = FontWeight.Bold,
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.settings),
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null,
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = navController::navigateUp,
-                            onLongClick = navController::backToMain,
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.arrow_back),
-                                contentDescription = null,
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = { isSearching = true },
-                            onLongClick = {},
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.search),
-                                contentDescription = null,
-                            )
-                        }
-                    },
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    ),
-                )
-            }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                ),
+            )
         },
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = Modifier.fillMaxSize(),
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            if (!showSearchBar) {
-                AdaptiveSettingsLayout(
-                    state = contentState,
-                    listState = listState,
-                    topPadding = innerPadding.calculateTopPadding(),
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-
-            AnimatedVisibility(
-                visible = showSearchBar,
-                enter = fadeIn(tween(durationMillis = 220)),
-                exit = fadeOut(tween(durationMillis = 160)),
-            ) {
-                TopSearch(
-                    query = query,
-                    onQueryChange = { query = it },
-                    onSearch = { focusManager.clearFocus() },
-                    active = showSearchBar,
-                    onActiveChange = { active ->
-                        if (active) {
-                            isSearching = true
-                        } else {
-                            resetSearch()
-                        }
-                    },
-                    placeholder = { Text(text = stringResource(R.string.search)) },
-                    leadingIcon = {
-                        IconButton(
-                            onClick = { resetSearch() },
-                            onLongClick = {
-                                if (queryText.isBlank()) {
-                                    navController.backToMain()
-                                }
-                            },
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.arrow_back),
-                                contentDescription = null,
-                            )
-                        }
-                    },
-                    trailingIcon = {
-                        Row {
-                            if (query.text.isNotBlank()) {
-                                IconButton(
-                                    onClick = { query = TextFieldValue() },
-                                    onLongClick = {},
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.close),
-                                        contentDescription = null,
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    focusRequester = focusRequester,
-                ) {
-                    val searchState = contentState.copy(
-                        isSearchActive = true,
-                    )
-                    AdaptiveSettingsLayout(
-                        state = searchState,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
+            AdaptiveSettingsLayout(
+                state = contentState,
+                query = query,
+                onQueryChange = { query = it },
+                listState = listState,
+                topPadding = innerPadding.calculateTopPadding(),
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }
