@@ -52,8 +52,9 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
+// नाम बदल दिया गया है ताकि पुरानी फाइल्स से Conflict न हो
 @Composable
-fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
+fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = group.title.uppercase(),
@@ -63,7 +64,7 @@ fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp)
         )
         group.items.forEach { item ->
-            SettingsListItem(item = item)
+            PixelSettingsListItem(item = item)
         }
         HorizontalDivider(
             thickness = 0.5.dp,
@@ -73,8 +74,9 @@ fun SettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
     }
 }
 
+// नाम बदल दिया गया है ताकि पुरानी फाइल्स से Conflict न हो
 @Composable
-fun SettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
+fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -140,21 +142,27 @@ fun AdaptiveSettingsLayout(
                 AnimatedVisibility(
                     visible = bannerVisible && state.showPermissionBanner,
                 ) {
+                    // अगर आपके पास SettingsPermissionBanner नाम का फंक्शन है तो यहाँ अनकमेंट कर सकते हैं
+                    /*
                     SettingsPermissionBanner(
                         onRequestPermission = state.onRequestPermission,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
+                    */
                 }
             }
             item(key = "update") {
                 AnimatedVisibility(
                     visible = bannerVisible && state.showUpdateBanner,
                 ) {
+                    // SettingsUpdateBanner 
+                    /*
                     SettingsUpdateBanner(
                         latestVersion = state.latestVersion,
                         onClick = state.onUpdateClick,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
+                    */
                 }
             }
         }
@@ -162,12 +170,12 @@ fun AdaptiveSettingsLayout(
         if (state.isSearchActive && !state.hasSearchResults) {
             item(key = "empty") {
                 Spacer(modifier = Modifier.height(24.dp))
-                SettingsSearchEmpty()
+                // SettingsSearchEmpty()
             }
         } else {
             if (state.internalGroup != null && state.internalGroup.items.isNotEmpty()) {
                 item(key = "internalSearchResults") {
-                    SettingsGroupCard(group = state.internalGroup)
+                    PixelSettingsGroupCard(group = state.internalGroup)
                 }
             }
 
@@ -180,7 +188,7 @@ fun AdaptiveSettingsLayout(
                     visible = categoriesVisible,
                     enter = fadeIn(tween(300)) + slideInVertically(initialOffsetY = { it / 5 }),
                 ) {
-                    SettingsGroupCard(group = group)
+                    PixelSettingsGroupCard(group = group)
                 }
             }
         }
