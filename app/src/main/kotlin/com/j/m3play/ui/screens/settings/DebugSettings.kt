@@ -736,7 +736,16 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
                         Text(text = stringResource(R.string.buffer_health_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                         Text(text = "$bufferPercentage% ($bufferDuration sec ahead)", style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                     }
-                    LinearProgressIndicator(progress = { bufferProgress }, modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)), color = when { bufferPercentage > 70 -> Color(0xFF43B581) bufferPercentage > 30 -> MaterialTheme.colorScheme.tertiary else -> MaterialTheme.colorScheme.error }, trackColor = MaterialTheme.colorScheme.surfaceContainerLowest)
+                    LinearProgressIndicator(
+                        progress = { bufferProgress },
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                        color = when {
+                            bufferPercentage > 70 -> Color(0xFF43B581)
+                            bufferPercentage > 30 -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.error
+                        },
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    )
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
