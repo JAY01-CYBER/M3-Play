@@ -107,6 +107,7 @@ import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.UseLyricsV2Key
 import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.EnumListPreference
+import com.j.m3play.ui.component.ListPreference
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.PreferenceEntry
 import com.j.m3play.ui.component.PreferenceGroupTitle
