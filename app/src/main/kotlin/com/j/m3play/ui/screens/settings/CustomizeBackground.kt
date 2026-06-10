@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,26 +14,46 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,18 +61,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.R
+import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomImageUriKey
-import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomizeBackground(
     navController: NavController,
+    scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 ) {
     val context = LocalContext.current
 
@@ -73,16 +92,23 @@ fun CustomizeBackground(
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.customize_background_title)) },
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.customize_background_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         val screenHeightDp = LocalConfiguration.current.screenHeightDp.toFloat()
 
@@ -92,17 +118,18 @@ fun CustomizeBackground(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             val heightScale = 1.4f
             val playerPreviewHeight = (screenHeightDp * (1518f / 2400f) * heightScale).dp
             val lyricsPreviewHeight = (screenHeightDp * (1386f / 2400f) * heightScale).dp
 
+            // --- PLAYER PREVIEW CARD ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(playerPreviewHeight)
-                    .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+                    .clip(RoundedCornerShape(32.dp)) // Ultra-rounded M3 Radius
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
@@ -143,11 +170,13 @@ fun CustomizeBackground(
                     }
                 }
             }
+
+            // --- LYRICS PREVIEW CARD ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(lyricsPreviewHeight)
-                    .clip(RoundedCornerShape(24.dp)) // Premium MD3 Radius
+                    .clip(RoundedCornerShape(32.dp)) // Ultra-rounded M3 Radius
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
@@ -189,7 +218,10 @@ fun CustomizeBackground(
                 }
             }
             
-            FilledTonalButton(onClick = { launcher.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            FilledTonalButton(
+                onClick = { launcher.launch(arrayOf("image/*")) }, 
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
                 Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.add_image), fontWeight = FontWeight.SemiBold)
@@ -221,14 +253,14 @@ fun CustomizeBackground(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = {
                     Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
                     navController.navigateUp()
                 },
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text(stringResource(R.string.save), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
