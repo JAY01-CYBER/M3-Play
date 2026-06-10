@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -32,11 +31,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -118,18 +118,11 @@ fun StorageSettings(
     var clearImageCacheDialog by remember { mutableStateOf(false) }
     var clearCanvasCacheDialog by remember { mutableStateOf(false) }
 
-    var imageCacheSize by remember {
-        mutableStateOf(imageDiskCache.size)
-    }
-    var playerCacheSize by remember {
-        mutableStateOf(0L)
-    }
-    var downloadCacheSize by remember {
-        mutableStateOf(0L)
-    }
-    var canvasCacheSize by remember {
-        mutableStateOf(CanvasArtworkPlaybackCache.size())
-    }
+    var imageCacheSize by remember { mutableStateOf(imageDiskCache.size) }
+    var playerCacheSize by remember { mutableStateOf(0L) }
+    var downloadCacheSize by remember { mutableStateOf(0L) }
+    var canvasCacheSize by remember { mutableStateOf(CanvasArtworkPlaybackCache.size()) }
+
     val imageCacheProgress by animateFloatAsState(
         targetValue = if (imageDiskCache.maxSize > 0) {
             (imageCacheSize.toFloat() / imageDiskCache.maxSize).coerceIn(0f, 1f)
@@ -281,8 +274,13 @@ fun StorageSettings(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.storage)) },
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        stringResource(R.string.storage),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -294,36 +292,42 @@ fun StorageSettings(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp, top = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    SwitchPreference(
-                        title = { Text(stringResource(R.string.smart_trimmer)) },
-                        description = stringResource(R.string.smart_trimmer_description),
-                        checked = smartTrimmer && isSmartTrimmerAvailable,
-                        onCheckedChange = onSmartTrimmerChange,
-                        isEnabled = isSmartTrimmerAvailable,
-                    )
+                    Column(Modifier.padding(vertical = 12.dp)) {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.smart_trimmer)) },
+                            description = stringResource(R.string.smart_trimmer_description),
+                            checked = smartTrimmer && isSmartTrimmerAvailable,
+                            onCheckedChange = onSmartTrimmerChange,
+                            isEnabled = isSmartTrimmerAvailable,
+                        )
+                    }
                 }
             }
 
-            // --- Section: Downloads ---
             item {
                 CacheCard(
                     icon = R.drawable.ic_download,
@@ -339,7 +343,6 @@ fun StorageSettings(
                 )
             }
 
-            // --- Section: Song cache ---
             item {
                 CacheCard(
                     icon = R.drawable.ic_music,
@@ -372,7 +375,6 @@ fun StorageSettings(
                 )
             }
 
-            // --- Section: Image cache ---
             item {
                 CacheCard(
                     icon = R.drawable.image,
@@ -404,7 +406,6 @@ fun StorageSettings(
                 )
             }
 
-            // --- Section: Canvas cache ---
             item {
                 CacheCard(
                     icon = R.drawable.motion_photos_on,
@@ -457,7 +458,7 @@ fun CacheCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
-        shape = RoundedCornerShape(32.dp) // Premium Radius
+        shape = RoundedCornerShape(32.dp) // Android 17 Ultra Radius
     ) {
         Column(Modifier.padding(top = 24.dp, bottom = 12.dp, start = 20.dp, end = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -465,7 +466,7 @@ fun CacheCard(
                     modifier = Modifier
                         .padding(end = 16.dp)
                         .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp)) // Squircle Icon
+                        .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -495,7 +496,6 @@ fun CacheCard(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = StrokeCap.Round
                     )
-                    // percent label
                     Text(
                         text = "${(progress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelMedium,
