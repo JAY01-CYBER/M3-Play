@@ -1,3 +1,12 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.clickable
@@ -20,11 +29,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -214,7 +225,7 @@ fun PlayerSettings(
                             onPlayerStreamClientChange(value)
                             showPlayerStreamClientDialog = false
                         }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 16.dp), // Increased padding for A17
                 ) {
                     RadioButton(
                         selected = value == playerStreamClient,
@@ -228,6 +239,7 @@ fun PlayerSettings(
                                 else -> stringResource(R.string.player_stream_client_web_remix)
                             },
                             style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -236,7 +248,7 @@ fun PlayerSettings(
                                 else -> stringResource(R.string.player_stream_client_web_remix_desc)
                             },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -247,10 +259,16 @@ fun PlayerSettings(
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection), // FIXED THE SCROLL ISSUE HERE
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.player_and_audio)) },
+            // ANDROID 17 STYLE: Large Top App Bar gives that bold, modern look
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        stringResource(R.string.player_and_audio),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -262,27 +280,42 @@ fun PlayerSettings(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.surface // Modern base color
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
-            contentPadding = PaddingValues(bottom = 32.dp, top = 8.dp), // Smooth padding at bottom
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp), 
+            verticalArrangement = Arrangement.spacedBy(16.dp) // Spacing between card groups
         ) {
+            
+            // --- PLAYER SECTION ---
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.player))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.player),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp) // Indented title
+                )
+                // ANDROID 17 STYLE: Ultra-rounded 32.dp cards, SurfaceContainerHigh
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         EnumListPreference(
                             title = { Text(stringResource(R.string.audio_quality)) },
                             icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
@@ -310,14 +343,23 @@ fun PlayerSettings(
                 }
             }
 
+            // --- PLAYBACK & AUDIO SECTION ---
             item {
-                PreferenceGroupTitle(title = "Playback & Audio")
+                PreferenceGroupTitle(
+                    title = "Playback & Audio",
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.network_metered_title)) },
                             description = stringResource(R.string.network_metered_description),
@@ -384,14 +426,23 @@ fun PlayerSettings(
                 }
             }
 
+            // --- QUEUE SECTION ---
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.queue))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.queue),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.persistent_queue)) },
                             description = stringResource(R.string.persistent_queue_desc),
@@ -424,14 +475,23 @@ fun PlayerSettings(
                 }
             }
 
+            // --- MISCELLANEOUS SECTION ---
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.misc))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.misc),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
                             icon = { Icon(painterResource(R.drawable.clear_all), null) },
