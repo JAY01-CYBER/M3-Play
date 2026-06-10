@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -73,8 +72,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -91,6 +91,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -239,10 +240,18 @@ fun ThemeCreatorScreen(
         )
     }
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(text = stringResource(R.string.theme_creator_title)) },
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        text = stringResource(R.string.theme_creator_title),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -270,9 +279,14 @@ fun ThemeCreatorScreen(
                         Text(text = stringResource(R.string.save))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
+        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -317,7 +331,7 @@ fun ThemeCreatorScreen(
                 palette = currentPalette,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = 12.dp, top = 8.dp),
             )
             ThemeRichPreview(
                 palette = currentPalette,
@@ -328,7 +342,7 @@ fun ThemeCreatorScreen(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
                     .fillMaxWidth(),
-                shape = RoundedCornerShape(32.dp), // Premium Large Radius
+                shape = RoundedCornerShape(32.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
                 Column(Modifier.padding(20.dp)) {
@@ -644,7 +658,7 @@ private fun ThemeRichPreview(
                 .fillMaxWidth()
                 .height(560.dp)
                 .shadow(18.dp, RoundedCornerShape(32.dp)),
-            shape = RoundedCornerShape(32.dp), // Premium Large Radius
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
@@ -1236,7 +1250,7 @@ private fun SeedChip(
 
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp)) // Premium Chip Radius
+            .clip(RoundedCornerShape(16.dp)) 
             .clickable(onClick = onClick),
         color = container,
         contentColor = content,
