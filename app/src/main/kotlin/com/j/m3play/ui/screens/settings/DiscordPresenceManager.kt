@@ -3,7 +3,6 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
  * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
@@ -53,14 +52,17 @@ object DiscordPresenceManager {
     private const val FAILED_RESTART_LOCKOUT = 60_000L
 
 
-    // Last successful RPC timestamps (nullable). Exposed as StateFlow so Compose can observe changes.
+    // Last successful RPC timestamps (nullable).
+    // Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
     val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
-    val lastRpcStartTime: Long? get() = _lastRpcStartTime.value
+    val lastRpcStartTime: Long?
+        get() = _lastRpcStartTime.value
 
     private val _lastRpcEndTime = MutableStateFlow<Long?>(null)
     val lastRpcEndTimeFlow = _lastRpcEndTime.asStateFlow()
-    val lastRpcEndTime: Long? get() = _lastRpcEndTime.value
+    val lastRpcEndTime: Long?
+        get() = _lastRpcEndTime.value
     private val rpcMutex = Mutex()
 
     /** Public helper to update the last RPC timestamps from callers. */
