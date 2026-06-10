@@ -230,7 +230,7 @@ fun OnlinePlaylistScreen(
     }
 
     val wrappedSongs =
-        remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }
+        remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper<Pair<Int, SongItem>>(item) } }
             .toMutableStateList()
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
@@ -682,8 +682,7 @@ private fun PremiumPlaylistHeader(
     Column(
         modifier =
             Modifier.fillMaxWidth()
-                .padding(top = systemBarsTopPadding + 16.dp)
-                .animateItem(),
+                .padding(top = systemBarsTopPadding + 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Animated playlist thumbnail with premium shadow
@@ -806,7 +805,7 @@ private fun PremiumPlaylistHeader(
                 )
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.play_arrow),
+                    painter = painterResource(R.drawable.play),
                     contentDescription = "Play",
                     modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onPrimary
@@ -917,7 +916,7 @@ private fun PremiumIconButton(
 
 @Composable
 private fun PremiumSongListItem(
-    song: ItemWrapper,
+    song: ItemWrapper<Pair<Int, SongItem>>,
     viewCounts: Map<String, Int>,
     mediaMetadata: Any?,
     isPlaying: Boolean,
@@ -927,7 +926,7 @@ private fun PremiumSongListItem(
     playlist: Any,
     navController: NavController,
     menuState: Any,
-    wrappedSongs: List<ItemWrapper>,
+    wrappedSongs: List<ItemWrapper<Pair<Int, SongItem>>>,
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
     onSelectionToggle: () -> Unit,
 ) {
@@ -941,7 +940,6 @@ private fun PremiumSongListItem(
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .animateItem()
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -999,17 +997,17 @@ private fun PremiumEmptyPlaylist() {
         Surface(
             modifier =
                 Modifier.size(120.dp)
-                    .clip(CircleShape),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    .clip(RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
                 Icon(
                     painter = painterResource(R.drawable.music_note),
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -1019,16 +1017,15 @@ private fun PremiumEmptyPlaylist() {
 
         Text(
             text = "Empty Playlist",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "This playlist doesn't have any songs yet",
+            text = "This playlist has no songs yet",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -1040,7 +1037,7 @@ private fun PremiumEmptyPlaylist() {
 private fun PremiumErrorState(
     isPrivatePlaylist: Boolean,
     error: String?,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
 ) {
     Column(
         modifier =
@@ -1049,95 +1046,47 @@ private fun PremiumErrorState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (isPrivatePlaylist) {
-            Surface(
-                modifier =
-                    Modifier.size(120.dp)
-                        .clip(CircleShape),
-                color = MaterialTheme.colorScheme.errorContainer
+        Surface(
+            modifier =
+                Modifier.size(120.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.errorContainer
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.lock),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Playlist is Private",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "You don't have access to view this playlist",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        } else {
-            Surface(
-                modifier =
-                    Modifier.size(120.dp)
-                        .clip(CircleShape),
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.error),
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Error Loading Playlist",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            error?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                Icon(
+                    painter = painterResource(R.drawable.error),
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.error
                 )
-                Spacer(modifier = Modifier.height(16.dp))
             }
+        }
 
-            Button(
-                onClick = onRetry,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("Retry", fontWeight = FontWeight.SemiBold)
-            }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = if (isPrivatePlaylist) "Private Playlist" else "Failed to Load",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = error ?: "Unable to load this playlist",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(onClick = onRetry) {
+            Text("Retry")
         }
     }
 }
