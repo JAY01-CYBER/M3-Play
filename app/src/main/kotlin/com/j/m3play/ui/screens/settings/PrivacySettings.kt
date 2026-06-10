@@ -1,3 +1,12 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
@@ -15,11 +24,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
@@ -127,8 +138,13 @@ fun PrivacySettings(
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.privacy)) },
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        stringResource(R.string.privacy),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -140,27 +156,35 @@ fun PrivacySettings(
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
-            contentPadding = PaddingValues(bottom = 32.dp, top = 8.dp),
+            contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.listen_history))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.listen_history),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.pause_listen_history)) },
                             icon = { Icon(painterResource(R.drawable.history), null) },
@@ -177,13 +201,17 @@ fun PrivacySettings(
             }
 
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.search_history))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.search_history),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.pause_search_history)) },
                             icon = { Icon(painterResource(R.drawable.search_off), null) },
@@ -200,13 +228,17 @@ fun PrivacySettings(
             }
 
             item {
-                PreferenceGroupTitle(title = stringResource(R.string.misc))
+                PreferenceGroupTitle(
+                    title = stringResource(R.string.misc),
+                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                )
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Column(Modifier.padding(vertical = 8.dp)) {
+                    Column(Modifier.padding(vertical = 12.dp)) {
                         SwitchPreference(
                             title = { Text(stringResource(R.string.disable_screenshot)) },
                             description = stringResource(R.string.disable_screenshot_desc),
