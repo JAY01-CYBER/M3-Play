@@ -11,6 +11,7 @@ package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues // <-- ADDED THIS IMPORT
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -188,7 +189,7 @@ fun ChangelogScreen(
 private fun ExpressiveVersionCard(item: ChangeLog) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp), // Android 17 large radius
+        shape = RoundedCornerShape(32.dp),
         elevation = CardDefaults.elevatedCardElevation(
             defaultElevation = if (item.isLatest) 6.dp else 0.dp
         ),
