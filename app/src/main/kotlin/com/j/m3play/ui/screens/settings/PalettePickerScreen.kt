@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -62,7 +61,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +89,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -124,7 +125,6 @@ data class ThemePalette(
 )
 
 object ThemePalettes {
-    
     // ===== Classic & Default =====
     val Default = ThemePalette(
         id = "default",
@@ -845,25 +845,20 @@ object ThemePalettes {
     }
     
     fun generateRandomPalette(): ThemePalette {
-        // Generate random vibrant colors using HCT color space for better visual quality
         val random = java.util.Random()
         
-        // Generate a random hue for primary color
         val primaryHue = random.nextFloat() * 360f
-        val primarySaturation = 0.5f + random.nextFloat() * 0.4f // 50-90% saturation
-        val primaryLightness = 0.4f + random.nextFloat() * 0.25f // 40-65% lightness
+        val primarySaturation = 0.5f + random.nextFloat() * 0.4f
+        val primaryLightness = 0.4f + random.nextFloat() * 0.25f
         
         val primary = hctToColor(primaryHue, primarySaturation, primaryLightness)
         
-        // Generate secondary color by shifting hue by 30-90 degrees
         val secondaryHue = (primaryHue + 30f + random.nextFloat() * 60f) % 360f
         val secondary = hctToColor(secondaryHue, primarySaturation * 0.9f, primaryLightness * 1.1f)
         
-        // Generate tertiary color by shifting hue in opposite direction
         val tertiaryHue = (primaryHue - 30f - random.nextFloat() * 60f + 360f) % 360f
         val tertiary = hctToColor(tertiaryHue, primarySaturation * 0.8f, primaryLightness * 0.95f)
         
-        // Generate neutral color with low saturation
         val neutralHue = (primaryHue + random.nextFloat() * 20f - 10f) % 360f
         val neutral = hctToColor(neutralHue, 0.1f, primaryLightness * 0.8f)
         
@@ -878,8 +873,6 @@ object ThemePalettes {
     }
     
     private fun hctToColor(hue: Float, saturation: Float, lightness: Float): Color {
-        // Convert HCT-like values to Color
-        // This is a simplified conversion using HSV as approximation
         val hsv = floatArrayOf(hue, saturation, lightness)
         val argb = android.graphics.Color.HSVToColor(hsv)
         return Color(argb)
@@ -938,10 +931,20 @@ fun PalettePickerScreen(
             }
         }
     
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.color_palette)) },
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        stringResource(R.string.color_palette),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -953,11 +956,14 @@ fun PalettePickerScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
         },
+        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
             Column(
                 horizontalAlignment = Alignment.End,
@@ -1019,7 +1025,7 @@ fun PalettePickerScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(120.dp)) // Added space for FABs
         }
     }
 }
@@ -1076,7 +1082,7 @@ private fun ThemePreviewCard(
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxSize()
