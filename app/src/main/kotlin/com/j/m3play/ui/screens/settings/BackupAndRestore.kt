@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -34,11 +34,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +58,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -99,22 +101,15 @@ fun BackupAndRestore(
 ) {
     var importedTitle by remember { mutableStateOf("") }
     val importedSongs = remember { mutableStateListOf<Song>() }
-    var showChoosePlaylistDialogOnline by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var isProgressStarted by rememberSaveable {
-        mutableStateOf(false)
-    }
-
+    var showChoosePlaylistDialogOnline by rememberSaveable { mutableStateOf(false) }
+    var isProgressStarted by rememberSaveable { mutableStateOf(false) }
     var progressStatus by remember { mutableStateOf("") }
-
-    var progressPercentage by rememberSaveable {
-        mutableIntStateOf(0)
-    }
+    var progressPercentage by rememberSaveable { mutableIntStateOf(0) }
+    
     val backupRestoreProgress by viewModel.backupRestoreProgress.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
             if (uri != null) {
@@ -154,27 +149,30 @@ fun BackupAndRestore(
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.backup_restore)) },
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.backup_restore), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
                         onLongClick = navController::backToMain,
                     ) {
-                        Icon(
-                            painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                        )
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .fillMaxSize()
                 .padding(innerPadding)
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(
@@ -182,15 +180,13 @@ fun BackupAndRestore(
                     )
                 ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp, top = 8.dp),
         ) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp), // Premium Large Radius
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    ),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                 ) {
                     Column(
@@ -222,7 +218,7 @@ fun BackupAndRestore(
                                 Text(
                                     text = stringResource(R.string.backup_restore),
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    fontWeight = FontWeight.Bold,
                                 )
 
                                 Row(
@@ -304,45 +300,54 @@ fun BackupAndRestore(
             }
 
             item {
-                Material3SettingsGroup(
-                    title = stringResource(R.string.import_playlist),
-                    items = listOf(
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.playlist_add),
-                            title = {
-                                Text(
-                                    text = stringResource(R.string.import_online),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                            },
-                            description = {
-                                Text(
-                                    text = "audio/*",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            onClick = { importM3uLauncherOnline.launch(arrayOf("audio/*")) },
-                        ),
-                        Material3SettingsItem(
-                            icon = painterResource(R.drawable.playlist_add),
-                            title = {
-                                Text(
-                                    text = stringResource(R.string.import_csv),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
-                            },
-                            description = {
-                                Text(
-                                    text = "text/csv",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            onClick = { importPlaylistFromCsv.launch(CSV_MIME_TYPES) },
-                        ),
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                ) {
+                    Material3SettingsGroup(
+                        title = stringResource(R.string.import_playlist),
+                        items = listOf(
+                            Material3SettingsItem(
+                                icon = painterResource(R.drawable.playlist_add),
+                                title = {
+                                    Text(
+                                        text = stringResource(R.string.import_online),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                },
+                                description = {
+                                    Text(
+                                        text = "audio/*",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = { importM3uLauncherOnline.launch(arrayOf("audio/*")) },
+                            ),
+                            Material3SettingsItem(
+                                icon = painterResource(R.drawable.playlist_add),
+                                title = {
+                                    Text(
+                                        text = stringResource(R.string.import_csv),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                },
+                                description = {
+                                    Text(
+                                        text = "text/csv",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = { importPlaylistFromCsv.launch(CSV_MIME_TYPES) },
+                            ),
+                        )
                     )
-                )
+                }
             }
         }
     }
