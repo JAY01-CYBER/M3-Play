@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -157,8 +158,14 @@ fun PlaylistSuggestionsSection(
                             onLongClick = {}
                         ) { Icon(painter = painterResource(R.drawable.playlist_add), contentDescription = stringResource(R.string.add_to_playlist)) }
                     },
-                    modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).graphicsLayer { scaleX = itemScale; scaleY = itemScale }
-                        .clickable(interactionSource = itemInteractionSource, indication = androidx.compose.material.ripple.rememberRipple()) {
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .graphicsLayer { scaleX = itemScale; scaleY = itemScale }
+                        .clickable(
+                            interactionSource = itemInteractionSource, 
+                            indication = LocalIndication.current
+                        ) {
                             if (playerConnection == null) return@clickable
                             if (item.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else {
                                 if (item is SongItem) {
