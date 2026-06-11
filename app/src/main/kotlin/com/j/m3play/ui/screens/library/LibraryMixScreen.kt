@@ -14,6 +14,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -88,7 +90,7 @@ import com.j.m3play.ui.component.ArtistListItem
 import com.j.m3play.ui.component.LibraryPlaylistGridItem
 import com.j.m3play.ui.component.LibraryPlaylistListItem
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.M3AutoPlaylistCard
+import com.j.m3play.ui.component.AutoPlaylistPill
 import com.j.m3play.ui.component.PlaylistListItem
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.ui.menu.AlbumMenu
@@ -650,47 +652,50 @@ fun LibraryMixScreen(
                             headerContent()
                         }
 
-                        if (showLiked) {
-                            item(key = "likedPlaylist", contentType = { CONTENT_TYPE_PLAYLIST }) {
-                                M3AutoPlaylistCard(
-                                    title = stringResource(R.string.liked),
-                                    iconRes = R.drawable.favorite,
-                                    onClick = { navController.navigate("auto_playlist/liked") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        if (showDownloaded) {
-                            item(key = "downloadedPlaylist", contentType = { CONTENT_TYPE_PLAYLIST }) {
-                                M3AutoPlaylistCard(
-                                    title = stringResource(R.string.offline),
-                                    iconRes = R.drawable.download,
-                                    onClick = { navController.navigate("auto_playlist/downloaded") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        if (showTop) {
-                            item(key = "TopPlaylist", contentType = { CONTENT_TYPE_PLAYLIST }) {
-                                M3AutoPlaylistCard(
-                                    title = stringResource(R.string.my_top) + " $topSize",
-                                    iconRes = R.drawable.trending_up,
-                                    onClick = { navController.navigate("top_playlist/$topSize") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        if (showCached) {
-                            item(key = "cachePlaylist", contentType = { CONTENT_TYPE_PLAYLIST }) {
-                                M3AutoPlaylistCard(
-                                    title = stringResource(R.string.cached_playlist),
-                                    iconRes = R.drawable.cached,
-                                    onClick = { navController.navigate("cache_playlist/cached") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                        // 👉 YEH HAIN AAPKE NAYE PILLS KI ROW 👈
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                if (showLiked) {
+                                    item {
+                                        AutoPlaylistPill(
+                                            title = stringResource(R.string.liked),
+                                            iconRes = R.drawable.favorite,
+                                            onClick = { navController.navigate("auto_playlist/liked") }
+                                        )
+                                    }
+                                }
+                                if (showDownloaded) {
+                                    item {
+                                        AutoPlaylistPill(
+                                            title = stringResource(R.string.offline),
+                                            iconRes = R.drawable.download,
+                                            onClick = { navController.navigate("auto_playlist/downloaded") }
+                                        )
+                                    }
+                                }
+                                if (showTop) {
+                                    item {
+                                        AutoPlaylistPill(
+                                            title = stringResource(R.string.my_top) + " $topSize",
+                                            iconRes = R.drawable.trending_up,
+                                            onClick = { navController.navigate("top_playlist/$topSize") }
+                                        )
+                                    }
+                                }
+                                if (showCached) {
+                                    item {
+                                        AutoPlaylistPill(
+                                            title = stringResource(R.string.cached_playlist),
+                                            iconRes = R.drawable.cached,
+                                            onClick = { navController.navigate("cache_playlist/cached") }
+                                        )
+                                    }
+                                }
                             }
                         }
 
