@@ -11,9 +11,15 @@
 package com.j.m3play.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -333,6 +339,23 @@ fun TopPlaylistScreen(
     // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
+    // Animation states for Action Buttons (Bounce Effect)
+    val playInteractionSource = remember { MutableInteractionSource() }
+    val isPlayPressed by playInteractionSource.collectIsPressedAsState()
+    val playScale by animateFloatAsState(targetValue = if (isPlayPressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "playScale")
+
+    val shuffleInteractionSource = remember { MutableInteractionSource() }
+    val isShufflePressed by shuffleInteractionSource.collectIsPressedAsState()
+    val shuffleScale by animateFloatAsState(targetValue = if (isShufflePressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "shuffleScale")
+
+    val dlInteractionSource = remember { MutableInteractionSource() }
+    val isDlPressed by dlInteractionSource.collectIsPressedAsState()
+    val dlScale by animateFloatAsState(targetValue = if (isDlPressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "dlScale")
+
+    val queueInteractionSource = remember { MutableInteractionSource() }
+    val isQueuePressed by queueInteractionSource.collectIsPressedAsState()
+    val queueScale by animateFloatAsState(targetValue = if (isQueuePressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "queueScale")
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -353,93 +376,48 @@ fun TopPlaylistScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c0.copy(alpha = gradientAlpha * 0.75f),
-                                        c0.copy(alpha = gradientAlpha * 0.4f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.15f),
-                                    radius = width * 0.8f
+                                    colors = listOf(c0.copy(alpha = gradientAlpha * 0.75f), c0.copy(alpha = gradientAlpha * 0.4f), Color.Transparent),
+                                    center = Offset(width * 0.5f, height * 0.15f), radius = width * 0.8f
                                 )
                             )
-
-                            // Secondary color blob - left side
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c1.copy(alpha = gradientAlpha * 0.55f),
-                                        c1.copy(alpha = gradientAlpha * 0.3f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.1f, height * 0.4f),
-                                    radius = width * 0.6f
+                                    colors = listOf(c1.copy(alpha = gradientAlpha * 0.55f), c1.copy(alpha = gradientAlpha * 0.3f), Color.Transparent),
+                                    center = Offset(width * 0.1f, height * 0.4f), radius = width * 0.6f
                                 )
                             )
-
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c2.copy(alpha = gradientAlpha * 0.5f),
-                                        c2.copy(alpha = gradientAlpha * 0.25f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.9f, height * 0.35f),
-                                    radius = width * 0.55f
+                                    colors = listOf(c2.copy(alpha = gradientAlpha * 0.5f), c2.copy(alpha = gradientAlpha * 0.25f), Color.Transparent),
+                                    center = Offset(width * 0.9f, height * 0.35f), radius = width * 0.55f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c3.copy(alpha = gradientAlpha * 0.35f),
-                                        c3.copy(alpha = gradientAlpha * 0.18f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.25f, height * 0.65f),
-                                    radius = width * 0.75f
+                                    colors = listOf(c3.copy(alpha = gradientAlpha * 0.35f), c3.copy(alpha = gradientAlpha * 0.18f), Color.Transparent),
+                                    center = Offset(width * 0.25f, height * 0.65f), radius = width * 0.75f
                                 )
                             )
-
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c4.copy(alpha = gradientAlpha * 0.3f),
-                                        c4.copy(alpha = gradientAlpha * 0.15f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.55f, height * 0.85f),
-                                    radius = width * 0.9f
+                                    colors = listOf(c4.copy(alpha = gradientAlpha * 0.3f), c4.copy(alpha = gradientAlpha * 0.15f), Color.Transparent),
+                                    center = Offset(width * 0.55f, height * 0.85f), radius = width * 0.9f
                                 )
                             )
                         } else if (gradientColors.isNotEmpty()) {
                             drawRect(
                                 brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.25f),
-                                    radius = width * 0.85f
+                                    colors = listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.7f), gradientColors[0].copy(alpha = gradientAlpha * 0.35f), Color.Transparent),
+                                    center = Offset(width * 0.5f, height * 0.25f), radius = width * 0.85f
                                 )
                             )
                         }
-
                         drawRect(
                             brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Transparent,
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
-                                    surfaceColor
-                                ),
-                                startY = size.height * 0.35f,
-                                endY = size.height
+                                colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor.copy(alpha = gradientAlpha * 0.55f), surfaceColor),
+                                startY = size.height * 0.35f, endY = size.height
                             )
                         )
                     }
@@ -460,8 +438,9 @@ fun TopPlaylistScreen(
                     }
                 } else {
                     if (!isSearching) {
-                        // Hero Header Item
+                        // Hero Header Item with Expressive Parallax Effect
                         item(key = "header") {
+                            val scrollOffset = if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset else 0
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
@@ -469,16 +448,20 @@ fun TopPlaylistScreen(
                                     .padding(top = systemBarsTopPadding + 48.dp)
                                     .padding(horizontal = 24.dp)
                                     .padding(bottom = 16.dp)
+                                    .graphicsLayer {
+                                        translationY = scrollOffset * 0.4f
+                                        alpha = (1f - (scrollOffset / 800f)).coerceIn(0f, 1f)
+                                    }
                             ) {
-                                // Large centered artwork with shadow
+                                // Large centered artwork with premium shadow & radius
                                 Box(
                                     modifier = Modifier
                                         .size(240.dp)
                                         .shadow(
-                                            elevation = 24.dp,
-                                            shape = RoundedCornerShape(16.dp),
-                                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                            elevation = 32.dp,
+                                            shape = RoundedCornerShape(24.dp),
+                                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                         )
                                 ) {
                                     AsyncImage(
@@ -487,46 +470,40 @@ fun TopPlaylistScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .clip(RoundedCornerShape(16.dp))
+                                            .clip(RoundedCornerShape(24.dp))
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(28.dp))
 
                                 // Playlist title
                                 Text(
                                     text = name,
                                     style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     textAlign = TextAlign.Center,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
 
                                 // Metadata chips row
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Song count chip
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
                                     ) {
                                         Text(
-                                            text = pluralStringResource(
-                                                R.plurals.n_song,
-                                                songs!!.size,
-                                                songs!!.size
-                                            ),
+                                            text = pluralStringResource(R.plurals.n_song, songs!!.size, songs!!.size),
                                             style = MaterialTheme.typography.labelMedium,
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                         )
                                     }
 
-                                    // Duration chip
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
@@ -539,9 +516,9 @@ fun TopPlaylistScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(24.dp))
 
-                                // Action buttons row
+                                // Action buttons row (Expressive Bounce Buttons)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
@@ -551,71 +528,28 @@ fun TopPlaylistScreen(
                                     Surface(
                                         onClick = {
                                             when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
-                                                    showRemoveDownloadDialog = true
-                                                }
+                                                Download.STATE_COMPLETED -> { showRemoveDownloadDialog = true }
                                                 Download.STATE_DOWNLOADING -> {
-                                                    songs!!.forEach { song ->
-                                                        DownloadService.sendRemoveDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            song.song.id,
-                                                            false,
-                                                        )
-                                                    }
+                                                    songs!!.forEach { song -> DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.song.id, false) }
                                                 }
                                                 else -> {
                                                     songs!!.forEach { song ->
-                                                        val downloadRequest =
-                                                            DownloadRequest
-                                                                .Builder(
-                                                                    song.song.id,
-                                                                    song.song.id.toUri(),
-                                                                )
-                                                                .setCustomCacheKey(song.song.id)
-                                                                .setData(song.song.title.toByteArray())
-                                                                .build()
-                                                        DownloadService.sendAddDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            downloadRequest,
-                                                            false,
-                                                        )
+                                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
+                                                        DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                                     }
                                                 }
                                             }
                                         },
                                         shape = CircleShape,
                                         color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        interactionSource = dlInteractionSource,
+                                        modifier = Modifier.size(48.dp).graphicsLayer { scaleX = dlScale; scaleY = dlScale }
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                             when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.offline),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    CircularProgressIndicator(
-                                                        strokeWidth = 2.dp,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                else -> {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.download),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
+                                                Download.STATE_COMPLETED -> Icon(painter = painterResource(R.drawable.offline), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                                Download.STATE_DOWNLOADING -> CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                                                else -> Icon(painter = painterResource(R.drawable.download), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
                                             }
                                         }
                                     }
@@ -623,72 +557,42 @@ fun TopPlaylistScreen(
                                     // Play Button
                                     Button(
                                         onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = name,
-                                                    items = songs!!.map { it.toMediaItem() },
-                                                ),
-                                            )
+                                            playerConnection.playQueue(ListQueue(title = name, items = songs!!.map { it.toMediaItem() }))
                                         },
                                         shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
+                                        interactionSource = playInteractionSource,
+                                        modifier = Modifier.weight(1f).height(48.dp).graphicsLayer { scaleX = playScale; scaleY = playScale }
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = stringResource(R.string.play),
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Icon(painter = painterResource(R.drawable.play), contentDescription = stringResource(R.string.play), modifier = Modifier.size(24.dp))
                                     }
 
                                     // Shuffle Button
                                     Button(
                                         onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = name,
-                                                    items = songs!!.shuffled().map { it.toMediaItem() },
-                                                ),
-                                            )
+                                            playerConnection.playQueue(ListQueue(title = name, items = songs!!.shuffled().map { it.toMediaItem() }))
                                         },
                                         shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
+                                        interactionSource = shuffleInteractionSource,
+                                        modifier = Modifier.weight(1f).height(48.dp).graphicsLayer { scaleX = shuffleScale; scaleY = shuffleScale }
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.shuffle),
-                                            contentDescription = stringResource(R.string.shuffle),
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                        Icon(painter = painterResource(R.drawable.shuffle), contentDescription = stringResource(R.string.shuffle), modifier = Modifier.size(24.dp))
                                     }
 
                                     // Add to Queue Button
                                     Surface(
                                         onClick = {
-                                            playerConnection.addToQueue(
-                                                items = songs!!.map { it.toMediaItem() },
-                                            )
+                                            playerConnection.addToQueue(items = songs!!.map { it.toMediaItem() })
                                         },
                                         shape = CircleShape,
                                         color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                        interactionSource = queueInteractionSource,
+                                        modifier = Modifier.size(48.dp).graphicsLayer { scaleX = queueScale; scaleY = queueScale }
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.queue_music),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Icon(painter = painterResource(R.drawable.queue_music), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
                                         }
                                     }
                                 }
-
                                 Spacer(modifier = Modifier.height(24.dp))
                             }
                         }
@@ -703,9 +607,7 @@ fun TopPlaylistScreen(
                             SortHeader(
                                 sortType = sortType,
                                 sortDescending = false,
-                                onSortTypeChange = {
-                                    viewModel.topPeriod.value = it
-                                },
+                                onSortTypeChange = { viewModel.topPeriod.value = it },
                                 onSortDescendingChange = {},
                                 sortTypeText = { sortType ->
                                     when (sortType) {
@@ -722,7 +624,7 @@ fun TopPlaylistScreen(
                         }
                     }
 
-                    // Song items
+                    // Song items with M3 Spring Animation
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
@@ -737,18 +639,11 @@ fun TopPlaylistScreen(
                                 androidx.compose.material3.IconButton(
                                     onClick = {
                                         menuState.show {
-                                            SongMenu(
-                                                originalSong = songWrapper.item,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
+                                            SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss)
                                         }
                                     },
                                 ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                    )
+                                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                                 }
                             },
                             isSelected = songWrapper.isSelected && selection,
@@ -760,13 +655,7 @@ fun TopPlaylistScreen(
                                             if (songWrapper.item.song.id == mediaMetadata?.id) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = name,
-                                                        items = songs!!.map { it.toMediaItem() },
-                                                        startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
-                                                    ),
-                                                )
+                                                playerConnection.playQueue(ListQueue(title = name, items = songs!!.map { it.toMediaItem() }, startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }))
                                             }
                                         } else {
                                             songWrapper.isSelected = !songWrapper.isSelected
@@ -781,7 +670,10 @@ fun TopPlaylistScreen(
                                         }
                                     },
                                 )
-                                .animateItem()
+                                .animateItem(
+                                    fadeInSpec = tween(400),
+                                    placementSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)
+                                )
                         )
                     }
                 }
@@ -790,10 +682,7 @@ fun TopPlaylistScreen(
 
         DraggableScrollbar(
             modifier = Modifier
-                .padding(
-                    LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
-                        .asPaddingValues()
-                )
+                .padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues())
                 .align(Alignment.CenterEnd),
             scrollState = lazyListState,
             headerItems = headerItems
@@ -808,120 +697,56 @@ fun TopPlaylistScreen(
                 when {
                     selection -> {
                         val count = wrappedSongs.count { it.isSelected }
-                        Text(
-                            text = pluralStringResource(R.plurals.n_song, count, count),
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Text(text = pluralStringResource(R.plurals.n_song, count, count), style = MaterialTheme.typography.titleLarge)
                     }
                     isSearching -> {
                         TextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            placeholder = {
-                                Text(
-                                    text = stringResource(R.string.search),
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                            },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.titleLarge,
+                            value = query, onValueChange = { query = it },
+                            placeholder = { Text(text = stringResource(R.string.search), style = MaterialTheme.typography.titleLarge) },
+                            singleLine = true, textStyle = MaterialTheme.typography.titleLarge,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
                             ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester)
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
                         )
                     }
-                    showTopBarTitle -> {
-                        Text(
-                            text = name,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                    showTopBarTitle -> { Text(text = name, style = MaterialTheme.typography.titleLarge) }
                 }
             },
             navigationIcon = {
                 IconButton(
                     onClick = {
                         when {
-                            isSearching -> {
-                                isSearching = false
-                                query = TextFieldValue()
-                                focusManager.clearFocus()
-                            }
-                            selection -> {
-                                selection = false
-                            }
-                            else -> {
-                                navController.navigateUp()
-                            }
+                            isSearching -> { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
+                            selection -> { selection = false }
+                            else -> { navController.navigateUp() }
                         }
                     },
-                    onLongClick = {
-                        if (!isSearching && !selection) {
-                            navController.backToMain()
-                        }
-                    }
+                    onLongClick = { if (!isSearching && !selection) navController.backToMain() }
                 ) {
-                    Icon(
-                        painter = painterResource(
-                            if (selection) R.drawable.close else R.drawable.arrow_back
-                        ),
-                        contentDescription = null
-                    )
+                    Icon(painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null)
                 }
             },
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(
-                        onClick = {
-                            if (count == wrappedSongs.size) {
-                                wrappedSongs.forEach { it.isSelected = false }
-                            } else {
-                                wrappedSongs.forEach { it.isSelected = true }
-                            }
-                        },
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all
-                            ),
-                            contentDescription = null
-                        )
+                    androidx.compose.material3.IconButton(onClick = {
+                        if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false } else wrappedSongs.forEach { it.isSelected = true }
+                    }) {
+                        Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null)
                     }
-
-                    androidx.compose.material3.IconButton(
-                        onClick = {
-                            menuState.show {
-                                SelectionSongMenu(
-                                    songSelection = wrappedSongs.filter { it.isSelected }
-                                        .map { it.item },
-                                    onDismiss = menuState::dismiss,
-                                    clearAction = { selection = false },
-                                )
-                            }
-                        },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.more_vert),
-                            contentDescription = null
-                        )
+                    androidx.compose.material3.IconButton(onClick = {
+                        menuState.show {
+                            SelectionSongMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item }, onDismiss = menuState::dismiss, clearAction = { selection = false })
+                        }
+                    }) {
+                        Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else if (!isSearching) {
-                    androidx.compose.material3.IconButton(
-                        onClick = { isSearching = true }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.search),
-                            contentDescription = null
-                        )
+                    androidx.compose.material3.IconButton(onClick = { isSearching = true }) {
+                        Icon(painter = painterResource(R.drawable.search), contentDescription = null)
                     }
                 }
             }
