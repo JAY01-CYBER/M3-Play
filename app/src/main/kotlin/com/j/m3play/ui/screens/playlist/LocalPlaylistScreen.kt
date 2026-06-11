@@ -79,6 +79,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -211,9 +212,11 @@ fun LocalPlaylistScreen(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(isSearching) { if (isSearching) focusRequester.requestFocus() }
     var selection by remember { mutableStateOf(false) }
-    val wrappedSongs = remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }.toMutableStateList()
+    
+    // Fixed: Properly tracking PlaylistSong wrapper
+    val wrappedSongs = remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) }.toMutableStateList() }
 
-    if (isSearching) { BackHandler { isSearching = false; query = TextFieldValue() } } else if (selection) { BackHandler { selection = false } }
+    if (isSearching) { BackHandler { isSearching = false; query = TextFieldValue() } } else if (selection) { BackHandler { selection = false; wrappedSongs.forEach { it.isSelected = false } } }
 
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
@@ -317,7 +320,6 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier.fillMaxSize().background(surfaceColor).pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
     ) {
-        // --- PREMIUM AMBIENT BLUR BACKGROUND ---
         if (!disableBlur) {
             Box(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.6f).align(Alignment.TopCenter).zIndex(-1f)
@@ -346,9 +348,7 @@ fun LocalPlaylistScreen(
                     item { EmptyPlaceholder(icon = R.drawable.music_note, text = stringResource(R.string.playlist_is_empty)) }
                 } else {
                     if (!isSearching) {
-                        // --- PREMIUM HEADER CONTENT ---
                         item(key = "header") {
-                            // Calculates normal scroll offset for fading, NO translationY to prevent "cuts"
                             val scrollOffset = if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset.toFloat() else 1000f
                             val alphaProgress = (1f - (scrollOffset / 800f)).coerceIn(0f, 1f)
                             val scaleProgress = (1f - (scrollOffset / 1200f)).coerceIn(0.85f, 1f)
@@ -391,7 +391,6 @@ fun LocalPlaylistScreen(
                                 }
                                 Spacer(modifier = Modifier.height(28.dp))
 
-                                // --- PRIMARY ACTION BUTTONS (Apple Music/Spotify Style) ---
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -418,9 +417,7 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(20.dp))
 
-                                // --- SECONDARY ACTION BUTTONS ---
                                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                    // Delete / Like
                                     if (editable) {
                                         Surface(onClick = { showDeletePlaylistDialog = true }, shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)) {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.delete), contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp)) }
@@ -432,7 +429,6 @@ fun LocalPlaylistScreen(
                                         }
                                     }
 
-                                    // Download
                                     Surface(
                                         onClick = {
                                             when (downloadState) {
@@ -452,7 +448,6 @@ fun LocalPlaylistScreen(
                                         }
                                     }
 
-                                    // Edit / Sync
                                     Surface(
                                         onClick = {
                                             if (editable) showEditDialog = true else if (playlist.playlist.browseId != null) {
@@ -471,7 +466,6 @@ fun LocalPlaylistScreen(
                                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(if (editable) R.drawable.edit else R.drawable.sync), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)) }
                                     }
 
-                                    // Start Mix
                                     Surface(
                                         onClick = { playerConnection.playQueue(LocalMixQueue(database = database, playlistId = playlist.id, maxMixSize = 50)) },
                                         shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)
@@ -534,7 +528,7 @@ fun LocalPlaylistScreen(
                     }
                 }
             } else {
-                itemsIndexed(items = wrappedSongs, key = { _, song -> song.item.map.id }) { index, songWrapper ->
+                itemsIndexed(items = wrappedSongs, key = { _, songWrapper -> songWrapper.item.map.id }) { index, songWrapper ->
                     ReorderableItem(state = reorderableState, key = songWrapper.item.map.id, modifier = Modifier.graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }) {
                         val currentItem by rememberUpdatedState(songWrapper.item)
                         fun deleteFromPlaylist() { val map = currentItem.map; coroutineScope.launch(Dispatchers.IO) { database.withTransaction { move(map.playlistId, map.position, Int.MAX_VALUE); delete(map.copy(position = Int.MAX_VALUE)) } } }
@@ -554,7 +548,7 @@ fun LocalPlaylistScreen(
                                 },
                                 isSelected = songWrapper.isSelected && selection,
                                 modifier = Modifier.fillMaxWidth().combinedClickable(
-                                    onClick = { if (!selection) { if (songWrapper.item.song.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else { playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = index)) } } else { songWrapper.isSelected = !songWrapper.isSelected } },
+                                    onClick = { if (!selection) { if (songWrapper.item.song.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else { playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = songs.indexOfFirst { it.map.id == songWrapper.item.map.id })) } } else { songWrapper.isSelected = !songWrapper.isSelected } },
                                     onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) { selection = true }; wrappedSongs.forEach { it.isSelected = false }; songWrapper.isSelected = true }
                                 ).animateItem(fadeInSpec = tween(400), placementSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)),
                             )
@@ -581,13 +575,13 @@ fun LocalPlaylistScreen(
                 else if (showTopBarTitle) { Text(playlist?.playlist?.name.orEmpty()) }
             },
             navigationIcon = {
-                IconButton(onClick = { if (isSearching) { isSearching = false; query = TextFieldValue() } else if (selection) { selection = false } else { navController.navigateUp() } }, onLongClick = { if (!isSearching) { navController.backToMain() } }) { Icon(painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
+                IconButton(onClick = { if (isSearching) { isSearching = false; query = TextFieldValue() } else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } } else { navController.navigateUp() } }, onLongClick = { if (!isSearching) { navController.backToMain() } }) { Icon(painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
             },
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
                     IconButton(onClick = { if (count == wrappedSongs.size) { wrappedSongs.forEach { it.isSelected = false } } else { wrappedSongs.forEach { it.isSelected = true } } }, onLongClick = {}) { Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null) }
-                    IconButton(onClick = { menuState.show { SelectionSongMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, songPosition = wrappedSongs.filter { it.isSelected }.map { it.item.map }, onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }) } }, onLongClick = {}) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
+                    IconButton(onClick = { menuState.show { SelectionSongMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, songPosition = wrappedSongs.filter { it.isSelected }.map { it.item.map }, onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.forEach { it.isSelected = false } }) } }, onLongClick = {}) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
                 } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }, onLongClick = {}) { Icon(painter = painterResource(R.drawable.search), contentDescription = null) }
                 }
@@ -599,7 +593,7 @@ fun LocalPlaylistScreen(
 }
 
 @Composable
-private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
+fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
     Surface(modifier = modifier, shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)) {
         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
