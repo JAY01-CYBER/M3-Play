@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -102,7 +103,7 @@ import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.LibraryPlaylistGridItem
 import com.j.m3play.ui.component.LibraryPlaylistListItem
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.PlaylistGridItem
+import com.j.m3play.ui.component.M3AutoPlaylistCard
 import com.j.m3play.ui.component.PlaylistListItem
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.utils.rememberEnumPreference
@@ -699,6 +700,10 @@ fun LibraryPlaylistsScreen(
                             )
                         }
                     }
+
+                    item {
+                        Spacer(modifier = Modifier.height(100.dp))
+                    }
                 }
 
                 HideOnScrollFAB(
@@ -740,18 +745,11 @@ fun LibraryPlaylistsScreen(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistGridItem(
-                                playlist = likedPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("auto_playlist/liked")
-                                        },
-                                    )
-                                    // ⚡ FIX: animateItem() removed for smooth grid scrolling
+                            M3AutoPlaylistCard(
+                                title = stringResource(R.string.liked),
+                                iconRes = R.drawable.favorite,
+                                onClick = { navController.navigate("auto_playlist/liked") },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -761,17 +759,11 @@ fun LibraryPlaylistsScreen(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistGridItem(
-                                playlist = downloadPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("auto_playlist/downloaded")
-                                        },
-                                    )
+                            M3AutoPlaylistCard(
+                                title = stringResource(R.string.offline),
+                                iconRes = R.drawable.download,
+                                onClick = { navController.navigate("auto_playlist/downloaded") },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -781,17 +773,11 @@ fun LibraryPlaylistsScreen(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistGridItem(
-                                playlist = topPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("top_playlist/$topSize")
-                                        },
-                                    )
+                            M3AutoPlaylistCard(
+                                title = stringResource(R.string.my_top) + " $topSize",
+                                iconRes = R.drawable.trending_up,
+                                onClick = { navController.navigate("top_playlist/$topSize") },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -801,17 +787,11 @@ fun LibraryPlaylistsScreen(
                             key = "cachePlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
                         ) {
-                            PlaylistGridItem(
-                                playlist = cachePlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("cache_playlist/cached")
-                                        },
-                                    )
+                            M3AutoPlaylistCard(
+                                title = stringResource(R.string.cached_playlist),
+                                iconRes = R.drawable.cached,
+                                onClick = { navController.navigate("cache_playlist/cached") },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -831,8 +811,12 @@ fun LibraryPlaylistsScreen(
                             menuState = menuState,
                             coroutineScope = coroutineScope,
                             playlist = playlist,
-                            modifier = Modifier // ⚡ FIX: animateItem() removed
+                            modifier = Modifier
                         )
+                    }
+
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Spacer(modifier = Modifier.height(100.dp))
                     }
                 }
 
