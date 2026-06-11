@@ -3,14 +3,14 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  PREMIUM REDESIGN V2 - Anti-Cut Parallax   │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -19,8 +19,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +26,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,6 +45,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -74,19 +74,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -105,15 +105,10 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
 import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
@@ -141,7 +136,6 @@ import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.menu.SelectionMediaMetadataMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
-import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.ui.utils.formatCompactCount
@@ -176,7 +170,6 @@ fun OnlinePlaylistScreen(
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
-    // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     val lazyListState = rememberLazyListState()
@@ -191,106 +184,49 @@ fun OnlinePlaylistScreen(
         if (query.text.isEmpty()) {
             songs.mapIndexed { index, song -> index to song }
         } else {
-            songs.mapIndexed { index, song -> index to song }
-                .filter { (_, song) ->
-                    song.title.contains(query.text, ignoreCase = true) ||
-                        song.artists.fastAny { it.name.contains(query.text, ignoreCase = true) }
-                }
+            songs.mapIndexed { index, song -> index to song }.filter { (_, song) -> song.title.contains(query.text, ignoreCase = true) || song.artists.fastAny { it.name.contains(query.text, ignoreCase = true) } }
         }
     }
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(isSearching) {
-        if (isSearching) {
-            focusRequester.requestFocus()
-        }
-    }
+    LaunchedEffect(isSearching) { if (isSearching) focusRequester.requestFocus() }
 
-    if (isSearching) {
-        BackHandler {
-            isSearching = false
-            query = TextFieldValue()
-        }
-    } else if (selection) {
-        BackHandler { selection = false }
-    }
+    if (isSearching) { BackHandler { isSearching = false; query = TextFieldValue() } } else if (selection) { BackHandler { selection = false } }
 
     val wrappedSongs = remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }.toMutableStateList()
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
-
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) { (1f - (lazyListState.firstVisibleItemScrollOffset / 600f)).coerceIn(0f, 1f) } else 0f } }
 
-    LaunchedEffect(playlist?.thumbnail) {
-        val thumbnailUrl = playlist?.thumbnail
-        if (thumbnailUrl != null) {
-            val request = ImageRequest.Builder(context).data(thumbnailUrl).size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE).allowHardware(false).build()
-            val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
-            if (result != null) {
-                val bitmap = result.image?.toBitmap()
-                if (bitmap != null) {
-                    val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
-                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = fallbackColor)
-                }
-            }
-        } else {
-            gradientColors = emptyList()
-        }
-    }
-
-    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) { val offset = lazyListState.firstVisibleItemScrollOffset; (1f - (offset / 600f)).coerceIn(0f, 1f) } else { 0f } } }
-    val transparentAppBar by remember { derivedStateOf { !disableBlur && !selection && !showTopBarTitle } }
     val headerItems by remember { derivedStateOf { val current = playlist; if (!isLoading && current != null && !isSearching) 1 else 0 } }
 
     LaunchedEffect(lazyListState) {
-        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { lastVisibleIndex ->
-                if (songs.size >= 5 && lastVisibleIndex != null && lastVisibleIndex >= songs.size - 5) {
-                    viewModel.loadMoreSongs()
-                }
-            }
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }.collect { lastVisibleIndex ->
+            if (songs.size >= 5 && lastVisibleIndex != null && lastVisibleIndex >= songs.size - 5) { viewModel.loadMoreSongs() }
+        }
     }
-
-    // Interaction Sources for bouncy buttons
-    val likeInteractionSource = remember { MutableInteractionSource() }
-    val isLikePressed by likeInteractionSource.collectIsPressedAsState()
-    val likeScale by animateFloatAsState(targetValue = if (isLikePressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-
-    val shuffleInteractionSource = remember { MutableInteractionSource() }
-    val isShufflePressed by shuffleInteractionSource.collectIsPressedAsState()
-    val shuffleScale by animateFloatAsState(targetValue = if (isShufflePressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-
-    val radioInteractionSource = remember { MutableInteractionSource() }
-    val isRadioPressed by radioInteractionSource.collectIsPressedAsState()
-    val radioScale by animateFloatAsState(targetValue = if (isRadioPressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-
-    val mixInteractionSource = remember { MutableInteractionSource() }
-    val isMixPressed by mixInteractionSource.collectIsPressedAsState()
-    val mixScale by animateFloatAsState(targetValue = if (isMixPressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
 
     Box(
         modifier = Modifier.fillMaxSize().background(surfaceColor).pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
     ) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        // --- PREMIUM AMBIENT BLUR BACKGROUND ---
+        if (!disableBlur) {
             Box(
-                modifier = Modifier.fillMaxWidth().fillMaxSize(0.55f).align(Alignment.TopCenter).zIndex(-1f)
-                    .drawBehind {
-                        val width = size.width; val height = size.height
-                        if (gradientColors.size >= 3) {
-                            val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]
-                            val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
-                            drawRect(brush = Brush.radialGradient(colors = listOf(c0.copy(alpha = gradientAlpha * 0.75f), c0.copy(alpha = gradientAlpha * 0.4f), Color.Transparent), center = Offset(width * 0.5f, height * 0.15f), radius = width * 0.8f))
-                            drawRect(brush = Brush.radialGradient(colors = listOf(c1.copy(alpha = gradientAlpha * 0.55f), c1.copy(alpha = gradientAlpha * 0.3f), Color.Transparent), center = Offset(width * 0.1f, height * 0.4f), radius = width * 0.6f))
-                            drawRect(brush = Brush.radialGradient(colors = listOf(c2.copy(alpha = gradientAlpha * 0.5f), c2.copy(alpha = gradientAlpha * 0.25f), Color.Transparent), center = Offset(width * 0.9f, height * 0.35f), radius = width * 0.55f))
-                            drawRect(brush = Brush.radialGradient(colors = listOf(c3.copy(alpha = gradientAlpha * 0.35f), c3.copy(alpha = gradientAlpha * 0.18f), Color.Transparent), center = Offset(width * 0.25f, height * 0.65f), radius = width * 0.75f))
-                            drawRect(brush = Brush.radialGradient(colors = listOf(c4.copy(alpha = gradientAlpha * 0.3f), c4.copy(alpha = gradientAlpha * 0.15f), Color.Transparent), center = Offset(width * 0.55f, height * 0.85f), radius = width * 0.9f))
-                        } else if (gradientColors.isNotEmpty()) {
-                            drawRect(brush = Brush.radialGradient(colors = listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.7f), gradientColors[0].copy(alpha = gradientAlpha * 0.35f), Color.Transparent), center = Offset(width * 0.5f, height * 0.25f), radius = width * 0.85f))
-                        }
-                        drawRect(brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor.copy(alpha = gradientAlpha * 0.55f), surfaceColor), startY = height * 0.4f, endY = height))
-                    }
-            )
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.6f).align(Alignment.TopCenter).zIndex(-1f)
+            ) {
+                AsyncImage(
+                    model = playlist?.thumbnail, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(radiusX = 120.dp, radiusY = 120.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded).graphicsLayer { alpha = gradientAlpha * 0.8f }
+                )
+                Box(
+                    modifier = Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, surfaceColor.copy(alpha = 0.5f), surfaceColor),
+                            startY = 0f, endY = with(LocalDensity.current) { 450.dp.toPx() }
+                        )
+                    )
+                )
+            }
         }
 
         LazyColumn(
@@ -302,7 +238,7 @@ fun OnlinePlaylistScreen(
                     item(key = "shimmer") {
                         ShimmerHost {
                             Column(modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp).size(240.dp).shimmer().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.onSurface))
+                                Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp).size(240.dp).shimmer().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.onSurface))
                                 TextPlaceholder(height = 28.dp, modifier = Modifier.fillMaxWidth(0.6f).padding(horizontal = 32.dp))
                                 Spacer(modifier = Modifier.height(8.dp))
                                 TextPlaceholder(height = 20.dp, modifier = Modifier.fillMaxWidth(0.4f))
@@ -322,23 +258,26 @@ fun OnlinePlaylistScreen(
                     }
                 } else if (playlist != null) {
                     if (!isSearching) {
+                        // --- PREMIUM HEADER CONTENT ---
                         item(key = "header") {
-                            val scrollOffset = if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset else 0
+                            // NO parallax translation Y to avoid the clipping/cut
+                            val scrollOffset = if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset.toFloat() else 1000f
+                            val alphaProgress = (1f - (scrollOffset / 800f)).coerceIn(0f, 1f)
+                            val scaleProgress = (1f - (scrollOffset / 1200f)).coerceIn(0.85f, 1f)
+
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight)
-                                    .graphicsLayer { translationY = scrollOffset * 0.35f; alpha = (1f - (scrollOffset / 700f)).coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight).graphicsLayer { alpha = alphaProgress },
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)) {
+                                // Cover Art
+                                Box(modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)) {
                                     Surface(
-                                        modifier = Modifier.size(240.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(24.dp), spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.6f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-                                        shape = RoundedCornerShape(24.dp)
-                                    ) {
-                                        AsyncImage(model = playlist.thumbnail, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                                    }
+                                        modifier = Modifier.size(260.dp).graphicsLayer { scaleX = scaleProgress; scaleY = scaleProgress }.shadow(elevation = 32.dp, shape = RoundedCornerShape(20.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                                        shape = RoundedCornerShape(20.dp)
+                                    ) { AsyncImage(model = playlist.thumbnail, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                                 }
 
-                                Text(text = playlist.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp))
+                                Text(text = playlist.title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp))
 
                                 playlist.author?.let { artist ->
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -351,22 +290,41 @@ fun OnlinePlaylistScreen(
                                         textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp)
                                     )
                                 }
-
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 playlist.songCountText?.let { songCountText ->
-                                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                        MetadataChip(icon = R.drawable.music_note, text = songCountText)
+                                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) { MetadataChip(icon = R.drawable.music_note, text = songCountText) }
+                                }
+                                Spacer(modifier = Modifier.height(28.dp))
+
+                                // --- PRIMARY ACTION BUTTONS (Play & Shuffle) ---
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Button(
+                                        onClick = { if (songs.isNotEmpty()) { playerConnection.playQueue(YouTubeQueue(songs.first().endpoint ?: WatchEndpoint(videoId = songs.first().id), songs.first().toMediaMetadata())) } },
+                                        shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Icon(painter = painterResource(R.drawable.play), contentDescription = stringResource(R.string.play), modifier = Modifier.size(24.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(R.string.play), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    FilledTonalButton(
+                                        onClick = { playlist.shuffleEndpoint?.let { playerConnection.playQueue(YouTubeQueue(it)) } },
+                                        enabled = playlist.shuffleEndpoint != null,
+                                        shape = RoundedCornerShape(16.dp), modifier = Modifier.weight(1f).height(56.dp)
+                                    ) {
+                                        Icon(painter = painterResource(R.drawable.shuffle), contentDescription = stringResource(R.string.shuffle), modifier = Modifier.size(24.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(stringResource(R.string.shuffle), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(20.dp))
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                // --- SECONDARY ACTION BUTTONS ---
+                                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                     if (playlist.id != "LM") {
                                         Surface(
                                             onClick = {
@@ -376,63 +334,31 @@ fun OnlinePlaylistScreen(
                                                         insert(playlistEntity)
                                                         songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { index, song -> PlaylistSongMap(songId = song.id, playlistId = playlistEntity.id, position = index) }.forEach(::insert)
                                                     }
-                                                } else {
-                                                    database.transaction { val currentPlaylist = dbPlaylist!!.playlist; update(currentPlaylist, playlist); update(currentPlaylist.toggleLike()) }
-                                                }
+                                                } else { database.transaction { val currentPlaylist = dbPlaylist!!.playlist; update(currentPlaylist, playlist); update(currentPlaylist.toggleLike()) } }
                                             },
-                                            shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, interactionSource = likeInteractionSource,
-                                            modifier = Modifier.size(48.dp).graphicsLayer { scaleX = likeScale; scaleY = likeScale }
-                                        ) {
-                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                Icon(painter = painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
-                                            }
-                                        }
-                                    }
-
-                                    playlist.shuffleEndpoint?.let { shuffleEndpoint ->
-                                        Button(
-                                            onClick = { playerConnection.playQueue(YouTubeQueue(shuffleEndpoint)) },
-                                            shape = RoundedCornerShape(24.dp), interactionSource = shuffleInteractionSource,
-                                            modifier = Modifier.weight(1f).height(48.dp).graphicsLayer { scaleX = shuffleScale; scaleY = shuffleScale }
-                                        ) {
-                                            Icon(painter = painterResource(R.drawable.shuffle), contentDescription = stringResource(R.string.shuffle), modifier = Modifier.size(24.dp))
-                                        }
+                                            shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)
+                                        ) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)) } }
                                     }
 
                                     playlist.radioEndpoint?.let { radioEndpoint ->
-                                        Button(
-                                            onClick = { playerConnection.playQueue(YouTubeQueue(radioEndpoint)) },
-                                            shape = RoundedCornerShape(24.dp), interactionSource = radioInteractionSource,
-                                            modifier = Modifier.weight(1f).height(48.dp).graphicsLayer { scaleX = radioScale; scaleY = radioScale }
-                                        ) {
-                                            Icon(painter = painterResource(R.drawable.radio), contentDescription = stringResource(R.string.radio), modifier = Modifier.size(24.dp))
+                                        Surface(onClick = { playerConnection.playQueue(YouTubeQueue(radioEndpoint)) }, shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.radio), contentDescription = stringResource(R.string.radio), tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)) }
+                                        }
+                                    }
+
+                                    val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
+                                    if (mixEndpoint != null) {
+                                        Surface(onClick = { playerConnection.playQueue(YouTubeQueue(mixEndpoint)) }, shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)) {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.mix), contentDescription = "Start Mix", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)) }
                                         }
                                     }
 
                                     Surface(
                                         onClick = { menuState.show { YouTubePlaylistMenu(playlist = playlist, songs = songs, coroutineScope = coroutineScope, onDismiss = menuState::dismiss, selectAction = { selection = true }, canSelect = true, snackbarHostState = snackbarHostState) } },
-                                        shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(48.dp)
-                                    ) {
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
-                                        }
-                                    }
+                                        shape = CircleShape, color = Color.Transparent, modifier = Modifier.size(48.dp)
+                                    ) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)) } }
                                 }
-
-                                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                    val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
-                                    if (mixEndpoint != null) {
-                                        Button(
-                                            onClick = { playerConnection.playQueue(YouTubeQueue(mixEndpoint)) },
-                                            shape = RoundedCornerShape(24.dp), interactionSource = mixInteractionSource,
-                                            modifier = Modifier.weight(1f).height(48.dp).graphicsLayer { scaleX = mixScale; scaleY = mixScale }
-                                        ) {
-                                            Icon(painter = painterResource(R.drawable.mix), contentDescription = "Start Mix", modifier = Modifier.size(24.dp))
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
                     }
@@ -449,34 +375,17 @@ fun OnlinePlaylistScreen(
 
                     items(items = wrappedSongs, key = { it.item.second.id }) { song ->
                         YouTubeListItem(
-                            item = song.item.second,
-                            viewCountText = viewCounts[song.item.second.id]?.let { count -> formatCompactCount(count.toLong()) },
-                            isActive = mediaMetadata?.id == song.item.second.id,
-                            isPlaying = isPlaying, isSelected = song.isSelected && selection,
-                            trailingContent = {
-                                IconButton(
-                                    onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } },
-                                    onLongClick = {}
-                                ) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) }
-                            },
+                            item = song.item.second, viewCountText = viewCounts[song.item.second.id]?.let { count -> formatCompactCount(count.toLong()) }, isActive = mediaMetadata?.id == song.item.second.id, isPlaying = isPlaying, isSelected = song.isSelected && selection,
+                            trailingContent = { IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null) } },
                             modifier = Modifier.combinedClickable(
                                 enabled = !hideExplicit || !song.item.second.explicit,
-                                onClick = {
-                                    if (!selection) {
-                                        if (song.item.second.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else {
-                                            playerConnection.service.getAutomix(playlistId = playlist.id)
-                                            playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata()))
-                                        }
-                                    } else { song.isSelected = !song.isSelected }
-                                },
+                                onClick = { if (!selection) { if (song.item.second.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else { playerConnection.service.getAutomix(playlistId = playlist.id); playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata())) } } else { song.isSelected = !song.isSelected } },
                                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) { selection = true }; wrappedSongs.forEach { it.isSelected = false }; song.isSelected = true }
-                            ).animateItem(fadeInSpec = tween(400), placementSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioLowBouncy)),
+                            ).animateItem()
                         )
                     }
 
-                    if (viewModel.continuation != null && songs.isNotEmpty() && isLoadingMore) {
-                        item(key = "loading_more") { ShimmerHost { repeat(2) { ListItemPlaceHolder() } } }
-                    }
+                    if (viewModel.continuation != null && songs.isNotEmpty() && isLoadingMore) { item(key = "loading_more") { ShimmerHost { repeat(2) { ListItemPlaceHolder() } } } }
                 } else {
                     val isPrivatePlaylist = error?.contains("PLAYLIST_PRIVATE") == true
                     item(key = "error") {
@@ -501,14 +410,10 @@ fun OnlinePlaylistScreen(
 
         DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
-        val topAppBarColors = if (transparentAppBar) {
-            TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent, navigationIconContentColor = MaterialTheme.colorScheme.onBackground, titleContentColor = MaterialTheme.colorScheme.onBackground, actionIconContentColor = MaterialTheme.colorScheme.onBackground)
-        } else {
-            TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surface)
-        }
+        val appBarContainerColor by animateColorAsState(targetValue = if (showTopBarTitle || isSearching || selection) MaterialTheme.colorScheme.surface else Color.Transparent, animationSpec = tween(300), label = "appBarColor")
 
         TopAppBar(
-            colors = topAppBarColors,
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = appBarContainerColor, scrolledContainerColor = MaterialTheme.colorScheme.surface),
             title = {
                 if (selection) { val count = wrappedSongs.count { it.isSelected }; Text(text = pluralStringResource(R.plurals.n_song, count, count), style = MaterialTheme.typography.titleLarge) }
                 else if (isSearching) { TextField(value = query, onValueChange = { query = it }, placeholder = { Text(text = stringResource(R.string.search), style = MaterialTheme.typography.titleLarge) }, singleLine = true, textStyle = MaterialTheme.typography.titleLarge, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent), modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)) }
