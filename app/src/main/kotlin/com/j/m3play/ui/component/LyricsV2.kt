@@ -798,8 +798,9 @@ private fun MetrolistWordLevelCanvas(
             if (!word.text.endsWith("-")) {
                 if (currentGroup.size > 1) {
                     val groupSize = currentGroup.size
-                    val groupStartMs = (effectiveWords[currentGroup.first()].startTime * 1000).toLong()
-                    val groupEndMs = (word.endTime * 1000).toLong()
+                    // Fixed: Double multiplication safely cast to Long
+                    val groupStartMs = (effectiveWords[currentGroup.first()].startTime * 1000.0).toLong()
+                    val groupEndMs = (word.endTime * 1000.0).toLong()
                     currentGroup.forEachIndexed { pos, idx ->
                         map[idx] = HyphenGroupWord(pos, groupSize, pos == groupSize - 1, groupStartMs, groupEndMs)
                     }
@@ -834,7 +835,11 @@ private fun MetrolistWordLevelCanvas(
                     if (isRtlText) {
                         drawText(layoutResult, color = lineColor.copy(alpha = focusedAlpha))
                     } else {
+                        // Cast to Float ONCE, completely isolating 'Double' Math issues!
                         val smoothPosition = currentPositionProvider()
+                        val smoothPositionF = smoothPosition.toFloat()
+                        val piF = PI.toFloat()
+                        
                         val (wordIdxMap, charInWordMap, wordLenMap) = charToWordData
                         
                         val wordWobbles = FloatArray(words.size)
@@ -844,21 +849,21 @@ private fun MetrolistWordLevelCanvas(
                         // 1. Single efficient loop for word metrics
                         for (w in effectiveWords.indices) {
                             val word = effectiveWords[w]
-                            val startMs = word.startTime * 1000f
-                            val endMs = word.endTime * 1000f
-                            val timeSinceStart = smoothPosition - startMs
+                            val startMs = word.startTime.toFloat() * 1000f
+                            val endMs = word.endTime.toFloat() * 1000f
+                            val timeSinceStart = smoothPositionF - startMs
                             
-                            if (smoothPosition > endMs) {
+                            if (smoothPositionF > endMs) {
                                 isWordSungs[w] = true
                                 sungFactors[w] = 1f
-                            } else if (smoothPosition >= startMs) {
+                            } else if (smoothPositionF >= startMs) {
                                 sungFactors[w] = (timeSinceStart / (endMs - startMs).coerceAtLeast(1f)).coerceIn(0f, 1f)
                             }
 
                             val originalWordIdx = effectiveToOriginalIdx[w]
                             if (originalWordIdx != -1) {
-                                val oStartMs = words[originalWordIdx].startTime * 1000f
-                                val oTimeSince = smoothPosition - oStartMs
+                                val oStartMs = words[originalWordIdx].startTime.toFloat() * 1000f
+                                val oTimeSince = smoothPositionF - oStartMs
                                 if (oTimeSince in 0f..750f) {
                                     wordWobbles[originalWordIdx] = if (oTimeSince < 125f) oTimeSince / 125f else (1f - (oTimeSince - 125f) / 625f).coerceAtLeast(0f)
                                 }
@@ -884,17 +889,20 @@ private fun MetrolistWordLevelCanvas(
                                 val groupWord = hyphenGroupData[wordIdx]
                                 if (groupWord != null) {
                                     val pOut = ((smoothPosition - groupWord.groupEndMs).toFloat() / 600f).coerceIn(0f, 1f)
-                                    if (pOut > 0f) crescendoDeltaX = (groupWord.pos * 0.012f + 0.06f) * exp(-2.5f * pOut) * cos(10.0f * pOut * PI.toFloat()) * (1f - pOut)
-                                    else if (groupWord.isLast) crescendoDeltaX = groupWord.pos * 0.012f + 0.06f * (1f - exp(-2.5f * sungFactor) * cos(10.0f * sungFactor * PI.toFloat()) * (1f - sungFactor))
+                                    if (pOut > 0f) crescendoDeltaX = (groupWord.pos * 0.012f + 0.06f) * exp(-2.5f * pOut) * cos(10.0f * pOut * piF) * (1f - pOut)
+                                    else if (groupWord.isLast) crescendoDeltaX = groupWord.pos * 0.012f + 0.06f * (1f - exp(-2.5f * sungFactor) * cos(10.0f * sungFactor * piF) * (1f - sungFactor))
                                     else crescendoDeltaX = (groupWord.pos * 0.012f) + if (sungFactor > 0f) 0.02f * (1f - sungFactor) else 0f
                                 }
 
+                                val wordItem = effectiveWords[wordIdx]
+                                val wStart = wordItem.startTime.toFloat() * 1000f
+                                val wEnd = wordItem.endTime.toFloat() * 1000f
                                 val charLp = if (wordLenMap[i] > 0) {
-                                    val dur = (effectiveWords[wordIdx].endTime * 1000f - effectiveWords[wordIdx].startTime * 1000f).coerceAtLeast(100f)
-                                    (((smoothPosition - effectiveWords[wordIdx].startTime * 1000f) / dur - charInWordMap[i].toFloat() / wordLenMap[i].toFloat()) * wordLenMap[i].toFloat()).coerceIn(0f, 1f)
+                                    val dur = (wEnd - wStart).coerceAtLeast(100f)
+                                    (((smoothPositionF - wStart) / dur - charInWordMap[i].toFloat() / wordLenMap[i].toFloat()) * wordLenMap[i].toFloat()).coerceIn(0f, 1f)
                                 } else 0f
 
-                                val nudgeScale = if (!isWordSung && sungFactor > 0f) 0.038f * sin(charLp * PI.toFloat()) * exp(-3f * charLp) else 0f
+                                val nudgeScale = if (!isWordSung && sungFactor > 0f) 0.038f * sin(charLp * piF) * exp(-3f * charLp) else 0f
                                 charScaleX += (wobble * 0.025f) + crescendoDeltaX + (nudgeScale * 0.3f)
                             }
                             lineTotalPushes[lineIdx] += charBoundsArray[i].width * (charScaleX - 1f)
@@ -920,20 +928,23 @@ private fun MetrolistWordLevelCanvas(
                                 val wobble = if (originalWordIdx != -1) wordWobbles[originalWordIdx] else 0f
                                 
                                 val wordItem = effectiveWords[wordIdx]
-                                val dur = (wordItem.endTime * 1000f - wordItem.startTime * 1000f).coerceAtLeast(100f)
-                                charLp = (((smoothPosition - wordItem.startTime * 1000f) / dur - charInWordMap[i].toFloat() / wordLenMap[i].toFloat()) * wordLenMap[i].toFloat()).coerceIn(0f, 1f)
+                                val wStart = wordItem.startTime.toFloat() * 1000f
+                                val wEnd = wordItem.endTime.toFloat() * 1000f
+                                val dur = (wEnd - wStart).coerceAtLeast(100f)
+                                
+                                charLp = (((smoothPositionF - wStart) / dur - charInWordMap[i].toFloat() / wordLenMap[i].toFloat()) * wordLenMap[i].toFloat()).coerceIn(0f, 1f)
 
                                 var crescendoDeltaX = 0f
                                 var crescendoDeltaY = 0f
                                 val groupWord = hyphenGroupData[wordIdx]
                                 if (groupWord != null) {
                                     val pOut = ((smoothPosition - groupWord.groupEndMs).toFloat() / 600f).coerceIn(0f, 1f)
-                                    if (pOut > 0f) { val spr = (groupWord.pos * 0.012f + 0.06f) * exp(-3.5f * pOut) * cos(5.0f * pOut * PI.toFloat()) * (1f - pOut); crescendoDeltaX = spr; crescendoDeltaY = spr }
-                                    else if (groupWord.isLast) { val bas = groupWord.pos * 0.012f + 0.06f * (1f - exp(-3.5f * sungFactor) * cos(5.0f * sungFactor * PI.toFloat()) * (1f - sungFactor)); crescendoDeltaX = bas; crescendoDeltaY = bas }
+                                    if (pOut > 0f) { val spr = (groupWord.pos * 0.012f + 0.06f) * exp(-3.5f * pOut) * cos(5.0f * pOut * piF) * (1f - pOut); crescendoDeltaX = spr; crescendoDeltaY = spr }
+                                    else if (groupWord.isLast) { val bas = groupWord.pos * 0.012f + 0.06f * (1f - exp(-3.5f * sungFactor) * cos(5.0f * sungFactor * piF) * (1f - sungFactor)); crescendoDeltaX = bas; crescendoDeltaY = bas }
                                     else { val bas = (groupWord.pos * 0.012f) + if (sungFactor > 0f) 0.02f * (1f - sungFactor) else 0f; crescendoDeltaX = bas; crescendoDeltaY = bas }
                                 }
 
-                                val nudgeScale = if (!isWordSung && sungFactor > 0f) 0.038f * sin(charLp * PI.toFloat()) * exp(-3f * charLp) else 0f
+                                val nudgeScale = if (!isWordSung && sungFactor > 0f) 0.038f * sin(charLp * piF) * exp(-3f * charLp) else 0f
                                 charScaleX += (wobble * 0.025f) + crescendoDeltaX + nudgeScale * 0.3f
                                 charScaleY += (wobble * 0.015f) + crescendoDeltaY + nudgeScale
                             }
@@ -944,7 +955,12 @@ private fun MetrolistWordLevelCanvas(
                             }) {
                                 if (wordIdx != -1 && !isWordSung && sungFactor > 0.001f) {
                                     val wordItem = effectiveWords[wordIdx]
-                                    val impactFactor = (((((wordItem.endTime * 1000f - wordItem.startTime * 1000f) / wordItem.text.length.coerceAtLeast(1)) - 100f) / 250f).coerceIn(0f, 1f) * 0.6f + (((wordItem.endTime * 1000f - wordItem.startTime * 1000f) - 300f) / 1500f).coerceIn(0f, 1f) * 0.4f).coerceIn(0f, 1f) * (sungFactor * 5f).coerceIn(0f, 1f) * ((1f - sungFactor) * 8f).coerceIn(0f, 1f)
+                                    val wStart = wordItem.startTime.toFloat() * 1000f
+                                    val wEnd = wordItem.endTime.toFloat() * 1000f
+                                    val wordDur = wEnd - wStart
+                                    
+                                    val impactFactor = ((((wordDur / wordItem.text.length.coerceAtLeast(1)) - 100f) / 250f).coerceIn(0f, 1f) * 0.6f + ((wordDur - 300f) / 1500f).coerceIn(0f, 1f) * 0.4f).coerceIn(0f, 1f) * (sungFactor * 5f).coerceIn(0f, 1f) * ((1f - sungFactor) * 8f).coerceIn(0f, 1f)
+                                    
                                     if (impactFactor > 0.01f) {
                                         drawIntoCanvas { canvas ->
                                             glowPaint.color = expressiveAccent.copy(alpha = (0.35f * impactFactor).coerceIn(0f, 0.4f)).toArgb()
