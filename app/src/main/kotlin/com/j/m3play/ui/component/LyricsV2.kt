@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V3::APPLE_MUSIC_EDITION_EXACT
+ * Signature: M3PLAY::COMPONENT::V4::APPLE_MUSIC_ULTIMATE_CLONE
  */
 
 package com.j.m3play.ui.component
@@ -57,17 +57,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -128,32 +122,13 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // ──────────────────────────────────────────────────────────────────────
-// Helper Extensions for Metrolist Canvas Rendering
-// ──────────────────────────────────────────────────────────────────────
-
-private fun String.toGraphemeClusters(): List<String> {
-    if (isEmpty()) return emptyList()
-    val result = mutableListOf<String>()
-    val it = java.text.BreakIterator.getCharacterInstance()
-    it.setText(this)
-    var start = it.first()
-    var end = it.next()
-    while (end != java.text.BreakIterator.DONE) {
-        result.add(substring(start, end))
-        start = end
-        end = it.next()
-    }
-    return result
-}
-
-// ──────────────────────────────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────────────────────────────
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
-private const val LYRICS_ANCHOR_RATIO = 0.35f
-private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 68.dp
-private val LYRICS_ITEM_GAP_DP = 24.dp // Increased for Apple Music breathing room
+private const val LYRICS_ANCHOR_RATIO = 0.40f // Apple Music anchors slightly lower
+private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
+private val LYRICS_ITEM_GAP_DP = 28.dp // Large breathing room between lines
 private const val LYRICS_STAGGER_DELAY_PER_DISTANCE = 20
 private const val LYRICS_STAGGER_DELAY_MAX_MS = 200
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
@@ -174,9 +149,10 @@ fun LyricsV2(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
+    // ── M3-Play Preferences ──
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
-    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 28f) // Slightly larger baseline
-    val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
+    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 32f) // Premium large text
+    val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.25f)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
     val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
@@ -192,6 +168,7 @@ fun LyricsV2(
     var showMaxSelectionToast by remember { mutableStateOf(false) }
     val maxSelectionLimit = 5
 
+    // ── Data Parsing ──
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
     val isSynced = remember(lyrics) { lyrics != null && (lyrics.startsWith("[") || isTtml(lyrics)) }
@@ -286,8 +263,10 @@ fun LyricsV2(
         }
     }
 
+    // ── Sync & Scroll Mechanics ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionState by remember { mutableLongStateOf(0L) }
+    
     var currentPlayingLineIndex by rememberSaveable { mutableIntStateOf(0) }
     var focusScrollIndex by rememberSaveable { mutableIntStateOf(0) }
     
@@ -444,7 +423,7 @@ fun LyricsV2(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .smoothFadingEdge(vertical = 80.dp)
+                    .smoothFadingEdge(vertical = 120.dp) // Softer top/bottom fade
                     .clipToBounds()
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
@@ -494,7 +473,7 @@ fun LyricsV2(
                             val animatedOffset by animateFloatAsState(
                                 targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
                                 animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
-                                                else tween(750, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
+                                                else tween(800, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
                                 label = "lyricStaggeredOffset_$listIndex"
                             )
 
@@ -569,7 +548,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Apple Music Premium Render Engine
+// Apple Music Exact Engine (NATIVE PATH CLIPPING)
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -594,17 +573,26 @@ internal fun AppleMusicLyricsLine(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    // Apple Music relies heavily on Left Alignment (Start) with padding
+    // Left-aligned default for premium look
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    // Smooth Scale Apple Music Feel
-    val targetScale = if (isActiveLine) 1.0f else 0.75f // Smaller inactive text
+    // Apple Music scales inactive text down to 80% smoothly
+    val targetScale = if (isActiveLine) 1.0f else 0.80f
     val lineScale by animateFloatAsState(
         targetValue = targetScale, 
-        animationSpec = tween(400, easing = FastOutSlowInEasing), 
+        animationSpec = tween(500, easing = FastOutSlowInEasing), 
         label = "lineScale"
     )
+    
+    // Apple Music inactive lines are dim, active line pops instantly
+    val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f 
+    else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
+        when (abs(index - displayedCurrentLineIndex)) {
+            0 -> 1f; 1 -> 0.45f; 2 -> 0.3f; else -> 0.2f
+        }
+    } else 0.3f
+    val animatedContainerAlpha by animateFloatAsState(targetAlpha, tween(400), label = "containerAlpha")
 
     val itemModifier = Modifier
         .fillMaxWidth()
@@ -613,70 +601,56 @@ internal fun AppleMusicLyricsLine(
         .combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .background(if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent)
         .padding(
-            start = 24.dp, // Premium padding
-            end = 24.dp,
-            top = 8.dp,
-            bottom = 8.dp
+            start = 32.dp, // Huge Apple Music padding
+            end = 32.dp,
+            top = 10.dp,
+            bottom = 10.dp
         )
         .graphicsLayer {
             scaleX = lineScale
             scaleY = lineScale
-            // Vital for Apple Music feel: Scale from the very edge so it doesn't bounce around
+            alpha = animatedContainerAlpha
+            // Transform from LEFT boundary so text feels anchored
             val originX = if (horizontalAlignment == Alignment.Start) 0f else if (horizontalAlignment == Alignment.End) 1f else 0.5f
             transformOrigin = TransformOrigin(originX, 0.5f)
         }
 
     Box(modifier = itemModifier, contentAlignment = Alignment.CenterStart) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = horizontalAlignment) {
-            val inactiveAlpha = if (isBackground) 0.15f else 0.35f
-            val activeAlpha = 1f
-            val focusedAlpha = if (isBackground) 0.5f else 0.45f
-            
-            val targetAlpha = if (!isSynced || isBackground || isActiveLine) activeAlpha 
-            else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
-                when (abs(index - displayedCurrentLineIndex)) {
-                    0 -> focusedAlpha; 1 -> 0.35f; 2 -> 0.25f; else -> inactiveAlpha
-                }
-            } else inactiveAlpha
-            
-            val animatedAlpha by animateFloatAsState(targetAlpha, tween(300), label = "lyricsLineAlpha")
-            val lineColor = expressiveAccent.copy(alpha = if (isBackground) focusedAlpha else animatedAlpha)
-            
             val mainText = item.text
             val romanizedText by item.romanizedTextFlow.collectAsState()
 
-            // The secret to Apple Music look: ExtraBold font + Soft Shadow
             val lyricStyle = TextStyle(
-                fontSize = if (isBackground) (lyricsTextSize * 0.7f).sp else lyricsTextSize.sp,
-                fontWeight = FontWeight.ExtraBold, 
+                fontSize = lyricsTextSize.sp,
+                fontWeight = FontWeight.ExtraBold, // Crucial for Apple feel
                 fontStyle = if (isBackground) FontStyle.Italic else FontStyle.Normal,
-                lineHeight = if (isBackground) (lyricsTextSize * 0.7f * lyricsLineSpacing).sp else (lyricsTextSize * lyricsLineSpacing).sp,
+                lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                 letterSpacing = (-0.5).sp,
                 textAlign = textAlign,
                 fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
                 platformStyle = PlatformTextStyle(includeFontPadding = false),
-                lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both),
-                shadow = if (isActiveLine) Shadow(color = expressiveAccent.copy(alpha = 0.35f), blurRadius = 24f) else null // Premium Bloom
+                lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
             )
 
-            if (isSynced && item.words != null && (isActiveLine || abs(index - displayedCurrentLineIndex) <= 3) && mainText.isNotBlank()) {
-                AppleMusicWordMaskingCanvas(
+            if (isSynced && item.words != null && isActiveLine && mainText.isNotBlank()) {
+                // ACTIVE LINE: Draw two layers (Dim & Bright) and clip perfectly
+                AppleMusicNativeClipCanvas(
                     mainText = mainText,
                     words = item.words,
-                    isActiveLine = isActiveLine,
                     currentPositionProvider = currentPositionProvider,
                     lyricStyle = lyricStyle,
-                    lineColor = lineColor,
                     expressiveAccent = expressiveAccent
                 )
             } else {
-                Text(text = mainText, style = lyricStyle.copy(color = if (isActiveLine) expressiveAccent else lineColor), modifier = Modifier.fillMaxWidth())
+                // INACTIVE LINE: Just draw dim text once
+                val baseColor = if (isActiveLine) expressiveAccent else expressiveAccent.copy(alpha = 0.5f)
+                Text(text = mainText, style = lyricStyle.copy(color = baseColor), modifier = Modifier.fillMaxWidth())
             }
             
             if (romanizeLyrics && romanizedText != null) {
                 Text(
-                    text = romanizedText!!, fontSize = (lyricsTextSize * 0.55f).sp, color = expressiveAccent.copy(alpha = 0.6f),
-                    textAlign = textAlign, fontWeight = FontWeight.Normal, modifier = Modifier.padding(top = 2.dp),
+                    text = romanizedText!!, fontSize = (lyricsTextSize * 0.55f).sp, color = expressiveAccent.copy(alpha = 0.5f),
+                    textAlign = textAlign, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp),
                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily
                 )
             }
@@ -685,47 +659,35 @@ internal fun AppleMusicLyricsLine(
 }
 
 @Composable
-private fun AppleMusicWordMaskingCanvas(
+private fun AppleMusicNativeClipCanvas(
     mainText: String,
     words: List<WordTimestamp>,
-    isActiveLine: Boolean,
     currentPositionProvider: () -> Long,
     lyricStyle: TextStyle,
-    lineColor: Color,
     expressiveAccent: Color
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
 
-    val graphemeClusters = remember(mainText) { mainText.toGraphemeClusters() }
-    val clusterCount = graphemeClusters.size
-    val clusterCharOffsets = remember(mainText) {
-        IntArray(clusterCount).also { offsets ->
-            var charOffset = 0
-            graphemeClusters.forEachIndexed { i, cluster -> offsets[i] = charOffset; charOffset += cluster.length }
-        }
-    }
-
-    val charToWordIdx = remember(mainText, words, graphemeClusters, clusterCharOffsets) {
-        val wordIdxMap = IntArray(clusterCount) { -1 }
-        var currentPos = 0
-        var clCursor = 0
+    // Fast robust mapping: Find which substring index belongs to which WordTimestamp index
+    val charToWordIdx = remember(mainText, words) {
+        val mapping = IntArray(mainText.length) { -1 }
+        var searchIndex = 0
         words.forEachIndexed { wordIdx, word ->
-            val rawWordText = word.text
-            val indexInMain = mainText.indexOf(rawWordText, currentPos)
-            if (indexInMain != -1) {
-                val wordEndInMain = indexInMain + rawWordText.length
-                while (clCursor < clusterCount && clusterCharOffsets[clCursor] < indexInMain) clCursor++
-                while (clCursor < clusterCount && clusterCharOffsets[clCursor] < wordEndInMain) {
-                    wordIdxMap[clCursor] = wordIdx; clCursor++
+            val idx = mainText.indexOf(word.text, searchIndex)
+            if (idx != -1) {
+                // Map the entire word length
+                for (i in idx until idx + word.text.length) {
+                    mapping[i] = wordIdx
                 }
-                if (clCursor < clusterCount && clusterCharOffsets[clCursor] == wordEndInMain && wordEndInMain < mainText.length && mainText[wordEndInMain] == ' ') {
-                    wordIdxMap[clCursor] = wordIdx; clCursor++
+                // Map the trailing space if it exists for smooth continuity
+                if (idx + word.text.length < mainText.length && mainText[idx + word.text.length] == ' ') {
+                    mapping[idx + word.text.length] = wordIdx
                 }
-                currentPos = wordEndInMain
+                searchIndex = idx + word.text.length
             }
         }
-        wordIdxMap
+        mapping
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -733,96 +695,79 @@ private fun AppleMusicWordMaskingCanvas(
         val layoutResult = remember(mainText, maxWidthPx, lyricStyle) {
             textMeasurer.measure(text = mainText, style = lyricStyle, constraints = Constraints(minWidth = maxWidthPx, maxWidth = maxWidthPx), softWrap = true)
         }
-        
-        // Caching exact bounding boxes for every single word block
-        val wordRectsArray = remember(layoutResult, charToWordIdx, words.size) {
-            Array(words.size) { Rect.Zero }.also { rects ->
-                for (w in words.indices) {
-                    var left = Float.MAX_VALUE
-                    var right = Float.MIN_VALUE
-                    var top = Float.MAX_VALUE
-                    var bottom = Float.MIN_VALUE
-                    var found = false
-                    
-                    for (i in 0 until clusterCount) {
-                        if (charToWordIdx[i] == w) {
-                            val bounds = layoutResult.getBoundingBox(clusterCharOffsets[i])
-                            left = minOf(left, bounds.left)
-                            right = maxOf(right, bounds.right)
-                            top = minOf(top, bounds.top)
-                            bottom = maxOf(bottom, bounds.bottom)
-                            found = true
-                        }
-                    }
-                    if (found) {
-                        // Inflate safely by a few pixels so text like 'j' or 'y' doesn't get clipped
-                        rects[w] = Rect(left - 8f, top - 8f, right + 8f, bottom + 8f)
-                    }
-                }
-            }
-        }
 
-        Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false, compositingStrategy = CompositingStrategy.Offscreen)) {
-            if (mainText.isNotEmpty()) {
-                if (!isActiveLine) {
-                    drawText(layoutResult, color = lineColor)
-                } else {
-                    val smoothPositionF = currentPositionProvider().toFloat()
+        // We use core Canvas primitives here: Two drawText calls, separated by a clipPath.
+        // This is exactly how complex UI engines render "karaoke" flawlessly without BlendMode bugs.
+        Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false)) {
+            
+            // LAYER 1: Unsung Text (Active line, but dim) - Apple Music uses ~40% opacity for unsung active text
+            drawText(layoutResult, color = expressiveAccent.copy(alpha = 0.40f))
+            
+            val smoothPositionF = currentPositionProvider().toFloat()
+            val highlightPath = Path()
+
+            // Construct exact Path line-by-line. (Flawless multiline support)
+            for (lineIndex in 0 until layoutResult.lineCount) {
+                val lineTop = layoutResult.getLineTop(lineIndex)
+                val lineBottom = layoutResult.getLineBottom(lineIndex)
+                val lineStartOffset = layoutResult.getLineStart(lineIndex)
+                val lineEndOffset = layoutResult.getLineEnd(lineIndex)
+                val lineLeftBound = layoutResult.getLineLeft(lineIndex)
+                
+                var lineWipeX = lineLeftBound
+
+                // Scan through characters on this specific line to find the fill point
+                for (i in lineStartOffset until lineEndOffset) {
+                    if (i >= charToWordIdx.size) break
+                    val wordIdx = charToWordIdx[i]
                     
-                    // 1. Bottom Layer: Inactive Dim Text
-                    drawText(layoutResult, color = lineColor)
-                    
-                    // 2. The Apple Music Mask Layer
-                    drawIntoCanvas { canvas ->
-                        // Save a new isolation layer
-                        canvas.saveLayer(Rect(0f, 0f, size.width, size.height), Paint())
+                    if (wordIdx != -1) {
+                        val word = words[wordIdx]
+                        val wStart = word.startTime * 1000f
+                        val wEnd = word.endTime * 1000f
+                        val charBounds = layoutResult.getBoundingBox(i)
                         
-                        // --- BUILD THE MASK ---
-                        for (w in words.indices) {
-                            val rect = wordRectsArray[w]
-                            if (rect.width <= 0f) continue
+                        if (smoothPositionF >= wEnd) {
+                            // Word fully sung
+                            lineWipeX = maxOf(lineWipeX, charBounds.right)
+                        } else if (smoothPositionF > wStart) {
+                            // Word currently singing: Interpolate smoothly across the word
+                            val progress = (smoothPositionF - wStart) / (wEnd - wStart).coerceAtLeast(1f)
                             
-                            val startMs = words[w].startTime.toFloat() * 1000f
-                            val endMs = words[w].endTime.toFloat() * 1000f
+                            // Find bounds of this word *on this line only*
+                            var wLeftOnLine = Float.MAX_VALUE
+                            var wRightOnLine = Float.MIN_VALUE
+                            for (j in lineStartOffset until lineEndOffset) {
+                                if (j < charToWordIdx.size && charToWordIdx[j] == wordIdx) {
+                                    val b = layoutResult.getBoundingBox(j)
+                                    wLeftOnLine = minOf(wLeftOnLine, b.left)
+                                    wRightOnLine = maxOf(wRightOnLine, b.right)
+                                }
+                            }
                             
-                            if (smoothPositionF >= endMs) {
-                                // Word fully sung: Solid mask
-                                drawRect(
-                                    color = Color.Black,
-                                    topLeft = Offset(rect.left, rect.top),
-                                    size = Size(rect.width, rect.height)
-                                )
-                            } else if (smoothPositionF > startMs) {
-                                // Word currently singing: Soft Gradient wipe
-                                val progress = ((smoothPositionF - startMs) / (endMs - startMs).coerceAtLeast(10f)).coerceIn(0f, 1f)
-                                
-                                val maskBrush = Brush.horizontalGradient(
-                                    0f to Color.Black,
-                                    progress to Color.Black,
-                                    minOf(1f, progress + 0.35f) to Color.Transparent, // 35% soft feather edge
-                                    1f to Color.Transparent,
-                                    startX = rect.left,
-                                    endX = rect.right
-                                )
-                                drawRect(
-                                    brush = maskBrush,
-                                    topLeft = Offset(rect.left, rect.top),
-                                    size = Size(rect.width, rect.height)
-                                )
+                            lineWipeX = maxOf(lineWipeX, wLeftOnLine + (wRightOnLine - wLeftOnLine) * progress)
+                            break // Found the current word, rest of line is unsung
+                        }
+                    } else {
+                        // Space or Punctuation handling
+                        if (i > 0 && charToWordIdx[i - 1] != -1) {
+                            val prevWordIdx = charToWordIdx[i - 1]
+                            if (smoothPositionF >= words[prevWordIdx].endTime * 1000f) {
+                                lineWipeX = maxOf(lineWipeX, layoutResult.getBoundingBox(i).right)
                             }
                         }
-                        
-                        // --- APPLY THE TEXT INTO THE MASK ---
-                        // SrcIn blends the pure white text only inside the areas we just drew!
-                        drawText(
-                            textLayoutResult = layoutResult,
-                            color = expressiveAccent,
-                            blendMode = BlendMode.SrcIn
-                        )
-                        
-                        canvas.restore()
                     }
                 }
+                
+                // Add the filled rectangle for this line to the master Path
+                if (lineWipeX > lineLeftBound) {
+                    highlightPath.addRect(Rect(left = lineLeftBound, top = lineTop, right = lineWipeX, bottom = lineBottom))
+                }
+            }
+
+            // LAYER 2: Sung Text (Bright Pure White), masked perfectly
+            clipPath(highlightPath) {
+                drawText(layoutResult, color = expressiveAccent)
             }
         }
     }
