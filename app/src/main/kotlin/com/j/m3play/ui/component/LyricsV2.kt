@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V4.1::APPLE_MUSIC_ULTIMATE_CLONE_FIXED
+ * Signature: M3PLAY::COMPONENT::
  */
 
 package com.j.m3play.ui.component
@@ -16,7 +16,7 @@ import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -60,9 +60,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -72,8 +71,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -82,6 +84,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -127,11 +130,9 @@ import kotlin.math.roundToInt
 // ──────────────────────────────────────────────────────────────────────
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
-private const val LYRICS_ANCHOR_RATIO = 0.40f // Apple Music anchors slightly lower
+private const val LYRICS_ANCHOR_RATIO = 0.38f 
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
-private val LYRICS_ITEM_GAP_DP = 28.dp // Large breathing room between lines
-private const val LYRICS_STAGGER_DELAY_PER_DISTANCE = 20
-private const val LYRICS_STAGGER_DELAY_MAX_MS = 200
+private val LYRICS_ITEM_GAP_DP = 28.dp 
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 // ──────────────────────────────────────────────────────────────────────
@@ -150,9 +151,8 @@ fun LyricsV2(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    // ── M3-Play Preferences ──
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
-    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 32f) // Premium large text
+    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 32f) 
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.25f)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
@@ -169,7 +169,6 @@ fun LyricsV2(
     var showMaxSelectionToast by remember { mutableStateOf(false) }
     val maxSelectionLimit = 5
 
-    // ── Data Parsing ──
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
     val isSynced = remember(lyrics) { lyrics != null && (lyrics.startsWith("[") || isTtml(lyrics)) }
@@ -264,7 +263,6 @@ fun LyricsV2(
         }
     }
 
-    // ── Sync & Scroll Mechanics ──
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionState by remember { mutableLongStateOf(0L) }
     
@@ -308,13 +306,14 @@ fun LyricsV2(
         }
     }
 
+    // CRASH FIX: Safety Clamp to prevent IndexOutOfBoundsException on song changes
+    val activeListIndex = if (entriesWithWords.isEmpty()) -1 else focusScrollIndex.coerceIn(0, entriesWithWords.lastIndex)
+
     var flingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val velocityTracker = remember { VelocityTracker() }
     val decayAnimSpec = remember { exponentialDecay<Float>(frictionMultiplier = 1.8f) }
     val itemHeights = remember(lyrics, entriesWithWords) { mutableStateMapOf<Int, Int>() }
     var isInitialLayout by remember(lyrics, entriesWithWords) { mutableStateOf(true) }
-
-    val activeListIndex = focusScrollIndex.coerceAtLeast(0)
 
     val activity = context as? android.app.Activity
     DisposableEffect(Unit) {
@@ -337,6 +336,7 @@ fun LyricsV2(
                 map[activeListIndex] = 0f
                 var currentY = 0f
                 for (i in activeListIndex - 1 downTo 0) {
+                    if (i >= entriesWithWords.size) continue // Extra Safety check
                     val item = entriesWithWords[i]
                     val height = itemHeights[i]?.toFloat() ?: lineHeightPx
                     val isBg = item.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -345,6 +345,7 @@ fun LyricsV2(
                 }
                 currentY = 0f
                 for (i in activeListIndex until entriesWithWords.size - 1) {
+                    if (i + 1 >= entriesWithWords.size) continue // Extra Safety check
                     val nextItem = entriesWithWords[i + 1]
                     val height = itemHeights[i]?.toFloat() ?: lineHeightPx
                     val isNextBg = nextItem.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -364,7 +365,7 @@ fun LyricsV2(
                     val isNextBg = entriesWithWords[i + 1].words?.all { it.isBackground || it.text.isBlank() } == true
                     (height + if (isNextBg) 0f else with(density) { LYRICS_ITEM_GAP_DP.toPx() }).toDouble()
                 }.toFloat()
-                val lastHeight = itemHeights[entriesWithWords.size - 1]?.toFloat() ?: constraintLineHeightPx
+                val lastHeight = itemHeights[entriesWithWords.lastIndex]?.toFloat() ?: constraintLineHeightPx
                 with(density) { 100.dp.toPx() } - anchorY - totalBelow - lastHeight
             }
         }
@@ -390,7 +391,7 @@ fun LyricsV2(
                 androidx.compose.animation.core.animate(
                     initialValue = userManualOffset,
                     targetValue = 0f,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 60f)
                 ) { value, _ ->
                     userManualOffset = value
                 }
@@ -404,7 +405,7 @@ fun LyricsV2(
                     snapshotFlow { 
                         val h = itemHeights.toMap()
                         val windowStart = (activeListIndex - 8).coerceAtLeast(0)
-                        val windowEnd = (activeListIndex + 12).coerceAtMost(entriesWithWords.size - 1)
+                        val windowEnd = (activeListIndex + 12).coerceAtMost(entriesWithWords.lastIndex)
                         (windowStart..windowEnd).all { h.containsKey(it) } 
                     }.first { it }
                 }
@@ -424,7 +425,7 @@ fun LyricsV2(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .smoothFadingEdge(vertical = 80.dp)
+                    .smoothFadingEdge(vertical = 120.dp) 
                     .clipToBounds()
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
@@ -463,7 +464,6 @@ fun LyricsV2(
                                 .onSizeChanged { itemHeights[listIndex] = it.height }
                             )
                         } else {
-                            val distance = abs(listIndex - activeListIndex)
                             val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
                             val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
                             
@@ -474,8 +474,11 @@ fun LyricsV2(
                             val animatedOffset by animateFloatAsState(
                                 targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
                                 animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
-                                                else tween(800, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
-                                label = "lyricStaggeredOffset_$listIndex"
+                                                else spring(
+                                                    dampingRatio = 0.90f,
+                                                    stiffness = 50f
+                                                ),
+                                label = "lyricSpringOffset_$listIndex"
                             )
 
                             val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -504,7 +507,7 @@ fun LyricsV2(
                                     lyricsLineSpacing = lyricsLineSpacing,
                                     expressiveAccent = textColor,
                                     isAutoScrollEnabled = isAutoScrollEnabled,
-                                    displayedCurrentLineIndex = currentPlayingLineIndex,
+                                    displayedCurrentLineIndex = currentPlayingLineIndex.coerceIn(0, entriesWithWords.lastIndex), // Safety clamp
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
                                     onSizeChanged = { itemHeights[listIndex] = it },
@@ -549,7 +552,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Apple Music Exact Engine (NATIVE PATH CLIPPING)
+// Apple Music Engine V6.1 (CRASH-PROOF BOUNDS CHECKING)
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -577,20 +580,28 @@ internal fun AppleMusicLyricsLine(
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    val targetScale = if (isActiveLine) 1.0f else 0.80f
+    val targetScale = if (isActiveLine) 1.0f 
+                      else if (abs(index - displayedCurrentLineIndex) <= 1) 0.85f 
+                      else 0.75f 
+                      
     val lineScale by animateFloatAsState(
         targetValue = targetScale, 
-        animationSpec = tween(500, easing = FastOutSlowInEasing), 
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = 80f), 
         label = "lineScale"
     )
     
     val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f 
     else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
         when (abs(index - displayedCurrentLineIndex)) {
-            0 -> 1f; 1 -> 0.45f; 2 -> 0.3f; else -> 0.2f
+            0 -> 1f; 1 -> 0.50f; 2 -> 0.35f; else -> 0.15f 
         }
-    } else 0.3f
-    val animatedContainerAlpha by animateFloatAsState(targetAlpha, tween(400), label = "containerAlpha")
+    } else 0.35f
+    
+    val animatedContainerAlpha by animateFloatAsState(
+        targetValue = targetAlpha, 
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 80f), 
+        label = "containerAlpha"
+    )
 
     val itemModifier = Modifier
         .fillMaxWidth()
@@ -610,7 +621,6 @@ internal fun AppleMusicLyricsLine(
             alpha = animatedContainerAlpha
             val originX = if (horizontalAlignment == Alignment.Start) 0f else if (horizontalAlignment == Alignment.End) 1f else 0.5f
             transformOrigin = TransformOrigin(originX, 0.5f)
-            // Removes any black shadows/artifacts from alpha blending bugs
             compositingStrategy = CompositingStrategy.Offscreen
         }
 
@@ -618,6 +628,24 @@ internal fun AppleMusicLyricsLine(
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = horizontalAlignment) {
             val mainText = item.text
             val romanizedText by item.romanizedTextFlow.collectAsState()
+
+            val annotatedMainText = remember(mainText, lyricsTextSize) {
+                buildAnnotatedString {
+                    val regex = Regex("\\(.*?\\)|\\[.*?\\]")
+                    var lastIndex = 0
+                    regex.findAll(mainText).forEach { matchResult ->
+                        append(mainText.substring(lastIndex, matchResult.range.first))
+                        withStyle(SpanStyle(
+                            fontSize = (lyricsTextSize * 0.75f).sp,
+                            fontWeight = FontWeight.SemiBold
+                        )) {
+                            append(matchResult.value)
+                        }
+                        lastIndex = matchResult.range.last + 1
+                    }
+                    append(mainText.substring(lastIndex))
+                }
+            }
 
             val lyricStyle = TextStyle(
                 fontSize = lyricsTextSize.sp,
@@ -632,8 +660,9 @@ internal fun AppleMusicLyricsLine(
             )
 
             if (isSynced && item.words != null && isActiveLine && mainText.isNotBlank()) {
-                AppleMusicNativeClipCanvas(
-                    mainText = mainText,
+                AppleMusicSoftWipeCanvas(
+                    annotatedText = annotatedMainText,
+                    rawTextLength = mainText.length,
                     words = item.words,
                     currentPositionProvider = currentPositionProvider,
                     lyricStyle = lyricStyle,
@@ -641,7 +670,7 @@ internal fun AppleMusicLyricsLine(
                 )
             } else {
                 val baseColor = if (isActiveLine) expressiveAccent else expressiveAccent.copy(alpha = 0.5f)
-                Text(text = mainText, style = lyricStyle.copy(color = baseColor), modifier = Modifier.fillMaxWidth())
+                Text(text = annotatedMainText, style = lyricStyle.copy(color = baseColor), modifier = Modifier.fillMaxWidth())
             }
             
             if (romanizeLyrics && romanizedText != null) {
@@ -656,8 +685,9 @@ internal fun AppleMusicLyricsLine(
 }
 
 @Composable
-private fun AppleMusicNativeClipCanvas(
-    mainText: String,
+private fun AppleMusicSoftWipeCanvas(
+    annotatedText: AnnotatedString,
+    rawTextLength: Int,
     words: List<WordTimestamp>,
     currentPositionProvider: () -> Long,
     lyricStyle: TextStyle,
@@ -666,19 +696,21 @@ private fun AppleMusicNativeClipCanvas(
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
 
-    val charToWordIdx = remember(mainText, words) {
-        val mapping = IntArray(mainText.length) { -1 }
+    val charToWordIdx = remember(annotatedText.text, words) {
+        val mapping = IntArray(rawTextLength) { -1 }
         var searchIndex = 0
         words.forEachIndexed { wordIdx, word ->
-            val idx = mainText.indexOf(word.text, searchIndex)
+            val idx = annotatedText.text.indexOf(word.text, searchIndex)
             if (idx != -1) {
+                // Bounds-safe iteration loop
                 for (i in idx until idx + word.text.length) {
-                    mapping[i] = wordIdx
+                    if (i < mapping.size) { mapping[i] = wordIdx }
                 }
-                if (idx + word.text.length < mainText.length && mainText[idx + word.text.length] == ' ') {
-                    mapping[idx + word.text.length] = wordIdx
+                val trailingSpaceIdx = idx + word.text.length
+                if (trailingSpaceIdx < mapping.size && trailingSpaceIdx < annotatedText.text.length && annotatedText.text[trailingSpaceIdx] == ' ') {
+                    mapping[trailingSpaceIdx] = wordIdx
                 }
-                searchIndex = idx + word.text.length
+                searchIndex = trailingSpaceIdx
             }
         }
         mapping
@@ -686,16 +718,16 @@ private fun AppleMusicNativeClipCanvas(
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val maxWidthPx = constraints.maxWidth
-        val layoutResult = remember(mainText, maxWidthPx, lyricStyle) {
-            textMeasurer.measure(text = mainText, style = lyricStyle, constraints = Constraints(minWidth = maxWidthPx, maxWidth = maxWidthPx), softWrap = true)
+        val layoutResult = remember(annotatedText, maxWidthPx, lyricStyle) {
+            textMeasurer.measure(text = annotatedText, style = lyricStyle, constraints = Constraints(minWidth = maxWidthPx, maxWidth = maxWidthPx), softWrap = true)
         }
 
         Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false)) {
-            // LAYER 1: Unsung Text (Apple Music dim opacity)
+            
             drawText(layoutResult, color = expressiveAccent.copy(alpha = 0.40f))
             
             val smoothPositionF = currentPositionProvider().toFloat()
-            val highlightPath = Path()
+            val featherWidthPx = 45f
 
             for (lineIndex in 0 until layoutResult.lineCount) {
                 val lineTop = layoutResult.getLineTop(lineIndex)
@@ -703,19 +735,21 @@ private fun AppleMusicNativeClipCanvas(
                 val lineStartOffset = layoutResult.getLineStart(lineIndex)
                 val lineEndOffset = layoutResult.getLineEnd(lineIndex)
                 val lineLeftBound = layoutResult.getLineLeft(lineIndex)
+                val lineRightBound = layoutResult.getLineRight(lineIndex)
                 
                 var lineWipeX = lineLeftBound
 
                 for (i in lineStartOffset until lineEndOffset) {
-                    if (i >= charToWordIdx.size) break
+                    if (i >= charToWordIdx.size) break // Safety clamp to prevent crash 
                     val wordIdx = charToWordIdx[i]
                     
-                    if (wordIdx != -1) {
+                    if (wordIdx != -1 && wordIdx < words.size) { // Verified bound-safe mapping
                         val word = words[wordIdx]
-                        
-                        // Strict Float casting to prevent Argument Mismatch Error
                         val wStart = (word.startTime * 1000.0).toFloat()
                         val wEnd = (word.endTime * 1000.0).toFloat()
+                        
+                        // Failsafe for trailing spaces missing bounds
+                        if (i >= annotatedText.text.length) break
                         
                         val charBounds = layoutResult.getBoundingBox(i)
                         
@@ -723,9 +757,9 @@ private fun AppleMusicNativeClipCanvas(
                             lineWipeX = maxOf(lineWipeX, charBounds.right)
                         } else if (smoothPositionF > wStart) {
                             val progress = ((smoothPositionF - wStart) / (wEnd - wStart).coerceAtLeast(1f)).coerceIn(0f, 1f)
-                            
                             var wLeftOnLine = Float.MAX_VALUE
                             var wRightOnLine = Float.MIN_VALUE
+                            
                             for (j in lineStartOffset until lineEndOffset) {
                                 if (j < charToWordIdx.size && charToWordIdx[j] == wordIdx) {
                                     val b = layoutResult.getBoundingBox(j)
@@ -733,30 +767,43 @@ private fun AppleMusicNativeClipCanvas(
                                     wRightOnLine = maxOf(wRightOnLine, b.right)
                                 }
                             }
-                            
-                            // Safe Float comparison 
                             lineWipeX = maxOf(lineWipeX, wLeftOnLine + (wRightOnLine - wLeftOnLine) * progress)
                             break 
                         }
                     } else {
-                        if (i > 0 && charToWordIdx[i - 1] != -1) {
+                        if (i > 0 && i - 1 < charToWordIdx.size && charToWordIdx[i - 1] != -1) {
                             val prevWordIdx = charToWordIdx[i - 1]
-                            val prevWEnd = (words[prevWordIdx].endTime * 1000.0).toFloat()
-                            if (smoothPositionF >= prevWEnd) {
-                                lineWipeX = maxOf(lineWipeX, layoutResult.getBoundingBox(i).right)
+                            if (prevWordIdx < words.size) {
+                                val prevWEnd = (words[prevWordIdx].endTime * 1000.0).toFloat()
+                                if (smoothPositionF >= prevWEnd) {
+                                    lineWipeX = maxOf(lineWipeX, layoutResult.getBoundingBox(i).right)
+                                }
                             }
                         }
                     }
                 }
                 
                 if (lineWipeX > lineLeftBound) {
-                    highlightPath.addRect(Rect(left = lineLeftBound, top = lineTop, right = lineWipeX, bottom = lineBottom))
+                    clipRect(left = lineLeftBound, top = lineTop, right = lineWipeX, bottom = lineBottom) {
+                        drawText(layoutResult, color = expressiveAccent)
+                    }
                 }
-            }
-
-            // LAYER 2: Sung Text (Pure bright color)
-            clipPath(highlightPath) {
-                drawText(layoutResult, color = expressiveAccent)
+                
+                if (lineWipeX >= lineLeftBound && lineWipeX < lineRightBound) {
+                    val slices = 10
+                    val sliceWidth = featherWidthPx / slices
+                    for (s in 0 until slices) {
+                        val sLeft = lineWipeX + (s * sliceWidth)
+                        val sRight = sLeft + sliceWidth
+                        val sliceAlpha = 1f - (s.toFloat() / slices)
+                        
+                        if (sLeft < lineRightBound) {
+                            clipRect(left = sLeft, top = lineTop, right = minOf(sRight, lineRightBound), bottom = lineBottom) {
+                                drawText(layoutResult, color = expressiveAccent.copy(alpha = sliceAlpha))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
