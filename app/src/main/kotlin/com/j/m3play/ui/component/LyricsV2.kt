@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V9:
+ * Signature: M3PLAY::COMPONENT::
  */
 
 package com.j.m3play.ui.component
@@ -64,14 +64,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
@@ -81,6 +78,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -130,7 +129,6 @@ import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.abs
-import kotlin.math.pow
 import kotlin.math.roundToInt
 
 // ──────────────────────────────────────────────────────────────────────
@@ -502,7 +500,6 @@ fun LyricsV2(
                             val isActiveLine = currentPlayingLineIndex == listIndex
                             val isSelected = selectedIndices.contains(listIndex)
 
-                            // Logic to calculate exact line duration for RN MusicLine Dots
                             val nextItemTime = if (listIndex < entriesWithWords.lastIndex) entriesWithWords[listIndex + 1].time else item.time + 5000L
                             val lineDurationMs = (nextItemTime - item.time).coerceAtLeast(100L).toInt()
 
@@ -526,7 +523,7 @@ fun LyricsV2(
                                     currentPositionProvider = { currentPositionState },
                                     lyricsTextSize = lyricsTextSize,
                                     lyricsLineSpacing = lyricsLineSpacing,
-                                    lineDurationMs = lineDurationMs, // Passing duration for the dots!
+                                    lineDurationMs = lineDurationMs,
                                     expressiveAccent = textColor,
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
@@ -572,7 +569,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// EXACT REACT NATIVE CLONE RENDERING ENGINE + MUSIC LINE DOTS
+// EXACT REACT NATIVE  RENDERING ENGINE + MUSIC LINE DOTS
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -599,7 +596,6 @@ internal fun RepoCloneLyricsLine(
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    // FROM REPO: opacity = withTiming(isActiveLine ? 1 : 0.1, {duration: 100, easing: Easing.quad})
     val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f else 0.1f
     
     val animatedContainerAlpha by animateFloatAsState(
@@ -620,9 +616,9 @@ internal fun RepoCloneLyricsLine(
             top = 10.dp,
             bottom = 10.dp
         )
+        //  OPTIMIZATION: Removed Offscreen compositing entirely to save GPU memory!
         .graphicsLayer {
             alpha = animatedContainerAlpha
-            compositingStrategy = CompositingStrategy.Offscreen
         }
 
     Box(modifier = itemModifier, contentAlignment = Alignment.CenterStart) {
@@ -642,7 +638,6 @@ internal fun RepoCloneLyricsLine(
                 lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
             )
 
-            // THE MUSIC LINE DOTS INTEGRATION
             if (mainText.isBlank()) {
                 AppleMusicMusicLineDots(
                     isActiveLine = isActiveLine,
@@ -650,7 +645,6 @@ internal fun RepoCloneLyricsLine(
                     durationMs = lineDurationMs
                 )
             } 
-            // NORMAL LYRICS RENDERING
             else if (isSynced && item.words != null) {
                 AnimatedWordLetterCanvas(
                     text = mainText,
@@ -674,9 +668,6 @@ internal fun RepoCloneLyricsLine(
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────
-// EXACT "MUSICLINE.TSX" REACT NATIVE TRANSLATION
-// ──────────────────────────────────────────────────────────────────────
 @Composable
 private fun AppleMusicMusicLineDots(
     isActiveLine: Boolean,
@@ -685,7 +676,6 @@ private fun AppleMusicMusicLineDots(
 ) {
     val density = LocalDensity.current
     
-    // FROM REPO: r.value = withRepeat(withTiming(12, { duration: 1000 }), -1, true);
     val infiniteTransition = rememberInfiniteTransition()
     val r by infiniteTransition.animateFloat(
         initialValue = 8f,
@@ -697,8 +687,6 @@ private fun AppleMusicMusicLineDots(
         label = "radius"
     )
     
-    // FROM REPO: opacity.value = withTiming(1, { duration: duration });
-    // AND: opacity.value = withTiming(0.1, { duration: 100 });
     val targetOpacity = if (isActiveLine) 1f else 0.1f
     val opacity by animateFloatAsState(
         targetValue = targetOpacity,
@@ -713,7 +701,6 @@ private fun AppleMusicMusicLineDots(
         val rPx = with(density) { r.dp.toPx() }
         val cY = with(density) { 12.dp.toPx() }
         
-        // FROM REPO: cx={12}, cx={12 * 4}, cx={12 * 7}
         val cX1 = with(density) { 12.dp.toPx() }
         val cX2 = with(density) { 48.dp.toPx() } 
         val cX3 = with(density) { 84.dp.toPx() } 
@@ -736,7 +723,7 @@ private fun AnimatedWordLetterCanvas(
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val translateMaxPx = with(density) { 2.dp.toPx() } // Matches translateY: -2
+    val translateMaxPx = with(density) { 2.dp.toPx() }
 
     val mappedData = remember(text, words) {
         val wIdxMap = IntArray(text.length) { -1 }
@@ -772,9 +759,10 @@ private fun AnimatedWordLetterCanvas(
 
     val normalTextSize = lyricStyle.fontSize.value * density.density
     val bracketTextSize = normalTextSize * 0.75f 
-    val normalTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
-    val bracketTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
     
+    //  OPTIMIZATION: Cache Typefaces & Paint
+    val normalTypeface = remember { android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD) }
+    val bracketTypeface = remember { android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL) }
     val textPaint = remember { android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -802,55 +790,90 @@ private fun AnimatedWordLetterCanvas(
             )
         }
 
+        // OPTIMIZATION: Zero Allocation Variables cached in memory
+        val charStrings = remember(text) { Array(text.length) { i -> text[i].toString() } }
+        val charMetrics = remember(layoutResult) {
+            val metrics = FloatArray(text.length * 2)
+            for (i in text.indices) {
+                metrics[i * 2] = layoutResult.getBoundingBox(i).left
+                metrics[i * 2 + 1] = layoutResult.getLineBaseline(layoutResult.getLineForOffset(i))
+            }
+            metrics
+        }
+        
+        val baseColorArgb = expressiveAccent.toArgb()
+        val cRed = android.graphics.Color.red(baseColorArgb)
+        val cGreen = android.graphics.Color.green(baseColorArgb)
+        val cBlue = android.graphics.Color.blue(baseColorArgb)
+
+        val wStartLine = remember(words) { if (words.isNotEmpty()) (words.first().startTime * 1000.0).toFloat() else 0f }
+        val wEndLine = remember(words) { if (words.isNotEmpty()) (words.last().endTime * 1000.0).toFloat() else 0f }
+
         Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false)) {
             val smoothPositionF = currentPositionProvider().toFloat()
+            
+            // OPTIMIZATION: Early out to skip math completely if the line is done or hasn't started yet!
+            val isFullySung = smoothPositionF >= wEndLine
+            val isNotStarted = smoothPositionF < wStartLine
 
             drawIntoCanvas { canvas ->
                 for (i in text.indices) {
-                    val charStr = text[i].toString()
+                    val charStr = charStrings[i]
                     if (charStr.isBlank()) continue
                     
-                    val wordIdx = mappedData.wordIdxMap[i]
                     var charOpacity = 0.5f 
                     var charTranslateY = 0f 
                     
-                    if (wordIdx != -1 && wordIdx < words.size) {
-                        val word = words[wordIdx]
-                        val wStart = (word.startTime * 1000.0).toFloat()
-                        val wEnd = (word.endTime * 1000.0).toFloat()
-                        
-                        val duration = (wEnd - wStart).coerceAtLeast(10f)
-                        val charPos = mappedData.posMap[i]
-                        val totalChars = mappedData.counts[wordIdx].coerceAtLeast(1)
-                        
-                        val delay = wStart + (charPos * duration) / totalChars
-                        val timePassed = smoothPositionF - delay
-                        
-                        if (timePassed > 0f) {
-                            val progress = (timePassed / duration).coerceIn(0f, 1f)
-                            val expProgress = if (progress == 1f) 1f else 1f - 2f.pow(-10f * progress)
-                            charOpacity = 0.5f + (0.5f * expProgress)
-                            charTranslateY = -translateMaxPx * progress
-                        }
+                    if (isFullySung) {
+                        charOpacity = 1f
+                        charTranslateY = -translateMaxPx
+                    } else if (isNotStarted) {
+                        charOpacity = 0.5f
+                        charTranslateY = 0f
                     } else {
-                        if (i > 0 && mappedData.wordIdxMap[i-1] != -1 && mappedData.wordIdxMap[i-1] < words.size) {
-                            val prevWEnd = (words[mappedData.wordIdxMap[i-1]].endTime * 1000.0).toFloat()
-                            if (smoothPositionF >= prevWEnd) {
-                                charOpacity = 1f
-                                charTranslateY = -translateMaxPx
+                        val wordIdx = mappedData.wordIdxMap[i]
+                        if (wordIdx != -1 && wordIdx < words.size) {
+                            val word = words[wordIdx]
+                            val wStart = (word.startTime * 1000.0).toFloat()
+                            val wEnd = (word.endTime * 1000.0).toFloat()
+                            
+                            val duration = (wEnd - wStart).coerceAtLeast(10f)
+                            val charPos = mappedData.posMap[i]
+                            val totalChars = mappedData.counts[wordIdx].coerceAtLeast(1)
+                            
+                            val delay = wStart + (charPos * duration) / totalChars
+                            val timePassed = smoothPositionF - delay
+                            
+                            if (timePassed > 0f) {
+                                val progress = (timePassed / duration).coerceIn(0f, 1f)
+                                // Extremely fast cubic-out math instead of expensive Math.pow
+                                val inv = progress - 1f
+                                val expProgress = (inv * inv * inv + 1f)
+                                charOpacity = 0.5f + (0.5f * expProgress)
+                                charTranslateY = -translateMaxPx * progress
+                            }
+                        } else {
+                            if (i > 0 && mappedData.wordIdxMap[i-1] != -1 && mappedData.wordIdxMap[i-1] < words.size) {
+                                val prevWEnd = (words[mappedData.wordIdxMap[i-1]].endTime * 1000.0).toFloat()
+                                if (smoothPositionF >= prevWEnd) {
+                                    charOpacity = 1f
+                                    charTranslateY = -translateMaxPx
+                                }
                             }
                         }
                     }
                     
-                    val bounds = layoutResult.getBoundingBox(i)
-                    val baseline = layoutResult.getLineBaseline(layoutResult.getLineForOffset(i))
+                    val left = charMetrics[i * 2]
+                    val baseline = charMetrics[i * 2 + 1]
                     val isBracket = mappedData.brackets[i]
                     
                     textPaint.textSize = if (isBracket) bracketTextSize else normalTextSize
                     textPaint.typeface = if (isBracket) bracketTypeface else normalTypeface
-                    textPaint.color = expressiveAccent.copy(alpha = charOpacity).toArgb()
                     
-                    canvas.nativeCanvas.drawText(charStr, bounds.left, baseline + charTranslateY, textPaint)
+                    // Native fast color application
+                    textPaint.color = android.graphics.Color.argb((charOpacity * 255).toInt(), cRed, cGreen, cBlue)
+                    
+                    canvas.nativeCanvas.drawText(charStr, left, baseline + charTranslateY, textPaint)
                 }
             }
         }
