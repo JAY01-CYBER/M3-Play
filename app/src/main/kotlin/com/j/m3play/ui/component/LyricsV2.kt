@@ -132,6 +132,16 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 // ──────────────────────────────────────────────────────────────────────
+// Helper Class for Mapping
+// ──────────────────────────────────────────────────────────────────────
+private data class MappedData(
+    val wordIdxMap: IntArray,
+    val posMap: IntArray,
+    val counts: IntArray,
+    val brackets: BooleanArray
+)
+
+// ──────────────────────────────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────────────────────────────
 private const val LRC_LEAD_MS = 300L
@@ -515,6 +525,7 @@ fun LyricsV2(
                                     lyricsLineSpacing = lyricsLineSpacing,
                                     lineDurationMs = lineDurationMs,
                                     expressiveAccent = textColor,
+                                    isAutoScrollEnabled = isAutoScrollEnabled, 
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
                                     displayedCurrentLineIndex = currentPlayingLineIndex.coerceIn(0, entriesWithWords.lastIndex),
@@ -578,6 +589,7 @@ internal fun AppleMusicZeroLagLine(
     lyricsLineSpacing: Float,
     lineDurationMs: Int,
     expressiveAccent: Color,
+    isAutoScrollEnabled: Boolean, 
     romanizeLyrics: Boolean,
     lyricsFontFamily: FontFamily?,
     displayedCurrentLineIndex: Int,
@@ -588,7 +600,6 @@ internal fun AppleMusicZeroLagLine(
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    // Smooth Scale Apple Music Feel
     val targetScale = if (isActiveLine) 1.0f 
                       else if (abs(index - displayedCurrentLineIndex) <= 1) 0.85f 
                       else 0.75f 
@@ -599,7 +610,6 @@ internal fun AppleMusicZeroLagLine(
         label = "lineScale"
     )
 
-    //  OPTIMIZATION 1: Offscreen Composition completely removed! 
     val itemModifier = Modifier
         .fillMaxWidth()
         .onSizeChanged { onSizeChanged(it.height) }
@@ -612,7 +622,6 @@ internal fun AppleMusicZeroLagLine(
             scaleY = lineScale
             val originX = if (horizontalAlignment == Alignment.Start) 0f else if (horizontalAlignment == Alignment.End) 1f else 0.5f
             transformOrigin = TransformOrigin(originX, 0.5f)
-            // NO COMPOSITING STRATEGY HERE! Zero extra GPU overhead.
         }
 
     Box(modifier = itemModifier, contentAlignment = Alignment.CenterStart) {
@@ -627,7 +636,7 @@ internal fun AppleMusicZeroLagLine(
                     regex.findAll(mainText).forEach { matchResult ->
                         append(mainText.substring(lastIndex, matchResult.range.first))
                         withStyle(SpanStyle(
-                            fontSize = (lyricsTextSize * 0.75f).sp, // Bracket text 25% smaller
+                            fontSize = (lyricsTextSize * 0.75f).sp,
                             fontWeight = FontWeight.SemiBold
                         )) {
                             append(matchResult.value)
@@ -658,7 +667,6 @@ internal fun AppleMusicZeroLagLine(
                 )
             } 
             else if (isSynced && item.words != null && isActiveLine) {
-                // OPTIMIZATION 2: Only the single active line calculates and draws the wipe!
                 UltraFastAppleWipeCanvas(
                     annotatedText = annotatedMainText,
                     rawTextLength = mainText.length,
@@ -668,7 +676,6 @@ internal fun AppleMusicZeroLagLine(
                     expressiveAccent = expressiveAccent
                 )
             } else {
-                // OPTIMIZATION 3: All inactive lines use pure static text (1000x faster)
                 val dimAlpha = if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
                     when (abs(index - displayedCurrentLineIndex)) {
                         0 -> 1f; 1 -> 0.50f; 2 -> 0.35f; else -> 0.25f 
@@ -739,7 +746,7 @@ private fun UltraFastAppleWipeCanvas(
 
         Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() })) {
             val smoothPositionF = currentPositionProvider().toFloat()
-            val featherWidthPx = 50f // Smooth Apple fade
+            val featherWidthPx = 50f 
 
             for (lineIndex in 0 until layoutResult.lineCount) {
                 val lineTop = layoutResult.getLineTop(lineIndex)
@@ -784,25 +791,19 @@ private fun UltraFastAppleWipeCanvas(
                     }
                 }
                 
-                // ZERO OVERDRAW: Draw slices exactly where they belong! No overlapping!
-                
                 if (wipeX <= lineLeftBound) {
-                    // Not started yet
                     clipRect(left = lineLeftBound, right = lineRightBound, top = lineTop, bottom = lineBottom) {
                         drawText(layoutResult, color = dimColor)
                     }
                 } else if (wipeX >= lineRightBound) {
-                    // Fully sung
                     clipRect(left = lineLeftBound, right = lineRightBound, top = lineTop, bottom = lineBottom) {
                         drawText(layoutResult, color = brightColor)
                     }
                 } else {
-                    // 1. Fully Sung Bright Part
                     clipRect(left = lineLeftBound, right = wipeX, top = lineTop, bottom = lineBottom) {
                         drawText(layoutResult, color = brightColor)
                     }
                     
-                    // 2. The Feather Fade (Smooth Edge)
                     val slices = 6
                     val step = featherWidthPx / slices
                     for (s in 0 until slices) {
@@ -818,7 +819,6 @@ private fun UltraFastAppleWipeCanvas(
                         }
                     }
                     
-                    // 3. The Remaining Dim Part
                     val unsungLeft = wipeX + featherWidthPx
                     if (unsungLeft < lineRightBound) {
                         clipRect(left = unsungLeft, right = lineRightBound, top = lineTop, bottom = lineBottom) {
