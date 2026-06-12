@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::
+ * Signature: M3PLAY::COMPONENT:
  */
 
 package com.j.m3play.ui.component
@@ -65,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
@@ -328,7 +329,6 @@ fun LyricsV2(
     var flingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val velocityTracker = remember { VelocityTracker() }
     val decayAnimSpec = remember { exponentialDecay<Float>(frictionMultiplier = 1.8f) }
-    
     val itemHeights = remember(lyrics, entriesWithWords) { mutableStateMapOf<Int, Int>() }
     var isInitialLayout by remember(lyrics, entriesWithWords) { mutableStateOf(true) }
 
@@ -457,7 +457,6 @@ fun LyricsV2(
                         translationY = globalScrollY + userManualOffset
                     }
             ) {
-                // SMART CULLING: 0 LAG PROMISE
                 val visibleStartIndex = maxOf(0, activeListIndex - 12)
                 val visibleEndIndex = minOf(entriesWithWords.lastIndex, activeListIndex + 15)
 
@@ -635,7 +634,7 @@ internal fun AppleMusicZeroLagLine(
                 )
             } 
             else if (isSynced && item.words != null && isActiveLine) {
-                // THE HOLY GRAIL: RN Clone Canvas (Smooth Math + Zero Lag)
+                // RN Clone Canvas (Smooth Math + Zero Lag)
                 AppleMusicRNCloneCanvas(
                     annotatedText = annotatedMainText,
                     rawTextLength = mainText.length,
@@ -703,7 +702,7 @@ private fun AppleMusicRNCloneCanvas(
         
         var searchIdx = 0
         words.forEachIndexed { wIdx, word ->
-            val idx = annotatedText.text.indexOf(word.text, searchIndex)
+            val idx = annotatedText.text.indexOf(word.text, searchIdx)
             if (idx != -1) {
                 val len = word.text.length
                 counts[wIdx] = len
@@ -781,22 +780,18 @@ private fun AppleMusicRNCloneCanvas(
                         val letterDuration = wordDuration / totalChars
                         val charPos = mappedData.posMap[i]
                         
-                        // Exact Math translation from AnimatedWord.tsx
                         val delay = wStart + (charPos * letterDuration)
                         
-                        // BUG FIX: Forced 100% white if the time exceeds the word end
                         if (smoothPositionF >= wEnd || smoothPositionF >= delay + letterDuration) {
                             charOpacity = 1f
                             charTranslateY = -translateMaxPx
                         } else if (smoothPositionF > delay) {
                             val progress = (smoothPositionF - delay) / letterDuration
-                            // Easing.out(Easing.exp)
                             val expProgress = if (progress >= 1f) 1f else 1f - 2f.pow(-10f * progress)
                             charOpacity = 0.35f + (0.65f * expProgress)
                             charTranslateY = -translateMaxPx * expProgress
                         }
                     } else {
-                        // Trailing punctuation matching the previous word
                         if (i > 0 && mappedData.wordIdxMap[i-1] != -1 && mappedData.wordIdxMap[i-1] < words.size) {
                             val prevWEnd = (words[mappedData.wordIdxMap[i-1]].endTime * 1000.0).toFloat()
                             if (smoothPositionF >= prevWEnd) {
