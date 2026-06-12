@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V7::APPLE_MUSIC_PERFECT_CLONE_RN_LOGIC
+ * Signature: M3PLAY::COMPONENT::V8::REACT_NATIVE_REPO_EXACT_CLONE
  */
 
 package com.j.m3play.ui.component
@@ -12,7 +12,6 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
@@ -59,12 +58,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -73,12 +73,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -125,7 +122,18 @@ import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.math.roundToInt
+
+// ──────────────────────────────────────────────────────────────────────
+// Helper Class for Mapping
+// ──────────────────────────────────────────────────────────────────────
+private data class MappedData(
+    val wordIdxMap: IntArray,
+    val posMap: IntArray,
+    val counts: IntArray,
+    val brackets: BooleanArray
+)
 
 // ──────────────────────────────────────────────────────────────────────
 // Constants
@@ -134,7 +142,7 @@ private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
 private const val LYRICS_ANCHOR_RATIO = 0.38f 
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
-private val LYRICS_ITEM_GAP_DP = 28.dp 
+private val LYRICS_ITEM_GAP_DP = 35.dp // Matching marginBottom: 35 in RN repo
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 // ──────────────────────────────────────────────────────────────────────
@@ -153,8 +161,9 @@ fun LyricsV2(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
+    // ── M3-Play Preferences ──
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
-    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 32f) 
+    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 28f) // Matched size from RN
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.25f)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
@@ -495,7 +504,7 @@ fun LyricsV2(
                                     }
                                     .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
                             ) {
-                                AppleMusicLyricsLine(
+                                RepoCloneLyricsLine(
                                     index = listIndex,
                                     item = item,
                                     isSynced = isSynced,
@@ -507,8 +516,6 @@ fun LyricsV2(
                                     lyricsTextSize = lyricsTextSize,
                                     lyricsLineSpacing = lyricsLineSpacing,
                                     expressiveAccent = textColor,
-                                    isAutoScrollEnabled = isAutoScrollEnabled,
-                                    displayedCurrentLineIndex = currentPlayingLineIndex.coerceIn(0, entriesWithWords.lastIndex),
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
                                     onSizeChanged = { itemHeights[listIndex] = it },
@@ -553,12 +560,12 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Apple Music Engine V7 (RN MATH TRANSLATED: 0.1 OPACITY + EXP WIPE)
+// Exact React Native Repo Physics Implementation (V8)
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun AppleMusicLyricsLine(
+internal fun RepoCloneLyricsLine(
     index: Int,
     item: LyricsEntry,
     isSynced: Boolean,
@@ -570,8 +577,6 @@ internal fun AppleMusicLyricsLine(
     lyricsTextSize: Float,
     lyricsLineSpacing: Float,
     expressiveAccent: Color,
-    isAutoScrollEnabled: Boolean,
-    displayedCurrentLineIndex: Int,
     romanizeLyrics: Boolean,
     lyricsFontFamily: FontFamily?,
     onSizeChanged: (Int) -> Unit,
@@ -581,29 +586,12 @@ internal fun AppleMusicLyricsLine(
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    val targetScale = if (isActiveLine) 1.0f 
-                      else if (abs(index - displayedCurrentLineIndex) <= 1) 0.85f 
-                      else 0.75f 
-                      
-    val lineScale by animateFloatAsState(
-        targetValue = targetScale, 
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = 80f), 
-        label = "lineScale"
-    )
+    // FROM REPO: opacity = withTiming(isActiveLine ? 1 : 0.1, {duration: 100, easing: Easing.quad})
+    val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f else 0.1f
     
-    // EXTRACTED FROM REACT NATIVE REPO:
-    // viewOpacity.value = withTiming(isActiveLine ? 1 : 0.1, { duration: 100 })
-    val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f 
-    else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
-        when (abs(index - displayedCurrentLineIndex)) {
-            0 -> 1f; else -> 0.15f // Super dark 15% opacity to make active line pop like Apple!
-        }
-    } else 0.15f
-    
-    // EXTRACTED FROM REACT NATIVE REPO: Fast 100ms-like Quad Easing
     val animatedContainerAlpha by animateFloatAsState(
         targetValue = targetAlpha, 
-        animationSpec = tween(150, easing = LinearOutSlowInEasing), 
+        animationSpec = tween(150, easing = FastOutSlowInEasing), // Matches Easing.quad roughly
         label = "containerAlpha"
     )
 
@@ -620,11 +608,7 @@ internal fun AppleMusicLyricsLine(
             bottom = 10.dp
         )
         .graphicsLayer {
-            scaleX = lineScale
-            scaleY = lineScale
             alpha = animatedContainerAlpha
-            val originX = if (horizontalAlignment == Alignment.Start) 0f else if (horizontalAlignment == Alignment.End) 1f else 0.5f
-            transformOrigin = TransformOrigin(originX, 0.5f)
             compositingStrategy = CompositingStrategy.Offscreen
         }
 
@@ -632,24 +616,6 @@ internal fun AppleMusicLyricsLine(
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = horizontalAlignment) {
             val mainText = item.text
             val romanizedText by item.romanizedTextFlow.collectAsState()
-
-            val annotatedMainText = remember(mainText, lyricsTextSize) {
-                buildAnnotatedString {
-                    val regex = Regex("\\(.*?\\)|\\[.*?\\]")
-                    var lastIndex = 0
-                    regex.findAll(mainText).forEach { matchResult ->
-                        append(mainText.substring(lastIndex, matchResult.range.first))
-                        withStyle(SpanStyle(
-                            fontSize = (lyricsTextSize * 0.75f).sp, // Bracket text 25% smaller
-                            fontWeight = FontWeight.SemiBold
-                        )) {
-                            append(matchResult.value)
-                        }
-                        lastIndex = matchResult.range.last + 1
-                    }
-                    append(mainText.substring(lastIndex))
-                }
-            }
 
             val lyricStyle = TextStyle(
                 fontSize = lyricsTextSize.sp,
@@ -663,18 +629,16 @@ internal fun AppleMusicLyricsLine(
                 lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
             )
 
-            if (isSynced && item.words != null && isActiveLine && mainText.isNotBlank()) {
-                AppleMusicSoftWipeCanvas(
-                    annotatedText = annotatedMainText,
-                    rawTextLength = mainText.length,
+            if (isSynced && item.words != null && mainText.isNotBlank()) {
+                AnimatedWordLetterCanvas(
+                    text = mainText,
                     words = item.words,
                     currentPositionProvider = currentPositionProvider,
                     lyricStyle = lyricStyle,
                     expressiveAccent = expressiveAccent
                 )
             } else {
-                val baseColor = if (isActiveLine) expressiveAccent else expressiveAccent.copy(alpha = 0.5f)
-                Text(text = annotatedMainText, style = lyricStyle.copy(color = baseColor), modifier = Modifier.fillMaxWidth())
+                Text(text = mainText, style = lyricStyle.copy(color = expressiveAccent), modifier = Modifier.fillMaxWidth())
             }
             
             if (romanizeLyrics && romanizedText != null) {
@@ -689,9 +653,8 @@ internal fun AppleMusicLyricsLine(
 }
 
 @Composable
-private fun AppleMusicSoftWipeCanvas(
-    annotatedText: AnnotatedString,
-    rawTextLength: Int,
+private fun AnimatedWordLetterCanvas(
+    text: String,
     words: List<WordTimestamp>,
     currentPositionProvider: () -> Long,
     lyricStyle: TextStyle,
@@ -699,115 +662,129 @@ private fun AppleMusicSoftWipeCanvas(
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
+    val translateMaxPx = with(density) { 2.dp.toPx() } // Matches withTiming(-2) from RN
 
-    val charToWordIdx = remember(annotatedText.text, words) {
-        val mapping = IntArray(rawTextLength) { -1 }
-        var searchIndex = 0
-        words.forEachIndexed { wordIdx, word ->
-            val idx = annotatedText.text.indexOf(word.text, searchIndex)
+    // Prepare mappings and track Brackets
+    val mappedData = remember(text, words) {
+        val wIdxMap = IntArray(text.length) { -1 }
+        val posMap = IntArray(text.length) { 0 }
+        val counts = IntArray(words.size) { 0 }
+        val brackets = BooleanArray(text.length) { false }
+        
+        var inBracket = false
+        for (i in text.indices) {
+            val c = text[i]
+            if (c == '(' || c == '[') inBracket = true
+            brackets[i] = inBracket
+            if (c == ')' || c == ']') inBracket = false
+        }
+        
+        var searchIdx = 0
+        words.forEachIndexed { wIdx, word ->
+            val idx = text.indexOf(word.text, searchIdx)
             if (idx != -1) {
-                for (i in idx until idx + word.text.length) {
-                    if (i < mapping.size) { mapping[i] = wordIdx }
+                val len = word.text.length
+                counts[wIdx] = len
+                for (i in 0 until len) {
+                    if (idx + i < text.length) {
+                        wIdxMap[idx + i] = wIdx
+                        posMap[idx + i] = i
+                    }
                 }
-                val trailingSpaceIdx = idx + word.text.length
-                if (trailingSpaceIdx < mapping.size && trailingSpaceIdx < annotatedText.text.length && annotatedText.text[trailingSpaceIdx] == ' ') {
-                    mapping[trailingSpaceIdx] = wordIdx
-                }
-                searchIndex = trailingSpaceIdx
+                searchIdx = idx + len
             }
         }
-        mapping
+        MappedData(wIdxMap, posMap, counts, brackets)
     }
+
+    // Styles for native drawing
+    val normalTextSize = lyricStyle.fontSize.value * density.density
+    val bracketTextSize = normalTextSize * 0.75f // 25% smaller
+    val normalTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+    val bracketTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
+    
+    val textPaint = remember { android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val maxWidthPx = constraints.maxWidth
-        val layoutResult = remember(annotatedText, maxWidthPx, lyricStyle) {
-            textMeasurer.measure(text = annotatedText, style = lyricStyle, constraints = Constraints(minWidth = maxWidthPx, maxWidth = maxWidthPx), softWrap = true)
+        
+        val annotatedString = remember(text, mappedData.brackets) {
+            buildAnnotatedString {
+                for (i in text.indices) {
+                    withStyle(SpanStyle(
+                        fontSize = if (mappedData.brackets[i]) (lyricStyle.fontSize.value * 0.75f).sp else lyricStyle.fontSize,
+                        fontWeight = if (mappedData.brackets[i]) FontWeight.SemiBold else lyricStyle.fontWeight
+                    )) {
+                        append(text[i].toString())
+                    }
+                }
+            }
+        }
+
+        val layoutResult = remember(annotatedString, maxWidthPx, lyricStyle) {
+            textMeasurer.measure(
+                text = annotatedString,
+                style = lyricStyle,
+                constraints = Constraints(minWidth = maxWidthPx, maxWidth = maxWidthPx),
+                softWrap = true
+            )
         }
 
         Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false)) {
-            
-            drawText(layoutResult, color = expressiveAccent.copy(alpha = 0.40f))
-            
             val smoothPositionF = currentPositionProvider().toFloat()
-            // EXTRACTED FROM REACT NATIVE REPO: Simulating the slow exponential fade across characters
-            val featherWidthPx = 80f // Wider feather for letter-by-letter glow effect
 
-            for (lineIndex in 0 until layoutResult.lineCount) {
-                val lineTop = layoutResult.getLineTop(lineIndex)
-                val lineBottom = layoutResult.getLineBottom(lineIndex)
-                val lineStartOffset = layoutResult.getLineStart(lineIndex)
-                val lineEndOffset = layoutResult.getLineEnd(lineIndex)
-                val lineLeftBound = layoutResult.getLineLeft(lineIndex)
-                val lineRightBound = layoutResult.getLineRight(lineIndex)
-                
-                var lineWipeX = lineLeftBound
-
-                for (i in lineStartOffset until lineEndOffset) {
-                    if (i >= charToWordIdx.size) break 
-                    val wordIdx = charToWordIdx[i]
+            drawIntoCanvas { canvas ->
+                for (i in text.indices) {
+                    val charStr = text[i].toString()
+                    if (charStr.isBlank()) continue
+                    
+                    val wordIdx = mappedData.wordIdxMap[i]
+                    var charOpacity = 0.5f // FROM REPO: const opacity = useSharedValue(0.5);
+                    var charTranslateY = 0f // FROM REPO: const translateY = useSharedValue(0);
                     
                     if (wordIdx != -1 && wordIdx < words.size) {
                         val word = words[wordIdx]
                         val wStart = (word.startTime * 1000.0).toFloat()
                         val wEnd = (word.endTime * 1000.0).toFloat()
                         
-                        if (i >= annotatedText.text.length) break
+                        val duration = (wEnd - wStart).coerceAtLeast(10f)
+                        val charPos = mappedData.posMap[i]
+                        val totalChars = mappedData.counts[wordIdx].coerceAtLeast(1)
                         
-                        val charBounds = layoutResult.getBoundingBox(i)
+                        // FROM REPO: delay = word.startMillisecond + (index * duration) / letters.length
+                        val delay = wStart + (charPos * duration) / totalChars
+                        val timePassed = smoothPositionF - delay
                         
-                        if (smoothPositionF >= wEnd) {
-                            lineWipeX = maxOf(lineWipeX, charBounds.right)
-                        } else if (smoothPositionF > wStart) {
-                            val progress = ((smoothPositionF - wStart) / (wEnd - wStart).coerceAtLeast(1f)).coerceIn(0f, 1f)
-                            var wLeftOnLine = Float.MAX_VALUE
-                            var wRightOnLine = Float.MIN_VALUE
+                        if (timePassed > 0f) {
+                            val progress = (timePassed / duration).coerceIn(0f, 1f)
                             
-                            for (j in lineStartOffset until lineEndOffset) {
-                                if (j < charToWordIdx.size && charToWordIdx[j] == wordIdx) {
-                                    val b = layoutResult.getBoundingBox(j)
-                                    wLeftOnLine = minOf(wLeftOnLine, b.left)
-                                    wRightOnLine = maxOf(wRightOnLine, b.right)
-                                }
-                            }
-                            lineWipeX = maxOf(lineWipeX, wLeftOnLine + (wRightOnLine - wLeftOnLine) * progress)
-                            break 
+                            // FROM REPO: opacity = withTiming(1, easing: Easing.out(Easing.exp))
+                            val expProgress = if (progress == 1f) 1f else 1f - 2f.pow(-10f * progress)
+                            charOpacity = 0.5f + (0.5f * expProgress)
+                            
+                            // FROM REPO: translateY = withTiming(-2, easing: Easing.linear)
+                            charTranslateY = -translateMaxPx * progress
                         }
                     } else {
-                        if (i > 0 && i - 1 < charToWordIdx.size && charToWordIdx[i - 1] != -1) {
-                            val prevWordIdx = charToWordIdx[i - 1]
-                            if (prevWordIdx < words.size) {
-                                val prevWEnd = (words[prevWordIdx].endTime * 1000.0).toFloat()
-                                if (smoothPositionF >= prevWEnd) {
-                                    lineWipeX = maxOf(lineWipeX, layoutResult.getBoundingBox(i).right)
-                                }
+                        // Fallback mapping for unmapped punctuation
+                        if (i > 0 && mappedData.wordIdxMap[i-1] != -1 && mappedData.wordIdxMap[i-1] < words.size) {
+                            val prevWEnd = (words[mappedData.wordIdxMap[i-1]].endTime * 1000.0).toFloat()
+                            if (smoothPositionF >= prevWEnd) {
+                                charOpacity = 1f
+                                charTranslateY = -translateMaxPx
                             }
                         }
                     }
-                }
-                
-                if (lineWipeX > lineLeftBound) {
-                    clipRect(left = lineLeftBound, top = lineTop, right = lineWipeX, bottom = lineBottom) {
-                        drawText(layoutResult, color = expressiveAccent)
-                    }
-                }
-                
-                if (lineWipeX >= lineLeftBound && lineWipeX < lineRightBound) {
-                    val slices = 15
-                    val sliceWidth = featherWidthPx / slices
-                    for (s in 0 until slices) {
-                        val sLeft = lineWipeX + (s * sliceWidth)
-                        val sRight = sLeft + sliceWidth
-                        // Using exponential alpha falloff to match RN Repo easing
-                        val linearAlpha = 1f - (s.toFloat() / slices)
-                        val sliceAlpha = linearAlpha * linearAlpha 
-                        
-                        if (sLeft < lineRightBound) {
-                            clipRect(left = sLeft, top = lineTop, right = minOf(sRight, lineRightBound), bottom = lineBottom) {
-                                drawText(layoutResult, color = expressiveAccent.copy(alpha = sliceAlpha))
-                            }
-                        }
-                    }
+                    
+                    val bounds = layoutResult.getBoundingBox(i)
+                    val baseline = layoutResult.getLineBaseline(layoutResult.getLineForOffset(i))
+                    val isBracket = mappedData.brackets[i]
+                    
+                    textPaint.textSize = if (isBracket) bracketTextSize else normalTextSize
+                    textPaint.typeface = if (isBracket) bracketTypeface else normalTypeface
+                    textPaint.color = expressiveAccent.copy(alpha = charOpacity).toArgb()
+                    
+                    canvas.nativeCanvas.drawText(charStr, bounds.left, baseline + charTranslateY, textPaint)
                 }
             }
         }
