@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::
+ * Signature: M3PLAY::COMPONENT::V7::APPLE_MUSIC_PERFECT_CLONE_RN_LOGIC
  */
 
 package com.j.m3play.ui.component
@@ -12,11 +12,13 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -306,7 +308,6 @@ fun LyricsV2(
         }
     }
 
-    // CRASH FIX: Safety Clamp to prevent IndexOutOfBoundsException on song changes
     val activeListIndex = if (entriesWithWords.isEmpty()) -1 else focusScrollIndex.coerceIn(0, entriesWithWords.lastIndex)
 
     var flingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
@@ -336,7 +337,7 @@ fun LyricsV2(
                 map[activeListIndex] = 0f
                 var currentY = 0f
                 for (i in activeListIndex - 1 downTo 0) {
-                    if (i >= entriesWithWords.size) continue // Extra Safety check
+                    if (i >= entriesWithWords.size) continue 
                     val item = entriesWithWords[i]
                     val height = itemHeights[i]?.toFloat() ?: lineHeightPx
                     val isBg = item.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -345,7 +346,7 @@ fun LyricsV2(
                 }
                 currentY = 0f
                 for (i in activeListIndex until entriesWithWords.size - 1) {
-                    if (i + 1 >= entriesWithWords.size) continue // Extra Safety check
+                    if (i + 1 >= entriesWithWords.size) continue 
                     val nextItem = entriesWithWords[i + 1]
                     val height = itemHeights[i]?.toFloat() ?: lineHeightPx
                     val isNextBg = nextItem.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -507,7 +508,7 @@ fun LyricsV2(
                                     lyricsLineSpacing = lyricsLineSpacing,
                                     expressiveAccent = textColor,
                                     isAutoScrollEnabled = isAutoScrollEnabled,
-                                    displayedCurrentLineIndex = currentPlayingLineIndex.coerceIn(0, entriesWithWords.lastIndex), // Safety clamp
+                                    displayedCurrentLineIndex = currentPlayingLineIndex.coerceIn(0, entriesWithWords.lastIndex),
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
                                     onSizeChanged = { itemHeights[listIndex] = it },
@@ -552,7 +553,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Apple Music Engine V6.1 (CRASH-PROOF BOUNDS CHECKING)
+// Apple Music Engine V7 (RN MATH TRANSLATED: 0.1 OPACITY + EXP WIPE)
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -590,16 +591,19 @@ internal fun AppleMusicLyricsLine(
         label = "lineScale"
     )
     
+    // EXTRACTED FROM REACT NATIVE REPO:
+    // viewOpacity.value = withTiming(isActiveLine ? 1 : 0.1, { duration: 100 })
     val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f 
     else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
         when (abs(index - displayedCurrentLineIndex)) {
-            0 -> 1f; 1 -> 0.50f; 2 -> 0.35f; else -> 0.15f 
+            0 -> 1f; else -> 0.15f // Super dark 15% opacity to make active line pop like Apple!
         }
-    } else 0.35f
+    } else 0.15f
     
+    // EXTRACTED FROM REACT NATIVE REPO: Fast 100ms-like Quad Easing
     val animatedContainerAlpha by animateFloatAsState(
         targetValue = targetAlpha, 
-        animationSpec = spring(dampingRatio = 0.9f, stiffness = 80f), 
+        animationSpec = tween(150, easing = LinearOutSlowInEasing), 
         label = "containerAlpha"
     )
 
@@ -636,7 +640,7 @@ internal fun AppleMusicLyricsLine(
                     regex.findAll(mainText).forEach { matchResult ->
                         append(mainText.substring(lastIndex, matchResult.range.first))
                         withStyle(SpanStyle(
-                            fontSize = (lyricsTextSize * 0.75f).sp,
+                            fontSize = (lyricsTextSize * 0.75f).sp, // Bracket text 25% smaller
                             fontWeight = FontWeight.SemiBold
                         )) {
                             append(matchResult.value)
@@ -702,7 +706,6 @@ private fun AppleMusicSoftWipeCanvas(
         words.forEachIndexed { wordIdx, word ->
             val idx = annotatedText.text.indexOf(word.text, searchIndex)
             if (idx != -1) {
-                // Bounds-safe iteration loop
                 for (i in idx until idx + word.text.length) {
                     if (i < mapping.size) { mapping[i] = wordIdx }
                 }
@@ -727,7 +730,8 @@ private fun AppleMusicSoftWipeCanvas(
             drawText(layoutResult, color = expressiveAccent.copy(alpha = 0.40f))
             
             val smoothPositionF = currentPositionProvider().toFloat()
-            val featherWidthPx = 45f
+            // EXTRACTED FROM REACT NATIVE REPO: Simulating the slow exponential fade across characters
+            val featherWidthPx = 80f // Wider feather for letter-by-letter glow effect
 
             for (lineIndex in 0 until layoutResult.lineCount) {
                 val lineTop = layoutResult.getLineTop(lineIndex)
@@ -740,15 +744,14 @@ private fun AppleMusicSoftWipeCanvas(
                 var lineWipeX = lineLeftBound
 
                 for (i in lineStartOffset until lineEndOffset) {
-                    if (i >= charToWordIdx.size) break // Safety clamp to prevent crash 
+                    if (i >= charToWordIdx.size) break 
                     val wordIdx = charToWordIdx[i]
                     
-                    if (wordIdx != -1 && wordIdx < words.size) { // Verified bound-safe mapping
+                    if (wordIdx != -1 && wordIdx < words.size) {
                         val word = words[wordIdx]
                         val wStart = (word.startTime * 1000.0).toFloat()
                         val wEnd = (word.endTime * 1000.0).toFloat()
                         
-                        // Failsafe for trailing spaces missing bounds
                         if (i >= annotatedText.text.length) break
                         
                         val charBounds = layoutResult.getBoundingBox(i)
@@ -790,12 +793,14 @@ private fun AppleMusicSoftWipeCanvas(
                 }
                 
                 if (lineWipeX >= lineLeftBound && lineWipeX < lineRightBound) {
-                    val slices = 10
+                    val slices = 15
                     val sliceWidth = featherWidthPx / slices
                     for (s in 0 until slices) {
                         val sLeft = lineWipeX + (s * sliceWidth)
                         val sRight = sLeft + sliceWidth
-                        val sliceAlpha = 1f - (s.toFloat() / slices)
+                        // Using exponential alpha falloff to match RN Repo easing
+                        val linearAlpha = 1f - (s.toFloat() / slices)
+                        val sliceAlpha = linearAlpha * linearAlpha 
                         
                         if (sLeft < lineRightBound) {
                             clipRect(left = sLeft, top = lineTop, right = minOf(sRight, lineRightBound), bottom = lineBottom) {
