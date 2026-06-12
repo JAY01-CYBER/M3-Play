@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT
+ * Signature: M3PLAY::COMPONENT::V6
  */
 
 package com.j.m3play.ui.component
@@ -11,12 +11,12 @@ import android.annotation.SuppressLint
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationState
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -130,11 +130,9 @@ import kotlin.math.roundToInt
 // ──────────────────────────────────────────────────────────────────────
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
-private const val LYRICS_ANCHOR_RATIO = 0.40f
+private const val LYRICS_ANCHOR_RATIO = 0.38f // Apple Music typical anchor height
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
 private val LYRICS_ITEM_GAP_DP = 28.dp 
-private const val LYRICS_STAGGER_DELAY_PER_DISTANCE = 20
-private const val LYRICS_STAGGER_DELAY_MAX_MS = 200
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 // ──────────────────────────────────────────────────────────────────────
@@ -387,10 +385,11 @@ fun LyricsV2(
 
         LaunchedEffect(isAutoScrollEnabled) {
             if (isAutoScrollEnabled && userManualOffset != 0f) {
+                // Return to auto-scroll with Apple-like spring snap
                 androidx.compose.animation.core.animate(
                     initialValue = userManualOffset,
                     targetValue = 0f,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    animationSpec = spring(dampingRatio = 0.85f, stiffness = 60f)
                 ) { value, _ ->
                     userManualOffset = value
                 }
@@ -424,7 +423,7 @@ fun LyricsV2(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .smoothFadingEdge(vertical = 100.dp) 
+                    .smoothFadingEdge(vertical = 120.dp) 
                     .clipToBounds()
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
@@ -463,7 +462,6 @@ fun LyricsV2(
                                 .onSizeChanged { itemHeights[listIndex] = it.height }
                             )
                         } else {
-                            val distance = abs(listIndex - activeListIndex)
                             val targetOffset = anchorY + positions.getOrDefault(listIndex, (listIndex - activeListIndex) * lineHeightPx)
                             val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
                             
@@ -471,11 +469,15 @@ fun LyricsV2(
                                 if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
                             }
                             
+                            // APPLE MUSIC ENGINE: Unified Spring Scroll (No Stagger/Tween Delay)
                             val animatedOffset by animateFloatAsState(
                                 targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
                                 animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() 
-                                                else tween(800, (distance * LYRICS_STAGGER_DELAY_PER_DISTANCE).coerceAtMost(LYRICS_STAGGER_DELAY_MAX_MS), FastOutSlowInEasing),
-                                label = "lyricStaggeredOffset_$listIndex"
+                                                else spring(
+                                                    dampingRatio = 0.90f, // Critically damped, zero bounce
+                                                    stiffness = 50f // Slow, elegant glide
+                                                ),
+                                label = "lyricSpringOffset_$listIndex"
                             )
 
                             val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
@@ -549,7 +551,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Apple Music Engine V5 (NATIVE ALPHA-SLICING + BRACKET DETECTION)
+// Apple Music Engine V6 (SPRING PHYSICS + ALPHA-SLICING + BRACKETS)
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -577,20 +579,29 @@ internal fun AppleMusicLyricsLine(
     val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
     val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
     
-    val targetScale = if (isActiveLine) 1.0f else 0.80f
+    // Apple Music Depth of Field Scale Logic
+    val targetScale = if (isActiveLine) 1.0f 
+                      else if (abs(index - displayedCurrentLineIndex) <= 1) 0.85f 
+                      else 0.75f // Distant lines get even smaller
+                      
     val lineScale by animateFloatAsState(
         targetValue = targetScale, 
-        animationSpec = tween(500, easing = FastOutSlowInEasing), 
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = 80f), // Premium bounce-free bloom
         label = "lineScale"
     )
     
     val targetAlpha = if (!isSynced || isBackground || isActiveLine) 1f 
     else if (isAutoScrollEnabled && displayedCurrentLineIndex >= 0) {
         when (abs(index - displayedCurrentLineIndex)) {
-            0 -> 1f; 1 -> 0.50f; 2 -> 0.35f; else -> 0.25f
+            0 -> 1f; 1 -> 0.50f; 2 -> 0.35f; else -> 0.15f // Sharp falloff for Apple look
         }
     } else 0.35f
-    val animatedContainerAlpha by animateFloatAsState(targetAlpha, tween(400), label = "containerAlpha")
+    
+    val animatedContainerAlpha by animateFloatAsState(
+        targetValue = targetAlpha, 
+        animationSpec = spring(dampingRatio = 0.9f, stiffness = 80f), 
+        label = "containerAlpha"
+    )
 
     val itemModifier = Modifier
         .fillMaxWidth()
@@ -618,19 +629,15 @@ internal fun AppleMusicLyricsLine(
             val mainText = item.text
             val romanizedText by item.romanizedTextFlow.collectAsState()
 
-            // APPLE MUSIC FEATURE: Format bracket text like "(Every night)" or "[Oh-oh]" automatically
             val annotatedMainText = remember(mainText, lyricsTextSize) {
                 buildAnnotatedString {
                     val regex = Regex("\\(.*?\\)|\\[.*?\\]")
                     var lastIndex = 0
                     regex.findAll(mainText).forEach { matchResult ->
-                        // Add normal text
                         append(mainText.substring(lastIndex, matchResult.range.first))
-                        
-                        // Add Bracket text with smaller font and softer weight
                         withStyle(SpanStyle(
-                            fontSize = (lyricsTextSize * 0.75f).sp, // 25% smaller
-                            fontWeight = FontWeight.SemiBold // Slightly less bold
+                            fontSize = (lyricsTextSize * 0.75f).sp,
+                            fontWeight = FontWeight.SemiBold
                         )) {
                             append(matchResult.value)
                         }
@@ -715,11 +722,10 @@ private fun AppleMusicSoftWipeCanvas(
 
         Canvas(modifier = Modifier.fillMaxWidth().height(with(density) { layoutResult.size.height.toDp() }).graphicsLayer(clip = false)) {
             
-            // 1. LAYER ONE: Unsung Dim Text
             drawText(layoutResult, color = expressiveAccent.copy(alpha = 0.40f))
             
             val smoothPositionF = currentPositionProvider().toFloat()
-            val featherWidthPx = 45f // Apple Music soft edge thickness
+            val featherWidthPx = 45f
 
             for (lineIndex in 0 until layoutResult.lineCount) {
                 val lineTop = layoutResult.getLineTop(lineIndex)
@@ -769,17 +775,12 @@ private fun AppleMusicSoftWipeCanvas(
                     }
                 }
                 
-                // 2. LAYER TWO: The "Buttery" Wipe 
-                // We use multiple micro-clips (alpha slices) to create a perfect gradient without any BlendMode bugs
-                
-                // Solid bright part
                 if (lineWipeX > lineLeftBound) {
                     clipRect(left = lineLeftBound, top = lineTop, right = lineWipeX, bottom = lineBottom) {
                         drawText(layoutResult, color = expressiveAccent)
                     }
                 }
                 
-                // Feathered soft edge part
                 if (lineWipeX >= lineLeftBound && lineWipeX < lineRightBound) {
                     val slices = 10
                     val sliceWidth = featherWidthPx / slices
