@@ -2,7 +2,7 @@
  * M3Play Component Module
  *
  * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V8::REACT_NATIVE_REPO_EXACT_CLONE
+ * Signature: M3PLAY::COMPONENT::V9:
  */
 
 package com.j.m3play.ui.component
@@ -12,9 +12,14 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -58,6 +63,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
@@ -142,7 +149,7 @@ private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
 private const val LYRICS_ANCHOR_RATIO = 0.38f 
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
-private val LYRICS_ITEM_GAP_DP = 35.dp // Matching marginBottom: 35 in RN repo
+private val LYRICS_ITEM_GAP_DP = 35.dp
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 // ──────────────────────────────────────────────────────────────────────
@@ -161,9 +168,8 @@ fun LyricsV2(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    // ── M3-Play Preferences ──
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
-    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 28f) // Matched size from RN
+    val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 28f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.25f)
     val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
     val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
@@ -495,6 +501,10 @@ fun LyricsV2(
                             val isActiveLine = currentPlayingLineIndex == listIndex
                             val isSelected = selectedIndices.contains(listIndex)
 
+                            // Logic to calculate exact line duration for RN MusicLine Dots
+                            val nextItemTime = if (listIndex < entriesWithWords.lastIndex) entriesWithWords[listIndex + 1].time else item.time + 5000L
+                            val lineDurationMs = (nextItemTime - item.time).coerceAtLeast(100L).toInt()
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -515,6 +525,7 @@ fun LyricsV2(
                                     currentPositionProvider = { currentPositionState },
                                     lyricsTextSize = lyricsTextSize,
                                     lyricsLineSpacing = lyricsLineSpacing,
+                                    lineDurationMs = lineDurationMs, // Passing duration for the dots!
                                     expressiveAccent = textColor,
                                     romanizeLyrics = (romanizeJapanese || romanizeKorean),
                                     lyricsFontFamily = lyricsFontFamily,
@@ -560,7 +571,7 @@ fun LyricsV2(
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// Exact React Native Repo Physics Implementation (V8)
+// EXACT REACT NATIVE CLONE RENDERING ENGINE + MUSIC LINE DOTS
 // ──────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -576,6 +587,7 @@ internal fun RepoCloneLyricsLine(
     currentPositionProvider: () -> Long,
     lyricsTextSize: Float,
     lyricsLineSpacing: Float,
+    lineDurationMs: Int,
     expressiveAccent: Color,
     romanizeLyrics: Boolean,
     lyricsFontFamily: FontFamily?,
@@ -591,7 +603,7 @@ internal fun RepoCloneLyricsLine(
     
     val animatedContainerAlpha by animateFloatAsState(
         targetValue = targetAlpha, 
-        animationSpec = tween(150, easing = FastOutSlowInEasing), // Matches Easing.quad roughly
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
         label = "containerAlpha"
     )
 
@@ -629,7 +641,16 @@ internal fun RepoCloneLyricsLine(
                 lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
             )
 
-            if (isSynced && item.words != null && mainText.isNotBlank()) {
+            // THE MUSIC LINE DOTS INTEGRATION
+            if (mainText.isBlank()) {
+                AppleMusicMusicLineDots(
+                    isActiveLine = isActiveLine,
+                    expressiveAccent = expressiveAccent,
+                    durationMs = lineDurationMs
+                )
+            } 
+            // NORMAL LYRICS RENDERING
+            else if (isSynced && item.words != null) {
                 AnimatedWordLetterCanvas(
                     text = mainText,
                     words = item.words,
@@ -652,6 +673,58 @@ internal fun RepoCloneLyricsLine(
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// EXACT "MUSICLINE.TSX" REACT NATIVE TRANSLATION
+// ──────────────────────────────────────────────────────────────────────
+@Composable
+private fun AppleMusicMusicLineDots(
+    isActiveLine: Boolean,
+    expressiveAccent: Color,
+    durationMs: Int
+) {
+    val density = LocalDensity.current
+    
+    // FROM REPO: r.value = withRepeat(withTiming(12, { duration: 1000 }), -1, true);
+    val infiniteTransition = rememberInfiniteTransition()
+    val r by infiniteTransition.animateFloat(
+        initialValue = 8f,
+        targetValue = 12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "radius"
+    )
+    
+    // FROM REPO: opacity.value = withTiming(1, { duration: duration });
+    // AND: opacity.value = withTiming(0.1, { duration: 100 });
+    val targetOpacity = if (isActiveLine) 1f else 0.1f
+    val opacity by animateFloatAsState(
+        targetValue = targetOpacity,
+        animationSpec = tween(
+            durationMillis = if (isActiveLine) durationMs else 100,
+            easing = LinearEasing
+        ),
+        label = "opacity"
+    )
+
+    Canvas(modifier = Modifier.fillMaxWidth().height(63.dp)) {
+        val rPx = with(density) { r.dp.toPx() }
+        val cY = with(density) { 12.dp.toPx() }
+        
+        // FROM REPO: cx={12}, cx={12 * 4}, cx={12 * 7}
+        val cX1 = with(density) { 12.dp.toPx() }
+        val cX2 = with(density) { 48.dp.toPx() } 
+        val cX3 = with(density) { 84.dp.toPx() } 
+        
+        val dotColor = expressiveAccent.copy(alpha = opacity)
+        
+        drawCircle(color = dotColor, radius = rPx, center = Offset(cX1, cY))
+        drawCircle(color = dotColor, radius = rPx, center = Offset(cX2, cY))
+        drawCircle(color = dotColor, radius = rPx, center = Offset(cX3, cY))
+    }
+}
+
 @Composable
 private fun AnimatedWordLetterCanvas(
     text: String,
@@ -662,9 +735,8 @@ private fun AnimatedWordLetterCanvas(
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
-    val translateMaxPx = with(density) { 2.dp.toPx() } // Matches withTiming(-2) from RN
+    val translateMaxPx = with(density) { 2.dp.toPx() } // Matches translateY: -2
 
-    // Prepare mappings and track Brackets
     val mappedData = remember(text, words) {
         val wIdxMap = IntArray(text.length) { -1 }
         val posMap = IntArray(text.length) { 0 }
@@ -697,9 +769,8 @@ private fun AnimatedWordLetterCanvas(
         MappedData(wIdxMap, posMap, counts, brackets)
     }
 
-    // Styles for native drawing
     val normalTextSize = lyricStyle.fontSize.value * density.density
-    val bracketTextSize = normalTextSize * 0.75f // 25% smaller
+    val bracketTextSize = normalTextSize * 0.75f 
     val normalTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
     val bracketTypeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
     
@@ -739,8 +810,8 @@ private fun AnimatedWordLetterCanvas(
                     if (charStr.isBlank()) continue
                     
                     val wordIdx = mappedData.wordIdxMap[i]
-                    var charOpacity = 0.5f // FROM REPO: const opacity = useSharedValue(0.5);
-                    var charTranslateY = 0f // FROM REPO: const translateY = useSharedValue(0);
+                    var charOpacity = 0.5f 
+                    var charTranslateY = 0f 
                     
                     if (wordIdx != -1 && wordIdx < words.size) {
                         val word = words[wordIdx]
@@ -751,22 +822,16 @@ private fun AnimatedWordLetterCanvas(
                         val charPos = mappedData.posMap[i]
                         val totalChars = mappedData.counts[wordIdx].coerceAtLeast(1)
                         
-                        // FROM REPO: delay = word.startMillisecond + (index * duration) / letters.length
                         val delay = wStart + (charPos * duration) / totalChars
                         val timePassed = smoothPositionF - delay
                         
                         if (timePassed > 0f) {
                             val progress = (timePassed / duration).coerceIn(0f, 1f)
-                            
-                            // FROM REPO: opacity = withTiming(1, easing: Easing.out(Easing.exp))
                             val expProgress = if (progress == 1f) 1f else 1f - 2f.pow(-10f * progress)
                             charOpacity = 0.5f + (0.5f * expProgress)
-                            
-                            // FROM REPO: translateY = withTiming(-2, easing: Easing.linear)
                             charTranslateY = -translateMaxPx * progress
                         }
                     } else {
-                        // Fallback mapping for unmapped punctuation
                         if (i > 0 && mappedData.wordIdxMap[i-1] != -1 && mappedData.wordIdxMap[i-1] < words.size) {
                             val prevWEnd = (words[mappedData.wordIdxMap[i-1]].endTime * 1000.0).toFloat()
                             if (smoothPositionF >= prevWEnd) {
