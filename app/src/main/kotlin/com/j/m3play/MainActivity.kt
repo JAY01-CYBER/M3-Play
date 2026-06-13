@@ -398,6 +398,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // ------------------------------------------------------------------
+        // SANITY CHECK: Agar Client ID blank hai, toh app open hote hi error dikhayega
+        // ------------------------------------------------------------------
+        if (BuildConfig.SPOTIFY_CLIENT_ID.isBlank() || BuildConfig.SPOTIFY_CLIENT_ID == "null") {
+            Toast.makeText(this, "WARNING: Spotify Client ID missing! Please check GitHub Secrets.", Toast.LENGTH_LONG).show()
+        }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             val initialLocale = PreferenceStore.get(AppLanguageKey)
@@ -1585,17 +1592,27 @@ class MainActivity : ComponentActivity() {
             return
         }
         
-        // ----------------------------------------------------
-        // NAYA ADD KIYA GAYA CODE - SPOTIFY CALLBACK CATCH LOGIC
-        // ----------------------------------------------------
+        // ------------------------------------------------------------------
+        // UPDATED: SPOTIFY CALLBACK CATCH LOGIC WITH ERROR HANDLING & SAVING
+        // ------------------------------------------------------------------
         if (uri.scheme.equals("m3play", ignoreCase = true) && authority == "callback") {
             val code = uri.getQueryParameter("code")
+            val error = uri.getQueryParameter("error") // Yahan Spotify ka error catch hoga!
+
             if (code != null) {
                 coroutineScope.launch(Dispatchers.IO) {
                     try {
                         val repository = SpotifyRepository()
                         val token = repository.exchangeCodeForToken(code)
                         if (token != null) {
+                            
+                            // 1. DataStore me Token ko Save karna!
+                            dataStore.edit { prefs ->
+                                prefs[com.j.m3play.constants.SpotifyConnectedKey] = true
+                                prefs[com.j.m3play.constants.SpotifyTokenKey] = token
+                            }
+
+                            // 2. Playlists check karna
                             val playlists = repository.fetchUserPlaylists(token)
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(
@@ -1604,19 +1621,23 @@ class MainActivity : ComponentActivity() {
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
-                            // TODO: Baad mein yahan playlists ko apne Database me save karne ka logic layenge.
                         } else {
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(this@MainActivity, "Spotify Login Failed!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@MainActivity, "Spotify Login Failed (Token Error)!", Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "Spotify Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, "Spotify Exception: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
+            } else if (error != null) {
+                // Agar Browser Turant Close Hua, Toh Screen Par Error Dikhayega
+                Toast.makeText(this, "Spotify Error: $error", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Spotify Login Cancelled!", Toast.LENGTH_LONG).show()
             }
             return
         }
