@@ -19,28 +19,50 @@ class SpotifyRepository {
 
     private val api = retrofit.create(SpotifyApiService::class.java)
 
-    // --- LOGIN SYSTEM FUNCTIONS ---
+    // Login URL generate karna
     fun getLoginUrl(): String {
-        return "https://accounts.spotify.com/authorize?response_type=code&client_id=$clientId&scope=$scopes&redirect_uri=$redirectUri"
+        val scopes = "playlist-read-private playlist-read-collaborative"
+        val encodedScopes = URLEncoder.encode(scopes, "UTF-8")
+        val encodedRedirect = URLEncoder.encode(redirectUri, "UTF-8")
+        
+        // Spotify URL format fix kiya
+        return "https://accounts.spotify.com/authorize?client_id=$clientId&response_type=code&redirect_uri=$encodedRedirect&scope=$encodedScopes"
     }
 
+    // Code se Token lena
     suspend fun exchangeCodeForToken(code: String): String? {
         val authString = "$clientId:$clientSecret"
         val base64Auth = Base64.encodeToString(authString.toByteArray(), Base64.NO_WRAP)
+        
         return try {
-            val response = api.getUserToken(authHeader = "Basic $base64Auth", code = code, redirectUri = redirectUri)
+            val response = api.getUserToken(
+                authHeader = "Basic $base64Auth",
+                code = code,
+                redirectUri = redirectUri
+            )
             if (response.isSuccessful) response.body()?.access_token else null
-        } catch (e: Exception) { e.printStackTrace(); null }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
+    // Playlists fetch karna
     suspend fun fetchUserPlaylists(userToken: String): List<UserPlaylist> {
         return try {
             val response = api.getUserPlaylists("Bearer $userToken")
-            if (response.isSuccessful) response.body()?.items ?: emptyList() else emptyList()
-        } catch (e: Exception) { e.printStackTrace(); emptyList() }
+            if (response.isSuccessful) {
+                response.body()?.items ?: emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
     }
 
-    // --- URL IMPORT FUNCTION (Yeh missing tha) ---
+    // URL Import function
     suspend fun fetchPlaylistTracks(playlistUrl: String): List<String> {
         val extractedTracks = mutableListOf<String>()
         val regex = "playlist/([a-zA-Z0-9]+)".toRegex()
@@ -48,8 +70,7 @@ class SpotifyRepository {
         val playlistId = matchResult?.groupValues?.get(1) ?: return emptyList()
 
         try {
-            // Public track fetch ke liye hum token ke bina ya standard method se karenge
-            // Agar aapke paas client token hai toh wo yahan use karein
+            // Public fetching ke liye yahan logic
             val response = api.getPlaylistTracks(playlistId, "Bearer " + "YOUR_CLIENT_TOKEN_IF_NEEDED")
             if (response.isSuccessful) {
                 response.body()?.items?.forEach { item ->
