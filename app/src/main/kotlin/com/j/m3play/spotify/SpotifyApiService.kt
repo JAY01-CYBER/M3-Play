@@ -11,7 +11,7 @@ import retrofit2.http.Url
 
 interface SpotifyApiService {
     
-    // Login Code ko Access Token mein badalna (REAL URL ADDED)
+    // REAL SPOTIFY TOKEN URL
     @FormUrlEncoded
     @POST
     suspend fun getUserToken(
@@ -22,13 +22,11 @@ interface SpotifyApiService {
         @Field("redirect_uri") redirectUri: String
     ): Response<TokenResponse>
 
-    // User ki saari playlists lene ke liye
     @GET("v1/me/playlists")
     suspend fun getUserPlaylists(
         @Header("Authorization") token: String
     ): Response<UserPlaylistsResponse>
 
-    // Kisi ek playlist ke andar ke gaane lene ke liye
     @GET("v1/playlists/{playlist_id}/tracks")
     suspend fun getPlaylistTracks(
         @Path("playlist_id") playlistId: String,
