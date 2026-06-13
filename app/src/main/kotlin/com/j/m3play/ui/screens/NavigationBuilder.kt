@@ -88,6 +88,7 @@ import com.j.m3play.ui.screens.settings.PlayerSettings
 import com.j.m3play.ui.screens.settings.PoTokenScreen
 import com.j.m3play.ui.screens.settings.PrivacySettings
 import com.j.m3play.ui.screens.settings.SettingsScreen
+import com.j.m3play.ui.screens.settings.SpotifySettingsScreen // YAHAN SPOTIFY IMPORT KIYA HAI
 import com.j.m3play.ui.screens.settings.StorageSettings
 import com.j.m3play.ui.screens.settings.ThemeCreatorScreen
 import com.j.m3play.ui.screens.settings.UpdateScreen
@@ -365,6 +366,12 @@ fun NavGraphBuilder.navigationBuilder(
     composable("settings/backup_restore") {
         BackupAndRestore(navController, scrollBehavior)
     }
+    
+    // YAHAN SPOTIFY ROUTE ADD KIYA HAI
+    composable("settings/spotify") {
+        SpotifySettingsScreen(navController)
+    }
+
     composable("settings/discord") {
         DiscordSettings(navController, scrollBehavior)
     }
