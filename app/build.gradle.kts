@@ -46,17 +46,25 @@ android {
                 ?: ""
         buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
 
-        // SPOTIFY KEYS LOGIC (Added here)
-        val spotifyClientId =
-            localProperties.getProperty("SPOTIFY_CLIENT_ID")
-                ?: System.getenv("SPOTIFY_CLIENT_ID")
-                ?: ""
-        val spotifyClientSecret =
-            localProperties.getProperty("SPOTIFY_CLIENT_SECRET")
-                ?: System.getenv("SPOTIFY_CLIENT_SECRET")
-                ?: ""
-        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
-        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"$spotifyClientSecret\"")
+        // === FOOLPROOF SPOTIFY SECRETS LOGIC ===
+        var spotifyId = System.getenv("SPOTIFY_CLIENT_ID")
+        if (spotifyId.isNullOrEmpty()) {
+            spotifyId = localProperties.getProperty("SPOTIFY_CLIENT_ID")
+        }
+        if (spotifyId.isNullOrEmpty()) {
+            spotifyId = "" 
+        }
+
+        var spotifySecret = System.getenv("SPOTIFY_CLIENT_SECRET")
+        if (spotifySecret.isNullOrEmpty()) {
+            spotifySecret = localProperties.getProperty("SPOTIFY_CLIENT_SECRET")
+        }
+        if (spotifySecret.isNullOrEmpty()) {
+            spotifySecret = "" 
+        }
+
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyId\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"$spotifySecret\"")
     }
 
     flavorDimensions += "abi"
