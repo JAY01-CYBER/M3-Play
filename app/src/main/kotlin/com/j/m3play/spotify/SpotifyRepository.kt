@@ -12,20 +12,21 @@ class SpotifyRepository {
     private val clientSecret = BuildConfig.SPOTIFY_CLIENT_SECRET
     private val redirectUri = "m3play://callback"
 
-    // REAL SPOTIFY BASE URL ADDED
+    // REAL SPOTIFY BASE API URL
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://api.spotify.com/") 
+        .baseUrl("https://api.spotify.com/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     private val api = retrofit.create(SpotifyApiService::class.java)
 
-    // Login URL generate karna (REAL SPOTIFY AUTH URL ADDED)
+    // REAL LOGIN URL GENERATOR
     fun getLoginUrl(): String {
         val scopes = "playlist-read-private playlist-read-collaborative"
         val encodedScopes = URLEncoder.encode(scopes, "UTF-8")
         val encodedRedirect = URLEncoder.encode(redirectUri, "UTF-8")
         
+        // Asli Spotify Login Page
         return "https://accounts.spotify.com/authorize?client_id=$clientId&response_type=code&redirect_uri=$encodedRedirect&scope=$encodedScopes"
     }
 
