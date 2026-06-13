@@ -45,6 +45,18 @@ android {
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
+
+        // SPOTIFY KEYS LOGIC (Added here)
+        val spotifyClientId =
+            localProperties.getProperty("SPOTIFY_CLIENT_ID")
+                ?: System.getenv("SPOTIFY_CLIENT_ID")
+                ?: ""
+        val spotifyClientSecret =
+            localProperties.getProperty("SPOTIFY_CLIENT_SECRET")
+                ?: System.getenv("SPOTIFY_CLIENT_SECRET")
+                ?: ""
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"$spotifyClientSecret\"")
     }
 
     flavorDimensions += "abi"
@@ -103,7 +115,6 @@ android {
     }
 
     compileOptions {
-        // YAHAN CHANGE KIYA HAI: false se true kar diya
         isCoreLibraryDesugaringEnabled = true 
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -160,6 +171,10 @@ dependencies {
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // RETROFIT DEPENDENCIES (Added here)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
     implementation(libs.activity)
     implementation(libs.navigation)
