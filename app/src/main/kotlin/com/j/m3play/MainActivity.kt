@@ -19,6 +19,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -212,6 +213,7 @@ import com.j.m3play.playback.queues.LocalAlbumRadio
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
+import com.j.m3play.spotify.SpotifyRepository
 import com.j.m3play.ui.component.AccountSettingsDialog
 import com.j.m3play.ui.component.BottomSheetMenu
 import com.j.m3play.ui.component.BottomSheetPage
@@ -1166,13 +1168,12 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                             
+                            
                             Scaffold(
                                 topBar = {
                                     if (shouldShowTopBar) {
                                         val shouldUseFloatingTopBar = remember(navBackStackEntry) {
-                                            navBackStackEntry?.destination?.route == Screens.Home.route ||
-                                                navBackStackEntry?.destination?.route == Screens.MoodAndGenres.route ||
+                                            navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.MoodAndGenres.route ||
                                                 navBackStackEntry?.destination?.route == Screens.Library.route
                                         }
                                         val shouldShowBlurBackground = remember(navBackStackEntry) { shouldUseFloatingTopBar }
@@ -1583,10 +1584,46 @@ class MainActivity : ComponentActivity() {
             navController.navigate(buildLoginRoute(uri.getQueryParameter(LOGIN_URL_ARGUMENT)))
             return
         }
+        
+        // ----------------------------------------------------
+        // NAYA ADD KIYA GAYA CODE - SPOTIFY CALLBACK CATCH LOGIC
+        // ----------------------------------------------------
+        if (uri.scheme.equals("m3play", ignoreCase = true) && authority == "callback") {
+            val code = uri.getQueryParameter("code")
+            if (code != null) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val repository = SpotifyRepository()
+                        val token = repository.exchangeCodeForToken(code)
+                        if (token != null) {
+                            val playlists = repository.fetchUserPlaylists(token)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Spotify Connected! Found ${playlists.size} playlists \uD83C\uDF89",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                            // TODO: Baad mein yahan playlists ko apne Database me save karne ka logic layenge.
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@MainActivity, "Spotify Login Failed!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "Spotify Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            return
+        }
 
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
-                if (playlistId.startsWith("OLAK5uy_")) {
+                 if (playlistId.startsWith("OLAK5uy_")) {
                     coroutineScope.launch {
                         YouTube.albumSongs(playlistId).onSuccess { songs ->
                             songs.firstOrNull()?.album?.id?.let { browseId ->
@@ -1594,7 +1631,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }.onFailure { reportException(it) }
                     }
-                } else {
+                 } else {
                     navController.navigate("online_playlist/$playlistId")
                 }
             }
@@ -1612,13 +1649,13 @@ class MainActivity : ComponentActivity() {
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
-                        val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
+                         val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
                         result.onSuccess { queued ->
                             val mediaItem = queued.firstOrNull { it.id == vid }?.toMediaItem() ?: queued.firstOrNull()?.toMediaItem() ?: MediaItem.Builder().setMediaId(vid).setUri(vid).setCustomCacheKey(vid).build()
-                            pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
+                             pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
                             startMusicServiceSafely()
                             playPendingDeepLinkSongIfReady()
-                        }.onFailure { reportException(it) }
+                         }.onFailure { reportException(it) }
                     }
                 }
             }
@@ -1627,7 +1664,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startMusicServiceSafely() {
         runCatching { startService(Intent(this, com.j.m3play.playback.MusicService::class.java)) }
-            .onFailure { reportException(it) }
+             .onFailure { reportException(it) }
     }
 
     @SuppressLint("ObsoleteSdkInt")
