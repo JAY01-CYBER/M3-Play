@@ -11,16 +11,24 @@ import retrofit2.http.Url
 
 interface SpotifyApiService {
     
-    // Spotify se Access Token lene ki request
+    // Login Code ko Access Token mein badalna
     @FormUrlEncoded
     @POST
-    suspend fun getAccessToken(
+    suspend fun getUserToken(
         @Url url: String = "https://accounts.spotify.com/api/token",
         @Header("Authorization") authHeader: String,
-        @Field("grant_type") grantType: String = "client_credentials"
+        @Field("grant_type") grantType: String = "authorization_code",
+        @Field("code") code: String,
+        @Field("redirect_uri") redirectUri: String
     ): Response<TokenResponse>
 
-    // Playlist ka data lene ki request
+    // User ki saari playlists lene ke liye
+    @GET("v1/me/playlists")
+    suspend fun getUserPlaylists(
+        @Header("Authorization") token: String
+    ): Response<UserPlaylistsResponse>
+
+    // Kisi ek playlist ke andar ke gaane lene ke liye
     @GET("v1/playlists/{playlist_id}/tracks")
     suspend fun getPlaylistTracks(
         @Path("playlist_id") playlistId: String,
