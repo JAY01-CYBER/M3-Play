@@ -85,6 +85,11 @@ val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
 val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
+// Spotify Integration
+val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
+val SpotifyTokenKey = stringPreferencesKey("spotify_token")
+val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
+
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
 val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
