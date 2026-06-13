@@ -11,11 +11,11 @@ import retrofit2.http.Url
 
 interface SpotifyApiService {
     
-    // Login Code ko Access Token mein badalna
+    // Login Code ko Access Token mein badalna (REAL URL ADDED)
     @FormUrlEncoded
     @POST
     suspend fun getUserToken(
-        @Url url: String = "https://accounts.spotify.com/api/token",
+        @Url url: String = "https://accounts.spotify.com/api/token", 
         @Header("Authorization") authHeader: String,
         @Field("grant_type") grantType: String = "authorization_code",
         @Field("code") code: String,
