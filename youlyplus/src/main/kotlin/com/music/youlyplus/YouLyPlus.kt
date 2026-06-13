@@ -31,11 +31,7 @@ object YouLyPlus {
     /** Mirror of YouLyPlus extension's KPOE_SERVERS constant. */
     private val BASE_SERVERS = listOf(
         "https://lyricsplus.prjktla.my.id",       // youly's server
-        "https://lyricsplus.atomix.one",          // meow's mirror
         "https://lyricsplus.binimum.org",         // binimum's server
-        "https://lyricsplus.prjktla.workers.dev", // ibra's cf worker
-        "https://lyricsplus-seven.vercel.app",    // jigen's mirror
-        "https://lyrics-plus-backend.vercel.app", // ibra's vercel
     )
 
     /**
@@ -210,7 +206,8 @@ object YouLyPlus {
         id: String? = null,
         isrc: String? = null,
     ): LyricsResponse? = runCatching {
-        client.get(baseUrl.let { if (it.endsWith("/")) it else "$it/" } + "v2/lyrics/get") {
+        val url = baseUrl.let { if (it.endsWith("/")) it else "$it/" } + "v2/lyrics/get"
+        client.get(url) {
             parameter("title", title)
             parameter("artist", artist)
             parameter("duration", duration)
@@ -218,5 +215,8 @@ object YouLyPlus {
             if (id != null) parameter("id", id)
             if (isrc != null) parameter("isrc", isrc)
         }.body<LyricsResponse>()
+    }.onFailure {
+        System.err.println("YouLyPlus: Failed to fetch from $baseUrl: ${it.message}")
+        it.printStackTrace()
     }.getOrNull()
 }

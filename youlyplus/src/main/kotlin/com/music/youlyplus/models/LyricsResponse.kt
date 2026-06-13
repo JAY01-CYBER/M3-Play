@@ -1,6 +1,7 @@
 package com.music.youlyplus.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 
 /**
  * Response model for the LyricsPlus / KPoe API (/v2/lyrics/get).
@@ -29,6 +30,7 @@ data class LyricsItem(
     val text: String? = null,
     val time: Long? = null,         // milliseconds
     val duration: Long? = null,     // milliseconds
+    @JsonNames("syllabus", "syllables")
     val syllabus: List<Syllable>? = null,
 )
 

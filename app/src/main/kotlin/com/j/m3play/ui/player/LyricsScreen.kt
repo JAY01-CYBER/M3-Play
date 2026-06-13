@@ -165,7 +165,7 @@ fun LyricsScreen(
         if (currentLyrics == null) {
             "LOADING LYRICS"
         } else {
-            "LYRICS BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+            "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
         }
     }
 
@@ -901,7 +901,7 @@ fun InlineLyricsView(
 
     val providerBadgeText = remember(currentLyrics) {
         if (currentLyrics == null) "LOADING LYRICS"
-        else "LYRICS BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+        else "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
     }
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
