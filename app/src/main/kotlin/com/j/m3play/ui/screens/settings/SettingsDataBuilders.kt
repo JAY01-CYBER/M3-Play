@@ -112,10 +112,19 @@ fun buildSettingsGroups(
         ),
     )
 
+    // YAHAN SPOTIFY ADD KIYA HAI
     add(
         SettingsGroup(
             title = stringResource(R.string.integration),
             items = listOf(
+                SettingsItem(
+                    icon = painterResource(R.drawable.library_music), // Agar aapke paas Spotify ka icon (R.drawable.spotify) hai toh wo laga lena
+                    title = "Spotify",
+                    subtitle = "Connect and sync playlists",
+                    accentColor = Color(0xFF1DB954), // Spotify Green Color
+                    keywords = listOf("spotify", "sync", "playlist", "import", "connect"),
+                    onClick = { resetSearch(); navController.navigate("settings/spotify") },
+                ),
                 SettingsItem(
                     icon = painterResource(R.drawable.discord),
                     title = stringResource(R.string.discord),
