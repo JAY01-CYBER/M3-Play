@@ -213,7 +213,6 @@ import com.j.m3play.playback.queues.LocalAlbumRadio
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeAlbumRadio
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.spotify.SpotifyRepository
 import com.j.m3play.ui.component.AccountSettingsDialog
 import com.j.m3play.ui.component.BottomSheetMenu
 import com.j.m3play.ui.component.BottomSheetPage
@@ -398,13 +397,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
-        // ------------------------------------------------------------------
-        // SANITY CHECK: Agar Client ID blank hai, toh app open hote hi error dikhayega
-        // ------------------------------------------------------------------
-        if (BuildConfig.SPOTIFY_CLIENT_ID.isBlank() || BuildConfig.SPOTIFY_CLIENT_ID == "null") {
-            Toast.makeText(this, "WARNING: Spotify Client ID missing! Please check GitHub Secrets.", Toast.LENGTH_LONG).show()
-        }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             val initialLocale = PreferenceStore.get(AppLanguageKey)
@@ -905,9 +897,6 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         val route = navBackStackEntry?.destination?.route
-                        // ----------------------------------------------------
-                        // FIXED: Hide default TopBar if we are on SearchScreen
-                        // ----------------------------------------------------
                         shouldShowTopBar =
                             !active && route in topLevelScreens && route != "settings" && route != Screens.Search.route
                     }
@@ -1180,7 +1169,8 @@ class MainActivity : ComponentActivity() {
                                 topBar = {
                                     if (shouldShowTopBar) {
                                         val shouldUseFloatingTopBar = remember(navBackStackEntry) {
-                                            navBackStackEntry?.destination?.route == Screens.Home.route || navBackStackEntry?.destination?.route == Screens.MoodAndGenres.route ||
+                                            navBackStackEntry?.destination?.route == Screens.Home.route ||
+                                                navBackStackEntry?.destination?.route == Screens.MoodAndGenres.route ||
                                                 navBackStackEntry?.destination?.route == Screens.Library.route
                                         }
                                         val shouldShowBlurBackground = remember(navBackStackEntry) { shouldUseFloatingTopBar }
@@ -1258,9 +1248,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                     
 
-                                    // ----------------------------------------------------
-                                    // FIXED: TopSearch visibility updated
-                                    // ----------------------------------------------------
                                     AnimatedVisibility(
                                         visible = active,
                                         enter = fadeIn(animationSpec = tween(durationMillis = 300)),
@@ -1561,9 +1548,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // ----------------------------------------------------
-                    // FIXED: Handle openSearchImmediately cleanly
-                    // ----------------------------------------------------
                     LaunchedEffect(openSearchImmediately) {
                         if (openSearchImmediately) {
                             navController.navigate(Screens.Search.route)
@@ -1589,56 +1573,6 @@ class MainActivity : ComponentActivity() {
 
         if (uri.scheme.equals("m3play", ignoreCase = true) && authority == "login") {
             navController.navigate(buildLoginRoute(uri.getQueryParameter(LOGIN_URL_ARGUMENT)))
-            return
-        }
-        
-        // ------------------------------------------------------------------
-        // UPDATED: SPOTIFY CALLBACK CATCH LOGIC WITH ERROR HANDLING & SAVING
-        // ------------------------------------------------------------------
-        if (uri.scheme.equals("m3play", ignoreCase = true) && authority == "callback") {
-            val code = uri.getQueryParameter("code")
-            val error = uri.getQueryParameter("error") // Yahan Spotify ka error catch hoga!
-
-            if (code != null) {
-                coroutineScope.launch(Dispatchers.IO) {
-                    try {
-                        val repository = SpotifyRepository()
-                        val token = repository.exchangeCodeForToken(code)
-                        if (token != null) {
-                            
-                            // 1. DataStore me Token ko Save karna!
-                            dataStore.edit { prefs ->
-                                prefs[com.j.m3play.constants.SpotifyConnectedKey] = true
-                                prefs[com.j.m3play.constants.SpotifyTokenKey] = token
-                            }
-
-                            // 2. Playlists check karna
-                            val playlists = repository.fetchUserPlaylists(token)
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    "Spotify Connected! Found ${playlists.size} playlists \uD83C\uDF89",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(this@MainActivity, "Spotify Login Failed (Token Error)!", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MainActivity, "Spotify Exception: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            } else if (error != null) {
-                // Agar Browser Turant Close Hua, Toh Screen Par Error Dikhayega
-                Toast.makeText(this, "Spotify Error: $error", Toast.LENGTH_LONG).show()
-            } else {
-                Toast.makeText(this, "Spotify Login Cancelled!", Toast.LENGTH_LONG).show()
-            }
             return
         }
 
@@ -1673,7 +1607,7 @@ class MainActivity : ComponentActivity() {
                          val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
                         result.onSuccess { queued ->
                             val mediaItem = queued.firstOrNull { it.id == vid }?.toMediaItem() ?: queued.firstOrNull()?.toMediaItem() ?: MediaItem.Builder().setMediaId(vid).setUri(vid).setCustomCacheKey(vid).build()
-                             pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
+                            pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
                             startMusicServiceSafely()
                             playPendingDeepLinkSongIfReady()
                          }.onFailure { reportException(it) }
