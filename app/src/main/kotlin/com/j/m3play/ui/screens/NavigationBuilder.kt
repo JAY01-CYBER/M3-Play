@@ -88,7 +88,7 @@ import com.j.m3play.ui.screens.settings.PlayerSettings
 import com.j.m3play.ui.screens.settings.PoTokenScreen
 import com.j.m3play.ui.screens.settings.PrivacySettings
 import com.j.m3play.ui.screens.settings.SettingsScreen
-import com.j.m3play.ui.screens.settings.SpotifySettingsScreen // YAHAN SPOTIFY IMPORT KIYA HAI
+import com.j.m3play.ui.screens.settings.SpotifySettingsScreen
 import com.j.m3play.ui.screens.settings.StorageSettings
 import com.j.m3play.ui.screens.settings.ThemeCreatorScreen
 import com.j.m3play.ui.screens.settings.UpdateScreen
@@ -97,6 +97,9 @@ import com.j.m3play.ui.screens.musicrecognition.MusicRecognitionScreen
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.navigationBuilder(
@@ -304,7 +307,7 @@ fun NavGraphBuilder.navigationBuilder(
     composable(
         route = "cache_playlist/{playlist}",
         arguments =
-            listOf(
+             listOf(
                 navArgument("playlist") {
                     type = NavType.StringType
             },
@@ -421,6 +424,51 @@ fun NavGraphBuilder.navigationBuilder(
         LoginScreen(
             navController,
             startUrl = backStackEntry.arguments?.getString(LOGIN_URL_ARGUMENT)?.let(Uri::decode)
+        )
+    }
+    
+    //  NAYA WEBVIEW LOGIN ROUTE YAHAN ADD KIYA GAYA HAI 
+    composable("spotify_login") {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+        
+        com.j.m3play.ui.screens.SpotifyLoginScreen(
+            onCookieFound = { spDcCookie ->
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val result = com.j.m3play.spotify.SpotifyAuth.fetchAccessToken(spDcCookie)
+                        
+                        result.onSuccess { tokenData ->
+                            com.j.m3play.spotify.Spotify.accessToken = tokenData.accessToken
+                            
+                            val userResult = com.j.m3play.spotify.Spotify.me()
+                            val userName = userResult.getOrNull()?.displayName ?: "Spotify User"
+                            
+                            withContext(Dispatchers.Main) {
+                                context.androidx.datastore.preferences.core.edit { prefs ->
+                                    prefs[com.j.m3play.constants.SpotifyConnectedKey] = true
+                                    prefs[com.j.m3play.constants.SpotifyTokenKey] = tokenData.accessToken
+                                    prefs[com.j.m3play.constants.SpotifyUserNameKey] = userName
+                                    prefs[com.j.m3play.constants.ShowSpotifyPlaylistKey] = true
+                                }
+                                android.widget.Toast.makeText(context, "Welcome, $userName! \uD83C\uDF89", android.widget.Toast.LENGTH_LONG).show()
+                                navController.popBackStack() 
+                            }
+                        }.onFailure { error ->
+                            withContext(Dispatchers.Main) {
+                                android.widget.Toast.makeText(context, "Login Failed: ${error.message}", android.widget.Toast.LENGTH_LONG).show()
+                                navController.popBackStack()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(context, "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
         )
     }
 }
