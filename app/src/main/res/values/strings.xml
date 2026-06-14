@@ -770,4 +770,11 @@ M3Play will only extract your token, and everything else is stored locally.</str
     <string name="token_copied">Token copied to clipboard</string>
     <string name="no_visitor_data">No visitor data available. Tokens cannot be generated.</string>
     <string name="extracting_from_url">Extracting tokens from URL…</string>
+
+    <string name="spotify_not_connected">Not connected to Spotify</string>
+    <string name="spotify_reload_playlist">Reload Playlist</string>
+    <string name="spotify_no_tracks">No tracks found</string>
+    <string name="ai_model_no_results">No results found</string>
+    <string name="spotify_playlists">Spotify Playlists</string>
+    
 </resources>
