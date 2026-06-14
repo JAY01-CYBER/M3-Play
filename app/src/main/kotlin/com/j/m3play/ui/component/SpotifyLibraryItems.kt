@@ -1,4 +1,5 @@
 
+
 package com.j.m3play.ui.component
 
 import androidx.compose.foundation.clickable
@@ -18,19 +19,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.clickable
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.j.m3play.R
 import com.j.m3play.constants.ListThumbnailSize
 import com.j.m3play.constants.ThumbnailCornerRadius
@@ -63,34 +51,15 @@ fun SpotifyLibraryPlaylistListItem(
         )
     }
 
-    Card(
-    shape = shape,
-    modifier = modifier
-        .fillMaxWidth()
-        .focusable()
-        .clickable(onClick = openPlaylist)
-) {
-    Row(
-        modifier = Modifier.padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = playlist.playlist.name,
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                text = "${playlist.songCount} songs",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        trailing()
-    }
-}
+    LibraryPlaylistFeatureCard(
+        playlist = libraryPlaylist,
+        shape = shape,
+        trailingContent = trailing,
+        modifier = modifier
+            .fillMaxWidth()
+            .focusable()
+            .clickable(onClick = openPlaylist),
+    )
 }
 
 @Composable
