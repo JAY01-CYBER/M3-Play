@@ -89,6 +89,8 @@ val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
 val SpotifyTokenKey = stringPreferencesKey("spotify_token")
 val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
+val SpotifyUserNameKey = stringPreferencesKey("spotify_user_name")
+val ShowSpotifyPlaylistKey = booleanPreferencesKey("show_spotify_playlist")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
@@ -238,7 +240,6 @@ enum class LibraryViewType {
     LIST,
     GRID,
     ;
-
     fun toggle() =
         when (this) {
             LIST -> GRID
@@ -335,7 +336,6 @@ enum class MyTopFilter {
     MONTH,
     YEAR,
     ;
-
     fun toTimeMillis(): Long =
         when (this) {
             DAY ->
@@ -459,7 +459,6 @@ enum class SearchSource {
     LOCAL,
     ONLINE,
     ;
-
     fun toggle() =
         when (this) {
             LOCAL -> ONLINE
