@@ -8,8 +8,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import com.j.m3play.extensions.toMediaItem
-import moe.rukamori.archivetune.innertube.YouTube
-import moe.rukamori.archivetune.innertube.models.SongItem
+import com.j.m3play.innertube.YouTube
+import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.spotify.models.SpotifyTrack
