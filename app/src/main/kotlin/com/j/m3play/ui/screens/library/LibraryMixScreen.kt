@@ -71,7 +71,6 @@ import com.j.m3play.constants.ShowLikedPlaylistKey
 import com.j.m3play.constants.ShowDownloadedPlaylistKey
 import com.j.m3play.constants.ShowTopPlaylistKey
 import com.j.m3play.constants.ShowCachedPlaylistKey
-import com.j.m3play.constants.UseNewLibraryDesignKey
 import com.j.m3play.constants.YtmSyncKey
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Artist
@@ -134,7 +133,6 @@ fun LibraryMixScreen(
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
-    val (useNewLibraryDesign) = rememberPreference(UseNewLibraryDesignKey, false)
 
     val albums by viewModel.albums.collectAsState()
     val artist by viewModel.artists.collectAsState()
@@ -216,7 +214,7 @@ fun LibraryMixScreen(
             }
             Spacer(Modifier.weight(1f))
             if (canEnterReorderMode) {
-                Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
+                 Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
                     IconButton(onClick = { reorderEnabled = !reorderEnabled }) { Icon(painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock), null) }
                 }
             }
@@ -255,14 +253,14 @@ fun LibraryMixScreen(
                     itemsIndexed(items = mutableVisiblePlaylists, key = { _, item -> item.id }, contentType = { _, _ -> CONTENT_TYPE_PLAYLIST }) { _, item ->
                         ReorderableItem(state = reorderableState, key = item.id) {
                             Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                                LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, useNewDesign = useNewLibraryDesign, showDragHandle = true, dragHandleModifier = Modifier.draggableHandle(), modifier = Modifier.animateItem())
+                                LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, showDragHandle = true, dragHandleModifier = Modifier.draggableHandle(), modifier = Modifier.animateItem())
                             }
                         }
                     }
                 } else {
                     items(items = visiblePlaylists, key = { it.id }, contentType = { CONTENT_TYPE_PLAYLIST }) { item ->
                         Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                            LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, useNewDesign = useNewLibraryDesign, modifier = Modifier.animateItem())
+                            LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, modifier = Modifier.animateItem())
                         }
                     }
                 }
@@ -280,7 +278,7 @@ fun LibraryMixScreen(
                 items(items = allItems, key = { it.id }, contentType = { CONTENT_TYPE_PLAYLIST }) { item ->
                     Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
                         when (item) {
-                            is Playlist -> { LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, useNewDesign = useNewLibraryDesign, modifier = Modifier.animateItem()) }
+                            is Playlist -> { LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, modifier = Modifier.animateItem()) }
                             is Artist -> { ArtistListItem(artist = item, trailingContent = { IconButton(onClick = { menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }).animateItem()) }
                             is Album -> { AlbumListItem(album = item, isActive = item.id == mediaMetadata?.album?.id, isPlaying = isPlaying, trailingContent = { IconButton(onClick = { menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }).animateItem()) }
                             else -> {}
