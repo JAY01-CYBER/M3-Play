@@ -91,7 +91,6 @@ import com.j.m3play.constants.ShowLikedPlaylistKey
 import com.j.m3play.constants.ShowDownloadedPlaylistKey
 import com.j.m3play.constants.ShowTopPlaylistKey
 import com.j.m3play.constants.ShowCachedPlaylistKey
-import com.j.m3play.constants.UseNewLibraryDesignKey
 import com.j.m3play.constants.YtmSyncKey
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.PlaylistTagsFilterKey
@@ -132,7 +131,6 @@ fun LibraryPlaylistsScreen(
 
     val (sortType, onSortTypeChange) = rememberEnumPreference(PlaylistSortTypeKey, PlaylistSortType.CUSTOM)
     val (sortDescending, onSortDescendingChange) = rememberPreference(PlaylistSortDescendingKey, true)
-    val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, false)
 
     val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
     val selectedTagIds = remember(selectedTagsFilter) { selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet() }
@@ -156,6 +154,7 @@ fun LibraryPlaylistsScreen(
     val isSpotifyConnected by context.dataStore.data.map { it[SpotifyConnectedKey] ?: false }.collectAsState(initial = false)
     val showSpotifyPlaylist by context.dataStore.data.map { it[ShowSpotifyPlaylistKey] ?: true }.collectAsState(initial = true)
     val spotifyToken by context.dataStore.data.map { it[SpotifyTokenKey] ?: "" }.collectAsState(initial = "")
+ 
     var spotifyPlaylists by remember { mutableStateOf<List<com.j.m3play.spotify.models.SpotifyPlaylist>>(emptyList()) }
 
     LaunchedEffect(isSpotifyConnected, showSpotifyPlaylist, spotifyToken) {
@@ -308,14 +307,14 @@ fun LibraryPlaylistsScreen(
                 itemsIndexed(items = mutableVisiblePlaylists, key = { _, item -> item.id }, contentType = { _, _ -> CONTENT_TYPE_PLAYLIST }) { _, playlist ->
                     ReorderableItem(state = reorderableState, key = playlist.id) {
                         Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                            LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, useNewDesign = useNewLibraryDesign, showDragHandle = true, dragHandleModifier = Modifier.draggableHandle(), modifier = Modifier.animateItem())
+                            LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, showDragHandle = true, dragHandleModifier = Modifier.draggableHandle(), modifier = Modifier.animateItem())
                         }
                     }
                 }
             } else {
                 items(items = visiblePlaylists, key = { it.id }, contentType = { CONTENT_TYPE_PLAYLIST }) { playlist ->
                     Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                        LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, useNewDesign = useNewLibraryDesign, modifier = Modifier.animateItem())
+                        LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, modifier = Modifier.animateItem())
                     }
                 }
             }
@@ -325,7 +324,7 @@ fun LibraryPlaylistsScreen(
                     Text("Spotify Playlist", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp))
                 }
                 items(spotifyPlaylists, key = { "sp_${it.id}" }) { sp ->
-                    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
+                    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { navController.navigate("spotify_playlist/${sp.id}") }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
                         ListItem(
                             headlineContent = { Text(sp.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             supportingContent = { Text("${sp.tracks?.total ?: 0} songs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
