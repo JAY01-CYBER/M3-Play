@@ -767,4 +767,5 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="spotify_no_tracks">No tracks found</string>
     <string name="ai_model_no_results">No results found</string>
     <string name="spotify_playlists">Spotify Playlists</string>
+    <string name="spotify_account">Spotify Account</string>
 </resources>
