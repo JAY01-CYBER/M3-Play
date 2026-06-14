@@ -1,7 +1,19 @@
+
+
 package com.j.m3play.spotify
 
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Thread-safe provider for Spotify GQL persisted-query hashes.
+ *
+ * Initialized with hardcoded defaults that ship with each release.
+ * The app module can update hashes at runtime from a remote JSON
+ * registry via [updateHashes], enabling automatic recovery when
+ * Spotify rotates hashes between app releases.
+ *
+ * Resolution order: remote/cached → hardcoded (always available).
+ */
 object SpotifyHashProvider {
 
     enum class HashSource { HARDCODED, CACHED, REMOTE }
@@ -41,13 +53,29 @@ object SpotifyHashProvider {
         }
     }
 
+    /**
+     * Returns the best available hash for [operationName].
+     * Throws [IllegalStateException] if the operation is unknown
+     * (should never happen — all operations have hardcoded defaults).
+     */
     fun getHash(operationName: String): String =
         hashes[operationName]?.hash
             ?: error("No hash registered for GQL operation: $operationName")
 
+    /**
+     * Returns the previous hash for [operationName], if one was recorded
+     * during a hash rotation. Used as a fallback when the current hash
+     * returns a PersistedQueryNotFound error.
+     */
     fun getPreviousHash(operationName: String): String? =
         hashes[operationName]?.previousHash
 
+    /**
+     * Bulk-update hashes from a remote or cached source.
+     * Only overwrites entries whose remote hash differs from the
+     * current hardcoded default, preserving the hardcoded value
+     * as an implicit fallback (always reachable via [loadHardcodedDefaults]).
+     */
     fun updateHashes(
         remoteHashes: Map<String, RemoteHashEntry>,
         source: HashSource,
