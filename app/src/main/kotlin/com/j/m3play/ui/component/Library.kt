@@ -1,30 +1,24 @@
-/*
- * M3Play Component Module
- *
- * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1
- */
+
 
 package com.j.m3play.ui.component
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.R
-import com.j.m3play.LocalDatabase
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.Playlist
@@ -174,12 +168,11 @@ fun LibraryPlaylistListItem(
     menuState: MenuState,
     coroutineScope: CoroutineScope,
     playlist: Playlist,
-    useNewDesign: Boolean,
     modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(26.dp),
     showDragHandle: Boolean = false,
     dragHandleModifier: Modifier = Modifier,
 ) {
-    val database = LocalDatabase.current
     val trailing: @Composable RowScope.() -> Unit = {
         if (showDragHandle) {
             androidx.compose.material3.IconButton(
@@ -239,10 +232,6 @@ fun LibraryPlaylistListItem(
         }
     }
 
-    val baseMod = modifier
-        .fillMaxWidth()
-        .padding(bottom = 8.dp)
-
     val openPlaylist: () -> Unit = {
         if (
             !playlist.playlist.isEditable &&
@@ -255,80 +244,13 @@ fun LibraryPlaylistListItem(
         }
     }
 
-    if (useNewDesign) {
-        OverlayPlaylistListItem(
-            playlist = playlist,
-            trailingContent = trailing,
-            modifier = baseMod,
-            onClick = openPlaylist
-        )
-    } else {
-        PlaylistListItem(
-            playlist = playlist,
-            trailingContent = trailing,
-            modifier = baseMod.clickable(onClick = openPlaylist)
-        )
-    }
+    LibraryPlaylistFeatureCard(
+        playlist = playlist,
+        shape = shape,
+        trailingContent = trailing,
+        modifier = modifier
+            .fillMaxWidth()
+            .focusable()
+            .clickable(onClick = openPlaylist),
+    )
 }
-
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun LibraryPlaylistGridItem(
-    navController: NavController,
-    menuState: MenuState,
-    coroutineScope: CoroutineScope,
-    playlist: Playlist,
-    modifier: Modifier = Modifier
-) = PlaylistGridItem(
-    playlist = playlist,
-    fillMaxWidth = true,
-    modifier = modifier
-        .fillMaxWidth()
-        .combinedClickable(
-            onClick = {
-                if (!playlist.playlist.isEditable && playlist.songCount == 0 && playlist.playlist.remoteSongCount != 0)
-                    navController.navigate("online_playlist/${playlist.playlist.browseId}")
-                else
-                    navController.navigate("local_playlist/${playlist.id}")
-            },
-            onLongClick = {
-                menuState.show {
-                    if (playlist.playlist.isEditable || playlist.songCount != 0) {
-                        PlaylistMenu(
-                            playlist = playlist,
-                            coroutineScope = coroutineScope,
-                            onDismiss = menuState::dismiss
-                        )
-                    } else {
-                        playlist.playlist.browseId?.let { browseId ->
-                            YouTubePlaylistMenu(
-                                playlist = PlaylistItem(
-                                    id = browseId,
-                                    title = playlist.playlist.name,
-                                    author = null,
-                                    songCountText = null,
-                                    thumbnail = playlist.thumbnails.getOrNull(0) ?: "",
-                                    playEndpoint = WatchEndpoint(
-                                        playlistId = browseId,
-                                        params = playlist.playlist.playEndpointParams
-                                    ),
-                                    shuffleEndpoint = WatchEndpoint(
-                                        playlistId = browseId,
-                                        params = playlist.playlist.shuffleEndpointParams
-                                    ),
-                                    radioEndpoint = WatchEndpoint(
-                                        playlistId = "RDAMPL$browseId",
-                                        params = playlist.playlist.radioEndpointParams
-                                    ),
-                                    isEditable = false
-                                ),
-                                coroutineScope = coroutineScope,
-                                onDismiss = menuState::dismiss
-                            )
-                        }
-                    }
-                }
-            }
-        )
-)
