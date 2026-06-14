@@ -1,6 +1,6 @@
+
 package com.j.m3play.spotify
 
-import android.util.Base64
 import com.j.m3play.spotify.models.SpotifyInternalToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,12 +12,26 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.floor
 
+/**
+ * Handles Spotify authentication using the web player's internal token endpoint.
+ * Uses sp_dc cookies (extracted from WebView login) to obtain access tokens
+ * without requiring a Spotify Developer Client ID.
+ *
+ * Token acquisition requires a TOTP (Time-based One-Time Password) generated
+ * from a shared secret that Spotify rotates periodically. The secret and its
+ * version are fetched from a community-maintained GitHub Gist.
+ *
+ * Reference: https://github.com/sonic-liberation/spotube-plugin-spotify
+ */
 object SpotifyAuth {
-    private val TOKEN_URL = String(Base64.decode("aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2dldF9hY2Nlc3NfdG9rZW4=", Base64.NO_WRAP))
-    private const val NUANCE_GIST_URL = "https://api.github.com/gists/22ed9c6ba463899e933427f7de1f0eef"
-    private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    private const val TOKEN_URL = "https://open.spotify.com/api/token"
+    private const val SERVER_TIME_URL = "https://open.spotify.com/api/server-time"
+    private const val NUANCE_GIST_URL =
+        "https://api.github.com/gists/22ed9c6ba463899e933427f7de1f0eef"
+    private const val USER_AGENT =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
-    val LOGIN_URL = String(Base64.decode("aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbS9lbi9sb2dpbj9jb250aW51ZT1odHRwcyUzQSUyRiUyRm9wZW4uc3BvdGlmeS5jb20lMkY=", Base64.NO_WRAP))
+    const val LOGIN_URL = "https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
 
     private val json = Json {
         isLenient = true
@@ -33,15 +47,23 @@ object SpotifyAuth {
     @Serializable
     private data class GistFiles(val files: Map<String, GistFile>)
 
+    @Serializable
+    private data class ServerTimeResponse(val serverTime: Long)
+
+    /**
+     * Fetches an internal web-player access token using session cookies and TOTP.
+     *
+     * 1. Fetches the TOTP secret from the community Gist
+     * 2. Gets the server time from Spotify
+     * 3. Generates a 6-digit TOTP (SHA1, 30s interval)
+     * 4. Calls /api/token with the TOTP and sp_dc cookie
+     */
     suspend fun fetchAccessToken(
         spDc: String,
         spKey: String = "",
     ): Result<SpotifyInternalToken> = runCatching {
         val nuance = fetchNuance()
-        
-        // NAYA LOGIC: Spotify API ki jagah device ka time use karna! 
-        val serverTimeSec = System.currentTimeMillis() / 1000
-        
+        val serverTimeSec = fetchServerTime()
         val totp = generateTotp(nuance.s, serverTimeSec)
 
         val tokenUrl = buildString {
@@ -93,6 +115,24 @@ object SpotifyAuth {
             ?: throw Spotify.SpotifyException(500, "No nuance data found in gist")
     }
 
+    private suspend fun fetchServerTime(): Long = withContext(Dispatchers.IO) {
+        val body = try {
+            httpGet(SERVER_TIME_URL, emptyMap())
+        } catch (e: Exception) {
+            throw Spotify.SpotifyException(
+                503,
+                "Failed to fetch Spotify server time: ${e.message}",
+            )
+        }
+        val response = json.decodeFromString<ServerTimeResponse>(body)
+        response.serverTime
+    }
+
+    /**
+     * Generates a 6-digit TOTP using HMAC-SHA1 (RFC 6238).
+     * @param secret Base32-encoded shared secret
+     * @param serverTimeSec Spotify server time in seconds since epoch
+     */
     private fun generateTotp(secret: String, serverTimeSec: Long): String {
         val key = base32Decode(secret)
         val interval = 30L
