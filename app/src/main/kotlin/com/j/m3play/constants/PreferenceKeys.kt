@@ -85,12 +85,28 @@ val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
 val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
-// Spotify Integration
+// ====================================================
+// 🔥 SPOTIFY INTEGRATION KEYS 🔥
+// ====================================================
+
+// M3Play Original Keys
 val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
 val SpotifyTokenKey = stringPreferencesKey("spotify_token")
 val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
 val SpotifyUserNameKey = stringPreferencesKey("spotify_user_name")
 val ShowSpotifyPlaylistKey = booleanPreferencesKey("show_spotify_playlist")
+
+// ArchiveTune Core Spotify Keys
+val SpotifySpDcKey = stringPreferencesKey("spotify_sp_dc")
+val SpotifySpKeyKey = stringPreferencesKey("spotify_sp_key")
+val SpotifyAccessTokenKey = stringPreferencesKey("spotify_access_token")
+val SpotifyAccessTokenExpiresAtKey = longPreferencesKey("spotify_access_token_expires_at")
+val SpotifyAccountNameKey = stringPreferencesKey("spotify_account_name")
+val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_url")
+val ShowSpotifyPlaylistsKey = booleanPreferencesKey("show_spotify_playlists")
+val SpotifyLibraryPlaylistsCacheKey = stringPreferencesKey("spotify_library_playlists_cache")
+
+// ====================================================
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
