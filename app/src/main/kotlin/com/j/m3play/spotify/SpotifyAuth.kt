@@ -1,5 +1,6 @@
 package com.j.m3play.spotify
 
+import android.util.Base64
 import com.j.m3play.spotify.models.SpotifyInternalToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,12 +13,11 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.floor
 
 object SpotifyAuth {
-    private const val TOKEN_URL = "https://accounts.spotify.com/api/token"
-    private const val SERVER_TIME_URL = "https://spclient.wg.spotify.com/time-keeping/v1/time"
+    private val TOKEN_URL = String(Base64.decode("aHR0cHM6Ly9vcGVuLnNwb3RpZnkuY29tL2dldF9hY2Nlc3NfdG9rZW4=", Base64.NO_WRAP))
     private const val NUANCE_GIST_URL = "https://api.github.com/gists/22ed9c6ba463899e933427f7de1f0eef"
     private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
-    const val LOGIN_URL = "https://accounts.spotify.com/en/login"
+    val LOGIN_URL = String(Base64.decode("aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbS9lbi9sb2dpbj9jb250aW51ZT1odHRwcyUzQSUyRiUyRm9wZW4uc3BvdGlmeS5jb20lMkY=", Base64.NO_WRAP))
 
     private val json = Json {
         isLenient = true
@@ -33,15 +33,15 @@ object SpotifyAuth {
     @Serializable
     private data class GistFiles(val files: Map<String, GistFile>)
 
-    @Serializable
-    private data class ServerTimeResponse(val serverTime: Long)
-
     suspend fun fetchAccessToken(
         spDc: String,
         spKey: String = "",
     ): Result<SpotifyInternalToken> = runCatching {
         val nuance = fetchNuance()
-        val serverTimeSec = fetchServerTime()
+        
+        // NAYA LOGIC: Spotify API ki jagah device ka time use karna! 
+        val serverTimeSec = System.currentTimeMillis() / 1000
+        
         val totp = generateTotp(nuance.s, serverTimeSec)
 
         val tokenUrl = buildString {
@@ -67,7 +67,10 @@ object SpotifyAuth {
         val token = json.decodeFromString<SpotifyInternalToken>(body)
 
         if (token.isAnonymous || token.accessToken.isBlank()) {
-            throw Exception("Received anonymous token — sp_dc cookie is invalid or expired")
+            throw Spotify.SpotifyException(
+                401,
+                "Received anonymous token — sp_dc cookie is invalid or expired",
+            )
         }
 
         token
@@ -77,24 +80,17 @@ object SpotifyAuth {
         val body = try {
             httpGet(NUANCE_GIST_URL, emptyMap())
         } catch (e: Exception) {
-            throw Exception("Failed to fetch TOTP secret from gist: ${e.message}")
+            throw Spotify.SpotifyException(
+                503,
+                "Failed to fetch TOTP secret from gist: ${e.message}",
+            )
         }
         val gist = json.decodeFromString<GistFiles>(body)
         val nuancesJson = gist.files.values.firstOrNull()?.content
-            ?: throw Exception("Gist has no files")
+            ?: throw Spotify.SpotifyException(500, "Gist has no files")
         val nuances = json.decodeFromString<List<Nuance>>(nuancesJson)
         nuances.maxByOrNull { it.v }
-            ?: throw Exception("No nuance data found in gist")
-    }
-
-    private suspend fun fetchServerTime(): Long = withContext(Dispatchers.IO) {
-        val body = try {
-            httpGet(SERVER_TIME_URL, emptyMap())
-        } catch (e: Exception) {
-            throw Exception("Failed to fetch Spotify server time: ${e.message}")
-        }
-        val response = json.decodeFromString<ServerTimeResponse>(body)
-        response.serverTime
+            ?: throw Spotify.SpotifyException(500, "No nuance data found in gist")
     }
 
     private fun generateTotp(secret: String, serverTimeSec: Long): String {
@@ -162,7 +158,10 @@ object SpotifyAuth {
             val responseCode = connection.responseCode
             if (responseCode !in 200..299) {
                 val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                throw Exception("HTTP $responseCode: $errorBody")
+                throw Spotify.SpotifyException(
+                    responseCode,
+                    "HTTP $responseCode: $errorBody",
+                )
             }
 
             return connection.inputStream.bufferedReader().use { it.readText() }
