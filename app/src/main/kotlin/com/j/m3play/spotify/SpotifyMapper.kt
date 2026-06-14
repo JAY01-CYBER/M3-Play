@@ -1,10 +1,18 @@
+
+
 package com.j.m3play.spotify
 
 import com.j.m3play.spotify.models.SpotifyPlaylist
 import com.j.m3play.spotify.models.SpotifyTrack
 
+/**
+ * Utility object for creating search queries from Spotify track data.
+ * The actual mapping to Metrolist MediaMetadata is done in the app module
+ * where MediaMetadata class is available.
+ */
 object SpotifyMapper {
 
+    // Pre-compiled regex patterns for title normalization (avoids re-creation on each call)
     private val FEAT_PATTERN = Regex("\\(feat\\..*?\\)")
     private val FT_PATTERN = Regex("\\(ft\\..*?\\)")
     private val BRACKET_PATTERN = Regex("\\[.*?]")
@@ -16,6 +24,11 @@ object SpotifyMapper {
     private const val NORM_CACHE_MAX_SIZE = 256
     private const val EARLY_EXIT_THRESHOLD = 0.95
 
+    /**
+     * LRU cache for normalized strings. Avoids re-running 7 regex replacements
+     * on the same Spotify title/artist across multiple candidate comparisons.
+     * Bounded to [NORM_CACHE_MAX_SIZE] entries to limit memory usage.
+     */
     private val normalizeCache = object : LinkedHashMap<String, String>(
         NORM_CACHE_MAX_SIZE, 0.75f, true
     ) {
@@ -23,6 +36,10 @@ object SpotifyMapper {
             size > NORM_CACHE_MAX_SIZE
     }
 
+    /**
+     * LRU cache for pre-computed bigram sets. Avoids re-creating Set<String>
+     * on every stringSimilarity call for the same normalized string.
+     */
     private val bigramCache = object : LinkedHashMap<String, Set<String>>(
         NORM_CACHE_MAX_SIZE, 0.75f, true
     ) {
@@ -30,6 +47,10 @@ object SpotifyMapper {
             size > NORM_CACHE_MAX_SIZE
     }
 
+    /**
+     * Pre-computed data for one side of a match comparison.
+     * Created once per Spotify track and reused across all candidates.
+     */
     data class PrecomputedTrack(
         val normalizedTitle: String,
         val titleBigrams: Set<String>,
@@ -38,19 +59,30 @@ object SpotifyMapper {
         val durationMs: Int,
     )
 
+    /**
+     * Builds a YouTube search query from a Spotify track.
+     * The query is optimized for finding the matching song on YouTube Music.
+     */
     fun buildSearchQuery(track: SpotifyTrack): String {
         val artist = track.artists.firstOrNull()?.name.orEmpty()
         val title = track.name
         return if (artist.isEmpty()) title else "$artist $title"
     }
 
+    /**
+     * Returns the best thumbnail URL from a Spotify playlist, preferring medium resolution.
+     */
     fun getPlaylistThumbnail(playlist: SpotifyPlaylist): String? {
         return playlist.images.let { images ->
+            // Prefer 300x300 or similar medium size, fallback to first
             images.firstOrNull { it.width in 200..400 }?.url
                 ?: images.firstOrNull()?.url
         }
     }
 
+    /**
+     * Returns the best thumbnail URL from a Spotify track's album art.
+     */
     fun getTrackThumbnail(track: SpotifyTrack): String? {
         return track.album?.images?.let { images ->
             images.firstOrNull { it.width in 200..400 }?.url
@@ -58,6 +90,10 @@ object SpotifyMapper {
         }
     }
 
+    /**
+     * Pre-computes normalized title/artist and their bigrams for a Spotify track.
+     * Call once before scoring against multiple candidates to avoid redundant work.
+     */
     fun precompute(
         title: String,
         artist: String,
@@ -74,6 +110,10 @@ object SpotifyMapper {
         )
     }
 
+    /**
+     * Computes a match confidence score (0.0 - 1.0) between a Spotify track and
+     * a candidate result based on title, artist, and duration similarity.
+     */
     fun matchScore(
         spotifyTitle: String,
         spotifyArtist: String,
@@ -100,6 +140,11 @@ object SpotifyMapper {
         return titleScore * 0.45 + artistScore * 0.35 + durationScore * 0.20
     }
 
+    /**
+     * Scores a candidate against pre-computed Spotify track data.
+     * This is the fast path: normalization and bigrams for the Spotify side
+     * are computed once and reused across all candidates.
+     */
     fun matchScorePrecomputed(
         precomputed: PrecomputedTrack,
         candidateTitle: String,
@@ -122,6 +167,7 @@ object SpotifyMapper {
         return titleScore * 0.45 + artistScore * 0.35 + durationScore * 0.20
     }
 
+    /** Threshold above which we consider a match good enough to skip remaining candidates. */
     fun earlyExitThreshold(): Double = EARLY_EXIT_THRESHOLD
 
     private fun durationScore(spotifyDurationMs: Int, candidateDurationSec: Int?): Double {
@@ -136,6 +182,9 @@ object SpotifyMapper {
         }
     }
 
+    /**
+     * Normalizes a title for comparison, with LRU caching.
+     */
     private fun cachedNormalize(title: String): String {
         normalizeCache[title]?.let { return it }
         val normalized = normalizeTitle(title)
@@ -143,6 +192,9 @@ object SpotifyMapper {
         return normalized
     }
 
+    /**
+     * Returns cached bigrams for a normalized string.
+     */
     private fun cachedBigrams(normalized: String): Set<String> {
         bigramCache[normalized]?.let { return it }
         val bigrams = if (normalized.length < 2) emptySet() else normalized.windowed(2).toSet()
@@ -162,6 +214,9 @@ object SpotifyMapper {
             .trim()
     }
 
+    /**
+     * Dice coefficient using pre-computed bigram sets.
+     */
     private fun bigramSimilarity(
         a: String, bigramsA: Set<String>,
         b: String, bigramsB: Set<String>,
