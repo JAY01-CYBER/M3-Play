@@ -46,7 +46,7 @@ import com.j.m3play.utils.rememberPreference
 @Composable
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
-    val (disableBlur) = rememberPreference(DisableBlurKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false) // Default set to false for Premium look
 
     val database = LocalDatabase.current
     val (showTagsInLibrary) = rememberPreference(ShowTagsInLibraryKey, true)
@@ -57,7 +57,7 @@ fun LibraryScreen(navController: NavController) {
 
     val filterContent = @Composable {
         Column {
-            Row {
+            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                 ChipsRow(
                     chips = listOf(
                         LibraryFilter.PLAYLISTS to stringResource(R.string.filter_playlists),
@@ -95,7 +95,7 @@ fun LibraryScreen(navController: NavController) {
                         }
                         onSelectedTagsFilterChange(newTags.joinToString(","))
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
         }
@@ -123,10 +123,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color1.copy(alpha = 0.38f),
-                                color1.copy(alpha = 0.24f),
-                                color1.copy(alpha = 0.14f),
-                                color1.copy(alpha = 0.06f),
+                                color1.copy(alpha = 0.28f),
+                                color1.copy(alpha = 0.16f),
+                                color1.copy(alpha = 0.08f),
+                                color1.copy(alpha = 0.03f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.15f, height * 0.1f),
@@ -137,10 +137,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color2.copy(alpha = 0.34f),
-                                color2.copy(alpha = 0.2f),
-                                color2.copy(alpha = 0.11f),
-                                color2.copy(alpha = 0.05f),
+                                color2.copy(alpha = 0.26f),
+                                color2.copy(alpha = 0.14f),
+                                color2.copy(alpha = 0.07f),
+                                color2.copy(alpha = 0.02f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.85f, height * 0.2f),
@@ -151,10 +151,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color3.copy(alpha = 0.3f),
-                                color3.copy(alpha = 0.17f),
-                                color3.copy(alpha = 0.09f),
-                                color3.copy(alpha = 0.04f),
+                                color3.copy(alpha = 0.24f),
+                                color3.copy(alpha = 0.12f),
+                                color3.copy(alpha = 0.06f),
+                                color3.copy(alpha = 0.02f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.3f, height * 0.45f),
@@ -165,10 +165,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color4.copy(alpha = 0.26f),
-                                color4.copy(alpha = 0.14f),
-                                color4.copy(alpha = 0.08f),
-                                color4.copy(alpha = 0.03f),
+                                color4.copy(alpha = 0.20f),
+                                color4.copy(alpha = 0.10f),
+                                color4.copy(alpha = 0.05f),
+                                color4.copy(alpha = 0.01f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.7f, height * 0.5f),
@@ -179,10 +179,10 @@ fun LibraryScreen(navController: NavController) {
                     drawRect(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                color5.copy(alpha = 0.22f),
-                                color5.copy(alpha = 0.12f),
-                                color5.copy(alpha = 0.06f),
-                                color5.copy(alpha = 0.02f),
+                                color5.copy(alpha = 0.18f),
+                                color5.copy(alpha = 0.08f),
+                                color5.copy(alpha = 0.04f),
+                                color5.copy(alpha = 0.01f),
                                 Color.Transparent
                             ),
                             center = Offset(width * 0.5f, height * 0.75f),
@@ -195,11 +195,11 @@ fun LibraryScreen(navController: NavController) {
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
-                                surfaceColor.copy(alpha = 0.22f),
-                                surfaceColor.copy(alpha = 0.55f),
+                                surfaceColor.copy(alpha = 0.4f),
+                                surfaceColor.copy(alpha = 0.8f),
                                 surfaceColor
                             ),
-                            startY = height * 0.4f,
+                            startY = height * 0.3f,
                             endY = height
                         )
                     )
