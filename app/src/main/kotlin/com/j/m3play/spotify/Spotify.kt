@@ -544,7 +544,7 @@ object Spotify {
         folderUri: String? = null,
         limit: Int = 50,
         offset: Int = 0,
-    ): Result<SpotifyPaging<moe.rukamori.archivetune.spotify.models.SpotifyLibraryItem>> =
+    ): Result<SpotifyPaging<com.j.m3play.spotify.models.SpotifyLibraryItem>> =
         runCatching {
             val vars =
                 buildJsonObject {
@@ -600,10 +600,10 @@ object Spotify {
                     when {
                         typeName == "PlaylistResponseWrapper" || typeName.contains("Playlist", ignoreCase = true) ->
                             parsePlaylistWrapper(wrapper)
-                                ?.let { moe.rukamori.archivetune.spotify.models.SpotifyLibraryItem.Playlist(it) }
+                                ?.let { com.j.m3play.spotify.models.SpotifyLibraryItem.Playlist(it) }
                         typeName == "FolderResponseWrapper" || typeName.contains("Folder", ignoreCase = true) ->
                             parseFolderWrapper(wrapper)
-                                ?.let { moe.rukamori.archivetune.spotify.models.SpotifyLibraryItem.Folder(it) }
+                                ?.let { com.j.m3play.spotify.models.SpotifyLibraryItem.Folder(it) }
                                 ?: run {
                                     // Folder typename matched but parsing returned null —
                                     // likely a shape we don't know. Dump the keys so we
@@ -657,7 +657,7 @@ object Spotify {
             ?: data.int("trackCount")
             ?: data.int("numTracks")
 
-    private fun parseFolderWrapper(wrapper: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyLibraryFolder? {
+    private fun parseFolderWrapper(wrapper: JsonObject): com.j.m3play.spotify.models.SpotifyLibraryFolder? {
         val uri = wrapper.str("_uri") ?: return null
         // Spotify has shipped this object under several shapes over time; the name
         // and child count have lived in `data` and at the root of the wrapper.
@@ -669,7 +669,7 @@ object Spotify {
             ?: wrapper.obj("data")?.int("numberOfItems")
             ?: wrapper.int("totalLength")
             ?: 0
-        return moe.rukamori.archivetune.spotify.models.SpotifyLibraryFolder(
+        return com.j.m3play.spotify.models.SpotifyLibraryFolder(
             uri = uri,
             name = name,
             totalChildren = total,
@@ -1298,7 +1298,7 @@ object Spotify {
     suspend fun home(
         sectionItemsLimit: Int = 10,
         timeZone: String = java.util.TimeZone.getDefault().id,
-    ): Result<moe.rukamori.archivetune.spotify.models.SpotifyHomeFeed> =
+    ): Result<com.j.m3play.spotify.models.SpotifyHomeFeed> =
         runCatching {
             log("D", "spotifyHome: GQL home() request — timeZone=$timeZone limit=$sectionItemsLimit")
             val vars =
@@ -1333,7 +1333,7 @@ object Spotify {
                     ?.arr("items")
                     ?: run {
                         log("W", "spotifyHome: no sectionContainer.sections.items in response")
-                        return@runCatching moe.rukamori.archivetune.spotify.models.SpotifyHomeFeed(
+                        return@runCatching com.j.m3play.spotify.models.SpotifyHomeFeed(
                             greeting = greeting,
                             sections = emptyList(),
                         )
@@ -1346,13 +1346,13 @@ object Spotify {
                 }
             log("D", "spotifyHome: parsed ${sections.size}/${sectionElements.size} sections successfully")
 
-            moe.rukamori.archivetune.spotify.models.SpotifyHomeFeed(
+            com.j.m3play.spotify.models.SpotifyHomeFeed(
                 greeting = greeting,
                 sections = sections,
             )
         }
 
-    private fun parseHomeSection(sectionObj: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedSection? {
+    private fun parseHomeSection(sectionObj: JsonObject): com.j.m3play.spotify.models.SpotifyHomeFeedSection? {
         val sectionData = sectionObj.obj("data") ?: return null
         val typename = sectionData.str("__typename") ?: return null
         val titleObj = sectionData.obj("title")
@@ -1371,7 +1371,7 @@ object Spotify {
 
         if (items.isEmpty()) return null
 
-        return moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedSection(
+        return com.j.m3play.spotify.models.SpotifyHomeFeedSection(
             sectionUri = sectionObj.str("uri") ?: "",
             title = title,
             typename = typename,
@@ -1380,7 +1380,7 @@ object Spotify {
         )
     }
 
-    private fun parseHomeItem(itemObj: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem? {
+    private fun parseHomeItem(itemObj: JsonObject): com.j.m3play.spotify.models.SpotifyHomeFeedItem? {
         val content = itemObj.obj("content") ?: return null
         val wrapper = content.str("__typename") ?: return null
         val data = content.obj("data") ?: return null
@@ -1393,7 +1393,7 @@ object Spotify {
         }
     }
 
-    private fun parseHomePlaylist(data: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Playlist? {
+    private fun parseHomePlaylist(data: JsonObject): com.j.m3play.spotify.models.SpotifyHomeFeedItem.Playlist? {
         val uri = data.str("uri") ?: return null
         val imageItem = data.obj("images")?.arr("items")?.firstOrNull()?.jsonObject
         val imageUrl = imageItem?.arr("sources")?.firstOrNull()?.jsonObject?.str("url")
@@ -1403,7 +1403,7 @@ object Spotify {
                 ?.firstOrNull { it.jsonObject.str("key") == "madeFor.username" }
                 ?.jsonObject?.str("value")
 
-        return moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Playlist(
+        return com.j.m3play.spotify.models.SpotifyHomeFeedItem.Playlist(
             uri = uri,
             id = uri.substringAfterLast(":"),
             name = data.str("name") ?: "",
@@ -1417,7 +1417,7 @@ object Spotify {
         )
     }
 
-    private fun parseHomeAlbum(data: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Album? {
+    private fun parseHomeAlbum(data: JsonObject): com.j.m3play.spotify.models.SpotifyHomeFeedItem.Album? {
         val uri = data.str("uri") ?: return null
         val artists =
             data.obj("artists")?.arr("items")?.mapNotNull {
@@ -1426,7 +1426,7 @@ object Spotify {
         val imageUrl =
             data.obj("coverArt")?.arr("sources")?.firstOrNull()?.jsonObject?.str("url")
 
-        return moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Album(
+        return com.j.m3play.spotify.models.SpotifyHomeFeedItem.Album(
             uri = uri,
             id = uri.substringAfterLast(":"),
             name = data.str("name") ?: "",
@@ -1436,13 +1436,13 @@ object Spotify {
         )
     }
 
-    private fun parseHomeArtist(data: JsonObject): moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Artist? {
+    private fun parseHomeArtist(data: JsonObject): com.j.m3play.spotify.models.SpotifyHomeFeedItem.Artist? {
         val uri = data.str("uri") ?: return null
         val profile = data.obj("profile")
         val imageUrl =
             data.obj("visuals")?.obj("avatarImage")
                 ?.arr("sources")?.firstOrNull()?.jsonObject?.str("url")
-        return moe.rukamori.archivetune.spotify.models.SpotifyHomeFeedItem.Artist(
+        return com.j.m3play.spotify.models.SpotifyHomeFeedItem.Artist(
             uri = uri,
             id = uri.substringAfterLast(":"),
             name = profile?.str("name") ?: "",
