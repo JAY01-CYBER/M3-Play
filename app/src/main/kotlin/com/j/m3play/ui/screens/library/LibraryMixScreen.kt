@@ -158,7 +158,7 @@ fun LibraryMixScreen(
     val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
-    val listHeaderItems = 4 // big title, filter, header, auto playlists
+    val listHeaderItems = 4
             
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -169,7 +169,8 @@ fun LibraryMixScreen(
         val fromIndex = from.index - listHeaderItems
         val toIndex = to.index - listHeaderItems
         if (fromIndex !in mutableVisiblePlaylists.indices || toIndex !in mutableVisiblePlaylists.indices) return@rememberReorderableLazyListState
-        dragInfo = dragInfo?.first to toIndex ?: (fromIndex to toIndex)
+        
+        dragInfo = (dragInfo?.first ?: fromIndex) to toIndex
         mutableVisiblePlaylists.move(fromIndex, toIndex)
     }
 
@@ -233,7 +234,6 @@ fun LibraryMixScreen(
             item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
-            // Auto Playlists as 2x2 Grid Pills
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val pills = mutableListOf<@Composable () -> Unit>()
@@ -270,12 +270,9 @@ fun LibraryMixScreen(
                 items(items = sortedOtherItems, key = { it.id }, contentType = { CONTENT_TYPE_PLAYLIST }) { item ->
                     Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
                         when (item) {
-                            is Artist -> {
-                                ArtistListItem(artist = item, trailingContent = { IconButton(onClick = { menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }).animateItem())
-                            }
-                            is Album -> {
-                                AlbumListItem(album = item, isActive = item.id == mediaMetadata?.album?.id, isPlaying = isPlaying, trailingContent = { IconButton(onClick = { menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }).animateItem())
-                            }
+                            is Artist -> { ArtistListItem(artist = item, trailingContent = { IconButton(onClick = { menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }).animateItem()) }
+                            is Album -> { AlbumListItem(album = item, isActive = item.id == mediaMetadata?.album?.id, isPlaying = isPlaying, trailingContent = { IconButton(onClick = { menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }).animateItem()) }
+                            else -> {}
                         }
                     }
                 }
@@ -286,6 +283,7 @@ fun LibraryMixScreen(
                             is Playlist -> { LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = item, useNewDesign = useNewLibraryDesign, modifier = Modifier.animateItem()) }
                             is Artist -> { ArtistListItem(artist = item, trailingContent = { IconButton(onClick = { menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } }).animateItem()) }
                             is Album -> { AlbumListItem(album = item, isActive = item.id == mediaMetadata?.album?.id, isPlaying = isPlaying, trailingContent = { IconButton(onClick = { menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) } }, modifier = Modifier.fillMaxWidth().combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } }).animateItem()) }
+                            else -> {}
                         }
                     }
                 }
