@@ -50,15 +50,34 @@ fun SpotifyLibraryPlaylistListItem(
         )
     }
 
-    LibraryPlaylistFeatureCard(
-        playlist = libraryPlaylist,
-        shape = shape,
-        trailingContent = trailing,
-        modifier = modifier
-            .fillMaxWidth()
-            .focusable()
-            .clickable(onClick = openPlaylist),
-    )
+    Card(
+    shape = shape,
+    modifier = modifier
+        .fillMaxWidth()
+        .focusable()
+        .clickable(onClick = openPlaylist)
+) {
+    Row(
+        modifier = Modifier.padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = playlist.playlist.name,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = "${playlist.songCount} songs",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        trailing()
+    }
+}
 }
 
 @Composable
