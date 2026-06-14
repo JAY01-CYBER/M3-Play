@@ -48,6 +48,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.datastore.preferences.core.edit
 import com.j.m3play.LocalAnimatedVisibilityScope
 import com.j.m3play.R
 import com.j.m3play.constants.DarkModeKey
@@ -97,6 +98,7 @@ import com.j.m3play.ui.screens.musicrecognition.MusicRecognitionScreen
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import com.j.m3play.utils.dataStore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -445,7 +447,8 @@ fun NavGraphBuilder.navigationBuilder(
                             val userName = userResult.getOrNull()?.displayName ?: "Spotify User"
                             
                             withContext(Dispatchers.Main) {
-                                context.androidx.datastore.preferences.core.edit { prefs ->
+                                // SAHI DATASTORE CALL YAHAN HAI 
+                                context.dataStore.edit { prefs ->
                                     prefs[com.j.m3play.constants.SpotifyConnectedKey] = true
                                     prefs[com.j.m3play.constants.SpotifyTokenKey] = tokenData.accessToken
                                     prefs[com.j.m3play.constants.SpotifyUserNameKey] = userName
