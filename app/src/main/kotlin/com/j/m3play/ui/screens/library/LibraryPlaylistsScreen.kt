@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -65,7 +64,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -82,12 +80,10 @@ import com.j.m3play.ui.theme.PlayerColorExtractor
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.constants.CONTENT_TYPE_HEADER
 import com.j.m3play.constants.CONTENT_TYPE_PLAYLIST
-import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.PlaylistSortDescendingKey
 import com.j.m3play.constants.PlaylistSortType
 import com.j.m3play.constants.PlaylistSortTypeKey
@@ -138,7 +134,7 @@ fun LibraryPlaylistsScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(PlaylistSortDescendingKey, true)
     val useNewLibraryDesign by rememberPreference(UseNewLibraryDesignKey, false)
 
-    val (selectedTagsFilter, onSelectedTagsFilterChange) = rememberPreference(PlaylistTagsFilterKey, "")
+    val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
     val selectedTagIds = remember(selectedTagsFilter) { selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet() }
     val database = LocalDatabase.current
     val filteredPlaylistIds by database.playlistIdsByTags(if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()).collectAsState(initial = emptyList())
@@ -176,7 +172,7 @@ fun LibraryPlaylistsScreen(
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     
-    val listHeaderItems = 4 // large_title, filter, header, auto_playlists
+    val listHeaderItems = 4 
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     
@@ -190,8 +186,7 @@ fun LibraryPlaylistsScreen(
         val toIndex = to.index - listHeaderItems
         if (fromIndex !in mutableVisiblePlaylists.indices || toIndex !in mutableVisiblePlaylists.indices) return@rememberReorderableLazyListState
 
-        val currentDragInfo = dragInfo
-        dragInfo = if (currentDragInfo == null) fromIndex to toIndex else currentDragInfo.first to toIndex
+        dragInfo = (dragInfo?.first ?: fromIndex) to toIndex
         mutableVisiblePlaylists.move(fromIndex, toIndex)
     }
 
@@ -293,7 +288,6 @@ fun LibraryPlaylistsScreen(
             item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
-            // Auto Playlists as 2x2 Grid Pills
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val pills = mutableListOf<@Composable () -> Unit>()
@@ -310,7 +304,6 @@ fun LibraryPlaylistsScreen(
                 }
             }
 
-            // Local Playlists with Card Wrapper
             if (canReorderPlaylists) {
                 itemsIndexed(items = mutableVisiblePlaylists, key = { _, item -> item.id }, contentType = { _, _ -> CONTENT_TYPE_PLAYLIST }) { _, playlist ->
                     ReorderableItem(state = reorderableState, key = playlist.id) {
@@ -327,10 +320,9 @@ fun LibraryPlaylistsScreen(
                 }
             }
 
-            // Spotify Playlists
             if (spotifyPlaylists.isNotEmpty()) {
                 item(key = "spotify_header", contentType = CONTENT_TYPE_HEADER) {
-                    Text("Spotify Playlist", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(horizontal = 16.dp, top = 24.dp, bottom = 8.dp))
+                    Text("Spotify Playlist", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp))
                 }
                 items(spotifyPlaylists, key = { "sp_${it.id}" }) { sp ->
                     Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
