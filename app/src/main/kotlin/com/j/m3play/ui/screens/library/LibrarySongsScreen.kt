@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -94,7 +95,7 @@ import com.j.m3play.viewmodels.LibrarySongsViewModel
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
-    contentPadding: PaddingValues,
+    contentPadding: PaddingValues, // For smooth nested scrolling
     viewModel: LibrarySongsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -165,7 +166,11 @@ fun LibrarySongsScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val secondaryFilters = listOf(SongFilter.LIKED to R.string.filter_liked, SongFilter.LIBRARY to R.string.filter_library, SongFilter.DOWNLOADED to R.string.filter_downloaded)
+                    val secondaryFilters = listOf(
+                        SongFilter.LIKED to R.string.filter_liked, 
+                        SongFilter.LIBRARY to R.string.filter_library, 
+                        SongFilter.DOWNLOADED to R.string.filter_downloaded
+                    )
                     secondaryFilters.forEach { (type, stringRes) ->
                         val isSelected = filter == type
                         Surface(
@@ -227,7 +232,7 @@ fun LibrarySongsScreen(
                             Icon(painterResource(R.drawable.more_vert), null)
                         }
                     } else {
-                        // FIXED: Date Added Pill will not clip anymore!
+                        // FIX: SortHeader (Date Added) is perfectly wrapped in a pill shape
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
