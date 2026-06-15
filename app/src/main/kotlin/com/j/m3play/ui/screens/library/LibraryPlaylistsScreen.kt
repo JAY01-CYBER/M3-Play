@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -138,6 +138,7 @@ fun LibraryPlaylistsScreen(
     val filteredPlaylistIds by database.playlistIdsByTags(if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()).collectAsState(initial = emptyList())
 
     val playlists by viewModel.allPlaylists.collectAsState()
+    
     val visiblePlaylists = playlists.filter { playlist ->
         val name = playlist.playlist.name ?: ""
         val matchesName = !name.contains("episode", ignoreCase = true)
@@ -236,20 +237,39 @@ fun LibraryPlaylistsScreen(
     if (showCreatePlaylistDialog) CreatePlaylistDialog(onDismiss = { showCreatePlaylistDialog = false }, initialTextFieldValue = initialTextFieldValue, allowSyncing = allowSyncing)
 
     val headerContent = @Composable {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                    SortHeader(sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange, sortTypeText = { t -> when (t) { PlaylistSortType.CREATE_DATE -> R.string.sort_by_create_date; PlaylistSortType.NAME -> R.string.sort_by_name; PlaylistSortType.SONG_COUNT -> R.string.sort_by_song_count; PlaylistSortType.LAST_UPDATED -> R.string.sort_by_last_updated; PlaylistSortType.CUSTOM -> R.string.sort_by_custom } })
+        Row(
+            verticalAlignment = Alignment.CenterVertically, 
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50), 
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), 
+                modifier = Modifier.height(40.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
+                    SortHeader(
+                        sortType = sortType, 
+                        sortDescending = sortDescending, 
+                        onSortTypeChange = onSortTypeChange, 
+                        onSortDescendingChange = onSortDescendingChange, 
+                        sortTypeText = { t -> when (t) { PlaylistSortType.CREATE_DATE -> R.string.sort_by_create_date; PlaylistSortType.NAME -> R.string.sort_by_name; PlaylistSortType.SONG_COUNT -> R.string.sort_by_song_count; PlaylistSortType.LAST_UPDATED -> R.string.sort_by_last_updated; PlaylistSortType.CUSTOM -> R.string.sort_by_custom } }
+                    )
                 }
             }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (canEnterReorderMode) {
-                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
+                    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(40.dp)) {
                         IconButton(onClick = { reorderEnabled = !reorderEnabled }) { Icon(painterResource(if (reorderEnabled) R.drawable.lock_open else R.drawable.lock), null) }
                     }
                 }
-                FloatingActionButton(onClick = { showCreatePlaylistDialog = true }, modifier = Modifier.size(40.dp), containerColor = MaterialTheme.colorScheme.primaryContainer, elevation = FloatingActionButtonDefaults.elevation(0.dp)) {
+                FloatingActionButton(
+                    onClick = { showCreatePlaylistDialog = true }, 
+                    modifier = Modifier.size(40.dp), 
+                    containerColor = MaterialTheme.colorScheme.primaryContainer, 
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp),
+                    shape = RoundedCornerShape(50)
+                ) {
                     Icon(painterResource(R.drawable.add), null)
                 }
             }
@@ -278,12 +298,14 @@ fun LibraryPlaylistsScreen(
         }
         
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
+            
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text("Playlists", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-                    Text("All your playlists, organized for you", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    Text("Playlists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                    Text("All your playlists, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            
             item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
