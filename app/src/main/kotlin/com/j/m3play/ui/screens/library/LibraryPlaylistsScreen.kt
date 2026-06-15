@@ -15,15 +15,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -48,6 +47,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -58,14 +58,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
+import com.j.m3play.ui.theme.PlayerColorExtractor
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -76,15 +88,22 @@ import com.j.m3play.constants.CONTENT_TYPE_PLAYLIST
 import com.j.m3play.constants.PlaylistSortDescendingKey
 import com.j.m3play.constants.PlaylistSortType
 import com.j.m3play.constants.PlaylistSortTypeKey
-import com.j.m3play.constants.PlaylistTagsFilterKey
+import com.j.m3play.constants.ShowLikedPlaylistKey
+import com.j.m3play.constants.ShowDownloadedPlaylistKey
+import com.j.m3play.constants.ShowTopPlaylistKey
+import com.j.m3play.constants.ShowCachedPlaylistKey
 import com.j.m3play.constants.YtmSyncKey
+import com.j.m3play.constants.DisableBlurKey
+import com.j.m3play.constants.PlaylistTagsFilterKey
 import com.j.m3play.constants.ShowSpotifyPlaylistKey
 import com.j.m3play.constants.SpotifyConnectedKey
 import com.j.m3play.constants.SpotifyTokenKey
 import com.j.m3play.db.entities.Playlist
+import com.j.m3play.db.entities.PlaylistEntity
 import com.j.m3play.ui.component.CreatePlaylistDialog
 import com.j.m3play.ui.component.LibraryPlaylistListItem
 import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.M3AutoPlaylistCard
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
@@ -102,7 +121,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
-    contentPadding: PaddingValues,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryPlaylistsViewModel = hiltViewModel(),
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
@@ -114,9 +133,9 @@ fun LibraryPlaylistsScreen(
     val (sortType, onSortTypeChange) = rememberEnumPreference(PlaylistSortTypeKey, PlaylistSortType.CUSTOM)
     val (sortDescending, onSortDescendingChange) = rememberPreference(PlaylistSortDescendingKey, true)
 
-    val database = LocalDatabase.current
     val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
     val selectedTagIds = remember(selectedTagsFilter) { selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet() }
+    val database = LocalDatabase.current
     val filteredPlaylistIds by database.playlistIdsByTags(if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()).collectAsState(initial = emptyList())
 
     val playlists by viewModel.allPlaylists.collectAsState()
@@ -127,6 +146,12 @@ fun LibraryPlaylistsScreen(
         val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
         matchesName && matchesTags
     }
+
+    val topSize by viewModel.topValue.collectAsState(initial = 50)
+    val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
+    val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
+    val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
+    val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
 
     val isSpotifyConnected by context.dataStore.data.map { it[SpotifyConnectedKey] ?: false }.collectAsState(initial = false)
     val showSpotifyPlaylist by context.dataStore.data.map { it[ShowSpotifyPlaylistKey] ?: true }.collectAsState(initial = true)
@@ -148,13 +173,13 @@ fun LibraryPlaylistsScreen(
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     
-    val listHeaderItems = 1 
+    val listHeaderItems = 4 
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = lazyListState,
-        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
     ) { from, to ->
         if (!canReorderPlaylists) return@rememberReorderableLazyListState
         if (from.index < listHeaderItems || to.index < listHeaderItems) return@rememberReorderableLazyListState
@@ -184,12 +209,30 @@ fun LibraryPlaylistsScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop = backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     LaunchedEffect(Unit) { if (ytmSync) withContext(Dispatchers.IO) { viewModel.sync() } }
     LaunchedEffect(scrollToTop?.value) {
         if (scrollToTop?.value == true) { lazyListState.animateScrollToItem(0); backStackEntry?.savedStateHandle?.set("scrollToTop", false) }
     }
 
+    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    
+    LaunchedEffect(playlists) {
+        val thumbnailUrl = playlists.firstOrNull { it.songThumbnails.isNotEmpty() }?.songThumbnails?.firstOrNull()
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context).data(thumbnailUrl).size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE).allowHardware(false).build()
+            val result = runCatching { withContext(Dispatchers.IO) { context.imageLoader.execute(request) } }.getOrNull()
+            if (result?.image != null) {
+                val palette = withContext(Dispatchers.Default) { Palette.from(result.image!!.toBitmap()).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
+                gradientColors = PlayerColorExtractor.extractGradientColors(palette, fallbackColor)
+            }
+        } else gradientColors = emptyList()
+    }
+    
+    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 900f)).coerceIn(0f, 1f) else 0f } }
     var showCreatePlaylistDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showCreatePlaylistDialog) CreatePlaylistDialog(onDismiss = { showCreatePlaylistDialog = false }, initialTextFieldValue = initialTextFieldValue, allowSyncing = allowSyncing)
@@ -202,9 +245,9 @@ fun LibraryPlaylistsScreen(
             Surface(
                 shape = RoundedCornerShape(50), 
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), 
-                modifier = Modifier.heightIn(min = 40.dp)
+                modifier = Modifier.wrapContentHeight() // Fixed Clipping Here!
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
                         sortType = sortType, 
                         sortDescending = sortDescending, 
@@ -237,17 +280,51 @@ fun LibraryPlaylistsScreen(
     val isRefreshing by viewModel.isRefreshing.collectAsState()
     val pullRefreshState = rememberPullToRefreshState()
 
-    Box(modifier = Modifier.fillMaxSize().pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = { if (ytmSync) viewModel.sync() })) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize().background(surfaceColor).pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = { if (ytmSync) viewModel.sync() })) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(modifier = Modifier.fillMaxWidth().fillMaxSize(0.7f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
+                val w = size.width; val h = size.height
+                if (gradientColors.size >= 3) {
+                    val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]; val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
+                    drawRect(Brush.radialGradient(listOf(c0.copy(alpha = gradientAlpha * 0.34f), c0.copy(alpha = gradientAlpha * 0.2f), c0.copy(alpha = gradientAlpha * 0.11f), Color.Transparent), Offset(w * 0.15f, h * 0.1f), w * 0.55f))
+                    drawRect(Brush.radialGradient(listOf(c1.copy(alpha = gradientAlpha * 0.32f), c1.copy(alpha = gradientAlpha * 0.19f), c1.copy(alpha = gradientAlpha * 0.1f), Color.Transparent), Offset(w * 0.85f, h * 0.2f), w * 0.65f))
+                    drawRect(Brush.radialGradient(listOf(c2.copy(alpha = gradientAlpha * 0.28f), c2.copy(alpha = gradientAlpha * 0.16f), c2.copy(alpha = gradientAlpha * 0.085f), Color.Transparent), Offset(w * 0.3f, h * 0.45f), w * 0.6f))
+                    drawRect(Brush.radialGradient(listOf(c3.copy(alpha = gradientAlpha * 0.24f), c3.copy(alpha = gradientAlpha * 0.13f), Color.Transparent), Offset(w * 0.7f, h * 0.5f), w * 0.7f))
+                    drawRect(Brush.radialGradient(listOf(c4.copy(alpha = gradientAlpha * 0.2f), c4.copy(alpha = gradientAlpha * 0.11f), Color.Transparent), Offset(w * 0.5f, h * 0.75f), w * 0.8f))
+                } else {
+                    drawRect(Brush.radialGradient(listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.34f), Color.Transparent), Offset(w * 0.5f, h * 0.3f), w * 0.7f))
+                }
+                drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor), startY = h * 0.4f, endY = h))
+            }) {}
+        }
         
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = contentPadding.calculateTopPadding(),
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            )
-        ) {
+        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
+            
+            item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    Text("Playlists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                    Text("All your playlists, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            
+            item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
+
+            item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    val pills = mutableListOf<@Composable () -> Unit>()
+                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth()) }
+                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth()) }
+                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth()) }
+                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth()) }
+                    pills.chunked(2).forEach { rowPills ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            rowPills.forEach { pill -> Box(modifier = Modifier.weight(1f)) { pill() } }
+                            if (rowPills.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
 
             if (canReorderPlaylists) {
                 itemsIndexed(items = mutableVisiblePlaylists, key = { _, item -> item.id }, contentType = { _, _ -> CONTENT_TYPE_PLAYLIST }) { _, playlist ->
@@ -264,7 +341,7 @@ fun LibraryPlaylistsScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
                         )
                     }
                 }
@@ -280,7 +357,7 @@ fun LibraryPlaylistsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
                     )
                 }
             }
@@ -300,7 +377,7 @@ fun LibraryPlaylistsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
                             .clickable { navController.navigate("spotify_playlist/${sp.id}") }
                     )
                 }
@@ -308,10 +385,6 @@ fun LibraryPlaylistsScreen(
             item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
-        PullToRefreshDefaults.Indicator(
-            isRefreshing = isRefreshing, 
-            state = pullRefreshState, 
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
-        )
+        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()))
     }
 }
