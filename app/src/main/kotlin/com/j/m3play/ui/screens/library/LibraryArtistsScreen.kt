@@ -135,7 +135,9 @@ fun LibraryArtistsScreen(
 
     val artistHeaderCards = @Composable {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Top Artist Card
             Surface(
+                onClick = { /* TODO: Yahan par Top Artist open karne ka navigation code dalen */ }, 
                 modifier = Modifier.weight(1f).height(120.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
@@ -152,14 +154,17 @@ fun LibraryArtistsScreen(
                         }
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f), onClick = {}) {
+                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f), onClick = { /* TODO: Play all action */ }) {
                             Text("Play all", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
                         }
-                        IconButton(onClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
+                        IconButton(onClick = { /* TODO: Options action */ }) { Icon(painterResource(R.drawable.more_vert), null) }
                     }
                 }
             }
+            
+            // Total Artists Card
             Surface(
+                onClick = { /* TODO: Action for clicking Total Artists card, if needed */ }, 
                 modifier = Modifier.weight(1f).height(120.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
@@ -179,7 +184,7 @@ fun LibraryArtistsScreen(
 
     val actionRow = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) { // Fixed Clipping Here!
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
                         sortType = sortType,
@@ -222,7 +227,7 @@ fun LibraryArtistsScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 6.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                         )
                     }
                     item { Spacer(modifier = Modifier.height(100.dp)) }
