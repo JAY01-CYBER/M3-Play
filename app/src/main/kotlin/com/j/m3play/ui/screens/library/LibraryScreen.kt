@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -146,7 +147,6 @@ fun LibraryScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(top = padding.calculateTopPadding())
         ) {
-            // FIXED HEADER (Yahan screen title aur navigation chips fix rahenge)
             val currentTitle = titlesList[pagerState.currentPage].first
             val currentSubtitle = titlesList[pagerState.currentPage].second
 
@@ -159,7 +159,8 @@ fun LibraryScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, bottom = 8.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp), // FIX applied here
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filtersList.forEachIndexed { index, (filterPair, iconRes) ->
@@ -199,11 +200,12 @@ fun LibraryScreen(navController: NavController) {
                         val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
                         onSelectedTagsFilterChange(newTags.joinToString(","))
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 8.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp) // FIX applied here
                 )
             }
 
-            // INNER CONTENT (Sirf ye hissa swipe hoga)
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
