@@ -116,7 +116,7 @@ fun LibraryScreen(navController: NavController) {
                         val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
                         onSelectedTagsFilterChange(newTags.joinToString(","))
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
                 )
             }
         }
