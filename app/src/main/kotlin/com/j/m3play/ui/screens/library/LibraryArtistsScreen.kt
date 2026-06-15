@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -87,6 +77,7 @@ import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LibraryArtistsViewModel
+import com.j.m3play.extensions.bounceClick
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -136,7 +127,7 @@ fun LibraryArtistsScreen(
     val artistHeaderCards = @Composable {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Surface(
-                modifier = Modifier.weight(1f).height(120.dp),
+                modifier = Modifier.weight(1f).height(120.dp).bounceClick {},
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -162,7 +153,7 @@ fun LibraryArtistsScreen(
             Surface(
                 modifier = Modifier.weight(1f).height(120.dp),
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -179,7 +170,7 @@ fun LibraryArtistsScreen(
 
     val actionRow = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) { // Fixed Clipping Here!
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
                         sortType = sortType,
@@ -202,8 +193,9 @@ fun LibraryArtistsScreen(
             LibraryViewType.LIST ->
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Spacer(Modifier.height(4.dp))
                             Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -220,9 +212,7 @@ fun LibraryArtistsScreen(
                             modifier = Modifier
                                 .animateItem()
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                .padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
                     item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -231,8 +221,9 @@ fun LibraryArtistsScreen(
             LibraryViewType.GRID ->
                 LazyVerticalGrid(state = lazyGridState, modifier = Modifier.fillMaxSize(), columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Spacer(Modifier.height(4.dp))
                             Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
