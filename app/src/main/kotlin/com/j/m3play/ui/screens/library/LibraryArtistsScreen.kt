@@ -51,6 +51,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -194,7 +195,7 @@ fun LibraryArtistsScreen(
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp))
                             Spacer(Modifier.height(4.dp))
                             Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -222,7 +223,7 @@ fun LibraryArtistsScreen(
                 LazyVerticalGrid(state = lazyGridState, modifier = Modifier.fillMaxSize(), columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Text("Artists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp))
                             Spacer(Modifier.height(4.dp))
                             Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
