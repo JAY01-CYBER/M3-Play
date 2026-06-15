@@ -22,38 +22,36 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun M3AutoPlaylistCard(
     title: String,
-    subtitle: String, // Naya subtitle parameter
+    subtitle: String,
     iconRes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp), // Image jaisa soft rounded corner
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            // Ekdam light aur premium background tint (image ki tarah)
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            // Removed dark background, added Apple's glossy look
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
         ),
         modifier = modifier
             .padding(4.dp)
-            .aspectRatio(0.95f) // Perfect slightly vertical square frame
+            .aspectRatio(1f) // Perfect square
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Icon exactly center mein aur size bada (48dp)
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = title,
                 tint = MaterialTheme.colorScheme.primary, 
                 modifier = Modifier
-                    .size(48.dp) 
+                    .size(42.dp) 
                     .align(Alignment.Center)
             )
             
-            // Title aur Subtitle bottom-left corner mein
             Column(
                 modifier = Modifier.align(Alignment.BottomStart)
             ) {
