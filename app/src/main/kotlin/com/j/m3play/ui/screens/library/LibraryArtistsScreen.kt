@@ -15,9 +15,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -57,7 +57,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -94,7 +93,6 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
-    filterContent: @Composable () -> Unit,
     viewModel: LibraryArtistsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -135,9 +133,8 @@ fun LibraryArtistsScreen(
 
     val artistHeaderCards = @Composable {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Top Artist Card
             Surface(
-                onClick = { /* TODO: Yahan par Top Artist open karne ka navigation code dalen */ }, 
+                onClick = { /* TODO: Navigate to Top Artist */ }, 
                 modifier = Modifier.weight(1f).height(120.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
@@ -162,9 +159,8 @@ fun LibraryArtistsScreen(
                 }
             }
             
-            // Total Artists Card
             Surface(
-                onClick = { /* TODO: Action for clicking Total Artists card, if needed */ }, 
+                onClick = { /* TODO: Total Artists logic */ }, 
                 modifier = Modifier.weight(1f).height(120.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
@@ -205,14 +201,11 @@ fun LibraryArtistsScreen(
     Box(modifier = Modifier.fillMaxSize().pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = { if (ytmSync) viewModel.refresh(filter) })) {
         when (viewType) {
             LibraryViewType.LIST ->
-                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
-                    item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                            Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
+                LazyColumn(
+                    state = lazyListState, 
+                    modifier = Modifier.fillMaxSize(), 
+                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                ) {
                     item(key = "artist_cards", contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedArtists.isEmpty()) item { EmptyPlaceholder(icon = R.drawable.artist, text = stringResource(R.string.library_artist_empty), modifier = Modifier.animateItem()) }
@@ -234,14 +227,12 @@ fun LibraryArtistsScreen(
                 }
 
             LibraryViewType.GRID ->
-                LazyVerticalGrid(state = lazyGridState, modifier = Modifier.fillMaxSize(), columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
-                    item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                            Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    item(key = "filter", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { filterContent() }
+                LazyVerticalGrid(
+                    state = lazyGridState, 
+                    modifier = Modifier.fillMaxSize(), 
+                    columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), 
+                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                ) {
                     item(key = "artist_cards", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedArtists.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { EmptyPlaceholder(icon = R.drawable.artist, text = stringResource(R.string.library_artist_empty)) }
@@ -251,6 +242,6 @@ fun LibraryArtistsScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(100.dp)) }
                 }
         }
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()))
+        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
     }
 }
