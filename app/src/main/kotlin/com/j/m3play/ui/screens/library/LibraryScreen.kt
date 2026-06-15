@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.constants.ChipSortTypeKey
 import com.j.m3play.constants.DisableBlurKey
@@ -84,79 +85,28 @@ fun LibraryScreen(navController: NavController) {
         )
     }
 
-    // Pager State Setup for Swiping
+    val titlesList = remember {
+        listOf(
+            "Library" to "Everything you love",
+            "Playlists" to "All your playlists, organized for you",
+            "Songs" to "All your songs, organized for you",
+            "Artists" to "All your artists, in one place",
+            "Albums" to "All your albums, beautifully organized"
+        )
+    }
+
     val initialPageIndex = remember {
         val index = filtersList.indexOfFirst { it.first.first == filterType }
         if (index >= 0) index else 0
     }
-    
+
     val pagerState = rememberPagerState(initialPage = initialPageIndex) { filtersList.size }
     val coroutineScope = rememberCoroutineScope()
 
-    // Sync Pager to DataStore (When user swipes left/right)
     LaunchedEffect(pagerState.currentPage) {
         val currentFilter = filtersList[pagerState.currentPage].first.first
         if (filterType != currentFilter) {
             filterType = currentFilter
-        }
-    }
-
-    val filterContent = @Composable {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                filtersList.forEachIndexed { index, (filterPair, iconRes) ->
-                    val (type, stringRes) = filterPair
-                    val isSelected = pagerState.currentPage == index
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        onClick = {
-                            // Pager Animate on Chip Click
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        modifier = Modifier.heightIn(min = 40.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(iconRes),
-                                contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(stringRes),
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (showTagsInLibrary) {
-                TagsFilterChips(
-                    database = database,
-                    selectedTags = selectedTagIds,
-                    onTagToggle = { tag ->
-                        val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
-                        onSelectedTagsFilterChange(newTags.joinToString(","))
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
         }
     }
 
@@ -189,17 +139,82 @@ fun LibraryScreen(navController: NavController) {
             ) {}
         }
 
-        // Horizontal Pager Handles Swipe Navigation
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            when (filtersList[page].first.first) {
-                LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
-                LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
-                LibraryFilter.SONGS -> LibrarySongsScreen(navController, filterContent)
-                LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, filterContent)
-                LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, filterContent)
+        val padding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+        ) {
+            // FIXED HEADER (Yahan screen title aur navigation chips fix rahenge)
+            val currentTitle = titlesList[pagerState.currentPage].first
+            val currentSubtitle = titlesList[pagerState.currentPage].second
+
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                Text(currentTitle, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                Text(currentSubtitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                filtersList.forEachIndexed { index, (filterPair, iconRes) ->
+                    val isSelected = pagerState.currentPage == index
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                        modifier = Modifier.heightIn(min = 40.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(iconRes),
+                                contentDescription = null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(filterPair.second),
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (showTagsInLibrary) {
+                TagsFilterChips(
+                    database = database,
+                    selectedTags = selectedTagIds,
+                    onTagToggle = { tag ->
+                        val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
+                        onSelectedTagsFilterChange(newTags.joinToString(","))
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp, bottom = 8.dp)
+                )
+            }
+
+            // INNER CONTENT (Sirf ye hissa swipe hoga)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (filtersList[page].first.first) {
+                    LibraryFilter.LIBRARY -> LibraryMixScreen(navController)
+                    LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController)
+                    LibraryFilter.SONGS -> LibrarySongsScreen(navController)
+                    LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController)
+                    LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController)
+                }
             }
         }
     }
