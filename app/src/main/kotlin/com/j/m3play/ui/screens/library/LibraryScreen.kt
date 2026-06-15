@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -92,11 +92,11 @@ fun LibraryScreen(navController: NavController) {
                         shape = RoundedCornerShape(50),
                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         onClick = { filterType = type },
-                        modifier = Modifier.height(40.dp)
+                        modifier = Modifier.heightIn(min = 40.dp) // Removed strict height
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp) // Added vertical padding
                         ) {
                             Icon(
                                 painter = painterResource(iconRes),
