@@ -106,6 +106,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
+    contentPadding: PaddingValues,
     viewModel: LibraryPlaylistsViewModel = hiltViewModel(),
     initialTextFieldValue: String? = null,
     allowSyncing: Boolean = true,
@@ -251,7 +252,10 @@ fun LibraryPlaylistsScreen(
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+            contentPadding = PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            )
         ) {
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
@@ -330,6 +334,10 @@ fun LibraryPlaylistsScreen(
             item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing, 
+            state = pullRefreshState, 
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+        )
     }
 }
