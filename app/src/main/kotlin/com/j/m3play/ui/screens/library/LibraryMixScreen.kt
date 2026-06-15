@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -81,6 +71,7 @@ import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.Playlist
 import com.j.m3play.db.entities.PlaylistEntity
 import com.j.m3play.extensions.move
+import com.j.m3play.extensions.bounceClick
 import com.j.m3play.ui.component.AlbumListItem
 import com.j.m3play.ui.component.ArtistListItem
 import com.j.m3play.ui.component.LibraryPlaylistListItem
@@ -201,7 +192,7 @@ fun LibraryMixScreen(
 
     val headerContent = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) { // Fixed Clipping Here!
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange, sortTypeText = { type -> when (type) { MixSortType.CREATE_DATE -> R.string.sort_by_create_date; MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated; MixSortType.NAME -> R.string.sort_by_name } })
                 }
@@ -218,8 +209,9 @@ fun LibraryMixScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Text("Library", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                    Text("Library", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                    Spacer(Modifier.height(4.dp))
                     Text("Everything you love", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -229,10 +221,10 @@ fun LibraryMixScreen(
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val pills = mutableListOf<@Composable () -> Unit>()
-                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth()) }
-                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth()) }
-                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth()) }
-                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth()) }
+                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("auto_playlist/liked") }) }
+                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("auto_playlist/downloaded") }) }
+                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("top_playlist/$topSize") }) }
+                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("cache_playlist/cached") }) }
                     pills.chunked(2).forEach { rowPills ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             rowPills.forEach { pill -> Box(modifier = Modifier.weight(1f)) { pill() } }
@@ -256,9 +248,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -272,9 +262,7 @@ fun LibraryMixScreen(
                             modifier = Modifier
                                 .animateItem()
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                .padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -288,9 +276,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                                     .combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } })
                             ) 
                         }
@@ -303,9 +289,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                                     .combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } })
                             ) 
                         }
@@ -324,9 +308,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                             ) 
                         }
                         is Artist -> { 
@@ -336,9 +318,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                                     .combinedClickable(onClick = { navController.navigate("artist/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(item, coroutineScope, menuState::dismiss) } })
                             ) 
                         }
@@ -351,9 +331,7 @@ fun LibraryMixScreen(
                                 modifier = Modifier
                                     .animateItem()
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                    .padding(horizontal = 16.dp, vertical = 2.dp)
                                     .combinedClickable(onClick = { navController.navigate("album/${item.id}") }, onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(item, navController, menuState::dismiss) } })
                             ) 
                         }
