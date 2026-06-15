@@ -17,9 +17,9 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -79,14 +79,12 @@ import com.j.m3play.constants.YtmSyncKey
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.Playlist
-import com.j.m3play.db.entities.PlaylistEntity
 import com.j.m3play.extensions.move
 import com.j.m3play.ui.component.AlbumListItem
 import com.j.m3play.ui.component.ArtistListItem
 import com.j.m3play.ui.component.LibraryPlaylistListItem
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.M3AutoPlaylistCard
-import com.j.m3play.ui.component.PlaylistListItem
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.ArtistMenu
@@ -104,7 +102,6 @@ import java.util.Locale
 @Composable
 fun LibraryMixScreen(
     navController: NavController,
-    filterContent: @Composable () -> Unit,
     viewModel: LibraryMixViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -151,7 +148,7 @@ fun LibraryMixScreen(
     val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
-    val listHeaderItems = 4
+    val listHeaderItems = 2
             
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -217,14 +214,11 @@ fun LibraryMixScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
-            item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Text("Library", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                    Text("Everything you love", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+        ) {
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
