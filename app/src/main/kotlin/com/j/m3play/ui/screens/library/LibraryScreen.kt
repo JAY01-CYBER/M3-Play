@@ -98,9 +98,10 @@ fun LibraryScreen(navController: NavController) {
         )
     }
 
+    // Video ke hisaab se Titles fix kiye gaye hain
     val titlesList = remember {
         listOf(
-            "Library" to "Everything you love",
+            "Your Library" to "Your music, organized for you",
             "Playlists" to "All your playlists, organized for you",
             "Songs" to "All your songs, organized for you",
             "Artists" to "All your artists, in one place",
