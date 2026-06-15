@@ -51,6 +51,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -153,7 +154,7 @@ fun LibrarySongsScreen(
                         text = "Songs", 
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-1).dp
+                            letterSpacing = (-1).sp
                         )
                     )
                     Spacer(Modifier.height(4.dp))
@@ -264,7 +265,7 @@ fun LibrarySongsScreen(
                         .background(if (isSelectedMode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent)
                         .combinedClickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = androidx.compose.material.ripple.rememberRipple(),
+                            indication = androidx.compose.material3.ripple(),
                             onClick = {
                                 if (!selection) {
                                     if (songWrapper.item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
