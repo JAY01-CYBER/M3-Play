@@ -17,7 +17,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -26,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -103,7 +101,7 @@ import java.util.Locale
 @Composable
 fun LibraryMixScreen(
     navController: NavController,
-    contentPadding: PaddingValues,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryMixViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -150,7 +148,7 @@ fun LibraryMixScreen(
     val canEnterReorderMode = customPlaylistMode && selectedTagIds.isEmpty()
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
-    val listHeaderItems = 2
+    val listHeaderItems = 4
             
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -204,7 +202,7 @@ fun LibraryMixScreen(
 
     val headerContent = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) { 
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) { 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange, sortTypeText = { type -> when (type) { MixSortType.CREATE_DATE -> R.string.sort_by_create_date; MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated; MixSortType.NAME -> R.string.sort_by_name } })
                 }
@@ -222,12 +220,15 @@ fun LibraryMixScreen(
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = contentPadding.calculateTopPadding(),
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            )
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
         ) {
-            item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
+            item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    Text("Your Library", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                    Text("Everything you love", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
 
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -244,6 +245,8 @@ fun LibraryMixScreen(
                     }
                 }
             }
+
+            item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
             if (customPlaylistMode) {
                 if (canReorderPlaylists) {
