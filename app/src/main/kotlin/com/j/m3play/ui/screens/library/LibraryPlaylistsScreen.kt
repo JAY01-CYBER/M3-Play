@@ -60,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -298,7 +299,7 @@ fun LibraryPlaylistsScreen(
             
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
-                    Text("Playlists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                    Text("Playlists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp))
                     Spacer(Modifier.height(4.dp))
                     Text("All your playlists, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
