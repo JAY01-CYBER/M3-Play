@@ -91,6 +91,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryAlbumsScreen(
     navController: NavController,
+    contentPadding: PaddingValues,
     viewModel: LibraryAlbumsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -164,7 +165,10 @@ fun LibraryAlbumsScreen(
                 LazyColumn(
                     state = lazyListState, 
                     modifier = Modifier.fillMaxSize(), 
-                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
                     item(key = "header", contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedAlbums.isEmpty()) item { EmptyPlaceholder(icon = R.drawable.album, text = stringResource(R.string.library_album_empty), modifier = Modifier.animateItem()) }
@@ -191,7 +195,10 @@ fun LibraryAlbumsScreen(
                     state = lazyGridState, 
                     modifier = Modifier.fillMaxSize(), 
                     columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), 
-                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
                     item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedAlbums.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { EmptyPlaceholder(icon = R.drawable.album, text = stringResource(R.string.library_album_empty)) }
@@ -201,6 +208,10 @@ fun LibraryAlbumsScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(100.dp)) }
                 }
         }
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing, 
+            state = pullRefreshState, 
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+        )
     }
 }
