@@ -126,8 +126,8 @@ fun LibraryArtistsScreen(
     val optimizedArtists = remember(artists) { artists?.distinctBy { it.id } ?: emptyList() }
 
     val topArtistName = remember(optimizedArtists) {
-        val top = optimizedArtists.maxByOrNull { it.playTime ?: 0L }
-        top?.name ?: "No Artist Yet"
+        val top = optimizedArtists.maxByOrNull { it.timeListened ?: 0 }
+        top?.artist?.name ?: "No Artist Yet"
     }
 
     val artistHeaderCards = @Composable {
