@@ -17,7 +17,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -95,7 +93,7 @@ import com.j.m3play.viewmodels.LibrarySongsViewModel
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
-    contentPadding: PaddingValues, // For smooth nested scrolling
+    filterContent: @Composable () -> Unit,
     viewModel: LibrarySongsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -145,8 +143,7 @@ fun LibrarySongsScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
             .pullToRefresh(
                 state = pullRefreshState,
                 isRefreshing = isRefreshing,
@@ -156,21 +153,23 @@ fun LibrarySongsScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = lazyListState,
-            contentPadding = PaddingValues(
-                top = contentPadding.calculateTopPadding(),
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            ),
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
+            item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    Text("Songs", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                    Text("All your songs, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
+
             item(key = "secondary_filter", contentType = CONTENT_TYPE_HEADER) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val secondaryFilters = listOf(
-                        SongFilter.LIKED to R.string.filter_liked, 
-                        SongFilter.LIBRARY to R.string.filter_library, 
-                        SongFilter.DOWNLOADED to R.string.filter_downloaded
-                    )
+                    val secondaryFilters = listOf(SongFilter.LIKED to R.string.filter_liked, SongFilter.LIBRARY to R.string.filter_library, SongFilter.DOWNLOADED to R.string.filter_downloaded)
                     secondaryFilters.forEach { (type, stringRes) ->
                         val isSelected = filter == type
                         Surface(
@@ -232,24 +231,14 @@ fun LibrarySongsScreen(
                             Icon(painterResource(R.drawable.more_vert), null)
                         }
                     } else {
-                        // FIX: SortHeader (Date Added) is perfectly wrapped in a pill shape
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.heightIn(min = 40.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                                SortHeader(
-                                    sortType = sortType,
-                                    sortDescending = sortDescending,
-                                    onSortTypeChange = onSortTypeChange,
-                                    onSortDescendingChange = onSortDescendingChange,
-                                    sortTypeText = { t -> when (t) { SongSortType.CREATE_DATE -> R.string.sort_by_create_date; SongSortType.NAME -> R.string.sort_by_name; SongSortType.ARTIST -> R.string.sort_by_artist; SongSortType.PLAY_TIME -> R.string.sort_by_play_time } },
-                                )
-                            }
-                        }
+                        SortHeader(
+                            sortType = sortType,
+                            sortDescending = sortDescending,
+                            onSortTypeChange = onSortTypeChange,
+                            onSortDescendingChange = onSortDescendingChange,
+                            sortTypeText = { t -> when (t) { SongSortType.CREATE_DATE -> R.string.sort_by_create_date; SongSortType.NAME -> R.string.sort_by_name; SongSortType.ARTIST -> R.string.sort_by_artist; SongSortType.PLAY_TIME -> R.string.sort_by_play_time } },
+                        )
                         Spacer(Modifier.weight(1f))
-                        Text(text = pluralStringResource(R.plurals.n_song, songs.size, songs.size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
@@ -271,7 +260,7 @@ fun LibrarySongsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
                         .combinedClickable(
                             onClick = {
                                 if (!selection) {
@@ -298,10 +287,6 @@ fun LibrarySongsScreen(
             onClick = { playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_all_songs), items = songs.shuffled().map { it.toMediaItem() })) },
         )
 
-        PullToRefreshDefaults.Indicator(
-            isRefreshing = isRefreshing, 
-            state = pullRefreshState, 
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
-        )
+        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()))
     }
 }
