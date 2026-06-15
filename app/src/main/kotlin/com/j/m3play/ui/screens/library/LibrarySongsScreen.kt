@@ -14,10 +14,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -25,13 +25,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -95,7 +96,7 @@ import com.j.m3play.viewmodels.LibrarySongsViewModel
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
-    contentPadding: PaddingValues, // NEW: Accepts padding from parent
+    filterContent: @Composable () -> Unit,
     viewModel: LibrarySongsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -156,14 +157,20 @@ fun LibrarySongsScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = lazyListState,
-            contentPadding = PaddingValues(
-                top = contentPadding.calculateTopPadding(),
-                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-            ),
+            contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
+            item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                    Text("Songs", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                    Text("All your songs, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
+
             item(key = "secondary_filter", contentType = CONTENT_TYPE_HEADER) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val secondaryFilters = listOf(SongFilter.LIKED to R.string.filter_liked, SongFilter.LIBRARY to R.string.filter_library, SongFilter.DOWNLOADED to R.string.filter_downloaded)
@@ -228,11 +235,10 @@ fun LibrarySongsScreen(
                             Icon(painterResource(R.drawable.more_vert), null)
                         }
                     } else {
-                        // FIX: SortHeader wrapped in beautiful Pill!
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.wrapContentHeight()
+                            modifier = Modifier.height(40.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                                 SortHeader(
@@ -297,7 +303,7 @@ fun LibrarySongsScreen(
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing, 
             state = pullRefreshState, 
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+            modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
         )
     }
 }
