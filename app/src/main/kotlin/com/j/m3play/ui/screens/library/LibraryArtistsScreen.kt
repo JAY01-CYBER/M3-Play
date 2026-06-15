@@ -94,6 +94,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
+    contentPadding: PaddingValues,
     viewModel: LibraryArtistsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -205,7 +206,10 @@ fun LibraryArtistsScreen(
                 LazyColumn(
                     state = lazyListState, 
                     modifier = Modifier.fillMaxSize(), 
-                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
                     item(key = "artist_cards", contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", contentType = CONTENT_TYPE_HEADER) { actionRow() }
@@ -232,7 +236,10 @@ fun LibraryArtistsScreen(
                     state = lazyGridState, 
                     modifier = Modifier.fillMaxSize(), 
                     columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), 
-                    contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
                     item(key = "artist_cards", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { actionRow() }
@@ -243,6 +250,10 @@ fun LibraryArtistsScreen(
                     item(span = { GridItemSpan(maxLineSpan) }) { Spacer(modifier = Modifier.height(100.dp)) }
                 }
         }
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing, 
+            state = pullRefreshState, 
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+        )
     }
 }
