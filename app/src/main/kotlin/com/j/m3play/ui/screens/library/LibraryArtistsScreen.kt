@@ -125,6 +125,11 @@ fun LibraryArtistsScreen(
 
     val optimizedArtists = remember(artists) { artists?.distinctBy { it.id } ?: emptyList() }
 
+    val topArtistName = remember(optimizedArtists) {
+        val top = optimizedArtists.maxByOrNull { it.playTime ?: 0L }
+        top?.name ?: "No Artist Yet"
+    }
+
     val artistHeaderCards = @Composable {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Surface(
@@ -132,7 +137,7 @@ fun LibraryArtistsScreen(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), modifier = Modifier.size(36.dp)) {
                             Icon(painterResource(R.drawable.person), null, modifier = Modifier.padding(8.dp))
@@ -140,14 +145,13 @@ fun LibraryArtistsScreen(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text("TOP ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                            Text("No Artist Yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = topArtistName, 
+                                style = MaterialTheme.typography.titleMedium, 
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
                         }
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f), onClick = {}) {
-                            Text("Play all", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
-                        }
-                        IconButton(onClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
                     }
                 }
             }
