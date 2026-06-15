@@ -80,7 +80,6 @@ import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LibrarySongsViewModel
-import com.j.m3play.extensions.bounceClick
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -150,19 +149,9 @@ fun LibrarySongsScreen(
         ) {
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
-                    Text(
-                        text = "Songs", 
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-1).sp
-                        )
-                    )
+                    Text("Songs", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "All your songs, organized for you", 
-                        style = MaterialTheme.typography.titleMedium, 
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("All your songs, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -179,7 +168,8 @@ fun LibrarySongsScreen(
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.heightIn(min = 36.dp).bounceClick { filter = type }
+                            onClick = { filter = type },
+                            modifier = Modifier.heightIn(min = 36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                 Text(
@@ -207,9 +197,7 @@ fun LibrarySongsScreen(
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.bounceClick {
-                                playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_all_songs), items = songs.map { it.toMediaItem() }))
-                            }
+                            onClick = { playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_all_songs), items = songs.map { it.toMediaItem() })) }
                         ) {
                             Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
@@ -259,6 +247,7 @@ fun LibrarySongsScreen(
                         }
                     },
                     isSelected = isSelectedMode,
+                    // REMOVED THE BOX CLIP AND BACKGROUND HERE
                     modifier = Modifier
                         .animateItem()
                         .fillMaxWidth()
@@ -279,7 +268,6 @@ fun LibrarySongsScreen(
                                 songWrapper.isSelected = true 
                             },
                         )
-                        .padding(horizontal = 16.dp, vertical = 2.dp)
                 )
             }
             item { Spacer(modifier = Modifier.height(120.dp)) }
