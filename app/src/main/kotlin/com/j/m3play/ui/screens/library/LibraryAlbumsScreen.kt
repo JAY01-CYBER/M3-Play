@@ -14,7 +14,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -91,7 +89,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryAlbumsScreen(
     navController: NavController,
-    contentPadding: PaddingValues,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryAlbumsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -141,7 +139,7 @@ fun LibraryAlbumsScreen(
 
     val actionRow = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) {
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
                         sortType = sortType,
@@ -165,11 +163,16 @@ fun LibraryAlbumsScreen(
                 LazyColumn(
                     state = lazyListState, 
                     modifier = Modifier.fillMaxSize(), 
-                    contentPadding = PaddingValues(
-                        top = contentPadding.calculateTopPadding(),
-                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-                    )
+                    contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                 ) {
+                    item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                            Text("Albums", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                            Text("All your albums, beautifully organized", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
+                    
                     item(key = "header", contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedAlbums.isEmpty()) item { EmptyPlaceholder(icon = R.drawable.album, text = stringResource(R.string.library_album_empty), modifier = Modifier.animateItem()) }
                     items(items = optimizedAlbums, key = { it.id }, contentType = { CONTENT_TYPE_ALBUM }) { album ->
@@ -195,11 +198,16 @@ fun LibraryAlbumsScreen(
                     state = lazyGridState, 
                     modifier = Modifier.fillMaxSize(), 
                     columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), 
-                    contentPadding = PaddingValues(
-                        top = contentPadding.calculateTopPadding(),
-                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-                    )
+                    contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
                 ) {
+                    item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                            Text("Albums", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                            Text("All your albums, beautifully organized", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    item(key = "filter", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { filterContent() }
+                    
                     item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { actionRow() }
                     if (optimizedAlbums.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { EmptyPlaceholder(icon = R.drawable.album, text = stringResource(R.string.library_album_empty)) }
                     items(items = optimizedAlbums, key = { it.id }, contentType = { CONTENT_TYPE_ALBUM }) { album ->
@@ -211,7 +219,7 @@ fun LibraryAlbumsScreen(
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing, 
             state = pullRefreshState, 
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+            modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
         )
     }
 }
