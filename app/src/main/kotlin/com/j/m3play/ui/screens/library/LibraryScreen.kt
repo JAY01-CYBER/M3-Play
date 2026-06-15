@@ -11,10 +11,10 @@
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -103,12 +105,15 @@ fun LibraryScreen(navController: NavController) {
 
     val pagerState = rememberPagerState(initialPage = initialPageIndex) { filtersList.size }
     val coroutineScope = rememberCoroutineScope()
+    val lazyListState = rememberLazyListState() // Chips ko auto-scroll karne ke liye
 
     LaunchedEffect(pagerState.currentPage) {
         val currentFilter = filtersList[pagerState.currentPage].first.first
         if (filterType != currentFilter) {
             filterType = currentFilter
         }
+        // FIX: Jaise hi page change hoga, upar waale chips automatically slide ho jayenge!
+        lazyListState.animateScrollToItem(pagerState.currentPage)
     }
 
     val color1 = MaterialTheme.colorScheme.primary
@@ -155,16 +160,19 @@ fun LibraryScreen(navController: NavController) {
                 Text(currentSubtitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Row(
+            // FIX: Row ki jagah LazyRow use kiya hai slide effect ke liye
+            LazyRow(
+                state = lazyListState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 8.dp), // FIX applied here
+                    .padding(bottom = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                filtersList.forEachIndexed { index, (filterPair, iconRes) ->
+                itemsIndexed(filtersList) { index, filterItem ->
+                    val (filterPair, iconRes) = filterItem
                     val isSelected = pagerState.currentPage == index
+                    
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -202,7 +210,7 @@ fun LibraryScreen(navController: NavController) {
                     },
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp) // FIX applied here
+                        .padding(bottom = 8.dp) 
                 )
             }
 
