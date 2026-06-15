@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -140,7 +130,7 @@ fun LibraryAlbumsScreen(
 
     val actionRow = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) { // Fixed Clipping Here!
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.wrapContentHeight()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
                         sortType = sortType,
@@ -163,8 +153,9 @@ fun LibraryAlbumsScreen(
             LibraryViewType.LIST ->
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Albums", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                            Text("Albums", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Spacer(Modifier.height(4.dp))
                             Text("All your albums, beautifully organized", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -181,9 +172,7 @@ fun LibraryAlbumsScreen(
                             modifier = Modifier
                                 .animateItem()
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                .padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
                     item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -192,8 +181,9 @@ fun LibraryAlbumsScreen(
             LibraryViewType.GRID ->
                 LazyVerticalGrid(state = lazyGridState, modifier = Modifier.fillMaxSize(), columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
                     item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Albums", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                            Text("Albums", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                            Spacer(Modifier.height(4.dp))
                             Text("All your albums, beautifully organized", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
