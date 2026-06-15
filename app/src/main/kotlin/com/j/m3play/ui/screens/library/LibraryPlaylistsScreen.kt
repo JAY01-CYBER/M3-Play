@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -61,7 +62,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,10 +76,7 @@ import com.j.m3play.constants.CONTENT_TYPE_PLAYLIST
 import com.j.m3play.constants.PlaylistSortDescendingKey
 import com.j.m3play.constants.PlaylistSortType
 import com.j.m3play.constants.PlaylistSortTypeKey
-import com.j.m3play.constants.ShowLikedPlaylistKey
-import com.j.m3play.constants.ShowDownloadedPlaylistKey
-import com.j.m3play.constants.ShowTopPlaylistKey
-import com.j.m3play.constants.ShowCachedPlaylistKey
+import com.j.m3play.constants.PlaylistTagsFilterKey
 import com.j.m3play.constants.YtmSyncKey
 import com.j.m3play.constants.ShowSpotifyPlaylistKey
 import com.j.m3play.constants.SpotifyConnectedKey
@@ -88,7 +85,6 @@ import com.j.m3play.db.entities.Playlist
 import com.j.m3play.ui.component.CreatePlaylistDialog
 import com.j.m3play.ui.component.LibraryPlaylistListItem
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.M3AutoPlaylistCard
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
@@ -119,7 +115,7 @@ fun LibraryPlaylistsScreen(
     val (sortDescending, onSortDescendingChange) = rememberPreference(PlaylistSortDescendingKey, true)
 
     val database = LocalDatabase.current
-    val (selectedTagsFilter) = rememberPreference(com.j.m3play.constants.PlaylistTagsFilterKey, "")
+    val (selectedTagsFilter) = rememberPreference(PlaylistTagsFilterKey, "")
     val selectedTagIds = remember(selectedTagsFilter) { selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet() }
     val filteredPlaylistIds by database.playlistIdsByTags(if (selectedTagIds.isEmpty()) emptyList() else selectedTagIds.toList()).collectAsState(initial = emptyList())
 
@@ -131,12 +127,6 @@ fun LibraryPlaylistsScreen(
         val matchesTags = selectedTagIds.isEmpty() || playlist.id in filteredPlaylistIds
         matchesName && matchesTags
     }
-
-    val topSize by viewModel.topValue.collectAsState(initial = 50)
-    val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
-    val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
-    val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
-    val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
 
     val isSpotifyConnected by context.dataStore.data.map { it[SpotifyConnectedKey] ?: false }.collectAsState(initial = false)
     val showSpotifyPlaylist by context.dataStore.data.map { it[ShowSpotifyPlaylistKey] ?: true }.collectAsState(initial = true)
@@ -158,7 +148,7 @@ fun LibraryPlaylistsScreen(
     var reorderEnabled by rememberSaveable { mutableStateOf(false) }
     val canReorderPlaylists = canEnterReorderMode && reorderEnabled
     
-    val listHeaderItems = 2 
+    val listHeaderItems = 1 
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     
@@ -257,22 +247,6 @@ fun LibraryPlaylistsScreen(
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
-            item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    val pills = mutableListOf<@Composable () -> Unit>()
-                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth()) }
-                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth()) }
-                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth()) }
-                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth()) }
-                    pills.chunked(2).forEach { rowPills ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            rowPills.forEach { pill -> Box(modifier = Modifier.weight(1f)) { pill() } }
-                            if (rowPills.size == 1) Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
             if (canReorderPlaylists) {
