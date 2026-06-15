@@ -1,5 +1,3 @@
-
-
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class)
 
 package com.j.m3play.ui.component
@@ -133,7 +131,6 @@ import com.j.m3play.db.entities.Playlist
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.models.MediaMetadata
 import com.j.m3play.playback.queues.LocalAlbumRadio
-import com.j.m3play.ui.theme.extractThemeColor
 import com.j.m3play.utils.joinByBullet
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberPreference
@@ -145,7 +142,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 import kotlin.math.roundToInt
 
@@ -162,19 +158,19 @@ inline fun ListItem(
 ) {
     val titleColor =
         if (isActive) {
-            MaterialTheme.colorScheme.onSecondaryContainer
+            MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.onSurface
         }
     val subtitleContentColor =
         if (isActive) {
-            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         }
     val trailingContentColor =
         if (isActive) {
-            MaterialTheme.colorScheme.onSecondaryContainer
+            MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         }
@@ -188,8 +184,8 @@ inline fun ListItem(
             .then(
                 if (isActive) Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                else Modifier
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)) 
+                else Modifier.background(Color.Transparent)
             )
     ) {
         Box(Modifier.padding(8.dp), contentAlignment = Alignment.Center) { thumbnailContent() }
@@ -240,7 +236,7 @@ fun ListItem(
         if (!subtitle.isNullOrEmpty()) {
             Text(
                 text = subtitle,
-                color = if (isActive) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -292,7 +288,6 @@ fun GridItem(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             badges()
-
             subtitle()
         }
     }
@@ -368,7 +363,7 @@ fun SongListItem(
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
-    val resolvedSwipeContentBackgroundColor = swipeContentBackgroundColor ?: MaterialTheme.colorScheme.surface
+    val resolvedSwipeContentBackgroundColor = swipeContentBackgroundColor ?: Color.Transparent
 
     val content: @Composable () -> Unit = {
         ListItem(
@@ -858,7 +853,7 @@ fun LibraryPinnedCollectionTile(
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         modifier = modifier,
     ) {
         Box(
@@ -867,9 +862,8 @@ fun LibraryPinnedCollectionTile(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            accentColor.copy(alpha = 0.28f),
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            MaterialTheme.colorScheme.surfaceContainerLow,
+                            accentColor.copy(alpha = 0.15f),
+                            Color.Transparent,
                         ),
                     ),
                 ),
@@ -881,7 +875,7 @@ fun LibraryPinnedCollectionTile(
                     .padding(14.dp),
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
                     shape = CircleShape,
                 ) {
                     Icon(
@@ -952,7 +946,7 @@ fun LibraryPlaylistFeatureCard(
         extractedGlowColor = withContext(Dispatchers.Default) { bitmap.extractThemeColor() }
     }
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = shape,
         modifier = modifier,
     ) {
@@ -1057,9 +1051,9 @@ fun LibraryAlbumSpotlightCard(
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = if (isActive) {
-                MaterialTheme.colorScheme.secondaryContainer
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
             } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
+                Color.Transparent
             },
         ),
         modifier = modifier,
@@ -1159,7 +1153,7 @@ fun LibraryArtistSpotlightCard(
     }
     Card(
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         modifier = modifier,
     ) {
         Row(
@@ -1550,7 +1544,7 @@ fun ItemThumbnail(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(Color.Transparent),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -1586,7 +1580,7 @@ fun ItemThumbnail(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(Color.Transparent)
                 )
             }
         }
@@ -1783,7 +1777,7 @@ fun PlaylistThumbnail(
             modifier = Modifier
                 .size(size)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .background(Color.Transparent)
         ) {
             placeHolder()
         }
@@ -1907,7 +1901,7 @@ fun SwipeToSongBox(
     val scope = rememberCoroutineScope()
     val offset = remember { mutableStateOf(0f) }
     val threshold = 300f
-    val resolvedContentBackgroundColor = contentBackgroundColor ?: MaterialTheme.colorScheme.surface
+    val resolvedContentBackgroundColor = contentBackgroundColor ?: Color.Transparent
 
     val dragState = rememberDraggableState { delta ->
         offset.value = (offset.value + delta).coerceIn(-threshold, threshold)
@@ -1983,7 +1977,6 @@ fun SwipeToSongBox(
     }
 }
 
-// Helper to animate reset of swipe offset
 private fun reset(offset: MutableState<Float>, scope: CoroutineScope) {
     scope.launch {
         animate(
@@ -1994,7 +1987,6 @@ private fun reset(offset: MutableState<Float>, scope: CoroutineScope) {
     }
 }
 
-// Data holder for swipe visuals
 data class Quadruple<A, B, C, D>(
     val first: A,
     val second: B,
