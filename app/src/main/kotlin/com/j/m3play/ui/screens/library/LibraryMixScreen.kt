@@ -103,6 +103,7 @@ import java.util.Locale
 @Composable
 fun LibraryMixScreen(
     navController: NavController,
+    contentPadding: PaddingValues,
     viewModel: LibraryMixViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -221,7 +222,10 @@ fun LibraryMixScreen(
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding())
+            contentPadding = PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            )
         ) {
             item(key = "header", contentType = CONTENT_TYPE_HEADER) { headerContent() }
 
