@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -153,7 +154,10 @@ fun LibraryMixScreen(
     val mutableVisiblePlaylists = remember { mutableStateListOf<Playlist>() }
     var dragInfo by remember { mutableStateOf<Pair<Int, Int>?>(null) }
   
-    val reorderableState = rememberReorderableLazyListState(lazyListState = lazyListState, scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) { from, to ->
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = lazyListState, 
+        scrollThresholdPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    ) { from, to ->
         if (!canReorderPlaylists) return@rememberReorderableLazyListState
         if (from.index < listHeaderItems || to.index < listHeaderItems) return@rememberReorderableLazyListState
         val fromIndex = from.index - listHeaderItems
