@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -175,9 +176,9 @@ fun LibrarySongsScreen(
                             shape = RoundedCornerShape(50),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             onClick = { filter = type },
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.heightIn(min = 36.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                 Text(
                                     text = stringResource(stringRes),
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -254,9 +255,12 @@ fun LibrarySongsScreen(
                         }
                     },
                     isSelected = songWrapper.isSelected && selection,
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                    modifier = Modifier
+                        .animateItem()
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
                         .combinedClickable(
                             onClick = {
                                 if (!selection) {
@@ -270,7 +274,7 @@ fun LibrarySongsScreen(
                                 wrappedSongs.forEach { it.isSelected = false } 
                                 songWrapper.isSelected = true 
                             },
-                        ).animateItem(),
+                        )
                 )
             }
             item { Spacer(modifier = Modifier.height(100.dp)) }
