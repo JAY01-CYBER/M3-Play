@@ -118,12 +118,13 @@ fun buildSettingsGroups(
             title = stringResource(R.string.integration),
             items = listOf(
                 SettingsItem(
-                    icon = painterResource(R.drawable.library_music), // Agar aapke paas Spotify ka icon (R.drawable.spotify) hai toh wo laga lena
+                    icon = painterResource(R.drawable.library_music),
                     title = "Spotify",
                     subtitle = "Connect and sync playlists",
                     accentColor = Color(0xFF1DB954), // Spotify Green Color
                     keywords = listOf("spotify", "sync", "playlist", "import", "connect"),
-                    onClick = { resetSearch(); navController.navigate("settings/spotify") },
+                    // Yahan "settings/spotify" ki jagah naya "spotify_login" route daal diya hai!
+                    onClick = { resetSearch(); navController.navigate("spotify_login") },
                 ),
                 SettingsItem(
                     icon = painterResource(R.drawable.discord),
