@@ -30,6 +30,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -206,7 +208,7 @@ fun LibrarySongsScreen(
                             }
                         ) {
                             Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(painterResource(R.drawable.play_arrow), contentDescription = null, modifier = Modifier.size(20.dp))
+                                Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text("Play", fontWeight = FontWeight.Bold)
                             }
