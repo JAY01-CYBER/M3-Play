@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -110,6 +100,7 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LibraryPlaylistsViewModel
 import com.j.m3play.LocalDatabase
 import com.j.m3play.extensions.move
+import com.j.m3play.extensions.bounceClick
 import com.j.m3play.utils.dataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
@@ -218,7 +209,7 @@ fun LibraryPlaylistsScreen(
 
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceColor = MaterialTheme.colorScheme.background
     
     LaunchedEffect(playlists) {
         val thumbnailUrl = playlists.firstOrNull { it.songThumbnails.isNotEmpty() }?.songThumbnails?.firstOrNull()
@@ -245,7 +236,7 @@ fun LibraryPlaylistsScreen(
             Surface(
                 shape = RoundedCornerShape(50), 
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), 
-                modifier = Modifier.wrapContentHeight() // Fixed Clipping Here!
+                modifier = Modifier.wrapContentHeight()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
@@ -266,7 +257,7 @@ fun LibraryPlaylistsScreen(
                 }
                 FloatingActionButton(
                     onClick = { showCreatePlaylistDialog = true }, 
-                    modifier = Modifier.size(40.dp), 
+                    modifier = Modifier.size(40.dp).bounceClick { showCreatePlaylistDialog = true }, 
                     containerColor = MaterialTheme.colorScheme.primaryContainer, 
                     elevation = FloatingActionButtonDefaults.elevation(0.dp),
                     shape = RoundedCornerShape(50)
@@ -283,9 +274,14 @@ fun LibraryPlaylistsScreen(
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(surfaceColor).pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = { if (ytmSync) viewModel.sync() })) {
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(modifier = Modifier.fillMaxWidth().fillMaxSize(0.7f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
-                val w = size.width; val h = size.height
+                val w = size.width
+                val h = size.height
                 if (gradientColors.size >= 3) {
-                    val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]; val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
+                    val c0 = gradientColors[0]
+                    val c1 = gradientColors[1]
+                    val c2 = gradientColors[2]
+                    val c3 = gradientColors.getOrElse(3) { c0 }
+                    val c4 = gradientColors.getOrElse(4) { c1 }
                     drawRect(Brush.radialGradient(listOf(c0.copy(alpha = gradientAlpha * 0.34f), c0.copy(alpha = gradientAlpha * 0.2f), c0.copy(alpha = gradientAlpha * 0.11f), Color.Transparent), Offset(w * 0.15f, h * 0.1f), w * 0.55f))
                     drawRect(Brush.radialGradient(listOf(c1.copy(alpha = gradientAlpha * 0.32f), c1.copy(alpha = gradientAlpha * 0.19f), c1.copy(alpha = gradientAlpha * 0.1f), Color.Transparent), Offset(w * 0.85f, h * 0.2f), w * 0.65f))
                     drawRect(Brush.radialGradient(listOf(c2.copy(alpha = gradientAlpha * 0.28f), c2.copy(alpha = gradientAlpha * 0.16f), c2.copy(alpha = gradientAlpha * 0.085f), Color.Transparent), Offset(w * 0.3f, h * 0.45f), w * 0.6f))
@@ -294,15 +290,16 @@ fun LibraryPlaylistsScreen(
                 } else {
                     drawRect(Brush.radialGradient(listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.34f), Color.Transparent), Offset(w * 0.5f, h * 0.3f), w * 0.7f))
                 }
-                drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor), startY = h * 0.4f, endY = h))
+                drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.5f), surfaceColor), startY = h * 0.4f, endY = h))
             }) {}
         }
         
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize(), contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()) {
             
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Text("Playlists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                    Text("Playlists", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).dp))
+                    Spacer(Modifier.height(4.dp))
                     Text("All your playlists, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -313,10 +310,10 @@ fun LibraryPlaylistsScreen(
             item(key = "auto_playlists", contentType = CONTENT_TYPE_HEADER) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val pills = mutableListOf<@Composable () -> Unit>()
-                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth()) }
-                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth()) }
-                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth()) }
-                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth()) }
+                    if (showLiked) pills.add { M3AutoPlaylistCard(stringResource(R.string.liked), "Auto playlist", R.drawable.favorite, { navController.navigate("auto_playlist/liked") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("auto_playlist/liked") }) }
+                    if (showDownloaded) pills.add { M3AutoPlaylistCard(stringResource(R.string.offline), "Auto playlist", R.drawable.download, { navController.navigate("auto_playlist/downloaded") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("auto_playlist/downloaded") }) }
+                    if (showTop) pills.add { M3AutoPlaylistCard(stringResource(R.string.my_top) + " $topSize", "Auto playlist", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("top_playlist/$topSize") }) }
+                    if (showCached) pills.add { M3AutoPlaylistCard(stringResource(R.string.cached_playlist), "Shuffle all", R.drawable.cached, { navController.navigate("cache_playlist/cached") }, Modifier.fillMaxWidth().bounceClick { navController.navigate("cache_playlist/cached") }) }
                     pills.chunked(2).forEach { rowPills ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             rowPills.forEach { pill -> Box(modifier = Modifier.weight(1f)) { pill() } }
@@ -339,9 +336,7 @@ fun LibraryPlaylistsScreen(
                             modifier = Modifier
                                 .animateItem()
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                                .padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -355,9 +350,7 @@ fun LibraryPlaylistsScreen(
                         modifier = Modifier
                             .animateItem()
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                            .padding(horizontal = 16.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -375,9 +368,7 @@ fun LibraryPlaylistsScreen(
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                            .padding(horizontal = 16.dp, vertical = 2.dp)
                             .clickable { navController.navigate("spotify_playlist/${sp.id}") }
                     )
                 }
