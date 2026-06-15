@@ -25,10 +25,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -95,6 +95,7 @@ import com.j.m3play.viewmodels.LibrarySongsViewModel
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
+    contentPadding: PaddingValues, // NEW: Accepts padding from parent
     viewModel: LibrarySongsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -155,7 +156,10 @@ fun LibrarySongsScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = lazyListState,
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
+            contentPadding = PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            ),
         ) {
             item(key = "secondary_filter", contentType = CONTENT_TYPE_HEADER) {
                 Row(
@@ -224,6 +228,7 @@ fun LibrarySongsScreen(
                             Icon(painterResource(R.drawable.more_vert), null)
                         }
                     } else {
+                        // FIX: SortHeader wrapped in beautiful Pill!
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -240,6 +245,7 @@ fun LibrarySongsScreen(
                             }
                         }
                         Spacer(Modifier.weight(1f))
+                        Text(text = pluralStringResource(R.plurals.n_song, songs.size, songs.size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
@@ -288,6 +294,10 @@ fun LibrarySongsScreen(
             onClick = { playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_all_songs), items = songs.shuffled().map { it.toMediaItem() })) },
         )
 
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp))
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing, 
+            state = pullRefreshState, 
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
+        )
     }
 }
