@@ -46,7 +46,6 @@
             android:launchMode="singleTask"
             android:theme="@style/Theme.M3Play"
             android:windowSoftInputMode="adjustResize">
-            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.VIEW" />
@@ -63,9 +62,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="m3play" android:host="together" />
-                <data android:scheme="m3play" android:host="callback" /> </intent-filter>
+                <data
+                    android:host="together"
+                    android:scheme="m3play" />
+            </intent-filter>
 
+            <!-- Youtube filter -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
@@ -80,14 +82,19 @@
                 <data android:host="m.youtube.com" />
                 <data android:host="www.youtube.com" />
                 <data android:host="music.youtube.com" />
+                <!-- video prefix -->
                 <data android:pathPrefix="/v/" />
                 <data android:pathPrefix="/embed/" />
                 <data android:pathPrefix="/watch" />
+                <!-- channel prefix -->
                 <data android:pathPrefix="/channel/" />
                 <data android:pathPrefix="/user/" />
                 <data android:pathPrefix="/c/" />
+                <!-- playlist prefix -->
                 <data android:pathPrefix="/playlist" />
+                <!-- browse prefix -->
                 <data android:pathPrefix="/browse/" />
+                <!-- search prefix -->
                 <data android:pathPrefix="/search" />
             </intent-filter>
 
@@ -116,6 +123,7 @@
                 <data android:scheme="vnd.youtube.launch" />
             </intent-filter>
 
+            <!-- Share filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
