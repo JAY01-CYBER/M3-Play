@@ -11,13 +11,7 @@
 package com.j.m3play.ui.screens.playlist
 
 import android.widget.Toast
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -78,6 +71,7 @@ fun PlaylistSuggestionsSection(
     val playlistSuggestions by viewModel.playlistSuggestions.collectAsState()
     val isLoading by viewModel.isLoadingSuggestions.collectAsState()
     
+    // State for duplicate check dialog
     var showDuplicateDialog by remember { mutableStateOf(false) }
     var songToCheck by remember { mutableStateOf<SongItem?>(null) }
     
@@ -85,41 +79,66 @@ fun PlaylistSuggestionsSection(
     if (currentSuggestions == null && !isLoading) return
     if (currentSuggestions != null && currentSuggestions.items.isEmpty() && !isLoading) return
 
+    // Duplicate Check Dialog
     if (showDuplicateDialog && songToCheck != null) {
         val song = songToCheck!!
         DefaultDialog(
             title = { Text(stringResource(R.string.duplicates)) },
             buttons = {
-                TextButton(onClick = { showDuplicateDialog = false; songToCheck = null }) { Text(stringResource(android.R.string.cancel)) }
+                TextButton(
+                    onClick = {
+                        showDuplicateDialog = false
+                        songToCheck = null
+                    }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
                 TextButton(
                     onClick = {
                         coroutineScope.launch {
+                            // Add to current playlist anyway
                             val browseId = viewModel.playlist.value?.playlist?.browseId
                             viewModel.addSongToPlaylist(song, browseId)
+                            
                             val playlistName = viewModel.playlist.value?.playlist?.name
-                            val message = if (playlistName != null) context.getString(R.string.added_to_playlist, playlistName) else context.getString(R.string.add_to_playlist)
+                            val message = if (playlistName != null) {
+                                context.getString(R.string.added_to_playlist, playlistName)
+                            } else {
+                                context.getString(R.string.add_to_playlist)
+                            }
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         }
-                        showDuplicateDialog = false; songToCheck = null
+                        showDuplicateDialog = false
+                        songToCheck = null
                     }
-                ) { Text(stringResource(R.string.add_anyway)) }
+                ) {
+                    Text(stringResource(R.string.add_anyway))
+                }
             },
-            onDismiss = { showDuplicateDialog = false; songToCheck = null }
+            onDismiss = {
+                showDuplicateDialog = false
+                songToCheck = null
+            }
         ) {
             Text(text = stringResource(R.string.duplicates_description_single))
         }
     }
 
-    // Refresh button bouncy animation setup
-    val refreshInteractionSource = remember { MutableInteractionSource() }
-    val isRefreshPressed by refreshInteractionSource.collectIsPressedAsState()
-    val refreshScale by animateFloatAsState(targetValue = if (isRefreshPressed) 0.92f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             NavigationTitle(
                 title = stringResource(R.string.you_might_like),
-                subtitle = currentSuggestions?.let { s -> if (s.totalQueries > 1) "${s.currentQueryIndex + 1} / ${s.totalQueries}" else null },
+                subtitle = currentSuggestions?.let { s ->
+                    if (s.totalQueries > 1) {
+                        "${s.currentQueryIndex + 1} / ${s.totalQueries}"
+                    } else null
+                },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -127,68 +146,111 @@ fun PlaylistSuggestionsSection(
         Spacer(modifier = Modifier.height(8.dp))
         
         currentSuggestions?.let { suggestions ->
+            // Suggestions List (Vertical)
             suggestions.items.forEach { item ->
-                // Individual list item bounce animation
-                val itemInteractionSource = remember { MutableInteractionSource() }
-                val isItemPressed by itemInteractionSource.collectIsPressedAsState()
-                val itemScale by animateFloatAsState(targetValue = if (isItemPressed) 0.96f else 1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
-
                 YouTubeListItem(
-                    item = item, isActive = item.id == mediaMetadata?.id, isPlaying = isPlaying == true,
+                    item = item,
+                    isActive = item.id == mediaMetadata?.id,
+                    isPlaying = isPlaying == true,
                     trailingContent = {
                         IconButton(
                             onClick = { 
                                 val songItem = item as? SongItem
                                 if (songItem != null) {
+                                    // Check for duplicates in current playlist first
                                     songToCheck = songItem
                                     coroutineScope.launch {
-                                        val isDuplicate = withContext(Dispatchers.IO) { database.playlistDuplicates(viewModel.playlistId, listOf(songItem.id)).isNotEmpty() }
-                                        if (isDuplicate) { showDuplicateDialog = true } else {
+                                        val isDuplicate = withContext(Dispatchers.IO) {
+                                            val duplicates = database.playlistDuplicates(
+                                                viewModel.playlistId,
+                                                listOf(songItem.id)
+                                            )
+                                            duplicates.isNotEmpty()
+                                        }
+                                        
+                                        if (isDuplicate) {
+                                            showDuplicateDialog = true
+                                        } else {
+                                            // No duplicate, add directly
                                             val browseId = viewModel.playlist.value?.playlist?.browseId
-                                            val success = viewModel.addSongToPlaylist(song = songItem, browseId = browseId)
+                                            val success = viewModel.addSongToPlaylist(
+                                                song = songItem,
+                                                browseId = browseId
+                                            )
+                                            
                                             if (success) {
                                                 val playlistName = viewModel.playlist.value?.playlist?.name
-                                                val message = if (playlistName != null) context.getString(R.string.added_to_playlist, playlistName) else context.getString(R.string.add_to_playlist)
+                                                val message = if (playlistName != null) {
+                                                    context.getString(R.string.added_to_playlist, playlistName)
+                                                } else {
+                                                    context.getString(R.string.add_to_playlist)
+                                                }
                                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                                            } else { Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show() }
+                                            } else {
+                                                Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                     }
-                                } else { Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show() }
+                                } else {
+                                    Toast.makeText(context, R.string.error_unknown, Toast.LENGTH_SHORT).show()
+                                }
                             },
                             onLongClick = {}
-                        ) { Icon(painter = painterResource(R.drawable.playlist_add), contentDescription = stringResource(R.string.add_to_playlist)) }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.playlist_add),
+                                contentDescription = stringResource(R.string.add_to_playlist)
+                            )
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(MaterialTheme.shapes.medium)
-                        .graphicsLayer { scaleX = itemScale; scaleY = itemScale }
-                        .clickable(
-                            interactionSource = itemInteractionSource, 
-                            indication = LocalIndication.current
-                        ) {
+                        .clickable {
                             if (playerConnection == null) return@clickable
-                            if (item.id == mediaMetadata?.id) { playerConnection.player.togglePlayPause() } else {
+                            if (item.id == mediaMetadata?.id) {
+                                playerConnection.player.togglePlayPause()
+                            } else {
                                 if (item is SongItem) {
                                     val songItems = suggestions.items.filterIsInstance<SongItem>()
                                     val startIndex = songItems.indexOfFirst { it.id == item.id }
-                                    if (startIndex != -1) { playerConnection.playQueue(ListQueue(title = context.getString(R.string.you_might_like), items = songItems.map { it.toMediaItem() }, startIndex = startIndex)) }
+                                    if (startIndex != -1) {
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = context.getString(R.string.you_might_like),
+                                                items = songItems.map { it.toMediaItem() },
+                                                startIndex = startIndex
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
                 )
             }
             
-            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 } else {
                     TextButton(
-                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() },
-                        interactionSource = refreshInteractionSource,
-                        modifier = Modifier.graphicsLayer { scaleX = refreshScale; scaleY = refreshScale }
+                        onClick = { viewModel.resetAndLoadPlaylistSuggestions() }
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(painter = painterResource(R.drawable.sync), contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                painter = painterResource(R.drawable.sync),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(modifier = Modifier.size(8.dp))
                             Text(text = stringResource(R.string.refresh_suggestions))
                         }

@@ -42,7 +42,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -80,9 +79,11 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -226,6 +227,7 @@ fun LocalPlaylistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val pullRefreshState = rememberPullToRefreshState()
 
+    // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
@@ -465,10 +467,12 @@ fun LocalPlaylistScreen(
         }
     }
 
+    // Gradient colors state for playlist cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
 
+    // Extract gradient colors from playlist cover
     LaunchedEffect(playlist?.thumbnails) {
         val thumbnailUrl = playlist?.thumbnails?.firstOrNull()
         if (thumbnailUrl != null) {
@@ -504,6 +508,7 @@ fun LocalPlaylistScreen(
         }
     }
 
+    // Calculate gradient opacity based on scroll position
     val gradientAlpha by remember {
         derivedStateOf {
             if (lazyListState.firstVisibleItemIndex == 0) {
@@ -521,8 +526,6 @@ fun LocalPlaylistScreen(
         }
     }
 
-    val dominantColor = gradientColors.firstOrNull() ?: surfaceColor
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -533,24 +536,114 @@ fun LocalPlaylistScreen(
                 onRefresh = viewModel::refresh
             ),
     ) {
-        if (!disableBlur) {
+        // Mesh gradient background layer
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.7f)
+                    .fillMaxSize(0.55f)
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                dominantColor.copy(alpha = 0.6f * gradientAlpha),
-                                dominantColor.copy(alpha = 0.2f * gradientAlpha),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
+                    .drawBehind {
+                        val width = size.width
+                        val height = size.height
+
+                        if (gradientColors.size >= 3) {
+                            val c0 = gradientColors[0]
+                            val c1 = gradientColors[1]
+                            val c2 = gradientColors[2]
+                            val c3 = gradientColors.getOrElse(3) { c0 }
+                            val c4 = gradientColors.getOrElse(4) { c1 }
+                            // Primary color blob - top center
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c0.copy(alpha = gradientAlpha * 0.75f),
+                                        c0.copy(alpha = gradientAlpha * 0.4f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.15f),
+                                    radius = width * 0.8f
+                                )
+                            )
+
+                            // Secondary color blob - left side
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c1.copy(alpha = gradientAlpha * 0.55f),
+                                        c1.copy(alpha = gradientAlpha * 0.3f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.1f, height * 0.4f),
+                                    radius = width * 0.6f
+                                )
+                            )
+
+                            // Third color blob - right side
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c2.copy(alpha = gradientAlpha * 0.5f),
+                                        c2.copy(alpha = gradientAlpha * 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.9f, height * 0.35f),
+                                    radius = width * 0.55f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c3.copy(alpha = gradientAlpha * 0.35f),
+                                        c3.copy(alpha = gradientAlpha * 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.25f, height * 0.65f),
+                                    radius = width * 0.75f
+                                )
+                            )
+
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        c4.copy(alpha = gradientAlpha * 0.3f),
+                                        c4.copy(alpha = gradientAlpha * 0.15f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.55f, height * 0.85f),
+                                    radius = width * 0.9f
+                                )
+                            )
+                        } else if (gradientColors.isNotEmpty()) {
+                            drawRect(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
+                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(width * 0.5f, height * 0.25f),
+                                    radius = width * 0.85f
+                                )
+                            )
+                        }
+
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
+                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
+                                    surfaceColor
+                                ),
+                                startY = height * 0.4f,
+                                endY = height
+                            )
                         )
-                    )
+                    }
             )
         }
 
@@ -568,28 +661,31 @@ fun LocalPlaylistScreen(
                     }
                 } else {
                     if (!isSearching) {
+                        // Hero Header
                         item(key = "header") {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = systemBarsTopPadding + AppBarHeight)
-                                    .animateItem(),
+                                    .padding(top = systemBarsTopPadding + AppBarHeight),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                // Playlist Thumbnail(s) - Large centered with shadow
                                 Box(
-                                    modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
+                                    modifier = Modifier
+                                        .padding(top = 8.dp, bottom = 20.dp)
                                 ) {
                                     if (playlist.thumbnails.size == 1) {
+                                        // Single thumbnail
                                         Surface(
                                             modifier = Modifier
-                                                .size(260.dp)
+                                                .size(240.dp)
                                                 .shadow(
-                                                    elevation = 32.dp,
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    spotColor = dominantColor.copy(alpha = 0.6f),
-                                                    ambientColor = dominantColor.copy(alpha = 0.4f)
+                                                    elevation = 24.dp,
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f)
+                                                        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                                                 ),
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = RoundedCornerShape(16.dp)
                                         ) {
                                             AsyncImage(
                                                 model = playlist.thumbnails[0],
@@ -599,16 +695,17 @@ fun LocalPlaylistScreen(
                                             )
                                         }
                                     } else if (playlist.thumbnails.size > 1) {
+                                        // Grid of 4 thumbnails
                                         Surface(
                                             modifier = Modifier
-                                                .size(260.dp)
+                                                .size(240.dp)
                                                 .shadow(
-                                                    elevation = 32.dp,
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    spotColor = dominantColor.copy(alpha = 0.6f),
-                                                    ambientColor = dominantColor.copy(alpha = 0.4f)
+                                                    elevation = 24.dp,
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f)
+                                                        ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                                                 ),
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = RoundedCornerShape(16.dp)
                                         ) {
                                             Box(modifier = Modifier.fillMaxSize()) {
                                                 listOf(
@@ -623,20 +720,21 @@ fun LocalPlaylistScreen(
                                                         contentScale = ContentScale.Crop,
                                                         modifier = Modifier
                                                             .align(alignment)
-                                                            .size(130.dp)
+                                                            .size(120.dp)
                                                     )
                                                 }
                                             }
                                         }
                                     } else {
+                                        // No thumbnail placeholder
                                         Surface(
                                             modifier = Modifier
-                                                .size(260.dp)
+                                                .size(240.dp)
                                                 .shadow(
                                                     elevation = 16.dp,
-                                                    shape = RoundedCornerShape(12.dp)
+                                                    shape = RoundedCornerShape(16.dp)
                                                 ),
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(16.dp),
                                             color = MaterialTheme.colorScheme.surfaceVariant
                                         ) {
                                             Box(
@@ -654,6 +752,7 @@ fun LocalPlaylistScreen(
                                     }
                                 }
 
+                                // Playlist Name
                                 Text(
                                     text = playlist.playlist.name,
                                     style = MaterialTheme.typography.headlineSmall,
@@ -666,6 +765,7 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
+                                // Metadata Row - Song Count, Duration
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -673,6 +773,7 @@ fun LocalPlaylistScreen(
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // Song Count
                                     val songCount = if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
                                         playlist.playlist.remoteSongCount
                                     } else {
@@ -683,6 +784,7 @@ fun LocalPlaylistScreen(
                                         text = pluralStringResource(R.plurals.n_song, songCount, songCount)
                                     )
 
+                                    // Duration
                                     if (playlistLength > 0) {
                                         MetadataChip(
                                             icon = R.drawable.timer,
@@ -693,13 +795,66 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
+                                // Action Buttons Row
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                                        .padding(horizontal = 24.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // Like/Delete Button (depending on editable)
+                                    if (editable) {
+                                        Surface(
+                                            onClick = { showDeletePlaylistDialog = true },
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(48.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.delete),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        val liked = playlist.playlist.bookmarkedAt != null
+                                        Surface(
+                                            onClick = {
+                                                database.transaction {
+                                                    update(playlist.playlist.toggleLike())
+                                                }
+                                            },
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.size(48.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(
+                                                        if (liked) R.drawable.favorite else R.drawable.favorite_border
+                                                    ),
+                                                    contentDescription = null,
+                                                    tint = if (liked)
+                                                        MaterialTheme.colorScheme.error
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Play Button
                                     Button(
                                         onClick = {
                                             playerConnection.playQueue(
@@ -709,29 +864,20 @@ fun LocalPlaylistScreen(
                                                 ),
                                             )
                                         },
-                                        shape = CircleShape,
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                        ),
+                                        shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(56.dp)
+                                            .height(48.dp)
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.play),
                                             contentDescription = stringResource(R.string.play),
                                             modifier = Modifier.size(24.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.play),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
                                     }
 
-                                    FilledTonalButton(
+                                    // Shuffle Button
+                                    Button(
                                         onClick = {
                                             playerConnection.playQueue(
                                                 ListQueue(
@@ -740,66 +886,20 @@ fun LocalPlaylistScreen(
                                                 ),
                                             )
                                         },
-                                        shape = CircleShape,
-                                        colors = ButtonDefaults.filledTonalButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                        ),
+                                        shape = RoundedCornerShape(24.dp),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(56.dp)
+                                            .height(48.dp)
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.shuffle),
                                             contentDescription = stringResource(R.string.shuffle),
                                             modifier = Modifier.size(24.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = stringResource(R.string.shuffle),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (editable) {
-                                        androidx.compose.material3.IconButton(
-                                            onClick = { showDeletePlaylistDialog = true }
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.delete),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    } else {
-                                        val liked = playlist.playlist.bookmarkedAt != null
-                                        androidx.compose.material3.IconButton(
-                                            onClick = {
-                                                database.transaction {
-                                                    update(playlist.playlist.toggleLike())
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(
-                                                    if (liked) R.drawable.favorite else R.drawable.favorite_border
-                                                ),
-                                                contentDescription = null,
-                                                tint = if (liked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
                                     }
 
-                                    androidx.compose.material3.IconButton(
+                                    // Download Button
+                                    Surface(
                                         onClick = {
                                             when (downloadState) {
                                                 Download.STATE_COMPLETED -> {
@@ -831,25 +931,47 @@ fun LocalPlaylistScreen(
                                                     }
                                                 }
                                             }
-                                        }
+                                        },
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(48.dp)
                                     ) {
-                                        if (downloadState == Download.STATE_DOWNLOADING) {
-                                            CircularProgressIndicator(
-                                                strokeWidth = 2.dp,
-                                                modifier = Modifier.size(24.dp),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        } else {
-                                            Icon(
-                                                painter = painterResource(if (downloadState == Download.STATE_COMPLETED) R.drawable.offline else R.drawable.download),
-                                                contentDescription = null,
-                                                tint = if (downloadState == Download.STATE_COMPLETED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            when (downloadState) {
+                                                Download.STATE_COMPLETED -> {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.offline),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Download.STATE_DOWNLOADING -> {
+                                                    CircularProgressIndicator(
+                                                        strokeWidth = 2.dp,
+                                                        modifier = Modifier.size(24.dp),
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                                else -> {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.download),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
 
-                                    androidx.compose.material3.IconButton(
+                                    // More Options Button
+                                    Surface(
                                         onClick = {
+                                            // Show more options (edit, sync, queue)
                                             if (editable) {
                                                 showEditDialog = true
                                             } else if (playlist.playlist.browseId != null) {
@@ -877,16 +999,36 @@ fun LocalPlaylistScreen(
                                                     snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced))
                                                 }
                                             }
-                                        }
+                                        },
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.size(48.dp)
                                     ) {
-                                        Icon(
-                                            painter = painterResource(if (editable) R.drawable.edit else R.drawable.sync),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(
+                                                    if (editable) R.drawable.edit else R.drawable.sync
+                                                ),
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
                                     }
+                                }
 
-                                    androidx.compose.material3.IconButton(
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Start Mix Button
+                                    Button(
                                         onClick = {
                                             playerConnection.playQueue(
                                                 LocalMixQueue(
@@ -895,12 +1037,16 @@ fun LocalPlaylistScreen(
                                                     maxMixSize = 50,
                                                 ),
                                             )
-                                        }
+                                        },
+                                        shape = RoundedCornerShape(24.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(48.dp)
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.mix),
                                             contentDescription = "Start Mix",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                 }
@@ -910,6 +1056,7 @@ fun LocalPlaylistScreen(
                         }
                     }
 
+                    // Sort Header
                     item(key = "sort_header") {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -948,6 +1095,7 @@ fun LocalPlaylistScreen(
                 }
             }
 
+            // Songs List
             if (!selection) {
                 itemsIndexed(
                     items = if (isSearching) filteredSongs else mutableSongs,
@@ -1220,6 +1368,7 @@ fun LocalPlaylistScreen(
                 }
             }
 
+            // Playlist Suggestions Section
             if (!selection && !isSearching) {
                 item {
                     PlaylistSuggestionsSection(
@@ -1241,6 +1390,7 @@ fun LocalPlaylistScreen(
             headerItems = headerItems
         )
 
+        // Top App Bar
         val topAppBarColors = if (transparentAppBar) {
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
