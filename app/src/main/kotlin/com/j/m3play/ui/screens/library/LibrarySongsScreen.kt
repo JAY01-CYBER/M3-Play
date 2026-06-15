@@ -1,19 +1,9 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -88,6 +79,7 @@ import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LibrarySongsViewModel
+import com.j.m3play.extensions.bounceClick
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -156,9 +148,20 @@ fun LibrarySongsScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Text("Songs", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                    Text("All your songs, organized for you", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                    Text(
+                        text = "Songs", 
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-1).dp
+                        )
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "All your songs, organized for you", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -175,8 +178,7 @@ fun LibrarySongsScreen(
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            onClick = { filter = type },
-                            modifier = Modifier.heightIn(min = 36.dp)
+                            modifier = Modifier.heightIn(min = 36.dp).bounceClick { filter = type }
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                 Text(
@@ -192,26 +194,26 @@ fun LibrarySongsScreen(
 
             item(key = "collection_card", contentType = CONTENT_TYPE_HEADER) {
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Your Collection", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                            Text("${songs.size} Songs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${songs.size} Songs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         }
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            onClick = {
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.bounceClick {
                                 playerConnection.playQueue(ListQueue(title = context.getString(R.string.queue_all_songs), items = songs.map { it.toMediaItem() }))
                             }
                         ) {
-                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Play", fontWeight = FontWeight.Bold)
+                            Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Play", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                             }
                         }
                     }
@@ -223,7 +225,7 @@ fun LibrarySongsScreen(
                     if (selection) {
                         val count = wrappedSongs.count { it.isSelected }
                         IconButton(onClick = { selection = false }) { Icon(painterResource(R.drawable.close), null) }
-                        Text(text = pluralStringResource(R.plurals.n_song, count, count), modifier = Modifier.weight(1f))
+                        Text(text = pluralStringResource(R.plurals.n_song, count, count), modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
                         IconButton(onClick = { if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false } else wrappedSongs.forEach { it.isSelected = true } }) {
                             Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null)
                         }
@@ -244,6 +246,7 @@ fun LibrarySongsScreen(
             }
 
             itemsIndexed(items = filteredSongs, key = { _, item -> item.item.song.id }, contentType = { _, _ -> CONTENT_TYPE_SONG }) { index, songWrapper ->
+                val isSelectedMode = songWrapper.isSelected && selection
                 SongListItem(
                     song = songWrapper.item,
                     showInLibraryIcon = true,
@@ -254,14 +257,14 @@ fun LibrarySongsScreen(
                             Icon(painterResource(R.drawable.more_vert), null)
                         }
                     },
-                    isSelected = songWrapper.isSelected && selection,
+                    isSelected = isSelectedMode,
                     modifier = Modifier
                         .animateItem()
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                        .background(if (isSelectedMode) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent)
                         .combinedClickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = androidx.compose.material.ripple.rememberRipple(),
                             onClick = {
                                 if (!selection) {
                                     if (songWrapper.item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
@@ -275,9 +278,10 @@ fun LibrarySongsScreen(
                                 songWrapper.isSelected = true 
                             },
                         )
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
                 )
             }
-            item { Spacer(modifier = Modifier.height(100.dp)) }
+            item { Spacer(modifier = Modifier.height(120.dp)) }
         }
 
         HideOnScrollFAB(
