@@ -15,15 +15,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -33,8 +34,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +56,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -92,7 +90,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
-    filterContent: @Composable () -> Unit,
+    contentPadding: PaddingValues,
     viewModel: LibraryArtistsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -131,57 +129,10 @@ fun LibraryArtistsScreen(
 
     val optimizedArtists = remember(artists) { artists?.distinctBy { it.id } ?: emptyList() }
 
-    val artistHeaderCards = @Composable {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Surface(
-                onClick = { /* TODO: Navigate to Top Artist */ }, 
-                modifier = Modifier.weight(1f).height(120.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f), modifier = Modifier.size(36.dp)) {
-                            Icon(painterResource(R.drawable.person), null, modifier = Modifier.padding(8.dp))
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text("TOP ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                            Text("No Artist Yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f), onClick = { /* TODO: Play all action */ }) {
-                            Text("Play all", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.SemiBold)
-                        }
-                        IconButton(onClick = { /* TODO: Options action */ }) { Icon(painterResource(R.drawable.more_vert), null) }
-                    }
-                }
-            }
-            
-            Surface(
-                onClick = { /* TODO: Total Artists logic */ }, 
-                modifier = Modifier.weight(1f).height(120.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Artists", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Icon(imageVector = Icons.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text("${optimizedArtists.size}", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-                    Text("total", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-
     val actionRow = @Composable {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.height(40.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
+            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.heightIn(min = 40.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
                     SortHeader(
                         sortType = sortType,
                         sortDescending = sortDescending,
@@ -204,19 +155,12 @@ fun LibraryArtistsScreen(
                 LazyColumn(
                     state = lazyListState, 
                     modifier = Modifier.fillMaxSize(), 
-                    contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
-                    item(key = "large_title", contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                            Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    item(key = "filter", contentType = CONTENT_TYPE_HEADER) { filterContent() }
-                    
-                    item(key = "artist_cards", contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", contentType = CONTENT_TYPE_HEADER) { actionRow() }
-                    
                     if (optimizedArtists.isEmpty()) item { EmptyPlaceholder(icon = R.drawable.artist, text = stringResource(R.string.library_artist_empty), modifier = Modifier.animateItem()) }
                     items(items = optimizedArtists, key = { it.id }, contentType = { CONTENT_TYPE_ARTIST }) { artist ->
                         LibraryArtistListItem(
@@ -240,19 +184,12 @@ fun LibraryArtistsScreen(
                     state = lazyGridState, 
                     modifier = Modifier.fillMaxSize(), 
                     columns = GridCells.Adaptive(minSize = GridThumbnailHeight + if (gridItemSize == GridItemSize.BIG) 24.dp else (-24).dp), 
-                    contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding(),
+                        bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+                    )
                 ) {
-                    item(key = "large_title", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) {
-                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                            Text("Artists", style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-                            Text("All your artists, in one place", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    item(key = "filter", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { filterContent() }
-                    
-                    item(key = "artist_cards", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { artistHeaderCards() }
                     item(key = "header", span = { GridItemSpan(maxLineSpan) }, contentType = CONTENT_TYPE_HEADER) { actionRow() }
-                    
                     if (optimizedArtists.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { EmptyPlaceholder(icon = R.drawable.artist, text = stringResource(R.string.library_artist_empty)) }
                     items(items = optimizedArtists, key = { it.id }, contentType = { CONTENT_TYPE_ARTIST }) { artist ->
                         LibraryArtistGridItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, modifier = Modifier, artist = artist)
@@ -263,7 +200,7 @@ fun LibraryArtistsScreen(
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing, 
             state = pullRefreshState, 
-            modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues())
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = contentPadding.calculateTopPadding())
         )
     }
 }
