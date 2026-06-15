@@ -32,6 +32,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -162,7 +164,7 @@ fun LibraryArtistsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Artists", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Icon(painterResource(R.drawable.arrow_forward), null, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.weight(1f))
                     Text("${optimizedArtists.size}", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
