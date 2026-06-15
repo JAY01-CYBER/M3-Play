@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -244,7 +245,7 @@ fun LibraryPlaylistsScreen(
             Surface(
                 shape = RoundedCornerShape(50), 
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), 
-                modifier = Modifier.height(40.dp)
+                modifier = Modifier.wrapContentHeight() // Fixed Clipping Here!
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                     SortHeader(
@@ -328,16 +329,36 @@ fun LibraryPlaylistsScreen(
             if (canReorderPlaylists) {
                 itemsIndexed(items = mutableVisiblePlaylists, key = { _, item -> item.id }, contentType = { _, _ -> CONTENT_TYPE_PLAYLIST }) { _, playlist ->
                     ReorderableItem(state = reorderableState, key = playlist.id) {
-                        Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                            LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, showDragHandle = true, dragHandleModifier = Modifier.draggableHandle(), modifier = Modifier.animateItem())
-                        }
+                        LibraryPlaylistListItem(
+                            navController = navController, 
+                            menuState = menuState, 
+                            coroutineScope = coroutineScope, 
+                            playlist = playlist, 
+                            showDragHandle = true, 
+                            dragHandleModifier = Modifier.draggableHandle(), 
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                        )
                     }
                 }
             } else {
                 items(items = visiblePlaylists, key = { it.id }, contentType = { CONTENT_TYPE_PLAYLIST }) { playlist ->
-                    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                        LibraryPlaylistListItem(navController = navController, menuState = menuState, coroutineScope = coroutineScope, playlist = playlist, modifier = Modifier.animateItem())
-                    }
+                    LibraryPlaylistListItem(
+                        navController = navController, 
+                        menuState = menuState, 
+                        coroutineScope = coroutineScope, 
+                        playlist = playlist, 
+                        modifier = Modifier
+                            .animateItem()
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                    )
                 }
             }
 
@@ -346,15 +367,19 @@ fun LibraryPlaylistsScreen(
                     Text("Spotify Playlist", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp))
                 }
                 items(spotifyPlaylists, key = { "sp_${it.id}" }) { sp ->
-                    Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clickable { navController.navigate("spotify_playlist/${sp.id}") }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) {
-                        ListItem(
-                            headlineContent = { Text(sp.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            supportingContent = { Text("${sp.tracks?.total ?: 0} songs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            leadingContent = { AsyncImage(model = sp.images.firstOrNull()?.url, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop) },
-                            trailingContent = { Icon(painterResource(R.drawable.library_music), contentDescription = null, tint = Color(0xFF1DB954), modifier = Modifier.size(24.dp)) },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                        )
-                    }
+                    ListItem(
+                        headlineContent = { Text(sp.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        supportingContent = { Text("${sp.tracks?.total ?: 0} songs", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingContent = { AsyncImage(model = sp.images.firstOrNull()?.url, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)), contentScale = ContentScale.Crop) },
+                        trailingContent = { Icon(painterResource(R.drawable.library_music), contentDescription = null, tint = Color(0xFF1DB954), modifier = Modifier.size(24.dp)) },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)) // White corner fixed!
+                            .clickable { navController.navigate("spotify_playlist/${sp.id}") }
+                    )
                 }
             }
             item { Spacer(modifier = Modifier.height(100.dp)) }
