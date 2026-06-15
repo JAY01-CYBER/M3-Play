@@ -6,8 +6,6 @@ import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,19 +15,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import com.j.m3play.R
+import com.j.m3play.constants.ShowSpotifyPlaylistsKey
 import com.j.m3play.spotify.SpotifyAccountViewModel
 import com.j.m3play.spotify.SpotifyAuth
+import com.j.m3play.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,11 +34,9 @@ fun SpotifyLoginScreen(
     navController: NavController,
     viewModel: SpotifyAccountViewModel = hiltViewModel()
 ) {
-    val isConnected by viewModel.isConnected.collectAsState()
-    val accountName by viewModel.accountName.collectAsState()
-    val accountAvatar by viewModel.accountAvatar.collectAsState()
-    val showPlaylists by viewModel.showPlaylists.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    //  Naya ArchiveTune Architecture UI State 
+    val spotifyState by viewModel.uiState.collectAsState()
+    val (showPlaylists, onShowPlaylistsChange) = rememberPreference(ShowSpotifyPlaylistsKey, true)
 
     var showWebViewSheet by remember { mutableStateOf(false) }
 
@@ -64,8 +59,8 @@ fun SpotifyLoginScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (isConnected) {
-                // 🔥 CONNECTED STATE 🔥
+            if (spotifyState.isAuthenticated) {
+                // CONNECTED STATE 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -75,7 +70,7 @@ fun SpotifyLoginScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AsyncImage(
-                            model = accountAvatar,
+                            model = spotifyState.accountAvatarUrl,
                             contentDescription = "Profile",
                             modifier = Modifier.size(56.dp).clip(CircleShape),
                             contentScale = ContentScale.Crop
@@ -83,7 +78,11 @@ fun SpotifyLoginScreen(
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Connected as", style = MaterialTheme.typography.labelMedium)
-                            Text(accountName ?: "Spotify User", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = spotifyState.accountName.ifBlank { "Spotify User" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                         Button(
                             onClick = { viewModel.logout() },
@@ -105,11 +104,11 @@ fun SpotifyLoginScreen(
                     }
                     Switch(
                         checked = showPlaylists,
-                        onCheckedChange = { viewModel.toggleShowPlaylists(it) }
+                        onCheckedChange = onShowPlaylistsChange
                     )
                 }
             } else {
-                // 🔒 LOGIN STATE 🔒
+                //  LOGIN STATE 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -121,10 +120,10 @@ fun SpotifyLoginScreen(
                         Button(
                             onClick = { showWebViewSheet = true },
                             modifier = Modifier.fillMaxWidth().height(50.dp),
-                            enabled = !isLoading,
+                            enabled = !spotifyState.isLoading,
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            if (isLoading) {
+                            if (spotifyState.isLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                             } else {
                                 Text("Login to Spotify", fontWeight = FontWeight.Bold)
@@ -141,7 +140,7 @@ fun SpotifyLoginScreen(
             onDismiss = { showWebViewSheet = false },
             onCookiesCaptured = { spDc, spKey ->
                 showWebViewSheet = false
-                viewModel.login(spDc, spKey)
+                viewModel.connectWithCookies(spDc, spKey) // Login ab ye function handle karega
             }
         )
     }
@@ -235,7 +234,6 @@ private fun SpotifyLoginSheet(
                         }
                         webView = this
                         
-                        // Clear old session before loading
                         cookieManager.removeAllCookies(null)
                         cookieManager.flush()
                         
