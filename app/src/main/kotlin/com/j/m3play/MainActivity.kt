@@ -19,7 +19,6 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -897,6 +896,9 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         val route = navBackStackEntry?.destination?.route
+                        // ----------------------------------------------------
+                        // FIXED: Hide default TopBar if we are on SearchScreen
+                        // ----------------------------------------------------
                         shouldShowTopBar =
                             !active && route in topLevelScreens && route != "settings" && route != Screens.Search.route
                     }
@@ -1164,7 +1166,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            
+                             
                             Scaffold(
                                 topBar = {
                                     if (shouldShowTopBar) {
@@ -1248,6 +1250,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                     
 
+                                    // ----------------------------------------------------
+                                    // FIXED: TopSearch visibility updated
+                                    // ----------------------------------------------------
                                     AnimatedVisibility(
                                         visible = active,
                                         enter = fadeIn(animationSpec = tween(durationMillis = 300)),
@@ -1548,6 +1553,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // ----------------------------------------------------
+                    // FIXED: Handle openSearchImmediately cleanly
+                    // ----------------------------------------------------
                     LaunchedEffect(openSearchImmediately) {
                         if (openSearchImmediately) {
                             navController.navigate(Screens.Search.route)
@@ -1578,7 +1586,7 @@ class MainActivity : ComponentActivity() {
 
         when (val path = uri.pathSegments.firstOrNull()) {
             "playlist" -> uri.getQueryParameter("list")?.let { playlistId ->
-                 if (playlistId.startsWith("OLAK5uy_")) {
+                if (playlistId.startsWith("OLAK5uy_")) {
                     coroutineScope.launch {
                         YouTube.albumSongs(playlistId).onSuccess { songs ->
                             songs.firstOrNull()?.album?.id?.let { browseId ->
@@ -1586,7 +1594,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }.onFailure { reportException(it) }
                     }
-                 } else {
+                } else {
                     navController.navigate("online_playlist/$playlistId")
                 }
             }
@@ -1604,13 +1612,13 @@ class MainActivity : ComponentActivity() {
 
                 videoId?.let { vid ->
                     coroutineScope.launch {
-                         val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
+                        val result = withContext(Dispatchers.IO) { YouTube.queue(listOf(vid), playlistId) }
                         result.onSuccess { queued ->
                             val mediaItem = queued.firstOrNull { it.id == vid }?.toMediaItem() ?: queued.firstOrNull()?.toMediaItem() ?: MediaItem.Builder().setMediaId(vid).setUri(vid).setCustomCacheKey(vid).build()
                             pendingDeepLinkSong = PendingDeepLinkSong(mediaItem = mediaItem)
                             startMusicServiceSafely()
                             playPendingDeepLinkSongIfReady()
-                         }.onFailure { reportException(it) }
+                        }.onFailure { reportException(it) }
                     }
                 }
             }
@@ -1619,7 +1627,7 @@ class MainActivity : ComponentActivity() {
 
     private fun startMusicServiceSafely() {
         runCatching { startService(Intent(this, com.j.m3play.playback.MusicService::class.java)) }
-             .onFailure { reportException(it) }
+            .onFailure { reportException(it) }
     }
 
     @SuppressLint("ObsoleteSdkInt")
