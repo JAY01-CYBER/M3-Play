@@ -11,6 +11,7 @@
 package com.j.m3play.ui.screens.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -46,9 +49,15 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
@@ -64,6 +73,7 @@ import com.j.m3play.ui.component.TagsFilterChips
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -105,15 +115,34 @@ fun LibraryScreen(navController: NavController) {
 
     val pagerState = rememberPagerState(initialPage = initialPageIndex) { filtersList.size }
     val coroutineScope = rememberCoroutineScope()
-    val lazyListState = rememberLazyListState() // Chips ko auto-scroll karne ke liye
+    val lazyListState = rememberLazyListState()
 
     LaunchedEffect(pagerState.currentPage) {
         val currentFilter = filtersList[pagerState.currentPage].first.first
         if (filterType != currentFilter) {
             filterType = currentFilter
         }
-        // FIX: Jaise hi page change hoga, upar waale chips automatically slide ho jayenge!
         lazyListState.animateScrollToItem(pagerState.currentPage)
+    }
+
+    // Nested Scroll Logic for Collapsing Header
+    val density = LocalDensity.current
+    var titleHeightPx by remember { mutableFloatStateOf(with(density) { 80.dp.toPx() }) }
+    var chipsHeightPx by remember { mutableFloatStateOf(with(density) { 60.dp.toPx() }) }
+    var headerOffsetPx by remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val previousOffset = headerOffsetPx
+                // Only collapse the Title, keep the Chips pinned
+                val newOffset = (headerOffsetPx + delta).coerceIn(-titleHeightPx, 0f)
+                headerOffsetPx = newOffset
+                val consumed = newOffset - previousOffset
+                return Offset(0f, consumed)
+            }
+        }
     }
 
     val color1 = MaterialTheme.colorScheme.primary
@@ -123,7 +152,9 @@ fun LibraryScreen(navController: NavController) {
     val color5 = MaterialTheme.colorScheme.secondaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val topPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()
+
+    Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
         if (!disableBlur) {
             Box(
                 modifier = Modifier
@@ -134,7 +165,6 @@ fun LibraryScreen(navController: NavController) {
                     .drawBehind {
                         val width = size.width
                         val height = size.height
-                        
                         drawRect(Brush.radialGradient(listOf(color1.copy(alpha = 0.38f), color1.copy(alpha = 0.24f), color1.copy(alpha = 0.14f), color1.copy(alpha = 0.06f), Color.Transparent), center = Offset(width * 0.15f, height * 0.1f), radius = width * 0.55f))
                         drawRect(Brush.radialGradient(listOf(color2.copy(alpha = 0.34f), color2.copy(alpha = 0.2f), color2.copy(alpha = 0.11f), color2.copy(alpha = 0.05f), Color.Transparent), center = Offset(width * 0.85f, height * 0.2f), radius = width * 0.65f))
                         drawRect(Brush.radialGradient(listOf(color3.copy(alpha = 0.3f), color3.copy(alpha = 0.17f), color3.copy(alpha = 0.09f), color3.copy(alpha = 0.04f), Color.Transparent), center = Offset(width * 0.3f, height * 0.45f), radius = width * 0.6f))
@@ -145,85 +175,82 @@ fun LibraryScreen(navController: NavController) {
             ) {}
         }
 
-        val padding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+        // Horizontal Pager Handles Swipe Navigation
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            // Pass the exact dynamically calculated header height to the inner screens
+            val screenTopPadding = with(density) { (titleHeightPx + chipsHeightPx).toDp() } + topPadding
+            val contentPadding = PaddingValues(top = screenTopPadding)
 
+            when (filtersList[page].first.first) {
+                LibraryFilter.LIBRARY -> LibraryMixScreen(navController, contentPadding)
+                LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, contentPadding)
+                LibraryFilter.SONGS -> LibrarySongsScreen(navController, contentPadding)
+                LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, contentPadding)
+                LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, contentPadding)
+            }
+        }
+
+        // Collapsing Header overlay
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = padding.calculateTopPadding())
+                .offset { IntOffset(0, headerOffsetPx.roundToInt()) }
+                .fillMaxWidth()
+                .background(surfaceColor.copy(alpha = 0.90f)) // Nice semi-transparent glass effect
+                .padding(top = topPadding)
         ) {
             val currentTitle = titlesList[pagerState.currentPage].first
             val currentSubtitle = titlesList[pagerState.currentPage].second
 
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Column(
+                modifier = Modifier
+                    .onSizeChanged { titleHeightPx = it.height.toFloat() }
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
                 Text(currentTitle, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
                 Text(currentSubtitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            // FIX: Row ki jagah LazyRow use kiya hai slide effect ke liye
-            LazyRow(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier.onSizeChanged { chipsHeightPx = it.height.toFloat() }
             ) {
-                itemsIndexed(filtersList) { index, filterItem ->
-                    val (filterPair, iconRes) = filterItem
-                    val isSelected = pagerState.currentPage == index
-                    
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                        modifier = Modifier.heightIn(min = 40.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                LazyRow(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(filtersList) { index, filterItem ->
+                        val (filterPair, iconRes) = filterItem
+                        val isSelected = pagerState.currentPage == index
+                        
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                            modifier = Modifier.heightIn(min = 40.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(iconRes),
-                                contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(filterPair.second),
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                Icon(painterResource(iconRes), null, tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(filterPair.second), color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                            }
                         }
                     }
                 }
-            }
 
-            if (showTagsInLibrary) {
-                TagsFilterChips(
-                    database = database,
-                    selectedTags = selectedTagIds,
-                    onTagToggle = { tag ->
-                        val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
-                        onSelectedTagsFilterChange(newTags.joinToString(","))
-                    },
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp) 
-                )
-            }
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                when (filtersList[page].first.first) {
-                    LibraryFilter.LIBRARY -> LibraryMixScreen(navController)
-                    LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController)
-                    LibraryFilter.SONGS -> LibrarySongsScreen(navController)
-                    LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController)
-                    LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController)
+                if (showTagsInLibrary) {
+                    TagsFilterChips(
+                        database = database,
+                        selectedTags = selectedTagIds,
+                        onTagToggle = { tag ->
+                            val newTags = if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
+                            onSelectedTagsFilterChange(newTags.joinToString(","))
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp) 
+                    )
                 }
             }
         }
