@@ -10,6 +10,7 @@
 
 package com.j.m3play.ui.screens.library
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -29,8 +32,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +59,9 @@ import com.j.m3play.constants.ShowTagsInLibraryKey
 import com.j.m3play.ui.component.TagsFilterChips
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(navController: NavController) {
     var filterType by rememberEnumPreference(ChipSortTypeKey, LibraryFilter.LIBRARY)
@@ -67,6 +74,33 @@ fun LibraryScreen(navController: NavController) {
         selectedTagsFilter.split(",").filter { it.isNotBlank() }.toSet()
     }
 
+    val filtersList = remember {
+        listOf(
+            LibraryFilter.LIBRARY to R.string.filter_library to R.drawable.library_music,
+            LibraryFilter.PLAYLISTS to R.string.filter_playlists to R.drawable.queue_music,
+            LibraryFilter.SONGS to R.string.filter_songs to R.drawable.music_note,
+            LibraryFilter.ARTISTS to R.string.filter_artists to R.drawable.person,
+            LibraryFilter.ALBUMS to R.string.filter_albums to R.drawable.album
+        )
+    }
+
+    // Pager State Setup for Swiping
+    val initialPageIndex = remember {
+        val index = filtersList.indexOfFirst { it.first.first == filterType }
+        if (index >= 0) index else 0
+    }
+    
+    val pagerState = rememberPagerState(initialPage = initialPageIndex) { filtersList.size }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Sync Pager to DataStore (When user swipes left/right)
+    LaunchedEffect(pagerState.currentPage) {
+        val currentFilter = filtersList[pagerState.currentPage].first.first
+        if (filterType != currentFilter) {
+            filterType = currentFilter
+        }
+    }
+
     val filterContent = @Composable {
         Column {
             Row(
@@ -76,27 +110,24 @@ fun LibraryScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val filters = listOf(
-                    LibraryFilter.LIBRARY to R.string.filter_library to R.drawable.library_music,
-                    LibraryFilter.PLAYLISTS to R.string.filter_playlists to R.drawable.queue_music,
-                    LibraryFilter.SONGS to R.string.filter_songs to R.drawable.music_note,
-                    LibraryFilter.ARTISTS to R.string.filter_artists to R.drawable.person,
-                    LibraryFilter.ALBUMS to R.string.filter_albums to R.drawable.album
-                )
-
-                filters.forEach { (filterPair, iconRes) ->
+                filtersList.forEachIndexed { index, (filterPair, iconRes) ->
                     val (type, stringRes) = filterPair
-                    val isSelected = filterType == type
+                    val isSelected = pagerState.currentPage == index
 
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        onClick = { filterType = type },
-                        modifier = Modifier.heightIn(min = 40.dp) // Removed strict height
+                        onClick = {
+                            // Pager Animate on Chip Click
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        modifier = Modifier.heightIn(min = 40.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp) // Added vertical padding
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Icon(
                                 painter = painterResource(iconRes),
@@ -158,12 +189,18 @@ fun LibraryScreen(navController: NavController) {
             ) {}
         }
 
-        when (filterType) {
-            LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
-            LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
-            LibraryFilter.SONGS -> LibrarySongsScreen(navController, filterContent)
-            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, filterContent)
-            LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, filterContent)
+        // Horizontal Pager Handles Swipe Navigation
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            when (filtersList[page].first.first) {
+                LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
+                LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
+                LibraryFilter.SONGS -> LibrarySongsScreen(navController, filterContent)
+                LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, filterContent)
+                LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, filterContent)
+            }
         }
     }
 }
