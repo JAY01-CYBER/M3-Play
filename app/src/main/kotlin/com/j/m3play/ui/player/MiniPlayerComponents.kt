@@ -265,7 +265,6 @@ fun NewMiniPlayerContent(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            // Play/Pause Button (Replaced Like button position)
             ModernPlayPauseControl(
                 isPlaying = isPlaying,
                 playbackState = playbackState,
@@ -273,9 +272,8 @@ fun NewMiniPlayerContent(
                 playerConnection = playerConnection
             )
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Next Button (Newly added)
             ModernNextButton(
                 canSkipNext = canSkipNext,
                 onNextClick = playerConnection::seekToNext
@@ -384,7 +382,8 @@ private fun ModernNextButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(Color.Transparent)
+            // Yahan par humne "surfaceVariant" background add kar diya hai
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(enabled = canSkipNext) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onNextClick()
@@ -393,8 +392,8 @@ private fun ModernNextButton(
         Icon(
             painter = painterResource(R.drawable.skip_next),
             contentDescription = "Next",
-            tint = if (canSkipNext) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            modifier = Modifier.size(26.dp)
+            tint = if (canSkipNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }
