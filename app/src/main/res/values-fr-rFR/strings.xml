@@ -762,10 +762,10 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="token_copied">Jeton copié dans le presse-papiers</string>
     <string name="no_visitor_data">Aucune donnée relative aux visiteurs n\'est disponible. Il est impossible de générer des jetons.</string>
     <string name="extracting_from_url">Extraction des jetons de l\'URL…</string>
-    <string name="spotify_not_connected">Not connected to Spotify</string>
+    <string name="spotify_not_connected">Non connecté à Spotify</string>
     <string name="spotify_reload_playlist">Reload Playlist</string>
-    <string name="spotify_no_tracks">No tracks found</string>
-    <string name="ai_model_no_results">No results found</string>
-    <string name="spotify_playlists">Spotify Playlists</string>
-    <string name="spotify_account">Spotify Account</string>
+    <string name="spotify_no_tracks">Aucun titre trouvé</string>
+    <string name="ai_model_no_results">Aucun résultat trouvé</string>
+    <string name="spotify_playlists">Playlists Spotify</string>
+    <string name="spotify_account">Compte Spotify</string>
 </resources>
