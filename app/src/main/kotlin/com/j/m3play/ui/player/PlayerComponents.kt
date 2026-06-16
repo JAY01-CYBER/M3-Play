@@ -103,7 +103,6 @@ import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -1787,11 +1786,9 @@ fun PlayerBackground(
                             val colorFilter = ColorFilter.colorMatrix(matrix)
                             val blurSize = if (disableBlur) 0.dp else 120.dp
 
-                            // Layer 1: The Anchor 
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1803,11 +1800,9 @@ fun PlayerBackground(
                                     .graphicsLayer { rotationZ = anchorRotation }
                             )
 
-                            // Layer 2: Fast Rotating Crop 
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1823,11 +1818,9 @@ fun PlayerBackground(
                                     }
                             )
 
-                            // Layer 3: Slow Rotating Crop 
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1858,11 +1851,9 @@ fun PlayerBackground(
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            // Layer 1: Downsampled Blurred Background
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1872,7 +1863,6 @@ fun PlayerBackground(
                                     .blur(if (disableBlur) 0.dp else 150.dp)
                             )
 
-                            // Layer 2: Clear Artwork Top 65% with Fade Out
                             val clearArtworkAlpha by animateFloatAsState(
                                 targetValue = if (showInlineLyrics) 0f else 1f,
                                 animationSpec = tween(500),
@@ -1910,7 +1900,6 @@ fun PlayerBackground(
                                 )
                             }
                             
-                            // Layer 3: Overlay
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -1928,70 +1917,72 @@ fun PlayerBackground(
                 }
             }
 
-            // 🔥 YAHAN SE AAPKA ORIGINAL BLUR AUR BLUR GRADIENT RESTORE HO GAYA HAI 🔥
+            // 🔥 YAHAN AAPKA NAYA SMOOTH GLASSY BLUR HAI 🔥
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
                     transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
                     },
-                    label = ""
+                    label = "blurBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl,
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 60.dp)
+                                    if (disableBlur) it else it.blur(radius = 100.dp)
                                 }
                             )
-                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
+                            // Smooth dark overlay just like your screenshot
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = overlayStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.08f))
+                                    .background(Color.Black.copy(alpha = 0.5f))
                             )
                         }
                     }
                 }
             }
 
+            // 🔥 YAHAN AAPKA NAYA SMOOTH BLUR GRADIENT HAI 🔥
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
                     transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
                     },
-                    label = ""
+                    label = "blurGradientBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl,
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .crossfade(true)
+                                    .build(),
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 65.dp)
+                                    if (disableBlur) it else it.blur(radius = 100.dp)
                                 }
                             )
-                            val gradientColorStops =
-                                PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
+                            // Smooth gradient dark overlay
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.05f))
+                                    .background(
+                                        Brush.verticalGradient(
+                                            0.0f to Color.Black.copy(alpha = 0.6f),
+                                            0.4f to Color.Black.copy(alpha = 0.3f),
+                                            1.0f to Color.Black.copy(alpha = 0.7f)
+                                        )
+                                    )
                             )
                         }
                     }
