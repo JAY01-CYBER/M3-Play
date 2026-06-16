@@ -91,7 +91,7 @@ Inspired by modern streaming platforms — built for power users.
   <a href="https://discord.gg/zdbAuRpVt">
     <img src="https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
   </a>
-  <a href="https://t.me/M3Play_updates">
+  <a href="https://t.me/M3Play_supports">
     <img src="https://img.shields.io/badge/Telegram-Updates-229ED9?style=for-the-badge&logo=telegram&logoColor=white" />
   </a>
 </p>
