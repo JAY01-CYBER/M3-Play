@@ -382,8 +382,8 @@ private fun ModernNextButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            // Yahan par humne "surfaceVariant" background add kar diya hai
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            // Yahan background color exact Play/Pause wala set kar diya hai!
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (canSkipNext) 1f else 0.5f))
             .clickable(enabled = canSkipNext) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onNextClick()
@@ -392,7 +392,8 @@ private fun ModernNextButton(
         Icon(
             painter = painterResource(R.drawable.skip_next),
             contentDescription = "Next",
-            tint = if (canSkipNext) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            // Icon color bhi Play/Pause jaisa same kar diya
+            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = if (canSkipNext) 1f else 0.5f),
             modifier = Modifier.size(20.dp)
         )
     }
