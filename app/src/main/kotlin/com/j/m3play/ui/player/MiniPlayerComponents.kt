@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -44,13 +44,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -155,7 +155,6 @@ fun SwipeableMiniPlayerBox(
                                 ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
 
                                 if (shouldChangeSong) {
-                                    // Swipe vibrate
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     
                                     val isRightSwipe = currentOffset > 0
@@ -282,7 +281,6 @@ fun NewMiniPlayerContent(
     }
 }
 
-// YAHAN PAR MAINE UPDATE KIYA HAI - CUSTOM CANVAS HATA DIYA
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModernMiniPlayerArtwork(
@@ -304,9 +302,10 @@ private fun ModernMiniPlayerArtwork(
             trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         )
 
+        // Thumbnail perfectly circle shape mein crop
         Box(
             modifier = Modifier
-                .padding(5.dp) // Thoda extra padding takki wavy indicator clear dikhe
+                .padding(5.dp) // Ring se dur rakhne ke liye padding
                 .fillMaxSize()
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -314,8 +313,8 @@ private fun ModernMiniPlayerArtwork(
             AsyncImage(
                 model = mediaMetadata?.thumbnailUrl,
                 contentDescription = mediaMetadata?.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop, // Image ko circle mein fit karne ke liye
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
             )
         }
     }
