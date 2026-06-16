@@ -23,6 +23,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -47,6 +48,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,11 +79,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -1740,7 +1745,7 @@ fun PlayerControlsContent(
     }
 }
 
-    @Composable
+@Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
     mediaMetadata: MediaMetadata?,
@@ -1749,51 +1754,107 @@ fun PlayerBackground(
     playerCustomImageUri: String,
     playerCustomBlur: Float,
     playerCustomContrast: Float,
-    playerCustomBrightness: Float
+    playerCustomBrightness: Float,
+    showInlineLyrics: Boolean = false
 ) {
+    val context = LocalContext.current
     Box(modifier = Modifier.fillMaxSize()) {
         when (playerBackground) {
             PlayerBackgroundStyle.LIVE_MESH -> {
+                val infiniteTransition = rememberInfiniteTransition(label = "liveMeshRotation")
+                
+                val anchorRotation by infiniteTransition.animateFloat(
+                    initialValue = 0f, targetValue = -360f,
+                    animationSpec = infiniteRepeatable(animation = tween(80000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+                    label = "anchorRotation"
+                )
+                val fastRotation by infiniteTransition.animateFloat(
+                    initialValue = 0f, targetValue = 360f,
+                    animationSpec = infiniteRepeatable(animation = tween(40000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+                    label = "fastRotation"
+                )
+                val slowRotation by infiniteTransition.animateFloat(
+                    initialValue = 0f, targetValue = 360f,
+                    animationSpec = infiniteRepeatable(animation = tween(60000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+                    label = "slowRotation"
+                )
+
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = "LiveMeshBackground"
+                    transitionSpec = { fadeIn(tween(1500)) togetherWith fadeOut(tween(1500)) },
+                    label = "liveMeshBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
-                        val infiniteTransition = rememberInfiniteTransition(label = "meshRotation")
-                        val rotation by infiniteTransition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(60000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "rotation"
-                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .graphicsLayer {
-                                    scaleX = 1.5f
-                                    scaleY = 1.5f
+                                    scaleX = 1.7f
+                                    scaleY = 1.7f
                                 }
                         ) {
-                            val matrix = remember { ColorMatrix().apply { setToSaturation(1.6f) } }
+                            val matrix = remember { ColorMatrix().apply { setToSaturation(1.8f) } }
+                            val colorFilter = ColorFilter.colorMatrix(matrix)
+                            val blurSize = if (disableBlur) 0.dp else 120.dp
+
+                            // Layer 1: The Anchor 
                             AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
+                                model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(400, 400)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(matrix),
+                                colorFilter = colorFilter,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 80.dp)
-                                    .graphicsLayer { rotationZ = rotation }
+                                    .blur(if(disableBlur) 0.dp else 100.dp)
+                                    .graphicsLayer { rotationZ = anchorRotation }
                             )
-                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+
+                            // Layer 2: Fast Rotating Crop 
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .size(128, 128) 
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                colorFilter = colorFilter,
+                                alignment = Alignment.TopStart,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(blurSize)
+                                    .graphicsLayer { 
+                                        rotationZ = fastRotation
+                                        alpha = 0.6f
+                                    }
+                            )
+
+                            // Layer 3: Slow Rotating Crop 
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .size(128, 128) 
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                colorFilter = colorFilter,
+                                alignment = Alignment.BottomEnd,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(blurSize)
+                                    .graphicsLayer { 
+                                        rotationZ = slowRotation
+                                        alpha = 0.5f
+                                    }
+                            )
+                            
+                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.2f)))
+                            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.25f)))))
                         }
                     }
                 }
@@ -1802,31 +1863,72 @@ fun PlayerBackground(
             PlayerBackgroundStyle.APPLE_MUSIC -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = "AppleMusicBackground"
+                    transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) },
+                    label = "appleMusicBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
+                            // Layer 1: Downsampled Blurred Background
                             AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
+                                model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
-                                contentScale = ContentScale.Crop, 
+                                contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 15.dp)
+                                    .blur(if (disableBlur) 0.dp else 150.dp)
                             )
+
+                            // Layer 2: Clear Artwork Top 65% with Fade Out
+                            val clearArtworkAlpha by animateFloatAsState(
+                                targetValue = if (showInlineLyrics) 0f else 1f,
+                                animationSpec = tween(500),
+                                label = "clearArtworkAlpha"
+                            )
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.65f) 
+                                    .alpha(clearArtworkAlpha)
+                                    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                                    .drawWithContent {
+                                        drawContent()
+                                        drawRect(
+                                            brush = Brush.verticalGradient(
+                                                colorStops = arrayOf(
+                                                    0.00f to Color.Black,
+                                                    0.75f to Color.Black,
+                                                    0.92f to Color.Black.copy(alpha = 0.4f),
+                                                    1.00f to Color.Transparent,
+                                                )
+                                            ),
+                                            blendMode = BlendMode.DstIn
+                                        )
+                                    }
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(thumbnailUrl)
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            
+                            // Layer 3: Overlay
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
                                         Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Black.copy(alpha = 0.2f),
-                                                Color.Black.copy(alpha = 0.5f),
-                                                Color.Black.copy(alpha = 0.85f)
+                                            listOf(
+                                                Color.Black.copy(alpha = 0.05f),
+                                                Color.Black.copy(alpha = 0.65f)
                                             )
                                         )
                                     )
@@ -1839,19 +1941,21 @@ fun PlayerBackground(
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl,
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .size(128, 128)
+                                    .allowHardware(false)
+                                    .build(),
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 60.dp)
+                                    if (disableBlur) it else it.blur(radius = 100.dp)
                                 }
                             )
                             val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
@@ -1870,12 +1974,46 @@ fun PlayerBackground(
                 }
             }
 
+            PlayerBackgroundStyle.BLUR_GRADIENT -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
+                    label = ""
+                ) { thumbnailUrl ->
+                    if (thumbnailUrl != null) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(thumbnailUrl)
+                                    .size(128, 128)
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = "Blurred background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (disableBlur) it else it.blur(radius = 100.dp)
+                                }
+                            )
+                            val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.05f))
+                            )
+                        }
+                    }
+                }
+            }
+
             PlayerBackgroundStyle.GRADIENT -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1911,9 +2049,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.COLORING -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -1936,47 +2072,10 @@ fun PlayerBackground(
                 }
             }
 
-            PlayerBackgroundStyle.BLUR_GRADIENT -> {
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
-                    label = ""
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailUrl,
-                                contentDescription = "Blurred background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 65.dp)
-                                }
-                            )
-                            val gradientColorStops =
-                                PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.05f))
-                            )
-                        }
-                    }
-                }
-            }
-
             PlayerBackgroundStyle.CUSTOM -> {
                 AnimatedContent(
                     targetState = playerCustomImageUri,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
+                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
                     label = ""
                 ) { uri ->
                     if (uri.isNotBlank()) {
@@ -2017,9 +2116,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.GLOW -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
-                    },
+                    transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) },
                     label = ""
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -2117,9 +2214,7 @@ fun PlayerBackground(
             PlayerBackgroundStyle.GLOW_ANIMATED -> {
                 AnimatedContent(
                     targetState = gradientColors,
-                    transitionSpec = {
-                        fadeIn(tween(1200)) togetherWith fadeOut(tween(1200))
-                    },
+                    transitionSpec = { fadeIn(tween(1200)) togetherWith fadeOut(tween(1200)) },
                     label = "GlowAnimatedContent"
                 ) { colors ->
                     if (colors.isNotEmpty()) {
@@ -2232,7 +2327,6 @@ fun PlayerBackground(
                         )
                     }
                 }
-
             }
 
             else -> {
