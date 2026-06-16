@@ -25,7 +25,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -240,7 +240,6 @@ private fun LegacyMiniPlayer(
                                 ) || (kotlin.math.abs(currentOffset) > autoSwipeThreshold)
                                 
                                 if (shouldChangeSong) {
-                                    // Smooth vibrate on swipe
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     
                                     val isRightSwipe = currentOffset > 0
@@ -310,10 +309,9 @@ private fun LegacyMiniPlayer(
                 },
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    CircularWavyProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp
+                        color = MaterialTheme.colorScheme.primary
                     )
                 } else {
                     Icon(
