@@ -78,7 +78,7 @@ import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
-import com.j.m3play.constants.MiniPlayerBackgroundStyleKey // 🔥 NEW ADDED
+import com.j.m3play.constants.MiniPlayerBackgroundStyleKey
 import com.j.m3play.constants.PureBlackKey
 import com.j.m3play.constants.RandomThemeOnStartupKey
 import com.j.m3play.constants.UseSystemFontKey
@@ -138,7 +138,7 @@ fun AppearanceSettings(
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(ThumbnailCornerRadiusKey, 16f)
     val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(CropThumbnailToSquareKey, false)
     val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
-    // 🔥 NEW: Mini player background logic added 🔥
+    
     val (miniPlayerBackground, onMiniPlayerBackgroundChange) = rememberEnumPreference(MiniPlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
     
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, false)
@@ -386,26 +386,33 @@ fun AppearanceSettings(
                             },
                         )
 
-                        // 🔥 NEW: Mini Player Background Option added 🔥
-                        EnumListPreference(
+                        // 🔥 UPDATED: Mini Player Background Option uses ListPreference to filter out useless styles 🔥
+                        ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
                             selectedValue = miniPlayerBackground,
-                            onValueSelected = onMiniPlayerBackgroundChange,
+                            values = listOf(
+                                PlayerBackgroundStyle.DEFAULT,
+                                PlayerBackgroundStyle.GRADIENT,
+                                PlayerBackgroundStyle.BLUR,
+                                PlayerBackgroundStyle.COLORING,
+                                PlayerBackgroundStyle.GLOW,
+                                PlayerBackgroundStyle.GLOW_ANIMATED,
+                                PlayerBackgroundStyle.LIVE_MESH
+                            ),
                             valueText = {
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                                    PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
                                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
-                                    PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
-                                    PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
                                     PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
+                                    else -> it.name
                                 }
                             },
+                            onValueSelected = onMiniPlayerBackgroundChange,
                         )
 
                         if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
