@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -222,11 +222,10 @@ fun NewMiniPlayerContent(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val canSkipNext by playerConnection.canSkipNext.collectAsState()
     val togetherSessionState by playerConnection.service.togetherSessionState.collectAsState()
 
     val isLoading = playbackState == Player.STATE_BUFFERING
-    val isLiked = currentSong?.song?.liked == true
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -266,18 +265,23 @@ fun NewMiniPlayerContent(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            ModernLikeButton(isLiked = isLiked, onLikeClick = playerConnection::toggleLike)
-
-            Spacer(modifier = Modifier.width(12.dp))
-
+            // Play/Pause Button (Replaced Like button position)
             ModernPlayPauseControl(
                 isPlaying = isPlaying,
                 playbackState = playbackState,
                 isLoading = isLoading,
                 playerConnection = playerConnection
             )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Next Button (Newly added)
+            ModernNextButton(
+                canSkipNext = canSkipNext,
+                onNextClick = playerConnection::seekToNext
+            )
             
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(4.dp))
         }
     }
 }
@@ -303,17 +307,15 @@ private fun ModernMiniPlayerArtwork(
             trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         )
 
-        // 🔥 THUMBNAIL PERFECT CIRCLE FIX 🔥
-        // Ab Surface use kiya hai CircleShape ke saath taki image hamesha gol rahe
         Surface(
             shape = CircleShape, 
             color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.size(42.dp) // Ring ke size (54dp) se thoda chota rakha hai taki beech me space mile
+            modifier = Modifier.size(42.dp)
         ) {
             AsyncImage(
                 model = mediaMetadata?.thumbnailUrl,
                 contentDescription = mediaMetadata?.title,
-                contentScale = ContentScale.Crop, // Image ko circle me fit (crop) karne ke liye
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -371,6 +373,33 @@ private fun ModernPlayPauseControl(
 }
 
 @Composable
+private fun ModernNextButton(
+    canSkipNext: Boolean,
+    onNextClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.Transparent)
+            .clickable(enabled = canSkipNext) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onNextClick()
+            }
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.skip_next),
+            contentDescription = "Next",
+            tint = if (canSkipNext) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(26.dp)
+        )
+    }
+}
+
+@Composable
 private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
     Column(
         modifier = Modifier
@@ -410,37 +439,6 @@ private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
     }
 }
 
-@Composable
-private fun ModernLikeButton(
-    isLiked: Boolean,
-    onLikeClick: () -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(36.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isLiked) MaterialTheme.colorScheme.errorContainer 
-                else MaterialTheme.colorScheme.surfaceVariant
-            )
-            .clickable {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLikeClick()
-            }
-    ) {
-        Icon(
-            painter = painterResource(
-                if (isLiked) R.drawable.favorite else R.drawable.favorite_border
-            ),
-            contentDescription = null,
-            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
 
 // -----------------------------------------------------------------
 // LEGACY & ORIGINAL COMPONENTS
