@@ -1941,33 +1941,29 @@ fun PlayerBackground(
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = ""
+                    transitionSpec = {
+                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                    },
+                    label = "blurBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128)
+                                    .size(100, 100)
                                     .allowHardware(false)
                                     .build(),
-                                contentDescription = "Blurred background",
+                                contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 100.dp)
-                                }
-                            )
-                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
-                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = overlayStops))
+                                    .blur(if (disableBlur) 0.dp else 150.dp)
                             )
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.08f))
+                                    .background(Color.Black.copy(alpha = 0.3f))
                             )
                         }
                     }
@@ -1977,59 +1973,38 @@ fun PlayerBackground(
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = ""
+                    transitionSpec = {
+                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                    },
+                    label = "blurGradientBackground"
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128)
+                                    .size(100, 100)
                                     .allowHardware(false)
                                     .build(),
-                                contentDescription = "Blurred background",
+                                contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 100.dp)
-                                }
-                            )
-                            val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
-                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                    .blur(if (disableBlur) 0.dp else 150.dp)
                             )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.05f))
-                            )
-                        }
-                    }
-                }
-            }
-
-            PlayerBackgroundStyle.GRADIENT -> {
-                AnimatedContent(
-                    targetState = gradientColors,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = ""
-                ) { colors ->
-                    if (colors.isNotEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            val gradientColorStops = if (colors.size >= 3) {
+                            val gradientColorStops = if (gradientColors.size >= 3) {
                                 arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.92f), 
-                                    0.5f to colors[1].copy(alpha = 0.75f), 
-                                    1.0f to colors[2].copy(alpha = 0.65f)  
+                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
+                                    0.5f to gradientColors[1].copy(alpha = 0.6f),
+                                    1.0f to gradientColors[2].copy(alpha = 0.4f)
+                                )
+                            } else if (gradientColors.isNotEmpty()) {
+                                arrayOf(
+                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
+                                    1.0f to Color.Black.copy(alpha = 0.4f)
                                 )
                             } else {
-                                arrayOf(
-                                    0.0f to colors[0].copy(alpha = 0.9f), 
-                                    0.6f to colors[0].copy(alpha = 0.55f), 
-                                    1.0f to Color.Black.copy(alpha = 0.7f) 
-                                )
+                                arrayOf(0.0f to Color.Transparent, 1.0f to Color.Transparent)
                             }
                             Box(
                                 modifier = Modifier
@@ -2039,9 +2014,41 @@ fun PlayerBackground(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.18f))
+                                    .background(Color.Black.copy(alpha = 0.2f))
                             )
                         }
+                    }
+                }
+            }
+
+            PlayerBackgroundStyle.GRADIENT -> {
+                AnimatedContent(
+                    targetState = gradientColors,
+                    transitionSpec = {
+                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                    },
+                    label = "gradientBackground"
+                ) { colors ->
+                    if (colors.isNotEmpty()) {
+                        val gradientColorStops = if (colors.size >= 3) {
+                            arrayOf(
+                                0.0f to colors[0],
+                                0.5f to colors[1],
+                                1.0f to colors[2]
+                            )
+                        } else {
+                            arrayOf(
+                                0.0f to colors[0],
+                                0.6f to colors[0].copy(alpha = 0.7f),
+                                1.0f to Color.Black
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                                .background(Color.Black.copy(alpha = 0.2f))
+                        )
                     }
                 }
             }
