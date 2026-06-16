@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -290,7 +291,7 @@ private fun ModernMiniPlayerArtwork(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(56.dp)
+        modifier = Modifier.size(54.dp)
     ) {
         val progressVal = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
         
@@ -302,19 +303,18 @@ private fun ModernMiniPlayerArtwork(
             trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         )
 
-        // Thumbnail perfectly circle shape mein crop
-        Box(
-            modifier = Modifier
-                .padding(5.dp) // Ring se dur rakhne ke liye padding
-                .fillMaxSize()
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+        // 🔥 THUMBNAIL PERFECT CIRCLE FIX 🔥
+        // Ab Surface use kiya hai CircleShape ke saath taki image hamesha gol rahe
+        Surface(
+            shape = CircleShape, 
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.size(42.dp) // Ring ke size (54dp) se thoda chota rakha hai taki beech me space mile
         ) {
             AsyncImage(
                 model = mediaMetadata?.thumbnailUrl,
                 contentDescription = mediaMetadata?.title,
-                contentScale = ContentScale.Crop, // Image ko circle mein fit karne ke liye
-                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                contentScale = ContentScale.Crop, // Image ko circle me fit (crop) karne ke liye
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
