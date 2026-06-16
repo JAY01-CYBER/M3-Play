@@ -32,7 +32,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -304,12 +304,10 @@ private fun ModernMiniPlayerArtwork(
     position: Long,
     duration: Long
 ) {
-    // 56.dp container, wavy ring full size hogi, aur artwork thoda andar aayega
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(56.dp)
     ) {
-        // Sirf progress se fill hoga, ghume ga nahi
         WavyCircularProgress(
             progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
             isPlaying = isPlaying,
@@ -318,7 +316,7 @@ private fun ModernMiniPlayerArtwork(
 
         Box(
             modifier = Modifier
-                .padding(4.dp) // Wavy ring ke liye thodi space chhodne ke liye
+                .padding(4.dp)
                 .fillMaxSize()
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -345,11 +343,10 @@ private fun ModernPlayPauseControl(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(40.dp) // Ab iski size standard kar di gayi hai (kyuki ring nahi hai yahan)
+            .size(40.dp) 
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.primaryContainer)
             .clickable {
-                // Click par smooth vibrate
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 if (playbackState == Player.STATE_ENDED) {
                     playerConnection.player.seekTo(0, 0)
@@ -360,10 +357,9 @@ private fun ModernPlayPauseControl(
             }
     ) {
         if (isLoading) {
-            CircularProgressIndicator(
+            CircularWavyProgressIndicator(
                 modifier = Modifier.size(18.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                strokeWidth = 2.dp
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         } else {
             Icon(
@@ -487,10 +483,9 @@ fun MiniPlayerPlayPauseButton(
             }
     ) {
         if (isLoading) {
-            CircularProgressIndicator(
+            CircularWavyProgressIndicator(
                 modifier = Modifier.size(18.dp),
-                color = MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp
+                color = MaterialTheme.colorScheme.onPrimary
             )
         } else {
             Icon(
