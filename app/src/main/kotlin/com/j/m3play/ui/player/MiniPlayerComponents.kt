@@ -13,17 +13,10 @@ package com.j.m3play.ui.player
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -33,9 +26,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularWavyProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,11 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -63,7 +51,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -250,10 +237,8 @@ fun NewMiniPlayerContent(
                 .fillMaxSize()
                 .padding(horizontal = 6.dp, vertical = 6.dp),
         ) {
-            // Wavy progress ab thumbnail (artwork) par hai
             ModernMiniPlayerArtwork(
                 mediaMetadata = mediaMetadata,
-                isPlaying = isPlaying,
                 position = position,
                 duration = duration
             )
@@ -297,10 +282,11 @@ fun NewMiniPlayerContent(
     }
 }
 
+// YAHAN PAR MAINE UPDATE KIYA HAI - CUSTOM CANVAS HATA DIYA
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModernMiniPlayerArtwork(
     mediaMetadata: MediaMetadata?,
-    isPlaying: Boolean,
     position: Long,
     duration: Long
 ) {
@@ -308,15 +294,19 @@ private fun ModernMiniPlayerArtwork(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(56.dp)
     ) {
-        WavyCircularProgress(
-            progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f,
-            isPlaying = isPlaying,
-            modifier = Modifier.fillMaxSize()
+        val progressVal = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
+        
+        // Official Material 3 Wavy Progress Indicator
+        CircularWavyProgressIndicator(
+            progress = { progressVal },
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         )
 
         Box(
             modifier = Modifier
-                .padding(4.dp)
+                .padding(5.dp) // Thoda extra padding takki wavy indicator clear dikhe
                 .fillMaxSize()
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -331,6 +321,7 @@ private fun ModernMiniPlayerArtwork(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModernPlayPauseControl(
     isPlaying: Boolean,
@@ -456,6 +447,7 @@ private fun ModernLikeButton(
 // LEGACY & ORIGINAL COMPONENTS
 // -----------------------------------------------------------------
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MiniPlayerPlayPauseButton(
     position: Long,
@@ -572,87 +564,6 @@ fun MiniPlayerActionButtons(
             contentDescription = null,
             tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@Composable
-fun WavyCircularProgress(
-    progress: Float,
-    isPlaying: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val (waveShift, amplitudePulse) = if (isPlaying) {
-        val infiniteTransition = rememberInfiniteTransition(label = "mini_player_ring")
-        Pair(
-            infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = (Math.PI * 2).toFloat(),
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 1200,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Restart,
-                ),
-                label = "ring_wave_shift",
-            ).value,
-            infiniteTransition.animateFloat(
-                initialValue = 0.85f,
-                targetValue = 1.15f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween<Float>(
-                        durationMillis = 900,
-                        easing = LinearEasing,
-                    ),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "ring_amplitude",
-            ).value
-        )
-    } else {
-        Pair(0f, 1f)
-    }
-
-    val activeColor = MaterialTheme.colorScheme.primary
-    val inactiveColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
-
-    Canvas(
-        modifier = modifier
-    ) {
-        val strokeWidth = 3.dp.toPx()
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val baseRadius = (size.minDimension / 2f) - strokeWidth
-        val waves = 22
-        val totalSteps = 240
-        val progressSteps = (totalSteps * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
-        val baseAmplitude = if (isPlaying) 2.8.dp.toPx() else 1.8.dp.toPx()
-        val animatedAmplitude = baseAmplitude * amplitudePulse
-
-        fun buildPath(steps: Int, amplitude: Float): Path {
-            val path = Path()
-            for (i in 0..steps) {
-                val fraction = i / totalSteps.toFloat()
-                val angle = (Math.PI * 2 * fraction) - (Math.PI / 2)
-                val wave = kotlin.math.sin((angle * waves) + waveShift).toFloat() * amplitude
-                val radius = baseRadius + wave
-                val x = center.x + kotlin.math.cos(angle).toFloat() * radius
-                val y = center.y + kotlin.math.sin(angle).toFloat() * radius
-                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            }
-            return path
-        }
-
-        drawPath(
-            path = buildPath(totalSteps, 1.2.dp.toPx()),
-            color = inactiveColor,
-            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-        )
-
-        drawPath(
-            path = buildPath(progressSteps, animatedAmplitude),
-            color = activeColor,
-            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
         )
     }
 }
