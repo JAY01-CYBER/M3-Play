@@ -102,9 +102,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.request.crossfade
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -1578,9 +1575,6 @@ fun PlayerPlaybackControls(
     }
 }
 
-/**
- * Wrapper composable that combines all player control components.
- */
 @Composable
 fun PlayerControlsContent(
     mediaMetadata: MediaMetadata,
@@ -1791,7 +1785,6 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1806,7 +1799,6 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1825,7 +1817,6 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1859,7 +1850,6 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1923,76 +1913,61 @@ fun PlayerBackground(
                 }
             }
 
-    
+        
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
                     transitionSpec = {
-                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
                     },
-                    label = "blurBackground"
+                    label = ""
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(thumbnailUrl)
-                                    .size(100, 100)
-                                    .allowHardware(false)
-                                    .build(),
-                                contentDescription = null,
+                                model = thumbnailUrl,
+                                contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (!disableBlur) it.blur(radius = 100.dp) else it
+                                }
+                            )
+                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
+                            Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 150.dp)
+                                    .background(Brush.verticalGradient(colorStops = overlayStops))
                             )
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.3f))
+                                    .background(Color.Black.copy(alpha = 0.08f))
                             )
                         }
                     }
                 }
             }
 
-            
+        
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
                     transitionSpec = {
-                        fadeIn(tween(800)).togetherWith(fadeOut(tween(800)))
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
                     },
-                    label = "blurGradientBackground"
+                    label = ""
                 ) { thumbnailUrl ->
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(thumbnailUrl)
-                                    .size(100, 100)
-                                    .allowHardware(false)
-                                    .build(),
-                                contentDescription = null,
+                                model = thumbnailUrl,
+                                contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 150.dp)
+                                modifier = Modifier.fillMaxSize().let {
+                                    if (!disableBlur) it.blur(radius = 100.dp) else it
+                                }
                             )
-                            val gradientColorStops = if (gradientColors.size >= 3) {
-                                arrayOf(
-                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
-                                    0.5f to gradientColors[1].copy(alpha = 0.6f),
-                                    1.0f to gradientColors[2].copy(alpha = 0.4f)
-                                )
-                            } else if (gradientColors.isNotEmpty()) {
-                                arrayOf(
-                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
-                                    1.0f to Color.Black.copy(alpha = 0.4f)
-                                )
-                            } else {
-                                arrayOf(0.0f to Color.Transparent, 1.0f to Color.Transparent)
-                            }
+                            val gradientColorStops = PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -2001,7 +1976,7 @@ fun PlayerBackground(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.2f))
+                                    .background(Color.Black.copy(alpha = 0.05f))
                             )
                         }
                     }
