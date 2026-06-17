@@ -84,6 +84,7 @@ import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.request.crossfade
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -606,7 +607,9 @@ fun MiniPlayerBackgroundLayer(
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(mediaMetadata?.thumbnailUrl)
+                    .size(100, 100)
                     .crossfade(true)
+                    .allowHardware(false)
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
@@ -618,7 +621,9 @@ fun MiniPlayerBackgroundLayer(
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(mediaMetadata?.thumbnailUrl)
+                    .size(100, 100)
                     .crossfade(true)
+                    .allowHardware(false)
                     .build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
