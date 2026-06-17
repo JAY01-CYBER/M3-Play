@@ -85,6 +85,18 @@ Inspired by modern streaming platforms — built for power users.
 
 ---
 
+## 🌍 Translations
+
+Help us translate M3 Play into your native language! Every contribution is highly appreciated.
+
+<p align="center">
+  <a href="https://crowdin.com/project/M3Play">
+    <img src="https://img.shields.io/badge/Translate-on%20Crowdin-2E3340?style=for-the-badge&logo=crowdin&logoColor=white" />
+  </a>
+</p>
+
+---
+
 ## 🌐 Community
 
 <p align="center">
