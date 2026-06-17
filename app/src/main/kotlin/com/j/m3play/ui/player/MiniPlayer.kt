@@ -602,6 +602,98 @@ fun MiniPlayerBackgroundLayer(
     val context = LocalContext.current
     
     when (style) {
+        PlayerBackgroundStyle.BLUR -> {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(mediaMetadata?.thumbnailUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().blur(100.dp)
+            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
+        }
+        PlayerBackgroundStyle.BLUR_GRADIENT -> {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(mediaMetadata?.thumbnailUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().blur(100.dp)
+            )
+            Box(modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    0.0f to Color.Black.copy(alpha = 0.6f),
+                    0.4f to Color.Black.copy(alpha = 0.3f),
+                    1.0f to Color.Black.copy(alpha = 0.7f)
+                )
+            ))
+        }
+        PlayerBackgroundStyle.APPLE_MUSIC -> {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(mediaMetadata?.thumbnailUrl)
+                    .size(128, 128)
+                    .allowHardware(false)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().blur(150.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.05f),
+                                Color.Black.copy(alpha = 0.65f)
+                            )
+                        )
+                    )
+            )
+        }
+        PlayerBackgroundStyle.LIVE_MESH -> {
+            val infiniteTransition = rememberInfiniteTransition(label = "liveMesh")
+            val rotation = infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(60000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "rotation"
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = 1.5f
+                        scaleY = 1.5f
+                    }
+            ) {
+                val matrix = remember { ColorMatrix().apply { setToSaturation(1.6f) } }
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(mediaMetadata?.thumbnailUrl)
+                        .size(128, 128)
+                        .allowHardware(false)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    colorFilter = ColorFilter.colorMatrix(matrix),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(40.dp)
+                        .graphicsLayer { rotationZ = rotation.value }
+                )
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+            }
+        }
         PlayerBackgroundStyle.GRADIENT -> {
             if (gradientColors.isNotEmpty()) {
                 Box(
