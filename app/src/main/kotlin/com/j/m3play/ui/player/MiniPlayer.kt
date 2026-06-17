@@ -602,27 +602,6 @@ fun MiniPlayerBackgroundLayer(
     val context = LocalContext.current
     
     when (style) {
-        PlayerBackgroundStyle.BLUR -> {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(mediaMetadata?.thumbnailUrl)
-                        .size(128, 128)
-                        .allowHardware(false)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(30.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.45f))
-                )
-            }
-        }
         PlayerBackgroundStyle.GRADIENT -> {
             if (gradientColors.isNotEmpty()) {
                 Box(
@@ -724,44 +703,6 @@ fun MiniPlayerBackgroundLayer(
                             drawRect(b2)
                         }
                 )
-            }
-        }
-        PlayerBackgroundStyle.LIVE_MESH -> {
-            val infiniteTransition = rememberInfiniteTransition(label = "liveMesh")
-            val rotation = infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(60000, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "rotation"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = 1.5f
-                        scaleY = 1.5f
-                    }
-            ) {
-                val matrix = remember { ColorMatrix().apply { setToSaturation(1.6f) } }
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(mediaMetadata?.thumbnailUrl)
-                        .size(128, 128)
-                        .allowHardware(false)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    colorFilter = ColorFilter.colorMatrix(matrix),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(40.dp)
-                        .graphicsLayer { rotationZ = rotation.value }
-                )
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
             }
         }
         else -> {}
