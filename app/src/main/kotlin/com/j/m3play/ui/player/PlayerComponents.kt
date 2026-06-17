@@ -104,7 +104,6 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import coil3.request.crossfade
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -1578,164 +1577,6 @@ fun PlayerPlaybackControls(
     }
 }
 
-/**
- * Wrapper composable that combines all player control components.
- */
-@Composable
-fun PlayerControlsContent(
-    mediaMetadata: MediaMetadata,
-    playerDesignStyle: PlayerDesignStyle,
-    sliderStyle: SliderStyle,
-    playbackState: Int,
-    isPlaying: Boolean,
-    isLoading: Boolean,
-    repeatMode: Int,
-    canSkipPrevious: Boolean,
-    canSkipNext: Boolean,
-    textButtonColor: Color,
-    iconButtonColor: Color,
-    textBackgroundColor: Color,
-    icBackgroundColor: Color,
-    sliderPosition: Long?,
-    position: Long,
-    duration: Long,
-    playerConnection: PlayerConnection,
-    navController: NavController,
-    state: BottomSheetState,
-    menuState: MenuState,
-    bottomSheetPageState: BottomSheetPageState,
-    clipboardManager: ClipboardManager,
-    context: Context,
-    onSliderValueChange: (Long) -> Unit,
-    onSliderValueChangeFinished: () -> Unit,
-    currentFormat: FormatEntity? = null,
-    showInlineLyrics: Boolean = false, 
-    isFullScreen: Boolean = false,
-    onToggleFullScreen: () -> Unit = {}
-) {
-    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
-    val currentSongLiked = currentSong?.song?.liked == true
-
-    val playPauseRoundness by animateDpAsState(
-        targetValue = if (isPlaying) 24.dp else 36.dp,
-        animationSpec = tween(durationMillis = 90, easing = LinearEasing),
-        label = "playPauseRoundness",
-    )
-
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PlayerHorizontalPadding),
-    ) {
-        
-        AnimatedContent(
-            targetState = showInlineLyrics,
-            label = "CompactThumbnail",
-            transitionSpec = { fadeIn() togetherWith fadeOut() }
-        ) { showLyrics ->
-            if (showLyrics) {
-                Row {
-                    AsyncImage(
-                        model = mediaMetadata.thumbnailUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-            } else {
-                Spacer(modifier = Modifier.width(0.dp))
-            }
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            PlayerTitleSection(
-                mediaMetadata = mediaMetadata,
-                textBackgroundColor = textBackgroundColor,
-                navController = navController,
-                state = state,
-                clipboardManager = clipboardManager,
-                context = context
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        PlayerTopActions(
-            mediaMetadata = mediaMetadata,
-            playerDesignStyle = playerDesignStyle,
-            textButtonColor = textButtonColor,
-            iconButtonColor = iconButtonColor,
-            textBackgroundColor = textBackgroundColor,
-            playerConnection = playerConnection,
-            navController = navController,
-            menuState = menuState,
-            state = state,
-            bottomSheetPageState = bottomSheetPageState,
-            context = context,
-            currentSongLiked = currentSongLiked,
-            showInlineLyrics = showInlineLyrics,
-            isFullScreen = isFullScreen,
-            onToggleFullScreen = onToggleFullScreen
-        )
-    }
-
-    Spacer(Modifier.height(12.dp))
-
-    PlayerSlider(
-        sliderStyle = sliderStyle,
-        sliderPosition = sliderPosition,
-        position = position,
-        duration = duration,
-        isPlaying = isPlaying,
-        textButtonColor = textButtonColor,
-        onValueChange = onSliderValueChange,
-        onValueChangeFinished = onSliderValueChangeFinished
-    )
-
-    Spacer(Modifier.height(4.dp))
-
-    PlayerTimeLabel(
-        sliderPosition = sliderPosition,
-        position = position,
-        duration = duration,
-        textBackgroundColor = textBackgroundColor,
-        currentFormat = currentFormat,
-        playerDesignStyle = playerDesignStyle
-    )
-
-    AnimatedVisibility(
-        visible = !isFullScreen,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut()
-    ) {
-        Column {
-            Spacer(Modifier.height(12.dp))
-
-            PlayerPlaybackControls(
-                playerDesignStyle = playerDesignStyle,
-                playbackState = playbackState,
-                isPlaying = isPlaying,
-                isLoading = isLoading,
-                repeatMode = repeatMode,
-                canSkipPrevious = canSkipPrevious,
-                canSkipNext = canSkipNext,
-                textButtonColor = textButtonColor,
-                iconButtonColor = iconButtonColor,
-                textBackgroundColor = textBackgroundColor,
-                icBackgroundColor = icBackgroundColor,
-                playPauseRoundness = playPauseRoundness,
-                playerConnection = playerConnection,
-                currentSongLiked = currentSongLiked
-            )
-        }
-    }
-}
-
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
@@ -1791,6 +1632,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1805,6 +1647,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1823,6 +1666,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1856,6 +1700,7 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
+                                    .size(128, 128) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = null,
@@ -1919,7 +1764,7 @@ fun PlayerBackground(
                 }
             }
 
-            // 🔥 YAHAN AAPKA NAYA SMOOTH GLASSY BLUR HAI 🔥
+            
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
@@ -1933,26 +1778,26 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .crossfade(true)
+                                    .size(100, 100)
+                                    .allowHardware(false)
                                     .build(),
-                                contentDescription = "Blurred background",
+                                contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 100.dp)
-                                }
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(if (disableBlur) 0.dp else 150.dp)
                             )
-                            // Smooth dark overlay just like your screenshot
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .background(Color.Black.copy(alpha = 0.3f))
                             )
                         }
                     }
                 }
             }
 
-            // 🔥 YAHAN AAPKA NAYA SMOOTH BLUR GRADIENT HAI 🔥
+            
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
@@ -1966,25 +1811,38 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(thumbnailUrl)
-                                    .crossfade(true)
+                                    .size(100, 100)
+                                    .allowHardware(false)
                                     .build(),
-                                contentDescription = "Blurred background",
+                                contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 100.dp)
-                                }
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(if (disableBlur) 0.dp else 150.dp)
                             )
-                            // Smooth gradient dark overlay
+                            val gradientColorStops = if (gradientColors.size >= 3) {
+                                arrayOf(
+                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
+                                    0.5f to gradientColors[1].copy(alpha = 0.6f),
+                                    1.0f to gradientColors[2].copy(alpha = 0.4f)
+                                )
+                            } else if (gradientColors.isNotEmpty()) {
+                                arrayOf(
+                                    0.0f to gradientColors[0].copy(alpha = 0.8f),
+                                    1.0f to Color.Black.copy(alpha = 0.4f)
+                                )
+                            } else {
+                                arrayOf(0.0f to Color.Transparent, 1.0f to Color.Transparent)
+                            }
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            0.0f to Color.Black.copy(alpha = 0.6f),
-                                            0.4f to Color.Black.copy(alpha = 0.3f),
-                                            1.0f to Color.Black.copy(alpha = 0.7f)
-                                        )
-                                    )
+                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.2f))
                             )
                         }
                     }
