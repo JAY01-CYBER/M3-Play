@@ -382,7 +382,6 @@ fun AppearanceSettings(
                             },
                         )
 
-                        // UPDATED: Mini Player Background Option uses ListPreference to filter out useless styles 🔥
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -390,21 +389,17 @@ fun AppearanceSettings(
                             values = listOf(
                                 PlayerBackgroundStyle.DEFAULT,
                                 PlayerBackgroundStyle.GRADIENT,
-                                PlayerBackgroundStyle.BLUR,
                                 PlayerBackgroundStyle.COLORING,
                                 PlayerBackgroundStyle.GLOW,
-                                PlayerBackgroundStyle.GLOW_ANIMATED,
-                                PlayerBackgroundStyle.LIVE_MESH
+                                PlayerBackgroundStyle.GLOW_ANIMATED
                             ),
                             valueText = {
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
-                                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                                     else -> it.name
                                 }
                             },
