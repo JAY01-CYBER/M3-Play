@@ -351,7 +351,10 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
+            playerBackground == PlayerBackgroundStyle.COLORING || 
+            playerBackground == PlayerBackgroundStyle.GLOW ||
+            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -407,29 +410,23 @@ fun BottomSheetPlayer(
     val TextBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-            PlayerBackgroundStyle.BLUR,
             PlayerBackgroundStyle.GRADIENT,
             PlayerBackgroundStyle.COLORING,
-            PlayerBackgroundStyle.BLUR_GRADIENT,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.APPLE_MUSIC,
-            PlayerBackgroundStyle.LIVE_MESH -> Color.White
+            PlayerBackgroundStyle.CUSTOM -> Color.White
+            else -> Color.White
         }
 
     val icBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-            PlayerBackgroundStyle.BLUR,
             PlayerBackgroundStyle.GRADIENT,
             PlayerBackgroundStyle.COLORING,
-            PlayerBackgroundStyle.BLUR_GRADIENT,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.APPLE_MUSIC,
-            PlayerBackgroundStyle.LIVE_MESH -> Color.Black
+            PlayerBackgroundStyle.CUSTOM -> Color.Black
+            else -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -598,7 +595,8 @@ fun BottomSheetPlayer(
     )
 
     BackHandler(
-        enabled = (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) || (!state.isCollapsed && !state.isDismissed)
+        enabled = (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+        (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
@@ -679,7 +677,7 @@ fun BottomSheetPlayer(
             }
         },
         backgroundColor = when (playerBackground) {
-            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
+            PlayerBackgroundStyle.GRADIENT -> {
                 val bgRange = state.expandedBound - state.collapsedBound
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
@@ -928,7 +926,7 @@ fun BottomSheetPlayer(
                                     val scale = 0.8f + (0.2f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    translationX = -(1f - expandProgressRaw) * 50.dp.toPx()
+                                    translationY = -(1f - expandProgressRaw) * 50.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
