@@ -364,11 +364,19 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        EnumListPreference(
+                        // 🔥 Main Player Background (List Restricted to only allow 6 options)
+                        ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
                             selectedValue = playerBackground,
-                            onValueSelected = onPlayerBackgroundChange,
+                            values = listOf(
+                                PlayerBackgroundStyle.DEFAULT,
+                                PlayerBackgroundStyle.GRADIENT,
+                                PlayerBackgroundStyle.CUSTOM,
+                                PlayerBackgroundStyle.COLORING,
+                                PlayerBackgroundStyle.GLOW,
+                                PlayerBackgroundStyle.GLOW_ANIMATED
+                            ),
                             valueText = {
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
@@ -380,8 +388,10 @@ fun AppearanceSettings(
                                     else -> it.name
                                 }
                             },
+                            onValueSelected = onPlayerBackgroundChange,
                         )
 
+                        // 🔥 Mini Player Background (All Options Available)
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -389,17 +399,25 @@ fun AppearanceSettings(
                             values = listOf(
                                 PlayerBackgroundStyle.DEFAULT,
                                 PlayerBackgroundStyle.GRADIENT,
+                                PlayerBackgroundStyle.BLUR,
+                                PlayerBackgroundStyle.BLUR_GRADIENT,
                                 PlayerBackgroundStyle.COLORING,
                                 PlayerBackgroundStyle.GLOW,
-                                PlayerBackgroundStyle.GLOW_ANIMATED
+                                PlayerBackgroundStyle.GLOW_ANIMATED,
+                                PlayerBackgroundStyle.APPLE_MUSIC,
+                                PlayerBackgroundStyle.LIVE_MESH
                             ),
                             valueText = {
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                    PlayerBackgroundStyle.BLUR_GRADIENT -> "Blur Gradient"
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                                    PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
+                                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                                     else -> it.name
                                 }
                             },
