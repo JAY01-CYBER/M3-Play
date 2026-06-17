@@ -1928,11 +1928,11 @@ fun PlayerBackground(
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl.highRes(),
+                                model = thumbnailUrl,
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (shouldApplyBlur) it.blur(radius = effectiveBlurRadius.dp) else it
+                                    if (disableBlur) it else it.blur(radius = 60.dp)
                                 }
                             )
                             val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
@@ -1951,6 +1951,7 @@ fun PlayerBackground(
                 }
             }
 
+
         
             PlayerBackgroundStyle.BLUR_GRADIENT -> {
                 AnimatedContent(
@@ -1963,11 +1964,11 @@ fun PlayerBackground(
                     if (thumbnailUrl != null) {
                         Box(modifier = Modifier.fillMaxSize()) {
                             AsyncImage(
-                                model = thumbnailUrl.highRes(),
+                                model = thumbnailUrl,
                                 contentDescription = "Blurred background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize().let {
-                                    if (shouldApplyBlur) it.blur(radius = effectiveBlurRadius.dp) else it
+                                    if (disableBlur) it else it.blur(radius = 65.dp)
                                 }
                             )
                             val gradientColorStops =
