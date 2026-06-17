@@ -104,6 +104,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.request.crossfade
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -1577,6 +1578,164 @@ fun PlayerPlaybackControls(
     }
 }
 
+/**
+ * Wrapper composable that combines all player control components.
+ */
+@Composable
+fun PlayerControlsContent(
+    mediaMetadata: MediaMetadata,
+    playerDesignStyle: PlayerDesignStyle,
+    sliderStyle: SliderStyle,
+    playbackState: Int,
+    isPlaying: Boolean,
+    isLoading: Boolean,
+    repeatMode: Int,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    textButtonColor: Color,
+    iconButtonColor: Color,
+    textBackgroundColor: Color,
+    icBackgroundColor: Color,
+    sliderPosition: Long?,
+    position: Long,
+    duration: Long,
+    playerConnection: PlayerConnection,
+    navController: NavController,
+    state: BottomSheetState,
+    menuState: MenuState,
+    bottomSheetPageState: BottomSheetPageState,
+    clipboardManager: ClipboardManager,
+    context: Context,
+    onSliderValueChange: (Long) -> Unit,
+    onSliderValueChangeFinished: () -> Unit,
+    currentFormat: FormatEntity? = null,
+    showInlineLyrics: Boolean = false, 
+    isFullScreen: Boolean = false,
+    onToggleFullScreen: () -> Unit = {}
+) {
+    val currentSong by playerConnection.currentSong.collectAsState(initial = null)
+    val currentSongLiked = currentSong?.song?.liked == true
+
+    val playPauseRoundness by animateDpAsState(
+        targetValue = if (isPlaying) 24.dp else 36.dp,
+        animationSpec = tween(durationMillis = 90, easing = LinearEasing),
+        label = "playPauseRoundness",
+    )
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PlayerHorizontalPadding),
+    ) {
+        
+        AnimatedContent(
+            targetState = showInlineLyrics,
+            label = "CompactThumbnail",
+            transitionSpec = { fadeIn() togetherWith fadeOut() }
+        ) { showLyrics ->
+            if (showLyrics) {
+                Row {
+                    AsyncImage(
+                        model = mediaMetadata.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+            } else {
+                Spacer(modifier = Modifier.width(0.dp))
+            }
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            PlayerTitleSection(
+                mediaMetadata = mediaMetadata,
+                textBackgroundColor = textBackgroundColor,
+                navController = navController,
+                state = state,
+                clipboardManager = clipboardManager,
+                context = context
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        PlayerTopActions(
+            mediaMetadata = mediaMetadata,
+            playerDesignStyle = playerDesignStyle,
+            textButtonColor = textButtonColor,
+            iconButtonColor = iconButtonColor,
+            textBackgroundColor = textBackgroundColor,
+            playerConnection = playerConnection,
+            navController = navController,
+            menuState = menuState,
+            state = state,
+            bottomSheetPageState = bottomSheetPageState,
+            context = context,
+            currentSongLiked = currentSongLiked,
+            showInlineLyrics = showInlineLyrics,
+            isFullScreen = isFullScreen,
+            onToggleFullScreen = onToggleFullScreen
+        )
+    }
+
+    Spacer(Modifier.height(12.dp))
+
+    PlayerSlider(
+        sliderStyle = sliderStyle,
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        isPlaying = isPlaying,
+        textButtonColor = textButtonColor,
+        onValueChange = onSliderValueChange,
+        onValueChangeFinished = onSliderValueChangeFinished
+    )
+
+    Spacer(Modifier.height(4.dp))
+
+    PlayerTimeLabel(
+        sliderPosition = sliderPosition,
+        position = position,
+        duration = duration,
+        textBackgroundColor = textBackgroundColor,
+        currentFormat = currentFormat,
+        playerDesignStyle = playerDesignStyle
+    )
+
+    AnimatedVisibility(
+        visible = !isFullScreen,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut()
+    ) {
+        Column {
+            Spacer(Modifier.height(12.dp))
+
+            PlayerPlaybackControls(
+                playerDesignStyle = playerDesignStyle,
+                playbackState = playbackState,
+                isPlaying = isPlaying,
+                isLoading = isLoading,
+                repeatMode = repeatMode,
+                canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext,
+                textButtonColor = textButtonColor,
+                iconButtonColor = iconButtonColor,
+                textBackgroundColor = textBackgroundColor,
+                icBackgroundColor = icBackgroundColor,
+                playPauseRoundness = playPauseRoundness,
+                playerConnection = playerConnection,
+                currentSongLiked = currentSongLiked
+            )
+        }
+    }
+}
+
 @Composable
 fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
@@ -1764,7 +1923,7 @@ fun PlayerBackground(
                 }
             }
 
-            
+    
             PlayerBackgroundStyle.BLUR -> {
                 AnimatedContent(
                     targetState = mediaMetadata?.thumbnailUrl,
