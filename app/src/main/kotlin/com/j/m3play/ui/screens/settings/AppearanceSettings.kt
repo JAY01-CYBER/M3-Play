@@ -374,19 +374,15 @@ fun AppearanceSettings(
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                                     PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
-                                    PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
-                                    PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
-                                    PlayerBackgroundStyle.LIVE_MESH -> "Live Mesh"
                                     else -> it.name
                                 }
                             },
                         )
 
-                        // 🔥 UPDATED: Mini Player Background Option uses ListPreference to filter out useless styles 🔥
+                        // UPDATED: Mini Player Background Option uses ListPreference to filter out useless styles 🔥
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
