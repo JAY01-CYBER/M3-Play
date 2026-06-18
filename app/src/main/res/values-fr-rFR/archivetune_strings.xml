@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="explore">Explore</string>
-    <string name="music_recognition_tap_to_listen">Tap to listen</string>
-    <string name="music_recognition_listening">Listening…</string>
-    <string name="music_recognition_processing">Processing…</string>
-    <string name="music_recognition_listen_again">Listen again</string>
-    <string name="music_recognition_no_match">No match found</string>
+    <string name="explore">Découvrir</string>
+    <string name="music_recognition_tap_to_listen">Appuyez pour écouter</string>
+    <string name="music_recognition_listening">Écoute…</string>
+    <string name="music_recognition_processing">Traitement en cours…</string>
+    <string name="music_recognition_listen_again">Réécouter</string>
+    <string name="music_recognition_no_match">Aucun résultat trouvé</string>
     <string name="music_recognition_signature_failed">Impossible de générer une signature</string>
     <string name="music_recognition_recognition_failed">Échec de la reconnaissance</string>
     <string name="music_recognition_open_shazam">Ouvrir Shazam</string>
@@ -18,16 +18,16 @@
     <string name="remote_history">Remote</string>
     <string name="charts">Classements</string>
     <string name="back_button_desc">Retour</string>
-    <string name="no_title">No title</string>
+    <string name="no_title">Aucun titre</string>
     <string name="unknown_artist">Artiste inconnu</string>
     <string name="unknown_item_type">Unknown item type</string>
-    <string name="loading_charts">Loading charts...</string>
-    <string name="retry_button">Retry</string>
-    <string name="album_cover_desc">Album cover</string>
+    <string name="loading_charts">Chargement des classements...</string>
+    <string name="retry_button">Réessayer</string>
+    <string name="album_cover_desc">Pochette d\'album</string>
     <string name="top_music_videos">Top music videos</string>
-    <string name="trending">Trending</string>
-    <string name="weeks">Weeks</string>
-    <string name="months">Months</string>
+    <string name="trending">Tendances</string>
+    <string name="weeks">Semaines</string>
+    <string name="months">Mois</string>
     <string name="years">Years</string>
     <string name="continuous">Continuous</string>
     <string name="offline">Downloaded</string>
