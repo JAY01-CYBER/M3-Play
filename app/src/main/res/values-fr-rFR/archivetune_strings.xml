@@ -65,7 +65,7 @@
     <string name="assign_tags_to_playlists">Ajouter à des playlists</string>
     <string name="no_tags_available">Aucune balise disponible. Créez-en une au préalable.</string>
     <string name="manage_playlist_tags">Playlist Tags</string>
-    <string name="manage_playlist_tags_desc">Create and manage tags for organizing playlists</string>
+    <string name="manage_playlist_tags_desc">Créer et gérer des balises pour organiser les playlists</string>
     <string name="like_all">Like all</string>
     <string name="dislike_all">Dislike all</string>
     <string name="sort_by_last_updated">Date de mise à jour</string>
@@ -76,7 +76,7 @@
     <string name="minimum_volume">Volume minimum</string>
     <string name="maximum_volume">Volume maximal</string>
     <string name="hide_player_thumbnail">Hide Player Thumbnail</string>
-    <string name="hide_player_thumbnail_desc">Replace album artwork with app logo in player</string>
+    <string name="hide_player_thumbnail_desc">Remplacer la pochette de l\'album par le logo de l\'application dans le lecteur</string>
     <string name="crop_thumbnail_to_square">Crop thumbnails to 1:1</string>
     <string name="crop_thumbnail_to_square_desc">Display YouTube thumbnails in square format instead of 16:9</string>
     <string name="show_home_category_chips">Show home category chips</string>
