@@ -345,6 +345,7 @@ fun ContentSettings(
                                 PreferredLyricsProvider.BETTER_LYRICS,
                                 PreferredLyricsProvider.SIMPMUSIC,
                                 PreferredLyricsProvider.YOULYPLUS,
+                                PreferredLyricsProvider.PAXSENIX,  
                             ),
                             valueText = {
                                 when (it) {
@@ -353,6 +354,7 @@ fun ContentSettings(
                                     PreferredLyricsProvider.BETTER_LYRICS -> "BetterLyrics"
                                     PreferredLyricsProvider.SIMPMUSIC -> "SimpMusic"
                                     PreferredLyricsProvider.YOULYPLUS -> "YouLyPlus"
+                                    PreferredLyricsProvider.PAXSENIX -> "Paxsenix"
                                 }
                             },
                             onValueSelected = onPreferredProviderChange,
