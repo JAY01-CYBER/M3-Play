@@ -1,10 +1,14 @@
+/*
+ * M3Play - Modern Music Player
+ *
+ * Copyright (c) 2026 JAY01-CYBER
+ * Signature: M3PLAY::GENERAL::V1
+ */
+
 package com.j.m3play.lyrics
 
 import android.content.Context
 import com.j.paxsenix.Paxsenix
-import com.j.m3play.constants.EnablePaxsenixKey
-import com.j.m3play.utils.dataStore
-import com.j.m3play.utils.get
 import timber.log.Timber
 
 object PaxsenixLyricsProvider : LyricsProvider {
@@ -12,7 +16,8 @@ object PaxsenixLyricsProvider : LyricsProvider {
     
     override val name = "Paxsenix"
 
-    override fun isEnabled(context: Context): Boolean = context.dataStore[EnablePaxsenixKey] ?: true
+    // Hamesha enabled rakha hai taaki extra settings key na banani pade
+    override fun isEnabled(context: Context): Boolean = true
 
     override suspend fun getLyrics(
         id: String,
