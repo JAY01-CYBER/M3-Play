@@ -242,6 +242,7 @@ dependencies {
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
     implementation(project(":youlyplus"))
+    implementation(project(":paxsenix"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
