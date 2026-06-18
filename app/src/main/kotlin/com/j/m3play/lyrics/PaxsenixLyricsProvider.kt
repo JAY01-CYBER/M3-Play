@@ -1,8 +1,3 @@
-/**
- * Metrolist Project (C) 2026
- * Licensed under GPL-3.0 | See git history for contributors
- */
-
 package com.j.m3play.lyrics
 
 import android.content.Context
@@ -20,17 +15,15 @@ object PaxsenixLyricsProvider : LyricsProvider {
     override fun isEnabled(context: Context): Boolean = context.dataStore[EnablePaxsenixKey] ?: true
 
     override suspend fun getLyrics(
-        context: Context,
         id: String,
         title: String,
         artist: String,
-        duration: Int,
         album: String?,
+        duration: Int,
     ): Result<String> {
         Timber.tag(TAG).d("getLyrics called: title='$title', artist='$artist', duration=$duration")
         
         try {
-            Paxsenix.init(context)
             val result = Paxsenix.getLyrics(title, artist, duration, album)
             
             result.onSuccess { lyrics ->
@@ -47,17 +40,15 @@ object PaxsenixLyricsProvider : LyricsProvider {
     }
 
     override suspend fun getAllLyrics(
-        context: Context,
         id: String,
         title: String,
         artist: String,
-        duration: Int,
         album: String?,
+        duration: Int,
         callback: (String) -> Unit,
     ) {
         Timber.tag(TAG).d("getAllLyrics called")
         try {
-            Paxsenix.init(context)
             Paxsenix.getAllLyrics(title, artist, duration, album, callback)
         } catch (e: Exception) {
             Timber.tag(TAG).e(e, "Error fetching lyrics from Paxsenix")
