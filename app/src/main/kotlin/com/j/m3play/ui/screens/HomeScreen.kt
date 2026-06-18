@@ -157,7 +157,7 @@ fun GlossyCarouselCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(song.song.thumbnailUrl?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .build(), // Scroll smoothness ke liye crossfade hataya gaya hai
+                    .build(), 
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = imageModifier,
@@ -210,8 +210,6 @@ fun HomeScreen(
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    val forgottenFavoritesLazyGridState = rememberLazyGridState()
-
     val accountName by viewModel.accountName.collectAsState()
     val accountImageUrl by viewModel.accountImageUrl.collectAsState()
     val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
@@ -248,8 +246,6 @@ fun HomeScreen(
     LaunchedEffect(showHomeCategoryChips, selectedChip) {
         if (!showHomeCategoryChips && selectedChip != null) { viewModel.toggleChip(selectedChip) }
     }
-
-    LaunchedEffect(forgottenFavorites) { forgottenFavoritesLazyGridState.scrollToItem(0) }
 
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
@@ -295,19 +291,12 @@ fun HomeScreen(
             ) {}
         }
 
-        // Native M3 Expressive Pull-To-Refresh integration
         ExpressivePullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize(),
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val horizontalLazyGridItemWidthFactor = if (maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
-                val horizontalLazyGridItemWidth = maxWidth * horizontalLazyGridItemWidthFactor
-                val forgottenFavoritesSnapLayoutInfoProvider = remember(forgottenFavoritesLazyGridState) {
-                    SnapLayoutInfoProvider(lazyGridState = forgottenFavoritesLazyGridState, positionInLayout = { layoutSize, itemSize -> (layoutSize * horizontalLazyGridItemWidthFactor / 2f - itemSize / 2f) })
-                }
-
                 LazyColumn(
                     state = lazylistState,
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues()
@@ -382,7 +371,18 @@ fun HomeScreen(
 
                     forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                         item(key = "forgotten_favorites_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
-                        item(key = "forgotten_favorites_section", contentType = "section") { ForgottenFavoritesSection(forgottenFavorites = favorites, mediaMetadata = mediaMetadata, isPlaying = isPlaying, horizontalLazyGridItemWidth = horizontalLazyGridItemWidth, lazyGridState = forgottenFavoritesLazyGridState, snapLayoutInfoProvider = forgottenFavoritesSnapLayoutInfoProvider, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic) }
+                        item(key = "forgotten_favorites_section", contentType = "section") { 
+                            // Yahan snap variables hata diye hain kyunki carousel automatically ye manage karta hai
+                            ForgottenFavoritesSection(
+                                forgottenFavorites = favorites, 
+                                mediaMetadata = mediaMetadata, 
+                                isPlaying = isPlaying, 
+                                navController = navController, 
+                                playerConnection = playerConnection, 
+                                menuState = menuState, 
+                                haptic = haptic
+                            ) 
+                        }
                     }
 
                     SimilarRecommendationsContainer(viewModel = viewModel, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
@@ -392,8 +392,9 @@ fun HomeScreen(
                         item(key = "section_content_${section.title}_$index", contentType = "section") { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                     }
 
+                    // YAHAN PAR WAVY ANIMATION ADD KIYA HAI
                     if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
-                        item(key = "loading_shimmer", contentType = "loading") { HomeLoadingShimmer(modifier = Modifier.animateItem()) }
+                        item(key = "loading_wavy", contentType = "loading") { HomeWavyLoading(modifier = Modifier.animateItem()) }
                     }
                 }
             }

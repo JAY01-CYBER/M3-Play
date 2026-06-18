@@ -15,7 +15,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +22,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -38,8 +38,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,14 +45,15 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -77,27 +76,25 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.C
@@ -107,6 +104,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import coil3.request.crossfade
 import me.saket.squiggles.SquigglySlider
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -131,8 +129,6 @@ import com.j.m3play.ui.theme.PlayerBackgroundColorUtils
 import com.j.m3play.ui.theme.PlayerSliderColors
 import com.j.m3play.ui.utils.ShowMediaInfo
 import com.j.m3play.utils.makeTimeString
-import kotlin.math.roundToLong
-import kotlin.math.roundToInt
 
 @Composable
 fun PlayerTitleSection(
@@ -962,10 +958,9 @@ fun PlayerPlaybackControls(
                             .clip(RoundedCornerShape(32.dp))
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(42.dp),
-                                color = iconButtonColor,
-                                strokeWidth = 3.dp
+                                color = iconButtonColor
                             )
                         } else {
                             Icon(
@@ -1070,10 +1065,9 @@ fun PlayerPlaybackControls(
                         contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(
+                            CircularWavyProgressIndicator(
                                 modifier = Modifier.size(32.dp),
-                                color = icBackgroundColor,
-                                strokeWidth = 2.5.dp
+                                color = icBackgroundColor
                             )
                         } else {
                             Icon(
@@ -1240,10 +1234,9 @@ fun PlayerPlaybackControls(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isLoading) {
-                                CircularProgressIndicator(
+                                CircularWavyProgressIndicator(
                                     modifier = Modifier.size(40.dp),
-                                    color = icBackgroundColor,
-                                    strokeWidth = 3.dp
+                                    color = icBackgroundColor
                                 )
                             } else {
                                 Icon(
@@ -1364,7 +1357,7 @@ fun PlayerPlaybackControls(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(36.dp), color = Color.White, strokeWidth = 3.dp)
+                            CircularWavyProgressIndicator(modifier = Modifier.size(36.dp), color = Color.White)
                         } else {
                             Icon(painterResource(if (playbackState == STATE_ENDED) R.drawable.replay else if (isPlaying) R.drawable.pause else R.drawable.play), null, tint = Color.White, modifier = Modifier.size(40.dp))
                         }
@@ -1466,10 +1459,9 @@ fun PlayerPlaybackControls(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
+                                    CircularWavyProgressIndicator(
                                         modifier = Modifier.size(40.dp),
-                                        color = iconButtonColor,
-                                        strokeWidth = 3.dp
+                                        color = iconButtonColor
                                     )
                                 } else {
                                     Icon(
@@ -1586,9 +1578,6 @@ fun PlayerPlaybackControls(
     }
 }
 
-/**
- * Wrapper composable that combines all player control components.
- */
 @Composable
 fun PlayerControlsContent(
     mediaMetadata: MediaMetadata,
@@ -1692,7 +1681,6 @@ fun PlayerControlsContent(
         )
     }
 
-    // 🔥 METROLIST FIX: Slider aur Time labels animation block se bahar hain taaki fullscreen me hide na hon 🔥
     Spacer(Modifier.height(12.dp))
 
     PlayerSlider(
@@ -1717,7 +1705,6 @@ fun PlayerControlsContent(
         playerDesignStyle = playerDesignStyle
     )
 
-    // 🔥 SIRF CONTROL BUTTONS FULLSCREEN MEIN HIDE HONGE 🔥
     AnimatedVisibility(
         visible = !isFullScreen,
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -1755,128 +1742,12 @@ fun PlayerBackground(
     playerCustomImageUri: String,
     playerCustomBlur: Float,
     playerCustomContrast: Float,
-    playerCustomBrightness: Float
+    playerCustomBrightness: Float,
+    showInlineLyrics: Boolean = false
 ) {
+    val context = LocalContext.current
     Box(modifier = Modifier.fillMaxSize()) {
         when (playerBackground) {
-            
-            PlayerBackgroundStyle.LIVE_MESH -> {
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = "LiveMeshBackground"
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        val infiniteTransition = rememberInfiniteTransition(label = "meshRotation")
-                        val rotation by infiniteTransition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(60000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "rotation"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    scaleX = 1.5f
-                                    scaleY = 1.5f
-                                }
-                        ) {
-                            val matrix = remember { ColorMatrix().apply { setToSaturation(1.6f) } }
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(thumbnailUrl)
-                                    .size(400, 400)
-                                    .allowHardware(false)
-                                    .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                colorFilter = ColorFilter.colorMatrix(matrix),
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 80.dp)
-                                    .graphicsLayer { rotationZ = rotation }
-                            )
-                            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
-                        }
-                    }
-                }
-            }
-
-            PlayerBackgroundStyle.APPLE_MUSIC -> {
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = { fadeIn(tween(1000)) togetherWith fadeOut(tween(1000)) },
-                    label = "AppleMusicBackground"
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(thumbnailUrl)
-                                    .allowHardware(false)
-                                    .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop, 
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .blur(if (disableBlur) 0.dp else 15.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Black.copy(alpha = 0.2f),
-                                                Color.Black.copy(alpha = 0.5f),
-                                                Color.Black.copy(alpha = 0.85f)
-                                            )
-                                        )
-                                    )
-                            )
-                        }
-                    }
-                }
-            }
-
-            PlayerBackgroundStyle.BLUR -> {
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
-                    label = ""
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailUrl,
-                                contentDescription = "Blurred background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 60.dp)
-                                }
-                            )
-                            val overlayStops = PlayerBackgroundColorUtils.buildBlurOverlayStops(gradientColors)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = overlayStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.08f))
-                            )
-                        }
-                    }
-                }
-            }
-
             PlayerBackgroundStyle.GRADIENT -> {
                 AnimatedContent(
                     targetState = gradientColors,
@@ -1937,41 +1808,6 @@ fun PlayerBackground(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(Color.Black.copy(alpha = 0.25f))
-                            )
-                        }
-                    }
-                }
-            }
-
-            PlayerBackgroundStyle.BLUR_GRADIENT -> {
-                AnimatedContent(
-                    targetState = mediaMetadata?.thumbnailUrl,
-                    transitionSpec = {
-                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
-                    },
-                    label = ""
-                ) { thumbnailUrl ->
-                    if (thumbnailUrl != null) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            AsyncImage(
-                                model = thumbnailUrl,
-                                contentDescription = "Blurred background",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().let {
-                                    if (disableBlur) it else it.blur(radius = 65.dp)
-                                }
-                            )
-                            val gradientColorStops =
-                                PlayerBackgroundColorUtils.buildBlurGradientStops(gradientColors)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Brush.verticalGradient(colorStops = gradientColorStops))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.05f))
                             )
                         }
                     }
@@ -2243,94 +2079,6 @@ fun PlayerBackground(
 
             else -> {
                 // DEFAULT or other modes - no background
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-private fun Modifier.littlePlayerOverlayGestures(
-    seekEnabled: Boolean,
-    durationMs: Long,
-    progressFraction: Float,
-    canSkipPrevious: Boolean,
-    canSkipNext: Boolean,
-    onSeekToPositionMs: (Long) -> Unit,
-    onSeekFinished: () -> Unit,
-    onSkipPrevious: () -> Unit,
-    onSkipNext: () -> Unit,
-): Modifier {
-    return pointerInput(seekEnabled, durationMs, canSkipPrevious, canSkipNext) {
-        var lastTapUptimeMs = 0L
-        var lastTapPosition: Offset? = null
-        val doubleTapTimeoutMs = viewConfiguration.doubleTapTimeoutMillis.toLong()
-        val touchSlop = viewConfiguration.touchSlop
-
-        awaitEachGesture {
-            val down = awaitFirstDown(requireUnconsumed = true)
-            val pointerId = down.id
-
-            var upPosition = down.position
-            val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx =
-                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown =
-                seekEnabled &&
-                    durationMs > 0L &&
-                    durationMs != C.TIME_UNSET &&
-                    down.position.y <= overlayHeightPx
-
-            var isSeeking = false
-
-            while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Main)
-                val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
-                upPosition = change.position
-
-                if (!change.pressed) break
-
-                if (!isSeeking && seekAllowedFromDown) {
-                    val distanceFromDown = (change.position - down.position).getDistance()
-                    if (distanceFromDown > touchSlop) isSeeking = true
-                }
-
-                if (isSeeking) {
-                    val fraction =
-                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
-                    val clampedFraction = fraction.coerceIn(0f, 1f)
-
-                    val targetMs =
-                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
-                    onSeekToPositionMs(targetMs)
-                    change.consume()
-                }
-            }
-
-            if (isSeeking) {
-                onSeekFinished()
-                lastTapUptimeMs = 0L
-                lastTapPosition = null
-            } else {
-                val now = SystemClock.uptimeMillis()
-                val previousTapPosition = lastTapPosition
-                val isDoubleTap =
-                    previousTapPosition != null &&
-                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
-                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
-
-                if (isDoubleTap) {
-                    val isTopSide = upPosition.y < size.height / 2f
-                    if (isTopSide) {
-                        if (canSkipPrevious) onSkipPrevious()
-                    } else {
-                        if (canSkipNext) onSkipNext()
-                    }
-                    lastTapUptimeMs = 0L
-                    lastTapPosition = null
-                } else {
-                    lastTapUptimeMs = now
-                    lastTapPosition = upPosition
-                }
             }
         }
     }

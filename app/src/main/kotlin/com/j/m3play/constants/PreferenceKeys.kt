@@ -1,8 +1,11 @@
 /*
- * M3Play - Modern Music Player
- *
- * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.constants
@@ -50,7 +53,7 @@ val AppLanguageKey = stringPreferencesKey("appLanguage")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
-val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
+val EnableLrcLibKey = booleanPreferencesKey("enableLrcLib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
@@ -195,7 +198,6 @@ val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceInterv
 val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") // "ONLINE", "IDLE", "DND", "INVISIBLE"
 
 // Discord image selection keys
-// Values for type keys: "thumbnail", "artist", "appicon", "custom"
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeTextSourceKey = stringPreferencesKey("discordLargeTextSource")
 val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
@@ -413,6 +415,7 @@ enum class PlayerDesignStyle {
     V6,
 }
 
+// 🔥 YAHAN HAIN AAPKE SAARE OPTIONS JO MISSING THE 🔥
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
@@ -432,7 +435,6 @@ val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
-
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {
     NONE,
@@ -451,6 +453,7 @@ val HistoryDuration = floatPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style") 
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")

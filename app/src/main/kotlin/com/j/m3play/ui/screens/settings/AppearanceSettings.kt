@@ -78,6 +78,7 @@ import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
+import com.j.m3play.constants.MiniPlayerBackgroundStyleKey
 import com.j.m3play.constants.PureBlackKey
 import com.j.m3play.constants.RandomThemeOnStartupKey
 import com.j.m3play.constants.UseSystemFontKey
@@ -137,6 +138,9 @@ fun AppearanceSettings(
     val (thumbnailCornerRadius, onThumbnailCornerRadiusChange) = rememberPreference(ThumbnailCornerRadiusKey, 16f)
     val (cropThumbnailToSquare, onCropThumbnailToSquareChange) = rememberPreference(CropThumbnailToSquareKey, false)
     val (playerBackground, onPlayerBackgroundChange) = rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    
+    val (miniPlayerBackground, onMiniPlayerBackgroundChange) = rememberEnumPreference(MiniPlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
+    
     val (pureBlack, onPureBlackChange) = rememberPreference(PureBlackKey, false)
     val (disableBlur, onDisableBlurChange) = rememberPreference(DisableBlurKey, true)
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, false)
@@ -360,19 +364,56 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        EnumListPreference(
+                        // 🔥 Main Player Background (List Restricted to only allow 6 options without blur ones)
+                        ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
                             selectedValue = playerBackground,
-                            onValueSelected = onPlayerBackgroundChange,
+                            values = listOf(
+                                PlayerBackgroundStyle.DEFAULT,
+                                PlayerBackgroundStyle.GRADIENT,
+                                PlayerBackgroundStyle.CUSTOM,
+                                PlayerBackgroundStyle.COLORING,
+                                PlayerBackgroundStyle.GLOW,
+                                PlayerBackgroundStyle.GLOW_ANIMATED
+                            ),
                             valueText = {
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                                     PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
-                                    PlayerBackgroundStyle.BLUR_GRADIENT -> stringResource(R.string.blur_gradient)
+                                    PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
+                                    PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
+                                    else -> it.name
+                                }
+                            },
+                            onValueSelected = onPlayerBackgroundChange,
+                        )
+
+                        // 🔥 Mini Player Background (All Options Available including Blur and Apple Music)
+                        ListPreference(
+                            title = { Text("Mini player background style") },
+                            icon = { Icon(painterResource(R.drawable.gradient), null) },
+                            selectedValue = miniPlayerBackground,
+                            values = listOf(
+                                PlayerBackgroundStyle.DEFAULT,
+                                PlayerBackgroundStyle.GRADIENT,
+                                PlayerBackgroundStyle.BLUR,
+                                PlayerBackgroundStyle.BLUR_GRADIENT,
+                                PlayerBackgroundStyle.COLORING,
+                                PlayerBackgroundStyle.GLOW,
+                                PlayerBackgroundStyle.GLOW_ANIMATED,
+                                PlayerBackgroundStyle.APPLE_MUSIC,
+                                PlayerBackgroundStyle.LIVE_MESH
+                            ),
+                            valueText = {
+                                when (it) {
+                                    PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
+                                    PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
+                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                    PlayerBackgroundStyle.BLUR_GRADIENT -> "Blur Gradient"
+                                    PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
                                     PlayerBackgroundStyle.APPLE_MUSIC -> "Apple Music"
@@ -380,6 +421,7 @@ fun AppearanceSettings(
                                     else -> it.name
                                 }
                             },
+                            onValueSelected = onMiniPlayerBackgroundChange,
                         )
 
                         if (playerBackground == PlayerBackgroundStyle.CUSTOM) {
