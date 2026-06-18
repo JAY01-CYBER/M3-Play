@@ -1,10 +1,8 @@
 package com.j.paxsenix
 
-import android.content.Context
-import moe.koiverse.archivetune.betterlyrics.TTMLParser
+import com.j.m3play.betterlyrics.TTMLParser
 import com.j.paxsenix.models.AppleMusicSearchResponse
 import com.j.paxsenix.models.LyricsResponse
-
 import com.j.paxsenix.models.SearchResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -27,58 +25,33 @@ import java.util.Locale
 import kotlin.math.abs
 
 object Paxsenix {
-    @Volatile
-    private var client: HttpClient? = null
-    private var appVersion: String = "Unknown"
-
-    fun init(context: Context) {
-        if (client != null) return // Already initialized
-        
-        synchronized(this) {
-            if (client != null) return
-            
-            appVersion = try {
-                context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                    ?: "Unknown"
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to get app version")
-                "Unknown"
+    private val httpClient: HttpClient by lazy {
+        Timber.d("Initializing Paxsenix HTTP client")
+        HttpClient(CIO) {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 15000
+                connectTimeoutMillis = 10000
             }
-            
-            Timber.d("Initializing Paxsenix with version: $appVersion")
-            
-            client = HttpClient(CIO) {
-                install(HttpTimeout) {
-                    requestTimeoutMillis = 15000
-                    connectTimeoutMillis = 10000
-                }
-                install(ContentNegotiation) {
-                    json(
-                        Json {
-                            isLenient = true
-                            ignoreUnknownKeys = true
-                        },
-                    )
-                }
-
-                defaultRequest {
-                    url("https://lyrics.paxsenix.org")
-                    header("User-Agent", "Metrolist/$appVersion")
-                }
-
-                expectSuccess = true
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    },
+                )
             }
-            
-            Timber.d("Paxsenix HTTP client initialized")
+            defaultRequest {
+                url("https://lyrics.paxsenix.org")
+                header("User-Agent", "M3Play/1.0")
+            }
+            expectSuccess = true
         }
     }
-
-    private val httpClient: HttpClient
-        get() = client ?: throw IllegalStateException("Paxsenix.init() must be called before using Paxsenix")
 
     private const val APPLE_MUSIC_API_BASE = "https://amp-api.music.apple.com/v1/catalog/us"
 
     private val appleJson = Json { ignoreUnknownKeys = true }
+    
     @Volatile
     private var appleTokenManager: AppleTokenManager? = null
     private val tokenManager: AppleTokenManager
@@ -193,10 +166,9 @@ object Paxsenix {
         Timber.d("getLyrics called: title='$title', artist='$artist', duration=$duration, album=$album")
         Timber.d("Cleaned: title='$cleanedTitle', artist='$cleanedArtist'")
         
-        // Try multiple search queries for better matching
         val searchQueries = buildList {
             add("$cleanedTitle $cleanedArtist")
-            add(cleanedTitle) // Just title as fallback
+            add(cleanedTitle)
             if (!album.isNullOrBlank()) {
                 add("$cleanedTitle $cleanedArtist $album")
             }
@@ -236,11 +208,11 @@ object Paxsenix {
                 bestLyrics = lrc
             }
             
-            if (bestQuality == 3) break // Word-synced is best we can get
+            if (bestQuality == 3) break
         }
 
         bestLyrics?.let {
-            Timber.d("Using Paxsenix lyrics with quality $bestQuality (respects provider order)")
+            Timber.d("Using Paxsenix lyrics with quality $bestQuality")
             return Result.success(it)
         }
         
@@ -271,11 +243,9 @@ object Paxsenix {
         val durationMs = duration * 1000
         val cleanupRegex = Regex("""\s*\(.*?\)|\s*\[.*?\]""")
         
-        // Cleaned versions for fuzzy matching
         val cleanedTitle = title.replace(cleanupRegex, "").lowercase().trim()
         val cleanedArtist = cleanArtist(artist).lowercase()
         
-        // Track if target has version markers
         val targetIsMixed = title.contains("mixed", ignoreCase = true)
         val targetIsRemix = title.contains("remix", ignoreCase = true)
         
@@ -288,10 +258,10 @@ object Paxsenix {
             result.duration?.let { d ->
                 val diff = abs(d - durationMs)
                 when {
-                    diff <= 2000 -> score += 100 // Excellent match
-                    diff <= 5000 -> score += 50  // Good match
-                    diff <= 10000 -> score += 10 // Acceptable match
-                    else -> score -= 50          // Likely wrong version (Mixed/Edit/etc)
+                    diff <= 2000 -> score += 100 
+                    diff <= 5000 -> score += 50  
+                    diff <= 10000 -> score += 10 
+                    else -> score -= 50          
                 }
             }
             
@@ -302,7 +272,6 @@ object Paxsenix {
                 resultTitleCleaned.contains(cleanedTitle) || cleanedTitle.contains(resultTitleCleaned) -> score += 40
             }
             
-            // Penalize version mismatch
             val resultIsMixed = resultTitle.contains("mixed", ignoreCase = true)
             val resultIsRemix = resultTitle.contains("remix", ignoreCase = true)
             
@@ -337,7 +306,6 @@ object Paxsenix {
         val lyricsType = response.type
         Timber.d("Lyrics response: type=$lyricsType")
         
-        // Prioritize ttmlContent using the robust TTMLParser
         if (!response.ttmlContent.isNullOrBlank()) {
             val lrc = convertTTMLToAppFormat(response.ttmlContent)
             if (lrc.isNotEmpty()) {
@@ -346,7 +314,6 @@ object Paxsenix {
             }
         }
 
-        // Fallback to ELRC formats if TTML failed or is missing
         if (!response.elrcMultiPerson.isNullOrBlank()) {
             Timber.d("Using elrcMultiPerson as fallback")
             return@runCatching response.elrcMultiPerson
@@ -369,7 +336,6 @@ object Paxsenix {
         Timber.d("Using content array as source, hasWordLevel=$hasWordLevel")
 
         if (!hasWordLevel) {
-            // Non-synced: return as plain text with no timestamps
             val plain = response.content
                 .map { line -> line.text.joinToString(" ") { it.text } }
                 .filter { it.isNotBlank() }
@@ -427,8 +393,6 @@ object Paxsenix {
             cleanedTitle
         )
 
-        var plainFallback: String? = null
-
         var scoredResults: List<Pair<SearchResult, Double>> = emptyList()
         searchLoop@ for (query in searchQueries) {
             val results = search(query)
@@ -449,20 +413,15 @@ object Paxsenix {
             if (lrc.isNotEmpty()) {
                 val quality = getQuality(lrc)
                 collectedLyrics.add(lrc to quality)
-                if (quality == 3) break // Found best quality, stop searching
+                if (quality == 3) break
             }
         }
 
-        // Sort by quality descending and callback
         collectedLyrics.sortedByDescending { it.second }.forEach { (lrc, _) ->
             callback(lrc)
         }
     }
     
-    /**
-     * Convert TTML format to app format with v1/v2/bg support
-     * TTML has native agent info via ttm:agent="v1" or ttm:agent="v2"
-     */
     private fun convertTTMLToAppFormat(ttml: String): String {
         return try {
             val parsedLines = TTMLParser.parseTTML(ttml)
