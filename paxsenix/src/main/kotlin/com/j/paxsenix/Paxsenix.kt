@@ -418,10 +418,38 @@ object Paxsenix {
     private fun convertTTMLToAppFormat(ttml: String): String {
         return try {
             val parsedLines = TTMLParser.parseTTML(ttml)
-            TTMLParser.toLRC(parsedLines)
+            toLRC(parsedLines) // <-- NAYA LOCAL toLRC YAHAN USE HUA
         } catch (e: Exception) {
             Log.e("Paxsenix", "TTML conversion failed: ${e.message}", e)
             ""
+        }
+    }
+
+    // <-- TTML ko safely format karne ka naya function
+    private fun toLRC(lines: List<TTMLParser.ParsedLine>): String {
+        return buildString {
+            lines.forEach { line ->
+                val timeMs = (line.startTime * 1000).toLong()
+                val minutes = timeMs / 1000 / 60
+                val seconds = (timeMs / 1000) % 60
+                val centiseconds = (timeMs % 1000) / 10
+
+                val prefix = when {
+                    line.isBackground -> "{bg}"
+                    line.agent == "v2" -> "{agent:v2}"
+                    line.agent == "v1" -> "{agent:v1}"
+                    else -> ""
+                }
+
+                appendLine(String.format(Locale.US, "[%02d:%02d.%02d]%s%s", minutes, seconds, centiseconds, prefix, line.text))
+
+                if (line.words.isNotEmpty()) {
+                    val wordsData = line.words.joinToString("|") { word ->
+                        "${word.text}:${word.startTime}:${word.endTime}"
+                    }
+                    appendLine("<$wordsData>")
+                }
+            }
         }
     }
 
