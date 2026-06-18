@@ -1,5 +1,6 @@
 package com.j.paxsenix
 
+import android.util.Log
 import com.j.m3play.betterlyrics.TTMLParser
 import com.j.paxsenix.models.AppleMusicSearchResponse
 import com.j.paxsenix.models.LyricsResponse
@@ -19,14 +20,13 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
-import timber.log.Timber
 import java.net.URLEncoder
 import java.util.Locale
 import kotlin.math.abs
 
 object Paxsenix {
     private val httpClient: HttpClient by lazy {
-        Timber.d("Initializing Paxsenix HTTP client")
+        Log.d("Paxsenix", "Initializing Paxsenix HTTP client")
         HttpClient(CIO) {
             install(HttpTimeout) {
                 requestTimeoutMillis = 15000
@@ -94,7 +94,7 @@ object Paxsenix {
     }
 
     private suspend fun search(query: String): List<SearchResult> = runCatching {
-        Timber.d("Searching Apple Music for: $query")
+        Log.d("Paxsenix", "Searching Apple Music for: $query")
         
         val token = tokenManager.getToken()
         return@runCatching searchWithToken(token, query)
@@ -105,11 +105,11 @@ object Paxsenix {
                 val newToken = tokenManager.getToken()
                 searchWithToken(newToken, query)
             }.getOrElse { e2 ->
-                Timber.e(e2, "Search retry error: ${e2.message}")
+                Log.e("Paxsenix", "Search retry error: ${e2.message}", e2)
                 emptyList()
             }
         }
-        Timber.e(e, "Search error: ${e.message}")
+        Log.e("Paxsenix", "Search error: ${e.message}", e)
         emptyList()
     }
     
@@ -129,7 +129,7 @@ object Paxsenix {
         val body = try {
             appleJson.decodeFromString<AppleMusicSearchResponse>(response.bodyAsText())
         } catch (e: Exception) {
-            Timber.e(e, "Failed to parse Apple Music search response")
+            Log.e("Paxsenix", "Failed to parse Apple Music search response", e)
             return emptyList()
         }
         
@@ -147,9 +147,9 @@ object Paxsenix {
                 artwork = attr.artwork?.url?.replace("{w}", "100")?.replace("{h}", "100")?.replace("{f}", "png")
             )
         }.also { results ->
-            Timber.d("Apple Music search results count: ${results.size}")
+            Log.d("Paxsenix", "Apple Music search results count: ${results.size}")
             results.forEach { result ->
-                Timber.v("  - ${result.displayName} by ${result.displayArtist} (ID: ${result.id}, Duration: ${result.duration})")
+                Log.v("Paxsenix", "  - ${result.displayName} by ${result.displayArtist} (ID: ${result.id}, Duration: ${result.duration})")
             }
         }
     }
@@ -163,8 +163,7 @@ object Paxsenix {
         val cleanedTitle = cleanTitle(title)
         val cleanedArtist = cleanArtist(artist)
         
-        Timber.d("getLyrics called: title='$title', artist='$artist', duration=$duration, album=$album")
-        Timber.d("Cleaned: title='$cleanedTitle', artist='$cleanedArtist'")
+        Log.d("Paxsenix", "getLyrics called: title='$title', artist='$artist', duration=$duration, album=$album")
         
         val searchQueries = buildList {
             add("$cleanedTitle $cleanedArtist")
@@ -178,7 +177,7 @@ object Paxsenix {
         
         for (query in searchQueries) {
             if (allResults.isEmpty()) {
-                Timber.d("Trying search query: $query")
+                Log.d("Paxsenix", "Trying search query: $query")
                 val searchResults = search(query)
                 
                 if (searchResults.isNotEmpty()) {
@@ -188,7 +187,7 @@ object Paxsenix {
         }
         
         if (allResults.isEmpty()) {
-            Timber.w("No tracks found for any query")
+            Log.w("Paxsenix", "No tracks found for any query")
             throw IllegalStateException("No tracks found on Paxsenix")
         }
 
@@ -196,12 +195,11 @@ object Paxsenix {
         var bestQuality = 0
 
         for ((result, score) in allResults.take(10)) {
-            Timber.d("Trying: ${result.displayName} (ID: ${result.id}, dur: ${result.duration}, score: $score)")
+            Log.d("Paxsenix", "Trying: ${result.displayName} (ID: ${result.id}, dur: ${result.duration}, score: $score)")
             val lrc = fetchLyricsForTrack(result.id).getOrNull() ?: continue
             if (lrc.isEmpty()) continue
             
             val quality = getQuality(lrc)
-            Timber.d("Got lyrics, quality=$quality")
             
             if (quality > bestQuality) {
                 bestQuality = quality
@@ -212,11 +210,11 @@ object Paxsenix {
         }
 
         bestLyrics?.let {
-            Timber.d("Using Paxsenix lyrics with quality $bestQuality")
+            Log.d("Paxsenix", "Using Paxsenix lyrics with quality $bestQuality")
             return Result.success(it)
         }
         
-        Timber.w("No lyrics content from Paxsenix for matched tracks")
+        Log.w("Paxsenix", "No lyrics content from Paxsenix for matched tracks")
         return Result.failure(IllegalStateException("No lyrics available from Paxsenix"))
     }
     
@@ -227,8 +225,7 @@ object Paxsenix {
         
         if (hasWordTimings) return 3
         
-        val hasLineTimings = lrc.contains(Regex("\\[\\d\\d:\\d\\d\\.\\d{2,3}\\]")) ||
-                lrc.contains(Regex("^\\[bg:.*\\]", RegexOption.MULTILINE))
+        val hasLineTimings = lrc.contains(Regex("\\[\\d\\d:\\d\\d\\.\\d{2,3}\\]")) || lrc.contains(Regex("^\\[bg:.*\\]", RegexOption.MULTILINE))
         
         if (hasLineTimings) return 2
         return 1
@@ -291,40 +288,39 @@ object Paxsenix {
                 }
             }
             
-            Timber.v("  Score for '${resultTitle}': $score")
             result to score
         }.sortedByDescending { it.second }.filter { it.second > 0 }.take(10)
     }
 
     private suspend fun fetchLyricsForTrack(id: String): Result<String> = runCatching {
-        Timber.d("Fetching lyrics for track ID: $id")
+        Log.d("Paxsenix", "Fetching lyrics for track ID: $id")
         
         val response = httpClient.get("/apple-music/lyrics") {
             parameter("id", id)
         }.body<LyricsResponse>()
         
         val lyricsType = response.type
-        Timber.d("Lyrics response: type=$lyricsType")
+        Log.d("Paxsenix", "Lyrics response: type=$lyricsType")
         
         if (!response.ttmlContent.isNullOrBlank()) {
             val lrc = convertTTMLToAppFormat(response.ttmlContent)
             if (lrc.isNotEmpty()) {
-                Timber.d("Generated LRC from ttmlContent using TTMLParser")
+                Log.d("Paxsenix", "Generated LRC from ttmlContent using TTMLParser")
                 return@runCatching lrc
             }
         }
 
         if (!response.elrcMultiPerson.isNullOrBlank()) {
-            Timber.d("Using elrcMultiPerson as fallback")
+            Log.d("Paxsenix", "Using elrcMultiPerson as fallback")
             return@runCatching response.elrcMultiPerson
         }
         if (!response.elrc.isNullOrBlank()) {
-            Timber.d("Using elrc as fallback")
+            Log.d("Paxsenix", "Using elrc as fallback")
             return@runCatching response.elrc
         }
 
         if (!response.plain.isNullOrBlank()) {
-            Timber.d("Using plain lyrics field")
+            Log.d("Paxsenix", "Using plain lyrics field")
             return@runCatching response.plain
         }
 
@@ -333,14 +329,12 @@ object Paxsenix {
         }
         
         val hasWordLevel = lyricsType == "Syllable"
-        Timber.d("Using content array as source, hasWordLevel=$hasWordLevel")
-
+        
         if (!hasWordLevel) {
             val plain = response.content
                 .map { line -> line.text.joinToString(" ") { it.text } }
                 .filter { it.isNotBlank() }
                 .joinToString("\n")
-            Timber.d("Generated plain (non-synced) lyrics: ${response.content.size} lines")
             return@runCatching plain
         }
 
@@ -374,7 +368,6 @@ object Paxsenix {
             }
         }
 
-        Timber.d("Generated ${response.content.size} lines from content array")
         return@runCatching lrc
     }
 
@@ -408,7 +401,7 @@ object Paxsenix {
         val collectedLyrics = mutableListOf<Pair<String, Int>>()
 
         for ((result, _) in scoredResults.take(5)) {
-            Timber.d("Trying lyrics for: ${result.displayName}")
+            Log.d("Paxsenix", "Trying lyrics for: ${result.displayName}")
             val lrc = fetchLyricsForTrack(result.id).getOrNull() ?: continue
             if (lrc.isNotEmpty()) {
                 val quality = getQuality(lrc)
@@ -427,7 +420,7 @@ object Paxsenix {
             val parsedLines = TTMLParser.parseTTML(ttml)
             TTMLParser.toLRC(parsedLines)
         } catch (e: Exception) {
-            Timber.e(e, "TTML conversion failed: ${e.message}")
+            Log.e("Paxsenix", "TTML conversion failed: ${e.message}", e)
             ""
         }
     }
@@ -458,17 +451,17 @@ object Paxsenix {
 
                 val token = tokenMatch.value
                 cachedToken = token
-                Timber.d("Fetched new Apple Music token")
+                Log.d("Paxsenix", "Fetched new Apple Music token")
                 return token
             } catch (e: Exception) {
-                Timber.e(e, "Error fetching Apple Music token")
+                Log.e("Paxsenix", "Error fetching Apple Music token", e)
                 throw Exception("Error fetching Apple Music token: ${e.message}", e)
             }
         }
 
         fun clearToken() {
             cachedToken = null
-            Timber.d("Cleared cached Apple Music token")
+            Log.d("Paxsenix", "Cleared cached Apple Music token")
         }
     }
 }
