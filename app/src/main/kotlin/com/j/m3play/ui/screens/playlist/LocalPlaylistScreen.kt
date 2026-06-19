@@ -24,13 +24,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateBottomPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -80,6 +82,8 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -91,6 +95,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -101,6 +106,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastSumBy
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewModelScope
@@ -121,6 +127,7 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalDownloadUtil
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
+import com.j.m3play.LocalSyncUtils
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
 import com.j.m3play.constants.PlaylistEditLockKey
@@ -128,6 +135,7 @@ import com.j.m3play.constants.PlaylistSongSortDescendingKey
 import com.j.m3play.constants.PlaylistSongSortType
 import com.j.m3play.constants.PlaylistSongSortTypeKey
 import com.j.m3play.constants.SwipeToSongKey
+import com.j.m3play.db.entities.Playlist
 import com.j.m3play.db.entities.PlaylistSong
 import com.j.m3play.db.entities.PlaylistSongMap
 import com.j.m3play.extensions.move
@@ -144,11 +152,16 @@ import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.EditPlaylistDialog
 import com.j.m3play.ui.component.DraggableScrollbar
 import com.j.m3play.ui.component.EmptyPlaceholder
+import com.j.m3play.ui.component.PlaylistTagChips
 import com.j.m3play.ui.component.AssignTagsDialog
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.SortHeader
+import com.j.m3play.ui.component.shimmer.ButtonPlaceholder
+import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
+import com.j.m3play.ui.component.shimmer.ShimmerHost
+import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.screens.playlist.PlaylistSuggestionsSection
@@ -160,6 +173,7 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LocalPlaylistViewModel
+import com.valentinilk.shimmer.shimmer
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
@@ -207,8 +221,6 @@ fun LocalPlaylistScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val pullRefreshState = rememberPullToRefreshState()
-
-    val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
@@ -381,8 +393,7 @@ fun LocalPlaylistScreen(
     ) {
         LazyColumn(
             state = lazyListState,
-            // Removed top padding to allow edge-to-edge drawing under the status bar
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.calculateBottomPadding()),
+            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
         ) {
             playlist?.let { playlist ->
                 if (playlist.songCount == 0 && playlist.playlist.remoteSongCount == 0) {
@@ -526,7 +537,7 @@ fun LocalPlaylistScreen(
                         }
                     }
 
-                    // Sort Header (only if searching/editing specific needs, but kept flat)
+                    // Sort Header
                     item(key = "sort_header") {
                         if (editable || isSearching) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
@@ -545,7 +556,7 @@ fun LocalPlaylistScreen(
                                     modifier = Modifier.weight(1f),
                                 )
                                 if (editable && sortType == PlaylistSongSortType.CUSTOM) {
-                                    IconButton(onClick = { locked = !locked }, modifier = Modifier.padding(horizontal = 6.dp)) {
+                                    IconButton(onClick = { locked = !locked }, onLongClick = {}, modifier = Modifier.padding(horizontal = 6.dp)) {
                                         Icon(painterResource(if (locked) R.drawable.lock else R.drawable.lock_open), null)
                                     }
                                 }
@@ -599,10 +610,11 @@ fun LocalPlaylistScreen(
                                     IconButton(
                                         onClick = {
                                             menuState.show { SongMenu(originalSong = song.song, playlistSong = song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) }
-                                        }
+                                        },
+                                        onLongClick = {}
                                     ) { Icon(painterResource(R.drawable.more_vert), null) }
                                     if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) {
-                                        IconButton(onClick = { }, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) {
+                                        IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) {
                                             Icon(painterResource(R.drawable.drag_handle), null)
                                         }
                                     }
@@ -661,10 +673,11 @@ fun LocalPlaylistScreen(
                                 isActive = isActive, isPlaying = isPlaying, showInLibraryIcon = true,
                                 trailingContent = {
                                     IconButton(
-                                        onClick = { menuState.show { SongMenu(originalSong = songWrapper.item.song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } }
+                                        onClick = { menuState.show { SongMenu(originalSong = songWrapper.item.song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } },
+                                        onLongClick = {}
                                     ) { Icon(painterResource(R.drawable.more_vert), null) }
                                     if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) {
-                                        IconButton(onClick = { }, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) {
+                                        IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) {
                                             Icon(painterResource(R.drawable.drag_handle), null)
                                         }
                                     }
@@ -743,6 +756,7 @@ fun LocalPlaylistScreen(
                         else if (selection) { selection = false }
                         else { navController.navigateUp() }
                     },
+                    onLongClick = {},
                     modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!showTopBarTitle && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface) }
             },
@@ -751,24 +765,24 @@ fun LocalPlaylistScreen(
                     val count = wrappedSongs.count { it.isSelected }
                     IconButton(onClick = {
                         if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false } else wrappedSongs.forEach { it.isSelected = true }
-                    }) { Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
+                    }, onLongClick = {}) { Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
                     IconButton(onClick = {
                         menuState.show { SelectionSongMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, songPosition = wrappedSongs.filter { it.isSelected }.map { it.item.map }, onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }) }
-                    }) { Icon(painterResource(R.drawable.more_vert), null) }
+                    }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
                 } else if (!isSearching) {
                     Row(
                         modifier = Modifier.padding(end = 8.dp).background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (editable) {
-                            IconButton(onClick = { showEditDialog = true }) { Icon(painterResource(R.drawable.edit), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                            IconButton(onClick = { showEditDialog = true }, onLongClick = {}) { Icon(painterResource(R.drawable.edit), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
                         } else {
                             val liked = playlist?.playlist?.bookmarkedAt != null
-                            IconButton(onClick = { database.transaction { playlist?.let { update(it.playlist.toggleLike()) } } }) {
+                            IconButton(onClick = { database.transaction { playlist?.let { update(it.playlist.toggleLike()) } } }, onLongClick = {}) {
                                 Icon(painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (liked) Color.Red else if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface)
                             }
                         }
-                        IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                        IconButton(onClick = { isSearching = true }, onLongClick = {}) { Icon(painterResource(R.drawable.search), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
                         IconButton(onClick = {
                             if (playlist?.playlist?.browseId != null) {
                                 coroutineScope.launch(Dispatchers.IO) {
@@ -780,7 +794,7 @@ fun LocalPlaylistScreen(
                                 }
                                 coroutineScope.launch(Dispatchers.Main) { snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced)) }
                             }
-                        }) { Icon(painterResource(R.drawable.sync), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                        }, onLongClick = {}) { Icon(painterResource(R.drawable.sync), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
                     }
                 }
             }
@@ -788,17 +802,5 @@ fun LocalPlaylistScreen(
 
         PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter))
-    }
-}
-
-@Composable
-private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
 }
