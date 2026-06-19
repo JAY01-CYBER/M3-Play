@@ -12,6 +12,7 @@ package com.j.m3play.ui.screens.playlist
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -65,6 +68,7 @@ fun PlaylistSuggestionsSection(
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     val playerConnection = LocalPlayerConnection.current
+    
     val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: androidx.compose.runtime.mutableStateOf(false)
     val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: androidx.compose.runtime.mutableStateOf(null)
     
@@ -148,9 +152,12 @@ fun PlaylistSuggestionsSection(
         currentSuggestions?.let { suggestions ->
             // Suggestions List (Vertical)
             suggestions.items.forEach { item ->
+                val isActive = item.id == mediaMetadata?.id
+                val cardShape = RoundedCornerShape(24.dp)
+
                 YouTubeListItem(
                     item = item,
-                    isActive = item.id == mediaMetadata?.id,
+                    isActive = isActive,
                     isPlaying = isPlaying == true,
                     trailingContent = {
                         IconButton(
@@ -205,10 +212,21 @@ fun PlaylistSuggestionsSection(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .shadow(
+                            elevation = if (isActive) 6.dp else 2.dp,
+                            shape = cardShape,
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        )
+                        .clip(cardShape)
+                        .background(
+                            if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
+                            else MaterialTheme.colorScheme.surfaceContainerLow
+                        )
                         .clickable {
                             if (playerConnection == null) return@clickable
-                            if (item.id == mediaMetadata?.id) {
+                            if (isActive) {
                                 playerConnection.player.togglePlayPause()
                             } else {
                                 if (item is SongItem) {
@@ -226,6 +244,7 @@ fun PlaylistSuggestionsSection(
                                 }
                             }
                         }
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
                 )
             }
             
