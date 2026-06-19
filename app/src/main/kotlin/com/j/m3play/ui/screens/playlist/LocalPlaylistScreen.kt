@@ -1150,11 +1150,14 @@ fun LocalPlaylistScreen(
                         }
 
                         val content: @Composable () -> Unit = {
+                            val isActive = song.song.id == mediaMetadata?.id
+                            val cardShape = RoundedCornerShape(24.dp)
+
                             SongListItem(
                                 song = song.song,
                                 viewCountText =
                                     viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
-                                isActive = song.song.id == mediaMetadata?.id,
+                                isActive = isActive,
                                 isPlaying = isPlaying,
                                 showInLibraryIcon = true,
                                 trailingContent = {
@@ -1195,6 +1198,18 @@ fun LocalPlaylistScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .shadow(
+                                        elevation = if (isActive) 6.dp else 2.dp,
+                                        shape = cardShape,
+                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    )
+                                    .clip(cardShape)
+                                    .background(
+                                        if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
+                                        else MaterialTheme.colorScheme.surfaceContainerLow
+                                    )
                                     .combinedClickable(
                                         onClick = {
                                             if (song.song.id == mediaMetadata?.id) {
@@ -1217,7 +1232,8 @@ fun LocalPlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             wrappedSongs.find { it.item.map.id == song.map.id }?.isSelected = true
                                         },
-                                    ),
+                                    )
+                                    .padding(horizontal = 4.dp, vertical = 4.dp),
                             )
                         }
 
@@ -1280,11 +1296,15 @@ fun LocalPlaylistScreen(
                         }
 
                         val content: @Composable () -> Unit = {
+                            val isActive = songWrapper.item.song.id == mediaMetadata?.id
+                            val isSelected = songWrapper.isSelected && selection
+                            val cardShape = RoundedCornerShape(24.dp)
+
                             SongListItem(
                                 song = songWrapper.item.song,
                                 viewCountText =
                                     viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
-                                isActive = songWrapper.item.song.id == mediaMetadata?.id,
+                                isActive = isActive,
                                 isPlaying = isPlaying,
                                 showInLibraryIcon = true,
                                 trailingContent = {
@@ -1321,13 +1341,28 @@ fun LocalPlaylistScreen(
                                         }
                                     }
                                 },
-                                isSelected = songWrapper.isSelected && selection,
+                                isSelected = isSelected,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .shadow(
+                                        elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
+                                        shape = cardShape,
+                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    )
+                                    .clip(cardShape)
+                                    .background(
+                                        when {
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
+                                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                        }
+                                    )
                                     .combinedClickable(
                                         onClick = {
                                             if (!selection) {
-                                                if (songWrapper.item.song.id == mediaMetadata?.id) {
+                                                if (isActive) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
                                                     playerConnection.playQueue(
@@ -1350,7 +1385,8 @@ fun LocalPlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             songWrapper.isSelected = true
                                         },
-                                    ),
+                                    )
+                                    .padding(horizontal = 4.dp, vertical = 4.dp),
                             )
                         }
 
