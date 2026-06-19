@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,8 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -150,10 +148,9 @@ fun PlaylistSuggestionsSection(
         Spacer(modifier = Modifier.height(8.dp))
         
         currentSuggestions?.let { suggestions ->
-            // Suggestions List (Vertical)
+            // Suggestions List (Vertical - Flat edge to edge design)
             suggestions.items.forEach { item ->
                 val isActive = item.id == mediaMetadata?.id
-                val cardShape = RoundedCornerShape(24.dp)
 
                 YouTubeListItem(
                     item = item,
@@ -212,17 +209,9 @@ fun PlaylistSuggestionsSection(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .shadow(
-                            elevation = if (isActive) 6.dp else 2.dp,
-                            shape = cardShape,
-                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        )
-                        .clip(cardShape)
                         .background(
-                            if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-                            else MaterialTheme.colorScheme.surfaceContainerLow
+                            if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                            else Color.Transparent
                         )
                         .clickable {
                             if (playerConnection == null) return@clickable
@@ -244,7 +233,6 @@ fun PlaylistSuggestionsSection(
                                 }
                             }
                         }
-                        .padding(horizontal = 4.dp, vertical = 4.dp)
                 )
             }
             
