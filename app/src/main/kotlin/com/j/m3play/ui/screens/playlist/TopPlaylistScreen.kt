@@ -727,10 +727,14 @@ fun TopPlaylistScreen(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
                     ) { index, songWrapper ->
+                        val isActive = songWrapper.item.song.id == mediaMetadata?.id
+                        val isSelected = songWrapper.isSelected && selection
+                        val cardShape = RoundedCornerShape(24.dp)
+
                         SongListItem(
                             song = songWrapper.item,
                             albumIndex = index + 1,
-                            isActive = songWrapper.item.song.id == mediaMetadata?.id,
+                            isActive = isActive,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
                             trailingContent = {
@@ -751,13 +755,29 @@ fun TopPlaylistScreen(
                                     )
                                 }
                             },
-                            isSelected = songWrapper.isSelected && selection,
+                            isSelected = isSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .animateItem()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .shadow(
+                                    elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
+                                    shape = cardShape,
+                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                )
+                                .clip(cardShape)
+                                .background(
+                                    when {
+                                        isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
+                                        else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                    }
+                                )
                                 .combinedClickable(
                                     onClick = {
                                         if (!selection) {
-                                            if (songWrapper.item.song.id == mediaMetadata?.id) {
+                                            if (isActive) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
                                                 playerConnection.playQueue(
@@ -781,7 +801,7 @@ fun TopPlaylistScreen(
                                         }
                                     },
                                 )
-                                .animateItem()
+                                .padding(horizontal = 4.dp, vertical = 4.dp)
                         )
                     }
                 }
