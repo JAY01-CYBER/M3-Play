@@ -30,6 +30,8 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -56,11 +58,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -81,7 +86,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -133,6 +143,7 @@ fun CachePlaylistScreen(
     )
     val (sortDescending, onSortDescendingChange) = rememberPreference(SongSortDescendingKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val wrappedSongs = remember(cachedSongs, sortType, sortDescending) {
         val sortedSongs = when (sortType) {
@@ -148,8 +159,8 @@ fun CachePlaylistScreen(
     }.toMutableStateList()
 
     var selection by remember { mutableStateOf(false) }
-    var isSearching by remember { mutableStateOf(false) }
-    var query by remember { mutableStateOf(TextFieldValue()) }
+    var isSearching by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusRequester = remember { FocusRequester() }
     val lazyListState = rememberLazyListState()
 
@@ -179,9 +190,51 @@ fun CachePlaylistScreen(
         }
     }
 
+    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
+    val surfaceColor = MaterialTheme.colorScheme.background
+    val darkOverlay = Color.Black.copy(alpha = 0.4f)
+
+    LaunchedEffect(cachedSongs) {
+        val thumbnailUrl = cachedSongs.firstOrNull()?.thumbnailUrl
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context)
+                .data(thumbnailUrl)
+                .size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE)
+                .allowHardware(false)
+                .build()
+
+            val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
+
+            if (result != null) {
+                val bitmap = result.image?.toBitmap()
+                if (bitmap != null) {
+                    val palette = withContext(Dispatchers.Default) {
+                        Palette.from(bitmap)
+                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
+                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
+                            .generate()
+                    }
+                    gradientColors = PlayerColorExtractor.extractGradientColors(
+                        palette = palette,
+                        fallbackColor = fallbackColor
+                    )
+                }
+            }
+        } else {
+            gradientColors = emptyList()
+        }
+    }
+
     val showTopBarTitle by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0
+        }
+    }
+
+    val transparentAppBar by remember {
+        derivedStateOf {
+            !disableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -191,9 +244,6 @@ fun CachePlaylistScreen(
         }
     }
 
-    val surfaceColor = MaterialTheme.colorScheme.background
-    val darkOverlay = Color.Black.copy(alpha = 0.4f)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -201,8 +251,7 @@ fun CachePlaylistScreen(
     ) {
         LazyColumn(
             state = lazyListState,
-            // Allow edge-to-edge drawing under status bar
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.calculateBottomPadding()),
+            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
         ) {
             if (filteredSongs.isEmpty() && !isSearching) {
                 item {
@@ -379,16 +428,19 @@ fun CachePlaylistScreen(
                         isSelected = isSelected,
                         showInLibraryIcon = true,
                         trailingContent = {
-                            androidx.compose.material3.IconButton(onClick = {
-                                menuState.show {
-                                    SongMenu(
-                                        originalSong = songWrapper.item,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                        isFromCache = true,
-                                    )
-                                }
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = songWrapper.item,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                            isFromCache = true,
+                                        )
+                                    }
+                                },
+                                onLongClick = {}
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.more_vert),
                                     contentDescription = null
@@ -432,7 +484,6 @@ fun CachePlaylistScreen(
                                     }
                                 }
                             )
-                            // Remove horizontal padding for pure edge-to-edge
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -450,7 +501,7 @@ fun CachePlaylistScreen(
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
@@ -513,6 +564,11 @@ fun CachePlaylistScreen(
                             }
                         }
                     },
+                    onLongClick = {
+                        if (!isSearching && !selection) {
+                            navController.backToMain()
+                        }
+                    },
                     modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(
@@ -525,28 +581,34 @@ fun CachePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(onClick = {
-                        if (count == wrappedSongs.size) {
-                            wrappedSongs.forEach { it.isSelected = false }
-                        } else {
-                            wrappedSongs.forEach { it.isSelected = true }
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (count == wrappedSongs.size) {
+                                wrappedSongs.forEach { it.isSelected = false }
+                            } else {
+                                wrappedSongs.forEach { it.isSelected = true }
+                            }
+                        },
+                        onLongClick = {}
+                    ) {
                         Icon(
                             painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
                             contentDescription = null
                         )
                     }
 
-                    androidx.compose.material3.IconButton(onClick = {
-                        menuState.show {
-                            SelectionSongMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
-                                onDismiss = menuState::dismiss,
-                                clearAction = { selection = false }
-                            )
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                SelectionSongMenu(
+                                    songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                    onDismiss = menuState::dismiss,
+                                    clearAction = { selection = false }
+                                )
+                            }
+                        },
+                        onLongClick = {}
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
                             contentDescription = null
@@ -560,7 +622,10 @@ fun CachePlaylistScreen(
                             .background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        androidx.compose.material3.IconButton(onClick = { isSearching = true }) {
+                        IconButton(
+                            onClick = { isSearching = true },
+                            onLongClick = {}
+                        ) {
                             Icon(
                                 painter = painterResource(R.drawable.search),
                                 contentDescription = null,
@@ -570,28 +635,6 @@ fun CachePlaylistScreen(
                     }
                 }
             }
-        )
-    }
-}
-
-@Composable
-private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
         )
     }
 }
