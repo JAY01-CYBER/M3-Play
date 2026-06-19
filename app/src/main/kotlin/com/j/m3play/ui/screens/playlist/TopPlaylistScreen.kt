@@ -722,14 +722,13 @@ fun TopPlaylistScreen(
                         }
                     }
 
-                    // Song items
+                    // Song items (Flat edge-to-edge design)
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
                     ) { index, songWrapper ->
                         val isActive = songWrapper.item.song.id == mediaMetadata?.id
                         val isSelected = songWrapper.isSelected && selection
-                        val cardShape = RoundedCornerShape(24.dp)
 
                         SongListItem(
                             song = songWrapper.item,
@@ -759,19 +758,11 @@ fun TopPlaylistScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .animateItem()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .shadow(
-                                    elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
-                                    shape = cardShape,
-                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                )
-                                .clip(cardShape)
                                 .background(
                                     when {
-                                        isSelected -> MaterialTheme.colorScheme.primaryContainer
-                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-                                        else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                        else -> Color.Transparent
                                     }
                                 )
                                 .combinedClickable(
@@ -801,7 +792,6 @@ fun TopPlaylistScreen(
                                         }
                                     },
                                 )
-                                .padding(horizontal = 4.dp, vertical = 4.dp)
                         )
                     }
                 }
