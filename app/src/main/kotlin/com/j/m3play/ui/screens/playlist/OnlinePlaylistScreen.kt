@@ -326,7 +326,6 @@ fun OnlinePlaylistScreen(
                                 val c2 = gradientColors[2]
                                 val c3 = gradientColors.getOrElse(3) { c0 }
                                 val c4 = gradientColors.getOrElse(4) { c1 }
-                                // Primary color blob - top center
                                 drawRect(
                                     brush =
                                         Brush.radialGradient(
@@ -345,7 +344,6 @@ fun OnlinePlaylistScreen(
                                         )
                                 )
 
-                                // Secondary color blob - left side
                                 drawRect(
                                     brush =
                                         Brush.radialGradient(
@@ -364,7 +362,6 @@ fun OnlinePlaylistScreen(
                                         )
                                 )
 
-                                // Third color blob - right side
                                 drawRect(
                                     brush =
                                         Brush.radialGradient(
@@ -464,7 +461,6 @@ fun OnlinePlaylistScreen(
         ) {
             playlist.let { playlist ->
                 if (isLoading) {
-                    // Shimmer Loading State
                     item(key = "shimmer") {
                         ShimmerHost {
                             Column(
@@ -473,7 +469,6 @@ fun OnlinePlaylistScreen(
                                         .padding(top = systemBarsTopPadding + AppBarHeight),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Playlist art placeholder
                                 Box(
                                     modifier =
                                         Modifier.padding(top = 8.dp, bottom = 20.dp)
@@ -483,7 +478,6 @@ fun OnlinePlaylistScreen(
                                             .background(MaterialTheme.colorScheme.onSurface)
                                 )
 
-                                // Title placeholder
                                 TextPlaceholder(
                                     height = 28.dp,
                                     modifier =
@@ -492,7 +486,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Author placeholder
                                 TextPlaceholder(
                                     height = 20.dp,
                                     modifier = Modifier.fillMaxWidth(0.4f)
@@ -500,7 +493,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Metadata placeholder
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp),
                                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -515,7 +507,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Buttons placeholder
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement =
@@ -547,7 +538,6 @@ fun OnlinePlaylistScreen(
                     }
                 } else if (playlist != null) {
                     if (!isSearching) {
-                        // Hero Header
                         item(key = "header") {
                             Column(
                                 modifier =
@@ -556,7 +546,6 @@ fun OnlinePlaylistScreen(
                                         .animateItem(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Playlist Thumbnail - Large centered with shadow
                                 Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)) {
                                     Surface(
                                         modifier =
@@ -582,7 +571,6 @@ fun OnlinePlaylistScreen(
                                     }
                                 }
 
-                                // Playlist Title
                                 Text(
                                     text = playlist.title,
                                     style = MaterialTheme.typography.headlineSmall,
@@ -593,7 +581,6 @@ fun OnlinePlaylistScreen(
                                     modifier = Modifier.padding(horizontal = 32.dp)
                                 )
 
-                                // Author (Clickable)
                                 playlist.author?.let { artist ->
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
@@ -630,7 +617,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Metadata Row - Song Count
                                 playlist.songCountText?.let { songCountText ->
                                     Row(
                                         modifier =
@@ -647,14 +633,12 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Action Buttons Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement =
                                         Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Like/Save Button
                                     if (playlist.id != "LM") {
                                         Surface(
                                             onClick = {
@@ -735,7 +719,6 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // Shuffle Button
                                     playlist.shuffleEndpoint?.let { shuffleEndpoint ->
                                         Button(
                                             onClick = {
@@ -755,7 +738,6 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // Radio Button
                                     playlist.radioEndpoint?.let { radioEndpoint ->
                                         Button(
                                             onClick = {
@@ -774,7 +756,6 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // More Options Button
                                     Surface(
                                         onClick = {
                                             menuState.show {
@@ -857,11 +838,10 @@ fun OnlinePlaylistScreen(
                         }
                     }
 
-                    // Songs List
+                    // Flat Songs List
                     items(items = wrappedSongs, key = { it.item.second.id }) { song ->
                         val isActive = mediaMetadata?.id == song.item.second.id
                         val isSelected = song.isSelected && selection
-                        val cardShape = RoundedCornerShape(24.dp)
 
                         YouTubeListItem(
                             item = song.item.second,
@@ -892,22 +872,13 @@ fun OnlinePlaylistScreen(
                                 }
                             },
                             modifier =
-                                Modifier
-                                    .fillMaxWidth()
+                                Modifier.fillMaxWidth()
                                     .animateItem()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .shadow(
-                                        elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
-                                        shape = cardShape,
-                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    )
-                                    .clip(cardShape)
                                     .background(
                                         when {
-                                            isSelected -> MaterialTheme.colorScheme.primaryContainer
-                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-                                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                            else -> Color.Transparent
                                         }
                                     )
                                     .combinedClickable(
@@ -944,8 +915,7 @@ fun OnlinePlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             song.isSelected = true
                                         },
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                                    ),
                         )
                     }
 
