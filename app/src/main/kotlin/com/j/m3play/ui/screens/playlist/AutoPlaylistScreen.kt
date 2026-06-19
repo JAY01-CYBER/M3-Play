@@ -384,7 +384,6 @@ fun AutoPlaylistScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -397,7 +396,6 @@ fun AutoPlaylistScreen(
                                 )
                             )
 
-                            // Secondary color blob - left side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -410,7 +408,6 @@ fun AutoPlaylistScreen(
                                 )
                             )
 
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -749,14 +746,17 @@ fun AutoPlaylistScreen(
                         }
                     }
 
-                    // Song items
+                    // Song items (Flat edge-to-edge design)
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
                     ) { index, songWrapper ->
+                        val isActive = songWrapper.item.song.id == mediaMetadata?.id
+                        val isSelected = songWrapper.isSelected && selection
+
                         SongListItem(
                             song = songWrapper.item,
-                            isActive = songWrapper.item.song.id == mediaMetadata?.id,
+                            isActive = isActive,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
                             trailingContent = {
@@ -777,13 +777,21 @@ fun AutoPlaylistScreen(
                                     )
                                 }
                             },
-                            isSelected = songWrapper.isSelected && selection,
+                            isSelected = isSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .animateItem()
+                                .background(
+                                    when {
+                                        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                        else -> Color.Transparent
+                                    }
+                                )
                                 .combinedClickable(
                                     onClick = {
                                         if (!selection) {
-                                            if (songWrapper.item.song.id == mediaMetadata?.id) {
+                                            if (isActive) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
                                                 playerConnection.playQueue(
@@ -807,7 +815,6 @@ fun AutoPlaylistScreen(
                                         }
                                     },
                                 )
-                                .animateItem()
                         )
                     }
                 }
