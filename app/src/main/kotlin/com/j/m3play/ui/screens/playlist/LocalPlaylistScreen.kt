@@ -554,7 +554,6 @@ fun LocalPlaylistScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -567,7 +566,6 @@ fun LocalPlaylistScreen(
                                 )
                             )
 
-                            // Secondary color blob - left side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -580,7 +578,6 @@ fun LocalPlaylistScreen(
                                 )
                             )
 
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -669,13 +666,12 @@ fun LocalPlaylistScreen(
                                     .padding(top = systemBarsTopPadding + AppBarHeight),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Playlist Thumbnail(s) - Large centered with shadow
+                                // Playlist Thumbnail(s)
                                 Box(
                                     modifier = Modifier
                                         .padding(top = 8.dp, bottom = 20.dp)
                                 ) {
                                     if (playlist.thumbnails.size == 1) {
-                                        // Single thumbnail
                                         Surface(
                                             modifier = Modifier
                                                 .size(240.dp)
@@ -695,7 +691,6 @@ fun LocalPlaylistScreen(
                                             )
                                         }
                                     } else if (playlist.thumbnails.size > 1) {
-                                        // Grid of 4 thumbnails
                                         Surface(
                                             modifier = Modifier
                                                 .size(240.dp)
@@ -726,7 +721,6 @@ fun LocalPlaylistScreen(
                                             }
                                         }
                                     } else {
-                                        // No thumbnail placeholder
                                         Surface(
                                             modifier = Modifier
                                                 .size(240.dp)
@@ -765,7 +759,7 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Metadata Row - Song Count, Duration
+                                // Metadata Row
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -773,7 +767,6 @@ fun LocalPlaylistScreen(
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Song Count
                                     val songCount = if (playlist.songCount == 0 && playlist.playlist.remoteSongCount != null) {
                                         playlist.playlist.remoteSongCount
                                     } else {
@@ -784,7 +777,6 @@ fun LocalPlaylistScreen(
                                         text = pluralStringResource(R.plurals.n_song, songCount, songCount)
                                     )
 
-                                    // Duration
                                     if (playlistLength > 0) {
                                         MetadataChip(
                                             icon = R.drawable.timer,
@@ -803,7 +795,6 @@ fun LocalPlaylistScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Like/Delete Button (depending on editable)
                                     if (editable) {
                                         Surface(
                                             onClick = { showDeletePlaylistDialog = true },
@@ -854,7 +845,6 @@ fun LocalPlaylistScreen(
                                         }
                                     }
 
-                                    // Play Button
                                     Button(
                                         onClick = {
                                             playerConnection.playQueue(
@@ -876,7 +866,6 @@ fun LocalPlaylistScreen(
                                         )
                                     }
 
-                                    // Shuffle Button
                                     Button(
                                         onClick = {
                                             playerConnection.playQueue(
@@ -898,7 +887,6 @@ fun LocalPlaylistScreen(
                                         )
                                     }
 
-                                    // Download Button
                                     Surface(
                                         onClick = {
                                             when (downloadState) {
@@ -968,10 +956,8 @@ fun LocalPlaylistScreen(
                                         }
                                     }
 
-                                    // More Options Button
                                     Surface(
                                         onClick = {
-                                            // Show more options (edit, sync, queue)
                                             if (editable) {
                                                 showEditDialog = true
                                             } else if (playlist.playlist.browseId != null) {
@@ -1027,7 +1013,6 @@ fun LocalPlaylistScreen(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Start Mix Button
                                     Button(
                                         onClick = {
                                             playerConnection.playQueue(
@@ -1095,7 +1080,7 @@ fun LocalPlaylistScreen(
                 }
             }
 
-            // Songs List
+            // Flat Songs List
             if (!selection) {
                 itemsIndexed(
                     items = if (isSearching) filteredSongs else mutableSongs,
@@ -1151,7 +1136,6 @@ fun LocalPlaylistScreen(
 
                         val content: @Composable () -> Unit = {
                             val isActive = song.song.id == mediaMetadata?.id
-                            val cardShape = RoundedCornerShape(24.dp)
 
                             SongListItem(
                                 song = song.song,
@@ -1198,17 +1182,9 @@ fun LocalPlaylistScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .shadow(
-                                        elevation = if (isActive) 6.dp else 2.dp,
-                                        shape = cardShape,
-                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    )
-                                    .clip(cardShape)
                                     .background(
-                                        if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-                                        else MaterialTheme.colorScheme.surfaceContainerLow
+                                        if (isActive) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                        else Color.Transparent
                                     )
                                     .combinedClickable(
                                         onClick = {
@@ -1232,8 +1208,7 @@ fun LocalPlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             wrappedSongs.find { it.item.map.id == song.map.id }?.isSelected = true
                                         },
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                                    ),
                             )
                         }
 
@@ -1298,7 +1273,6 @@ fun LocalPlaylistScreen(
                         val content: @Composable () -> Unit = {
                             val isActive = songWrapper.item.song.id == mediaMetadata?.id
                             val isSelected = songWrapper.isSelected && selection
-                            val cardShape = RoundedCornerShape(24.dp)
 
                             SongListItem(
                                 song = songWrapper.item.song,
@@ -1344,19 +1318,11 @@ fun LocalPlaylistScreen(
                                 isSelected = isSelected,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .shadow(
-                                        elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
-                                        shape = cardShape,
-                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                    )
-                                    .clip(cardShape)
                                     .background(
                                         when {
-                                            isSelected -> MaterialTheme.colorScheme.primaryContainer
-                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
-                                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                            else -> Color.Transparent
                                         }
                                     )
                                     .combinedClickable(
@@ -1385,8 +1351,7 @@ fun LocalPlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             songWrapper.isSelected = true
                                         },
-                                    )
-                                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                                    ),
                             )
                         }
 
