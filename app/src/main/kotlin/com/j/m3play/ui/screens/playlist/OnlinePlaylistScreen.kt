@@ -859,15 +859,19 @@ fun OnlinePlaylistScreen(
 
                     // Songs List
                     items(items = wrappedSongs, key = { it.item.second.id }) { song ->
+                        val isActive = mediaMetadata?.id == song.item.second.id
+                        val isSelected = song.isSelected && selection
+                        val cardShape = RoundedCornerShape(24.dp)
+
                         YouTubeListItem(
                             item = song.item.second,
                             viewCountText =
                                 viewCounts[song.item.second.id]?.let { count ->
                                     formatCompactCount(count.toLong())
                                 },
-                            isActive = mediaMetadata?.id == song.item.second.id,
+                            isActive = isActive,
                             isPlaying = isPlaying,
-                            isSelected = song.isSelected && selection,
+                            isSelected = isSelected,
                             trailingContent = {
                                 IconButton(
                                     onClick = {
@@ -888,11 +892,29 @@ fun OnlinePlaylistScreen(
                                 }
                             },
                             modifier =
-                                Modifier.combinedClickable(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                                    .shadow(
+                                        elevation = if (isSelected) 12.dp else if (isActive) 6.dp else 2.dp,
+                                        shape = cardShape,
+                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                    )
+                                    .clip(cardShape)
+                                    .background(
+                                        when {
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)
+                                            else -> MaterialTheme.colorScheme.surfaceContainerLow
+                                        }
+                                    )
+                                    .combinedClickable(
                                         enabled = !hideExplicit || !song.item.second.explicit,
                                         onClick = {
                                             if (!selection) {
-                                                if (song.item.second.id == mediaMetadata?.id) {
+                                                if (isActive) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
                                                     playerConnection.service.getAutomix(
@@ -923,7 +945,7 @@ fun OnlinePlaylistScreen(
                                             song.isSelected = true
                                         },
                                     )
-                                    .animateItem(),
+                                    .padding(horizontal = 4.dp, vertical = 4.dp),
                         )
                     }
 
