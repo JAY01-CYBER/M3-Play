@@ -18,6 +18,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,7 +30,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -70,6 +72,11 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -92,6 +99,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
@@ -169,8 +177,7 @@ fun OnlinePlaylistScreen(
     val pullRefreshState = rememberPullToRefreshState()
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
-    var query by
-        rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
 
     val filteredSongs =
         remember(songs, query) {
@@ -202,15 +209,20 @@ fun OnlinePlaylistScreen(
         BackHandler { selection = false }
     }
 
-    val wrappedSongs =
-        remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }
-            .toMutableStateList()
+    val wrappedSongs = remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }.toMutableStateList()
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
 
     val surfaceColor = MaterialTheme.colorScheme.background
     val darkOverlay = Color.Black.copy(alpha = 0.4f)
     val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
+
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            if (!isLoading && current != null && !isSearching) 1 else 0
+        }
+    }
 
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -237,8 +249,7 @@ fun OnlinePlaylistScreen(
     ) {
         LazyColumn(
             state = lazyListState,
-            // Removed top padding to allow edge-to-edge drawing under the status bar
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.calculateBottomPadding()),
+            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
         ) {
             playlist.let { playlist ->
                 if (isLoading) {
@@ -491,7 +502,6 @@ fun OnlinePlaylistScreen(
                                         song.isSelected = true
                                     }
                                 )
-                                // Removing horizontal padding to ensure pure edge-to-edge
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                         )
                     }
@@ -575,6 +585,7 @@ fun OnlinePlaylistScreen(
                         else if (selection) { selection = false }
                         else { navController.navigateUp() }
                     },
+                    onLongClick = {},
                     modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!showTopBarTitle && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface)
@@ -587,7 +598,8 @@ fun OnlinePlaylistScreen(
                         onClick = {
                             if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false }
                             else wrappedSongs.forEach { it.isSelected = true }
-                        }
+                        },
+                        onLongClick = {}
                     ) { Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
                     IconButton(
                         onClick = {
@@ -599,7 +611,8 @@ fun OnlinePlaylistScreen(
                                     currentItems = emptyList()
                                 )
                             }
-                        }
+                        },
+                        onLongClick = {}
                     ) { Icon(painterResource(R.drawable.more_vert), null) }
                 } else if (!isSearching) {
                     // Grouped actions in a pill container
@@ -627,7 +640,8 @@ fun OnlinePlaylistScreen(
                                             update(currentPlaylist.toggleLike())
                                         }
                                     }
-                                }
+                                },
+                                onLongClick = {}
                             ) {
                                 Icon(
                                     painterResource(if (isLiked) R.drawable.favorite else R.drawable.favorite_border),
@@ -636,7 +650,7 @@ fun OnlinePlaylistScreen(
                                 )
                             }
                         }
-                        IconButton(onClick = { isSearching = true }) {
+                        IconButton(onClick = { isSearching = true }, onLongClick = {}) {
                             Icon(painterResource(R.drawable.search), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
                         IconButton(
@@ -654,7 +668,8 @@ fun OnlinePlaylistScreen(
                                         )
                                     }
                                 }
-                            }
+                            },
+                            onLongClick = {}
                         ) {
                             Icon(painterResource(R.drawable.more_vert), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
