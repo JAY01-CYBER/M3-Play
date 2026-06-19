@@ -113,6 +113,7 @@ import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
+import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberEnumPreference
@@ -428,19 +429,16 @@ fun CachePlaylistScreen(
                         isSelected = isSelected,
                         showInLibraryIcon = true,
                         trailingContent = {
-                            IconButton(
-                                onClick = {
-                                    menuState.show {
-                                        SongMenu(
-                                            originalSong = songWrapper.item,
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss,
-                                            isFromCache = true,
-                                        )
-                                    }
-                                },
-                                onLongClick = {}
-                            ) {
+                            androidx.compose.material3.IconButton(onClick = {
+                                menuState.show {
+                                    SongMenu(
+                                        originalSong = songWrapper.item,
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss,
+                                        isFromCache = true,
+                                    )
+                                }
+                            }) {
                                 Icon(
                                     painter = painterResource(R.drawable.more_vert),
                                     contentDescription = null
@@ -501,7 +499,7 @@ fun CachePlaylistScreen(
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface,
+                containerColor = Color.Transparent,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
@@ -581,34 +579,28 @@ fun CachePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    IconButton(
-                        onClick = {
-                            if (count == wrappedSongs.size) {
-                                wrappedSongs.forEach { it.isSelected = false }
-                            } else {
-                                wrappedSongs.forEach { it.isSelected = true }
-                            }
-                        },
-                        onLongClick = {}
-                    ) {
+                    androidx.compose.material3.IconButton(onClick = {
+                        if (count == wrappedSongs.size) {
+                            wrappedSongs.forEach { it.isSelected = false }
+                        } else {
+                            wrappedSongs.forEach { it.isSelected = true }
+                        }
+                    }) {
                         Icon(
                             painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
                             contentDescription = null
                         )
                     }
 
-                    IconButton(
-                        onClick = {
-                            menuState.show {
-                                SelectionSongMenu(
-                                    songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
-                                    onDismiss = menuState::dismiss,
-                                    clearAction = { selection = false }
-                                )
-                            }
-                        },
-                        onLongClick = {}
-                    ) {
+                    androidx.compose.material3.IconButton(onClick = {
+                        menuState.show {
+                            SelectionSongMenu(
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                onDismiss = menuState::dismiss,
+                                clearAction = { selection = false }
+                            )
+                        }
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
                             contentDescription = null
@@ -622,10 +614,7 @@ fun CachePlaylistScreen(
                             .background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = { isSearching = true },
-                            onLongClick = {}
-                        ) {
+                        androidx.compose.material3.IconButton(onClick = { isSearching = true }) {
                             Icon(
                                 painter = painterResource(R.drawable.search),
                                 contentDescription = null,
