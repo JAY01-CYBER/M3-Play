@@ -286,7 +286,6 @@ fun CachePlaylistScreen(
                             val c2 = gradientColors[2]
                             val c3 = gradientColors.getOrElse(3) { c0 }
                             val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -299,7 +298,6 @@ fun CachePlaylistScreen(
                                 )
                             )
 
-                            // Secondary color blob - left side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -312,7 +310,6 @@ fun CachePlaylistScreen(
                                 )
                             )
 
-                            // Third color blob - right side
                             drawRect(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
@@ -576,13 +573,16 @@ fun CachePlaylistScreen(
                     }
                 }
 
-                // Song items
+                // Song items (Flat edge-to-edge design)
                 itemsIndexed(filteredSongs, key = { _, song -> song.item.id }) { index, songWrapper ->
+                    val isActive = songWrapper.item.id == mediaMetadata?.id
+                    val isSelected = songWrapper.isSelected && selection
+                    
                     SongListItem(
                         song = songWrapper.item,
-                        isActive = songWrapper.item.id == mediaMetadata?.id,
+                        isActive = isActive,
                         isPlaying = isPlaying,
-                        isSelected = songWrapper.isSelected && selection,
+                        isSelected = isSelected,
                         showInLibraryIcon = true,
                         trailingContent = {
                             androidx.compose.material3.IconButton(onClick = {
@@ -603,10 +603,18 @@ fun CachePlaylistScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .animateItem()
+                            .background(
+                                when {
+                                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                    else -> Color.Transparent
+                                }
+                            )
                             .combinedClickable(
                                 onClick = {
                                     if (!selection) {
-                                        if (songWrapper.item.id == mediaMetadata?.id) {
+                                        if (isActive) {
                                             playerConnection.player.togglePlayPause()
                                         } else {
                                             playerConnection.playQueue(
@@ -630,7 +638,6 @@ fun CachePlaylistScreen(
                                     }
                                 }
                             )
-                            .animateItem()
                     )
                 }
             }
