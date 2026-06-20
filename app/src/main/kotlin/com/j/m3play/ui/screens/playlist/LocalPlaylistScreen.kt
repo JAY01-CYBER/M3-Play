@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -211,6 +213,7 @@ fun LocalPlaylistScreen(
     )
     var locked by rememberPreference(PlaylistEditLockKey, defaultValue = true)
     val swipeToSongEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val (disableBlur) = rememberPreference(DisableBlurKey, false)
     var showAssignTagsDialog by remember { mutableStateOf(false) }
 
     if (showAssignTagsDialog && playlist != null) {
@@ -220,8 +223,6 @@ fun LocalPlaylistScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val pullRefreshState = rememberPullToRefreshState()
-
-    val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
@@ -251,6 +252,10 @@ fun LocalPlaylistScreen(
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
     val editable: Boolean = playlist?.playlist?.isEditable == true
+    
+    // Play/Pause button logic
+    val isPlaylistPlaying = remember(songs, mediaMetadata) { songs.fastAny { it.song.song.id == mediaMetadata?.id } }
+    val showPause = isPlaylistPlaying && isPlaying
 
     LaunchedEffect(songs) {
         mutableSongs.apply { clear(); addAll(songs) }
@@ -360,7 +365,9 @@ fun LocalPlaylistScreen(
         }
     }
 
+    val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 50 } }
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
+    val isTopBarSolid by remember { derivedStateOf { isScrolled || isSearching || selection } }
 
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
@@ -381,6 +388,8 @@ fun LocalPlaylistScreen(
             }
         } else { gradientColors = emptyList() }
     }
+    
+    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) { val offset = lazyListState.firstVisibleItemScrollOffset; (1f - (offset / 600f)).coerceIn(0f, 1f) } else { 0f } } }
 
     Box(
         modifier = Modifier
@@ -392,6 +401,28 @@ fun LocalPlaylistScreen(
                 onRefresh = viewModel::refresh
             ),
     ) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier.fillMaxWidth().fillMaxSize(0.55f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
+                    val width = size.width
+                    val height = size.height
+
+                    if (gradientColors.size >= 3) {
+                        val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]
+                        val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c0.copy(alpha = gradientAlpha * 0.75f), c0.copy(alpha = gradientAlpha * 0.4f), Color.Transparent), center = Offset(width * 0.5f, height * 0.15f), radius = width * 0.8f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c1.copy(alpha = gradientAlpha * 0.55f), c1.copy(alpha = gradientAlpha * 0.3f), Color.Transparent), center = Offset(width * 0.1f, height * 0.4f), radius = width * 0.6f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c2.copy(alpha = gradientAlpha * 0.5f), c2.copy(alpha = gradientAlpha * 0.25f), Color.Transparent), center = Offset(width * 0.9f, height * 0.35f), radius = width * 0.55f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c3.copy(alpha = gradientAlpha * 0.35f), c3.copy(alpha = gradientAlpha * 0.18f), Color.Transparent), center = Offset(width * 0.25f, height * 0.65f), radius = width * 0.75f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c4.copy(alpha = gradientAlpha * 0.3f), c4.copy(alpha = gradientAlpha * 0.15f), Color.Transparent), center = Offset(width * 0.55f, height * 0.85f), radius = width * 0.9f))
+                    } else if (gradientColors.isNotEmpty()) {
+                        drawRect(brush = Brush.radialGradient(colors = listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.7f), gradientColors[0].copy(alpha = gradientAlpha * 0.35f), Color.Transparent), center = Offset(width * 0.5f, height * 0.25f), radius = width * 0.85f))
+                    }
+                    drawRect(brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor.copy(alpha = gradientAlpha * 0.55f), surfaceColor), startY = height * 0.4f, endY = height))
+                }
+            )
+        }
+
         LazyColumn(
             state = lazyListState,
             contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
@@ -482,46 +513,31 @@ fun LocalPlaylistScreen(
 
                                     // White Play Pill
                                     Button(
-                                        onClick = { playerConnection.playQueue(ListQueue(title = playlist.playlist.name, items = songs.map { it.song.toMediaItem() })) },
+                                        onClick = { 
+                                            if (isPlaylistPlaying) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(ListQueue(title = playlist.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = 0)) 
+                                            }
+                                        },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                         shape = RoundedCornerShape(50),
                                         modifier = Modifier.height(52.dp).width(130.dp)
                                     ) {
-                                        Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
+                                        Icon(painterResource(if (showPause) R.drawable.pause else R.drawable.play), null, modifier = Modifier.size(24.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text(if (showPause) "Pause" else "Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     }
 
                                     Spacer(modifier = Modifier.width(16.dp))
 
-                                    // Download
+                                    // Mix Button
                                     Surface(
-                                        onClick = {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> { showRemoveDownloadDialog = true }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    songs.forEach { song -> DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.song.id, false) }
-                                                }
-                                                else -> {
-                                                    songs.forEach { song ->
-                                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.song.title.toByteArray()).build()
-                                                        DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
-                                                    }
-                                                }
-                                            }
-                                        },
+                                        onClick = { playerConnection.playQueue(LocalMixQueue(database = database, playlistId = playlist.id, maxMixSize = 50)) },
                                         shape = CircleShape,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                                         modifier = Modifier.size(52.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> Icon(painterResource(R.drawable.offline), null, tint = MaterialTheme.colorScheme.primary)
-                                                Download.STATE_DOWNLOADING -> CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
-                                                else -> Icon(painterResource(R.drawable.download), null)
-                                            }
-                                        }
-                                    }
+                                    ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.mix), null) } }
                                 }
 
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -720,15 +736,12 @@ fun LocalPlaylistScreen(
             }
         }
 
-        DraggableScrollbar(
-            modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd),
-            scrollState = lazyListState, headerItems = headerItems
-        )
+        DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = if (isTopBarSolid) MaterialTheme.colorScheme.surface else Color.Transparent,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
@@ -758,8 +771,8 @@ fun LocalPlaylistScreen(
                         else { navController.navigateUp() }
                     },
                     onLongClick = {},
-                    modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
-                ) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!showTopBarTitle && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface) }
+                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
+                ) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface) }
             },
             actions = {
                 if (selection) {
@@ -772,18 +785,18 @@ fun LocalPlaylistScreen(
                     }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
                 } else if (!isSearching) {
                     Row(
-                        modifier = Modifier.padding(end = 8.dp).background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
+                        modifier = Modifier.padding(end = 8.dp).background(if(!isTopBarSolid) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (editable) {
-                            IconButton(onClick = { showEditDialog = true }, onLongClick = {}) { Icon(painterResource(R.drawable.edit), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                            IconButton(onClick = { showEditDialog = true }, onLongClick = {}) { Icon(painterResource(R.drawable.edit), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface) }
                         } else {
                             val liked = playlist?.playlist?.bookmarkedAt != null
                             IconButton(onClick = { database.transaction { playlist?.let { update(it.playlist.toggleLike()) } } }, onLongClick = {}) {
-                                Icon(painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (liked) Color.Red else if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface)
+                                Icon(painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (liked) Color.Red else if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
                             }
                         }
-                        IconButton(onClick = { isSearching = true }, onLongClick = {}) { Icon(painterResource(R.drawable.search), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                        IconButton(onClick = { isSearching = true }, onLongClick = {}) { Icon(painterResource(R.drawable.search), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface) }
                         IconButton(onClick = {
                             if (playlist?.playlist?.browseId != null) {
                                 coroutineScope.launch(Dispatchers.IO) {
@@ -795,7 +808,7 @@ fun LocalPlaylistScreen(
                                 }
                                 coroutineScope.launch(Dispatchers.Main) { snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced)) }
                             }
-                        }, onLongClick = {}) { Icon(painterResource(R.drawable.sync), null, tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface) }
+                        }, onLongClick = {}) { Icon(painterResource(R.drawable.sync), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface) }
                     }
                 }
             }
