@@ -210,7 +210,6 @@ fun CachePlaylistScreen(
     val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 50 } }
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
     
-    // Top bar solid for search overlay logic
     val isTopBarSolid by remember { derivedStateOf { isScrolled || isSearching || selection } }
 
     val headerItems by remember {
@@ -281,116 +280,100 @@ fun CachePlaylistScreen(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
                                 )
-                                // Smooth Gradient Fade
+                                // Smooth Gradient Fade Bottom
                                 Box(
                                     modifier = Modifier
-                                        .matchParentSize()
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .align(Alignment.BottomCenter)
                                         .background(
                                             Brush.verticalGradient(
                                                 colors = listOf(
                                                     Color.Transparent,
                                                     Color.Transparent,
-                                                    surfaceColor.copy(alpha = 0.8f),
+                                                    surfaceColor.copy(alpha = 0.5f),
                                                     surfaceColor
-                                                ),
-                                                startY = 0f,
-                                                endY = Float.POSITIVE_INFINITY
+                                                )
                                             )
                                         )
                                 )
+                                
+                                // Text inside the artwork
+                                Column(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp)
+                                        .padding(bottom = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.cached_playlist),
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 2,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    val countText = pluralStringResource(R.plurals.n_song, filteredSongs.size, filteredSongs.size)
+                                    Text(
+                                        text = "Playlist • $countText",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White.copy(alpha = 0.75f)
+                                    )
+                                }
                             }
 
-                            // 2. Centered Text Content
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(horizontal = 24.dp).padding(top = 16.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.cached_playlist),
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-
-                                Spacer(modifier = Modifier.height(6.dp))
-
-                                val countText = pluralStringResource(R.plurals.n_song, filteredSongs.size, filteredSongs.size)
-                                Text(
-                                    text = "Playlist • $countText",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // 3. White Play Button & Circular Actions
+                            // 2. Action Row (Below Artwork)
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Shuffle
-                                Surface(
-                                    onClick = {
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = "Cache Songs",
-                                                items = filteredSongs.shuffled().map { it.item.toMediaItem() },
-                                            )
-                                        )
-                                    },
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                                    modifier = Modifier.size(52.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(painterResource(R.drawable.shuffle), null)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(16.dp))
-
-                                // White Play/Pause Pill
-                                Button(
-                                    onClick = {
-                                        if (isPlaylistPlaying) {
-                                            playerConnection.player.togglePlayPause()
-                                        } else {
+                                Box(
+                                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f))
+                                        .clickable {
                                             playerConnection.playQueue(
                                                 ListQueue(
                                                     title = "Cache Songs",
-                                                    items = filteredSongs.map { it.item.toMediaItem() },
-                                                    startIndex = 0
+                                                    items = filteredSongs.shuffled().map { it.item.toMediaItem() },
                                                 )
                                             )
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.White,
-                                        contentColor = Color.Black
-                                    ),
-                                    shape = RoundedCornerShape(50),
-                                    modifier = Modifier.height(52.dp).width(130.dp)
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(painterResource(if (showPause) R.drawable.pause else R.drawable.play), null, modifier = Modifier.size(24.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(if (showPause) "Pause" else "Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(22.dp))
+                                }
+
+                                // White Play/Pause Pill
+                                Box(
+                                    modifier = Modifier.height(48.dp).widthIn(min = 120.dp).clip(RoundedCornerShape(24.dp)).background(Color.White)
+                                        .clickable {
+                                            if (isPlaylistPlaying) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        title = "Cache Songs",
+                                                        items = filteredSongs.map { it.item.toMediaItem() },
+                                                        startIndex = 0
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        .padding(horizontal = 24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(painterResource(if (showPause) R.drawable.pause else R.drawable.play), null, tint = Color.Black, modifier = Modifier.size(22.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(if (showPause) "Pause" else "Play", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    }
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Song Count Header (Left Aligned)
-                            Text(
-                                text = "${filteredSongs.size} tracks",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                                textAlign = TextAlign.Start
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
 
@@ -491,12 +474,14 @@ fun CachePlaylistScreen(
                                 )
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         )
-                        // Adding Divider between songs
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 80.dp),
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                            thickness = 0.5.dp
-                        )
+                        // Elegant Divider between songs
+                        if (index < filteredSongs.size - 1) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                                thickness = 0.5.dp
+                            )
+                        }
                     }
                 }
             }
@@ -505,16 +490,15 @@ fun CachePlaylistScreen(
             item {
                 Spacer(
                     modifier = Modifier.windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current
-                    ).windowInsetsPadding(WindowInsets.ime)
+                        LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                    )
                 )
             }
         }
 
         DraggableScrollbar(
             modifier = Modifier
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-                .windowInsetsPadding(WindowInsets.ime)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime))
                 .align(Alignment.CenterEnd),
             scrollState = lazyListState,
             headerItems = headerItems
@@ -565,6 +549,7 @@ fun CachePlaylistScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester)
+                                .background(darkOverlay, RoundedCornerShape(50))
                         )
                     }
                     showTopBarTitle -> {
@@ -639,6 +624,7 @@ fun CachePlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
+                    // Group actions in pill
                     Row(
                         modifier = Modifier
                             .padding(end = 8.dp)
