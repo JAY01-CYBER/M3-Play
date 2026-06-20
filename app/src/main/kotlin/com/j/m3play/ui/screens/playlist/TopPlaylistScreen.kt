@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -326,8 +325,8 @@ fun TopPlaylistScreen(
 
         LazyColumn(
             state = lazyListState,
-            // Allow edge to edge drawing behind the status bar
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
+            // 0 padding so image hits top status bar area perfectly
+            contentPadding = PaddingValues(0.dp),
         ) {
             if (songs != null) {
                 if (songs!!.isEmpty()) {
@@ -558,7 +557,7 @@ fun TopPlaylistScreen(
                         }
                     }
 
-                    // 4. Flat Edge-to-Edge List Items
+                    // 4. Flat Edge-to-Edge List Items with Dividers
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
@@ -566,73 +565,87 @@ fun TopPlaylistScreen(
                         val isActive = songWrapper.item.song.id == mediaMetadata?.id
                         val isSelected = songWrapper.isSelected && selection
 
-                        SongListItem(
-                            song = songWrapper.item,
-                            albumIndex = index + 1,
-                            isActive = isActive,
-                            isPlaying = isPlaying,
-                            showInLibraryIcon = true,
-                            trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            SongMenu(
-                                                originalSong = songWrapper.item,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                    onLongClick = {}
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                    )
-                                }
-                            },
-                            isSelected = isSelected,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateItem()
-                                .background(
-                                    when {
-                                        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
-                                        else -> Color.Transparent
-                                    }
-                                )
-                                .combinedClickable(
-                                    onClick = {
-                                        if (!selection) {
-                                            if (isActive) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = name,
-                                                        items = songs!!.map { it.toMediaItem() },
-                                                        startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
-                                                    ),
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SongListItem(
+                                song = songWrapper.item,
+                                albumIndex = index + 1,
+                                isActive = isActive,
+                                isPlaying = isPlaying,
+                                showInLibraryIcon = true,
+                                trailingContent = {
+                                    androidx.compose.material3.IconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                SongMenu(
+                                                    originalSong = songWrapper.item,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
                                                 )
                                             }
-                                        } else {
-                                            songWrapper.isSelected = !songWrapper.isSelected
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                        )
+                                    }
+                                },
+                                isSelected = isSelected,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        when {
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                            else -> Color.Transparent
                                         }
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!selection) {
-                                            selection = true
-                                            wrappedSongs.forEach { it.isSelected = false }
-                                            songWrapper.isSelected = true
-                                        }
-                                    },
-                                )
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
+                                    )
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (!selection) {
+                                                if (isActive) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.playQueue(
+                                                        ListQueue(
+                                                            title = name,
+                                                            items = songs!!.map { it.toMediaItem() },
+                                                            startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
+                                                        ),
+                                                    )
+                                                }
+                                            } else {
+                                                songWrapper.isSelected = !songWrapper.isSelected
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (!selection) {
+                                                selection = true
+                                                wrappedSongs.forEach { it.isSelected = false }
+                                                songWrapper.isSelected = true
+                                            }
+                                        },
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 80.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                thickness = 0.5.dp
+                            )
+                        }
                     }
                 }
+            }
+            
+            // Bottom Safe Area properly handled
+            item {
+                Spacer(
+                    modifier = Modifier.windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                    )
+                )
             }
         }
 
@@ -679,6 +692,13 @@ fun TopPlaylistScreen(
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
                             ),
+                            trailingIcon = {
+                                if (query.text.isNotEmpty()) {
+                                    androidx.compose.material3.IconButton(onClick = { query = TextFieldValue() }) {
+                                        Icon(painterResource(R.drawable.close), null)
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester)
