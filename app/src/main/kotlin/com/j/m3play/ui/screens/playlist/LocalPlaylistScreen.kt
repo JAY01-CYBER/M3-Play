@@ -83,8 +83,10 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -131,6 +133,7 @@ import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.LocalSyncUtils
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
+import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.PlaylistEditLockKey
 import com.j.m3play.constants.PlaylistSongSortDescendingKey
 import com.j.m3play.constants.PlaylistSongSortType
@@ -252,7 +255,7 @@ fun LocalPlaylistScreen(
     val downloadUtil = LocalDownloadUtil.current
     var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
     val editable: Boolean = playlist?.playlist?.isEditable == true
-    
+
     // Play/Pause button logic
     val isPlaylistPlaying = remember(songs, mediaMetadata) { songs.fastAny { it.song.song.id == mediaMetadata?.id } }
     val showPause = isPlaylistPlaying && isPlaying
@@ -388,7 +391,7 @@ fun LocalPlaylistScreen(
             }
         } else { gradientColors = emptyList() }
     }
-    
+
     val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) { val offset = lazyListState.firstVisibleItemScrollOffset; (1f - (offset / 600f)).coerceIn(0f, 1f) } else { 0f } } }
 
     Box(
@@ -513,11 +516,11 @@ fun LocalPlaylistScreen(
 
                                     // White Play Pill
                                     Button(
-                                        onClick = { 
+                                        onClick = {
                                             if (isPlaylistPlaying) {
                                                 playerConnection.player.togglePlayPause()
                                             } else {
-                                                playerConnection.playQueue(ListQueue(title = playlist.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = 0)) 
+                                                playerConnection.playQueue(ListQueue(title = playlist.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = 0))
                                             }
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
@@ -531,13 +534,34 @@ fun LocalPlaylistScreen(
 
                                     Spacer(modifier = Modifier.width(16.dp))
 
-                                    // Mix Button
+                                    // Download
                                     Surface(
-                                        onClick = { playerConnection.playQueue(LocalMixQueue(database = database, playlistId = playlist.id, maxMixSize = 50)) },
+                                        onClick = {
+                                            when (downloadState) {
+                                                Download.STATE_COMPLETED -> { showRemoveDownloadDialog = true }
+                                                Download.STATE_DOWNLOADING -> {
+                                                    songs.forEach { song -> DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.song.id, false) }
+                                                }
+                                                else -> {
+                                                    songs.forEach { song ->
+                                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.song.title.toByteArray()).build()
+                                                        DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
+                                                    }
+                                                }
+                                            }
+                                        },
                                         shape = CircleShape,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                                         modifier = Modifier.size(52.dp)
-                                    ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.mix), null) } }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            when (downloadState) {
+                                                Download.STATE_COMPLETED -> Icon(painterResource(R.drawable.offline), null, tint = MaterialTheme.colorScheme.primary)
+                                                Download.STATE_DOWNLOADING -> CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                                                else -> Icon(painterResource(R.drawable.download), null)
+                                            }
+                                        }
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.height(24.dp))
