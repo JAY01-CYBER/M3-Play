@@ -199,7 +199,9 @@ fun OnlinePlaylistScreen(
 
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(isSearching) {
-        if (isSearching) focusRequester.requestFocus()
+        if (isSearching) {
+            focusRequester.requestFocus()
+        }
     }
 
     if (isSearching) {
@@ -223,9 +225,15 @@ fun OnlinePlaylistScreen(
     val darkOverlay = Color.Black.copy(alpha = 0.4f)
     val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
     
-    // Play/Pause button state tracking
     val isPlaylistPlaying = remember(songs, mediaMetadata) { songs.fastAny { it.id == mediaMetadata?.id } }
     val showPause = isPlaylistPlaying && isPlaying
+
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            if (!isLoading && current != null && !isSearching) 1 else 0
+        }
+    }
 
     LaunchedEffect(playlist?.thumbnail) {
         val thumbnailUrl = playlist?.thumbnail
@@ -336,7 +344,6 @@ fun OnlinePlaylistScreen(
 
                                     Spacer(modifier = Modifier.width(16.dp))
 
-                                    // Dynamic Play/Pause Button
                                     Button(
                                         onClick = {
                                             if (isPlaylistPlaying) {
@@ -397,7 +404,10 @@ fun OnlinePlaylistScreen(
                             isPlaying = isPlaying,
                             isSelected = isSelected,
                             trailingContent = {
-                                IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) {
+                                IconButton(
+                                    onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } },
+                                    onLongClick = {}
+                                ) {
                                     Icon(painterResource(R.drawable.more_vert), null)
                                 }
                             },
@@ -463,13 +473,13 @@ fun OnlinePlaylistScreen(
                     Text(pluralStringResource(R.plurals.n_song, count, count), style = MaterialTheme.typography.titleLarge)
                 } else if (isSearching) {
                     TextField(
-                        value = query,
-                        onValueChange = { query = it },
+                        value = query, onValueChange = { query = it },
                         placeholder = { Text(stringResource(R.string.search), style = MaterialTheme.typography.titleLarge) },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.titleLarge,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent),
+                        singleLine = true, textStyle = MaterialTheme.typography.titleLarge, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
+                        ),
                         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).background(darkOverlay, RoundedCornerShape(50))
                     )
                 } else if (showTopBarTitle) {
@@ -484,9 +494,9 @@ fun OnlinePlaylistScreen(
                         else { navController.navigateUp() }
                     },
                     onLongClick = {},
-                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid) darkOverlay else Color.Transparent, CircleShape)
+                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
-                    Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
+                    Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             },
             actions = {
@@ -535,5 +545,17 @@ fun OnlinePlaylistScreen(
 
         PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
 }
