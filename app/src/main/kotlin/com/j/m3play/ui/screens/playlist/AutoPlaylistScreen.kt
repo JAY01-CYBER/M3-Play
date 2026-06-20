@@ -654,6 +654,7 @@ fun AutoPlaylistScreen(
                                                 )
                                             }
                                         },
+                                        onLongClick = {}
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
@@ -792,6 +793,7 @@ fun AutoPlaylistScreen(
                             }
                         }
                     },
+                    onLongClick = {},
                     modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(
@@ -812,6 +814,7 @@ fun AutoPlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
+                        onLongClick = {}
                     ) {
                         Icon(
                             painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
@@ -829,6 +832,7 @@ fun AutoPlaylistScreen(
                                 )
                             }
                         },
+                        onLongClick = {}
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -845,6 +849,7 @@ fun AutoPlaylistScreen(
                     ) {
                         IconButton(
                             onClick = { isSearching = true },
+                            onLongClick = {}
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.search),
@@ -855,6 +860,17 @@ fun AutoPlaylistScreen(
                     }
                 }
             }
+        )
+        
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()),
+        )
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter),
         )
     }
 }
