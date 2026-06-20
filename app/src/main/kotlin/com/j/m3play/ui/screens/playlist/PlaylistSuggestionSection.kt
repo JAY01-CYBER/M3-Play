@@ -233,6 +233,7 @@ fun PlaylistSuggestionsSection(
                                 }
                             }
                         }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
                 )
             }
             
