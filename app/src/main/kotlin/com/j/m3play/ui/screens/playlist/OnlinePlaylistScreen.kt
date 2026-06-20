@@ -24,8 +24,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.calculateBottomPadding
-import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -288,7 +286,7 @@ fun OnlinePlaylistScreen(
 
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
+            contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
         ) {
             playlist.let { playlist ->
                 if (isLoading) {
@@ -404,10 +402,7 @@ fun OnlinePlaylistScreen(
                             isPlaying = isPlaying,
                             isSelected = isSelected,
                             trailingContent = {
-                                IconButton(
-                                    onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } },
-                                    onLongClick = {}
-                                ) {
+                                IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) {
                                     Icon(painterResource(R.drawable.more_vert), null)
                                 }
                             },
@@ -494,9 +489,9 @@ fun OnlinePlaylistScreen(
                         else { navController.navigateUp() }
                     },
                     onLongClick = {},
-                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
+                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid) darkOverlay else Color.Transparent, CircleShape)
                 ) {
-                    Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface)
+                    Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
                 }
             },
             actions = {
@@ -543,19 +538,7 @@ fun OnlinePlaylistScreen(
             }
         )
 
-        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()))
+        PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter))
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter))
-    }
-}
-
-@Composable
-private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
 }
