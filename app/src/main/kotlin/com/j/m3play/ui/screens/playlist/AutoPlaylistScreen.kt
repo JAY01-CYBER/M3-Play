@@ -654,7 +654,7 @@ fun AutoPlaylistScreen(
                                                 )
                                             }
                                         },
-                                        onLongClick = {}
+                                        onLongClick = {} // Added explicit onLongClick!
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
@@ -711,7 +711,7 @@ fun AutoPlaylistScreen(
                 }
             }
 
-            // Proper Window Insets bottom padding manually to avoid calculateBottomPadding error
+            // Proper Window Insets bottom padding manually
             item {
                 Spacer(
                     modifier = Modifier.windowInsetsPadding(
@@ -720,6 +720,14 @@ fun AutoPlaylistScreen(
                 )
             }
         }
+
+        DraggableScrollbar(
+            modifier = Modifier
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime))
+                .align(Alignment.CenterEnd),
+            scrollState = lazyListState,
+            headerItems = headerItems
+        )
 
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
@@ -865,7 +873,7 @@ fun AutoPlaylistScreen(
         PullToRefreshDefaults.Indicator(
             isRefreshing = isRefreshing,
             state = pullRefreshState,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()),
+            modifier = Modifier.align(Alignment.TopCenter).windowInsetsPadding(LocalPlayerAwareWindowInsets.current),
         )
         
         SnackbarHost(
