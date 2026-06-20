@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +41,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -137,11 +137,14 @@ import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
-import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.AutoPlaylistViewModel
+
+enum class PlaylistType {
+    LIKE, DOWNLOAD, OTHER
+}
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -230,7 +233,7 @@ fun AutoPlaylistScreen(
         }
     }
 
-    // Play/Pause button state tracking
+    // Play/Pause Smart Button logic
     val isPlaylistPlaying = remember(songs, mediaMetadata) { songs?.fastAny { it.song.id == mediaMetadata?.id } == true }
     val showPause = isPlaylistPlaying && isPlaying
 
@@ -402,8 +405,8 @@ fun AutoPlaylistScreen(
 
         LazyColumn(
             state = lazyListState,
-            // Allow edge to edge drawing behind the status bar
-            contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
+            // 0 content padding at top so image goes edge-to-edge
+            contentPadding = PaddingValues(0.dp),
         ) {
             if (songs != null) {
                 if (songs!!.isEmpty()) {
@@ -634,82 +637,88 @@ fun AutoPlaylistScreen(
                         val isActive = songWrapper.item.song.id == mediaMetadata?.id
                         val isSelected = songWrapper.isSelected && selection
 
-                        SongListItem(
-                            song = songWrapper.item,
-                            isActive = isActive,
-                            isPlaying = isPlaying,
-                            showInLibraryIcon = true,
-                            trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            SongMenu(
-                                                originalSong = songWrapper.item,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                    onLongClick = {}
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                    )
-                                }
-                            },
-                            isSelected = isSelected,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .animateItem()
-                                .background(
-                                    when {
-                                        isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                        isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
-                                        else -> Color.Transparent
-                                    }
-                                )
-                                .combinedClickable(
-                                    onClick = {
-                                        if (!selection) {
-                                            if (isActive) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = playlist,
-                                                        items = songs!!.map { it.toMediaItem() },
-                                                        startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
-                                                    ),
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SongListItem(
+                                song = songWrapper.item,
+                                isActive = isActive,
+                                isPlaying = isPlaying,
+                                showInLibraryIcon = true,
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                SongMenu(
+                                                    originalSong = songWrapper.item,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss,
                                                 )
                                             }
-                                        } else {
-                                            songWrapper.isSelected = !songWrapper.isSelected
+                                        },
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                        )
+                                    }
+                                },
+                                isSelected = isSelected,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        when {
+                                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                            isActive -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+                                            else -> Color.Transparent
                                         }
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!selection) {
-                                            selection = true
-                                            wrappedSongs.forEach { it.isSelected = false }
-                                            songWrapper.isSelected = true
-                                        }
-                                    },
-                                )
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
+                                    )
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (!selection) {
+                                                if (isActive) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.playQueue(
+                                                        ListQueue(
+                                                            title = playlist,
+                                                            items = songs!!.map { it.toMediaItem() },
+                                                            startIndex = songs!!.indexOfFirst { it.id == songWrapper.item.id }
+                                                        ),
+                                                    )
+                                                }
+                                            } else {
+                                                songWrapper.isSelected = !songWrapper.isSelected
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (!selection) {
+                                                selection = true
+                                                wrappedSongs.forEach { it.isSelected = false }
+                                                songWrapper.isSelected = true
+                                            }
+                                        },
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 80.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                thickness = 0.5.dp
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        DraggableScrollbar(
-            modifier = Modifier
-                .padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues())
-                .align(Alignment.CenterEnd),
-            scrollState = lazyListState,
-            headerItems = headerItems
-        )
+            // Proper Window Insets bottom padding manually to avoid calculateBottomPadding error
+            item {
+                Spacer(
+                    modifier = Modifier.windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)
+                    )
+                )
+            }
+        }
 
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
@@ -746,10 +755,16 @@ fun AutoPlaylistScreen(
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
                             ),
+                            trailingIcon = {
+                                if (query.text.isNotEmpty()) {
+                                    androidx.compose.material3.IconButton(onClick = { query = TextFieldValue() }) {
+                                        Icon(painterResource(R.drawable.close), null)
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusRequester(focusRequester)
-                                .background(darkOverlay, RoundedCornerShape(50))
                         )
                     }
                     showTopBarTitle -> {
@@ -777,7 +792,6 @@ fun AutoPlaylistScreen(
                             }
                         }
                     },
-                    onLongClick = {},
                     modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(
@@ -798,7 +812,6 @@ fun AutoPlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        onLongClick = {}
                     ) {
                         Icon(
                             painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
@@ -816,7 +829,6 @@ fun AutoPlaylistScreen(
                                 )
                             }
                         },
-                        onLongClick = {}
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -833,7 +845,6 @@ fun AutoPlaylistScreen(
                     ) {
                         IconButton(
                             onClick = { isSearching = true },
-                            onLongClick = {}
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.search),
@@ -845,20 +856,5 @@ fun AutoPlaylistScreen(
                 }
             }
         )
-        
-        PullToRefreshDefaults.Indicator(
-            isRefreshing = isRefreshing,
-            state = pullRefreshState,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()),
-        )
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter),
-        )
     }
-}
-
-enum class PlaylistType {
-    LIKE, DOWNLOAD, OTHER
 }
