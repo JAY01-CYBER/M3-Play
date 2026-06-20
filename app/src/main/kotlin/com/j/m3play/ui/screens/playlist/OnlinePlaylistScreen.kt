@@ -72,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -81,15 +82,20 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastAny
@@ -109,6 +115,7 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
+import com.j.m3play.constants.AppBarHeight
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.db.entities.PlaylistEntity
@@ -120,6 +127,7 @@ import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
+import com.j.m3play.ui.component.DraggableScrollbar
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
@@ -132,6 +140,7 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
+import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.ui.utils.formatCompactCount
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.OnlinePlaylistViewModel
@@ -147,6 +156,7 @@ fun OnlinePlaylistScreen(
     val menuState = LocalMenuState.current
     val database = LocalDatabase.current
     val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -216,6 +226,13 @@ fun OnlinePlaylistScreen(
     
     val isPlaylistPlaying = remember(songs, mediaMetadata) { songs.fastAny { it.id == mediaMetadata?.id } }
     val showPause = isPlaylistPlaying && isPlaying
+
+    val headerItems by remember {
+        derivedStateOf {
+            val current = playlist
+            if (!isLoading && current != null && !isSearching) 1 else 0
+        }
+    }
 
     LaunchedEffect(playlist?.thumbnail) {
         val thumbnailUrl = playlist?.thumbnail
@@ -388,7 +405,8 @@ fun OnlinePlaylistScreen(
                                 isSelected = isSelected,
                                 trailingContent = {
                                     IconButton(
-                                        onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }
+                                        onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } },
+                                        onLongClick = {}
                                     ) {
                                         Icon(painterResource(R.drawable.more_vert), null)
                                     }
@@ -491,10 +509,11 @@ fun OnlinePlaylistScreen(
             navigationIcon = {
                 IconButton(
                     onClick = {
-                        if (isSearching) { isSearching = false; query = TextFieldValue() }
+                        if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
                         else if (selection) { selection = false }
                         else { navController.navigateUp() }
                     },
+                    onLongClick = {},
                     modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface)
@@ -503,8 +522,15 @@ fun OnlinePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    IconButton(onClick = { if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false } else wrappedSongs.forEach { it.isSelected = true } }) { Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
-                    IconButton(onClick = { menuState.show { SelectionMediaMetadataMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaItem().metadata!! }, onDismiss = menuState::dismiss, clearAction = { selection = false }, currentItems = emptyList()) } }) { Icon(painterResource(R.drawable.more_vert), null) }
+                    IconButton(
+                        onClick = { if (count == wrappedSongs.size) wrappedSongs.forEach { it.isSelected = false } else wrappedSongs.forEach { it.isSelected = true } },
+                        onLongClick = {}
+                    ) { Icon(painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
+                    
+                    IconButton(
+                        onClick = { menuState.show { SelectionMediaMetadataMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaItem().metadata!! }, onDismiss = menuState::dismiss, clearAction = { selection = false }, currentItems = emptyList()) } },
+                        onLongClick = {}
+                    ) { Icon(painterResource(R.drawable.more_vert), null) }
                 } else if (!isSearching) {
                     Row(
                         modifier = Modifier.padding(end = 8.dp).background(if(!isTopBarSolid) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
@@ -523,17 +549,22 @@ fun OnlinePlaylistScreen(
                                         database.transaction { val currentPlaylist = dbPlaylist!!.playlist; update(currentPlaylist, playlist!!); update(currentPlaylist.toggleLike()) }
                                     }
                                 },
+                                onLongClick = {}
                             ) {
                                 Icon(painterResource(if (isLiked) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (isLiked) Color.Red else if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
                             }
                         }
-                        IconButton(onClick = { isSearching = true }) {
+                        IconButton(
+                            onClick = { isSearching = true },
+                            onLongClick = {}
+                        ) {
                             Icon(painterResource(R.drawable.search), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
                         IconButton(
                             onClick = {
                                 if (playlist != null) { menuState.show { YouTubePlaylistMenu(playlist = playlist!!, songs = songs, coroutineScope = coroutineScope, onDismiss = menuState::dismiss, selectAction = { selection = true }, canSelect = true, snackbarHostState = snackbarHostState) } }
                             },
+                            onLongClick = {}
                         ) {
                             Icon(painterResource(R.drawable.more_vert), null, tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
