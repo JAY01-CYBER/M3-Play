@@ -132,7 +132,7 @@ fun PlaylistSuggestionsSection(
         
         currentSuggestions?.let { suggestions ->
             // Suggestions List (Vertical - Flat edge to edge design)
-            suggestions.items.forEach { item ->
+            suggestions.items.forEachIndexed { index, item ->
                 val isActive = item.id == mediaMetadata?.id
 
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -219,11 +219,13 @@ fun PlaylistSuggestionsSection(
                             }
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 80.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        thickness = 0.5.dp
-                    )
+                    if (index < suggestions.items.size - 1) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 80.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            thickness = 0.5.dp
+                        )
+                    }
                 }
             }
             
