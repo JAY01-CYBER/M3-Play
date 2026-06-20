@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,7 +42,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -190,6 +191,10 @@ fun CachePlaylistScreen(
                     song.artists.any { it.name.contains(query.text, true) }
         }
     }
+    
+    // Play/Pause button logic
+    val isPlaylistPlaying = remember(cachedSongs, mediaMetadata) { cachedSongs.fastAny { it.song.id == mediaMetadata?.id } }
+    val showPause = isPlaylistPlaying && isPlaying
 
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
@@ -227,17 +232,20 @@ fun CachePlaylistScreen(
         }
     }
 
-    val showTopBarTitle by remember {
+    val gradientAlpha by remember {
         derivedStateOf {
-            lazyListState.firstVisibleItemIndex > 0
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                (1f - (offset / 600f)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
         }
     }
 
-    val transparentAppBar by remember {
-        derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
-        }
-    }
+    val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 50 } }
+    val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
+    val isTopBarSolid by remember { derivedStateOf { isScrolled || isSearching || selection } }
 
     val headerItems by remember {
         derivedStateOf {
@@ -250,8 +258,31 @@ fun CachePlaylistScreen(
             .fillMaxSize()
             .background(surfaceColor),
     ) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier.fillMaxWidth().fillMaxSize(0.55f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
+                    val width = size.width
+                    val height = size.height
+
+                    if (gradientColors.size >= 3) {
+                        val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]
+                        val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c0.copy(alpha = gradientAlpha * 0.75f), c0.copy(alpha = gradientAlpha * 0.4f), Color.Transparent), center = Offset(width * 0.5f, height * 0.15f), radius = width * 0.8f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c1.copy(alpha = gradientAlpha * 0.55f), c1.copy(alpha = gradientAlpha * 0.3f), Color.Transparent), center = Offset(width * 0.1f, height * 0.4f), radius = width * 0.6f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c2.copy(alpha = gradientAlpha * 0.5f), c2.copy(alpha = gradientAlpha * 0.25f), Color.Transparent), center = Offset(width * 0.9f, height * 0.35f), radius = width * 0.55f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c3.copy(alpha = gradientAlpha * 0.35f), c3.copy(alpha = gradientAlpha * 0.18f), Color.Transparent), center = Offset(width * 0.25f, height * 0.65f), radius = width * 0.75f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c4.copy(alpha = gradientAlpha * 0.3f), c4.copy(alpha = gradientAlpha * 0.15f), Color.Transparent), center = Offset(width * 0.55f, height * 0.85f), radius = width * 0.9f))
+                    } else if (gradientColors.isNotEmpty()) {
+                        drawRect(brush = Brush.radialGradient(colors = listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.7f), gradientColors[0].copy(alpha = gradientAlpha * 0.35f), Color.Transparent), center = Offset(width * 0.5f, height * 0.25f), radius = width * 0.85f))
+                    }
+                    drawRect(brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor.copy(alpha = gradientAlpha * 0.55f), surfaceColor), startY = height * 0.4f, endY = height))
+                }
+            )
+        }
+
         LazyColumn(
             state = lazyListState,
+            // Allow edge to edge drawing behind the status bar
             contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
         ) {
             if (filteredSongs.isEmpty() && !isSearching) {
@@ -359,12 +390,17 @@ fun CachePlaylistScreen(
                                 // White Play Pill
                                 Button(
                                     onClick = {
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = "Cache Songs",
-                                                items = filteredSongs.map { it.item.toMediaItem() },
+                                        if (isPlaylistPlaying) {
+                                            playerConnection.player.togglePlayPause()
+                                        } else {
+                                            playerConnection.playQueue(
+                                                ListQueue(
+                                                    title = "Cache Songs",
+                                                    items = filteredSongs.map { it.item.toMediaItem() },
+                                                    startIndex = 0
+                                                )
                                             )
-                                        )
+                                        }
                                     },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color.White,
@@ -373,9 +409,9 @@ fun CachePlaylistScreen(
                                     shape = RoundedCornerShape(50),
                                     modifier = Modifier.height(52.dp).width(130.dp)
                                 ) {
-                                    Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
+                                    Icon(painterResource(if (showPause) R.drawable.pause else R.drawable.play), null, modifier = Modifier.size(24.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text(if (showPause) "Pause" else "Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
                             }
 
@@ -392,27 +428,29 @@ fun CachePlaylistScreen(
                         }
                     }
 
-                    // Sort Header (Clean Flat style)
+                    // Sort Header (only active if searching/needed)
                     item(key = "sortHeader") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 16.dp),
-                        ) {
-                            SortHeader(
-                                sortType = sortType,
-                                sortDescending = sortDescending,
-                                onSortTypeChange = onSortTypeChange,
-                                onSortDescendingChange = onSortDescendingChange,
-                                sortTypeText = { type ->
-                                    when (type) {
-                                        SongSortType.CREATE_DATE -> R.string.sort_by_create_date
-                                        SongSortType.NAME -> R.string.sort_by_name
-                                        SongSortType.ARTIST -> R.string.sort_by_artist
-                                        SongSortType.PLAY_TIME -> R.string.sort_by_play_time
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                            )
+                        if (isSearching) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 16.dp),
+                            ) {
+                                SortHeader(
+                                    sortType = sortType,
+                                    sortDescending = sortDescending,
+                                    onSortTypeChange = onSortTypeChange,
+                                    onSortDescendingChange = onSortDescendingChange,
+                                    sortTypeText = { type ->
+                                        when (type) {
+                                            SongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                            SongSortType.NAME -> R.string.sort_by_name
+                                            SongSortType.ARTIST -> R.string.sort_by_artist
+                                            SongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
@@ -429,16 +467,19 @@ fun CachePlaylistScreen(
                         isSelected = isSelected,
                         showInLibraryIcon = true,
                         trailingContent = {
-                            androidx.compose.material3.IconButton(onClick = {
-                                menuState.show {
-                                    SongMenu(
-                                        originalSong = songWrapper.item,
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                        isFromCache = true,
-                                    )
-                                }
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = songWrapper.item,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                            isFromCache = true,
+                                        )
+                                    }
+                                },
+                                onLongClick = {}
+                            ) {
                                 Icon(
                                     painter = painterResource(R.drawable.more_vert),
                                     contentDescription = null
@@ -499,7 +540,7 @@ fun CachePlaylistScreen(
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = if (isTopBarSolid) MaterialTheme.colorScheme.surface else Color.Transparent,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
@@ -562,45 +603,47 @@ fun CachePlaylistScreen(
                             }
                         }
                     },
-                    onLongClick = {
-                        if (!isSearching && !selection) {
-                            navController.backToMain()
-                        }
-                    },
-                    modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
+                    onLongClick = {},
+                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
                         contentDescription = null,
-                        tint = if(!showTopBarTitle && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface
+                        tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(onClick = {
-                        if (count == wrappedSongs.size) {
-                            wrappedSongs.forEach { it.isSelected = false }
-                        } else {
-                            wrappedSongs.forEach { it.isSelected = true }
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (count == wrappedSongs.size) {
+                                wrappedSongs.forEach { it.isSelected = false }
+                            } else {
+                                wrappedSongs.forEach { it.isSelected = true }
+                            }
+                        },
+                        onLongClick = {}
+                    ) {
                         Icon(
                             painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all),
                             contentDescription = null
                         )
                     }
 
-                    androidx.compose.material3.IconButton(onClick = {
-                        menuState.show {
-                            SelectionSongMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
-                                onDismiss = menuState::dismiss,
-                                clearAction = { selection = false }
-                            )
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                SelectionSongMenu(
+                                    songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                    onDismiss = menuState::dismiss,
+                                    clearAction = { selection = false }
+                                )
+                            }
+                        },
+                        onLongClick = {}
+                    ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
                             contentDescription = null
@@ -611,14 +654,17 @@ fun CachePlaylistScreen(
                     Row(
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
+                            .background(if(!isTopBarSolid) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        androidx.compose.material3.IconButton(onClick = { isSearching = true }) {
+                        IconButton(
+                            onClick = { isSearching = true },
+                            onLongClick = {}
+                        ) {
                             Icon(
                                 painter = painterResource(R.drawable.search),
                                 contentDescription = null,
-                                tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface
+                                tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
