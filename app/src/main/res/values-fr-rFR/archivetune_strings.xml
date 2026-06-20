@@ -181,9 +181,9 @@
     <string name="disable">Désactiver</string>
     <string name="pause_remote_listen_history">Mettre en pause, partager et consulter l\'historique d\'écoute avec YouTube Music</string>
     <string name="not_logged_in_youtube">Vous n\'êtes pas connecté à YouTube</string>
-    <string name="default_links">Open supported links</string>
+    <string name="default_links">Ouvrir les liens pris en charge</string>
     <string name="open_app_settings_error">Impossible d\'ouvrir les paramètres de l\'application</string>
-    <string name="release_notes">Release notes</string>
+    <string name="release_notes">Notes de mise à jour</string>
     <string name="all_time">Tout le temps</string>
     <string name="past_24_hours">Au cours des dernières 24 heures</string>
     <string name="past_week">La semaine dernière</string>
@@ -246,9 +246,9 @@
     <string name="custom_theme">Thème personnalisé</string>
     <string name="import_theme">Importer un thème</string>
     <string name="export_theme">Exporter le thème</string>
-    <string name="palette_custom">Custom</string>
-    <string name="theme_creator_title">Theme Creator</string>
-    <string name="theme_creator_subtitle">Tune colors, preview the result, then export or import.</string>
+    <string name="palette_custom">Personnalisée</string>
+    <string name="theme_creator_title">Créateur de Thèmes</string>
+    <string name="theme_creator_subtitle">Réglez les couleurs, prévisualisez le résultat, puis exportez ou importez.</string>
     <string name="theme_meta_title">Détails du thème</string>
     <string name="theme_name_optional">Nom (facultatif)</string>
     <string name="theme_apply_button">Appliquer le thème</string>
@@ -267,7 +267,7 @@
     <string name="theme_editor_hex">Hex</string>
     <string name="theme_editor_hex_input">Valeur hexadécimale (#RRGGBB ou #AARRGGBB)</string>
     <string name="theme_presets_title">Préréglages</string>
-    <string name="theme_preview_trackline">A premium preview card</string>
+    <string name="theme_preview_trackline">Une carte d\'avant-première premium</string>
     <string name="theme_preview_primary_action">Action principale</string>
     <string name="theme_preview_secondary_action">Action secondaire</string>
     <string name="copy">Copier</string>
