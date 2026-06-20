@@ -23,15 +23,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -44,6 +46,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,6 +56,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,12 +68,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -87,7 +96,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastSumBy
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
@@ -158,6 +169,10 @@ fun AutoPlaylistScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val focusRequester = remember { FocusRequester() }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val pullRefreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
@@ -208,10 +223,18 @@ fun AutoPlaylistScreen(
     LaunchedEffect(Unit) {
         if (ytmSync) {
             withContext(Dispatchers.IO) {
-                if (playlistType == PlaylistType.LIKE) viewModel.syncLikedSongs()
+                if (playlistType == PlaylistType.LIKE) {
+                    isRefreshing = true
+                    viewModel.syncLikedSongs()
+                    isRefreshing = false
+                }
             }
         }
     }
+
+    // Play/Pause button state tracking
+    val isPlaylistPlaying = remember(songs, mediaMetadata) { songs?.fastAny { it.song.id == mediaMetadata?.id } == true }
+    val showPause = isPlaylistPlaying && isPlaying
 
     LaunchedEffect(songs) {
         mutableSongs.apply {
@@ -323,17 +346,20 @@ fun AutoPlaylistScreen(
         }
     }
 
-    val showTopBarTitle by remember {
+    val gradientAlpha by remember {
         derivedStateOf {
-            lazyListState.firstVisibleItemIndex > 0
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                (1f - (offset / 600f)).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
         }
     }
 
-    val transparentAppBar by remember {
-        derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
-        }
-    }
+    val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 50 } }
+    val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
+    val isTopBarSolid by remember { derivedStateOf { isScrolled || isSearching || selection } }
 
     val headerItems by remember {
         derivedStateOf {
@@ -345,11 +371,40 @@ fun AutoPlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor),
+            .background(surfaceColor)
+            .pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = {
+                if (playlistType == PlaylistType.LIKE) {
+                    isRefreshing = true
+                    viewModel.syncLikedSongs()
+                    isRefreshing = false
+                }
+            }),
     ) {
+        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+            Box(
+                modifier = Modifier.fillMaxWidth().fillMaxSize(0.55f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
+                    val width = size.width
+                    val height = size.height
+
+                    if (gradientColors.size >= 3) {
+                        val c0 = gradientColors[0]; val c1 = gradientColors[1]; val c2 = gradientColors[2]
+                        val c3 = gradientColors.getOrElse(3) { c0 }; val c4 = gradientColors.getOrElse(4) { c1 }
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c0.copy(alpha = gradientAlpha * 0.75f), c0.copy(alpha = gradientAlpha * 0.4f), Color.Transparent), center = Offset(width * 0.5f, height * 0.15f), radius = width * 0.8f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c1.copy(alpha = gradientAlpha * 0.55f), c1.copy(alpha = gradientAlpha * 0.3f), Color.Transparent), center = Offset(width * 0.1f, height * 0.4f), radius = width * 0.6f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c2.copy(alpha = gradientAlpha * 0.5f), c2.copy(alpha = gradientAlpha * 0.25f), Color.Transparent), center = Offset(width * 0.9f, height * 0.35f), radius = width * 0.55f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c3.copy(alpha = gradientAlpha * 0.35f), c3.copy(alpha = gradientAlpha * 0.18f), Color.Transparent), center = Offset(width * 0.25f, height * 0.65f), radius = width * 0.75f))
+                        drawRect(brush = Brush.radialGradient(colors = listOf(c4.copy(alpha = gradientAlpha * 0.3f), c4.copy(alpha = gradientAlpha * 0.15f), Color.Transparent), center = Offset(width * 0.55f, height * 0.85f), radius = width * 0.9f))
+                    } else if (gradientColors.isNotEmpty()) {
+                        drawRect(brush = Brush.radialGradient(colors = listOf(gradientColors[0].copy(alpha = gradientAlpha * 0.7f), gradientColors[0].copy(alpha = gradientAlpha * 0.35f), Color.Transparent), center = Offset(width * 0.5f, height * 0.25f), radius = width * 0.85f))
+                    }
+                    drawRect(brush = Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Transparent, surfaceColor.copy(alpha = gradientAlpha * 0.22f), surfaceColor.copy(alpha = gradientAlpha * 0.55f), surfaceColor), startY = height * 0.4f, endY = height))
+                }
+            )
+        }
+
         LazyColumn(
             state = lazyListState,
-            // Allow drawing behind status bars 
+            // Allow edge to edge drawing behind the status bar
             contentPadding = PaddingValues(bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()),
         ) {
             if (songs != null) {
@@ -453,12 +508,17 @@ fun AutoPlaylistScreen(
                                     // White Play Pill
                                     Button(
                                         onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = playlist,
-                                                    items = songs!!.map { it.toMediaItem() },
+                                            if (isPlaylistPlaying) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        title = playlist,
+                                                        items = songs!!.map { it.toMediaItem() },
+                                                        startIndex = 0
+                                                    )
                                                 )
-                                            )
+                                            }
                                         },
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color.White,
@@ -467,9 +527,9 @@ fun AutoPlaylistScreen(
                                         shape = RoundedCornerShape(50),
                                         modifier = Modifier.height(52.dp).width(130.dp)
                                     ) {
-                                        Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
+                                        Icon(painterResource(if (showPause) R.drawable.pause else R.drawable.play), null, modifier = Modifier.size(24.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text(if (showPause) "Pause" else "Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     }
 
                                     Spacer(modifier = Modifier.width(16.dp))
@@ -544,25 +604,27 @@ fun AutoPlaylistScreen(
 
                     // Sort Header (only active if needed, simple flat style)
                     item(key = "sortHeader") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(start = 16.dp),
-                        ) {
-                            SortHeader(
-                                sortType = sortType,
-                                sortDescending = sortDescending,
-                                onSortTypeChange = onSortTypeChange,
-                                onSortDescendingChange = onSortDescendingChange,
-                                sortTypeText = { type ->
-                                    when (type) {
-                                        AutoPlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date
-                                        AutoPlaylistSongSortType.NAME -> R.string.sort_by_name
-                                        AutoPlaylistSongSortType.ARTIST -> R.string.sort_by_artist
-                                        AutoPlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                            )
+                        if (isSearching) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 16.dp),
+                            ) {
+                                SortHeader(
+                                    sortType = sortType,
+                                    sortDescending = sortDescending,
+                                    onSortTypeChange = onSortTypeChange,
+                                    onSortDescendingChange = onSortDescendingChange,
+                                    sortTypeText = { type ->
+                                        when (type) {
+                                            AutoPlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date
+                                            AutoPlaylistSongSortType.NAME -> R.string.sort_by_name
+                                            AutoPlaylistSongSortType.ARTIST -> R.string.sort_by_artist
+                                            AutoPlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
 
@@ -601,7 +663,6 @@ fun AutoPlaylistScreen(
                             isSelected = isSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .animateItem()
                                 .background(
                                     when {
                                         isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -654,7 +715,7 @@ fun AutoPlaylistScreen(
         // 5. YT Music Style Translucent Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
+                containerColor = if (isTopBarSolid) MaterialTheme.colorScheme.surface else Color.Transparent,
                 scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
@@ -718,12 +779,12 @@ fun AutoPlaylistScreen(
                         }
                     },
                     onLongClick = {},
-                    modifier = Modifier.padding(start = 8.dp).background(if(!showTopBarTitle && !isSearching) darkOverlay else Color.Transparent, CircleShape)
+                    modifier = Modifier.padding(start = 8.dp).background(if(!isTopBarSolid && !isSearching) darkOverlay else Color.Transparent, CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
                         contentDescription = null,
-                        tint = if(!showTopBarTitle && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface
+                        tint = if(!isTopBarSolid && !isSearching) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
@@ -768,7 +829,7 @@ fun AutoPlaylistScreen(
                     Row(
                         modifier = Modifier
                             .padding(end = 8.dp)
-                            .background(if(!showTopBarTitle) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
+                            .background(if(!isTopBarSolid) darkOverlay else Color.Transparent, RoundedCornerShape(50)),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
@@ -778,12 +839,23 @@ fun AutoPlaylistScreen(
                             Icon(
                                 painter = painterResource(R.drawable.search),
                                 contentDescription = null,
-                                tint = if(!showTopBarTitle) Color.White else MaterialTheme.colorScheme.onSurface
+                                tint = if(!isTopBarSolid) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
             }
+        )
+        
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()),
+        )
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter),
         )
     }
 }
