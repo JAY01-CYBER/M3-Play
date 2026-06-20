@@ -600,7 +600,7 @@ fun AutoPlaylistScreen(
                         }
                     }
 
-                    // Sort Header (only active if searching/needed)
+                    // Sort Header (only active if needed, simple flat style)
                     item(key = "sortHeader") {
                         if (isSearching) {
                             Row(
@@ -661,6 +661,7 @@ fun AutoPlaylistScreen(
                             isSelected = isSelected,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .animateItem()
                                 .background(
                                     when {
                                         isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -844,5 +845,20 @@ fun AutoPlaylistScreen(
                 }
             }
         )
+        
+        PullToRefreshDefaults.Indicator(
+            isRefreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateTopPadding()),
+        )
+        
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime)).align(Alignment.BottomCenter),
+        )
     }
+}
+
+enum class PlaylistType {
+    LIKE, DOWNLOAD, OTHER
 }
