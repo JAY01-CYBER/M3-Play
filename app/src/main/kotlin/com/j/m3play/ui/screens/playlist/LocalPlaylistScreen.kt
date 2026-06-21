@@ -46,7 +46,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -56,9 +55,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEachReversed
 import androidx.compose.ui.util.fastSumBy
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
@@ -110,6 +109,7 @@ import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.screens.playlist.PlaylistSuggestionsSection
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.backToMain
+import com.j.m3play.ui.utils.formatCompactCount
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
@@ -174,7 +174,7 @@ fun LocalPlaylistScreen(
     else if (inSelectMode) BackHandler(onBack = onExitSelectionMode)
 
     val downloadUtil = LocalDownloadUtil.current
-    var downloadState by remember { mutableIntStateOf(Download.STATE_STOPPED) }
+    var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
     val editable: Boolean = playlist?.playlist?.isEditable == true
 
     LaunchedEffect(songs) {
@@ -329,7 +329,8 @@ fun LocalPlaylistScreen(
                                     } else if (playlist.thumbnails.size > 1) {
                                         Surface(modifier = Modifier.size(240.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = dominantColor ?: MaterialTheme.colorScheme.primary, spotColor = dominantColor ?: MaterialTheme.colorScheme.primary), shape = RoundedCornerShape(12.dp)) {
                                             Box(modifier = Modifier.fillMaxSize()) {
-                                                listOf(Alignment.TopStart, Alignment.TopEnd, Alignment.BottomStart, Alignment.BottomEnd).fastForEachIndexed { index, alignment ->
+                                                val alignments = listOf(Alignment.TopStart, Alignment.TopEnd, Alignment.BottomStart, Alignment.BottomEnd)
+                                                alignments.forEachIndexed { index, alignment ->
                                                     AsyncImage(model = playlist.thumbnails.getOrNull(index), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.align(alignment).size(120.dp))
                                                 }
                                             }
