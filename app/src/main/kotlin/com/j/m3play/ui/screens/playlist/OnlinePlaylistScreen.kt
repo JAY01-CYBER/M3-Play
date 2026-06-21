@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,59 +15,19 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,9 +35,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -213,6 +173,15 @@ fun OnlinePlaylistScreen(
         } else gradientColors = emptyList()
     }
 
+    // ⭐ Header Fade Alpha to prevent overlap
+    val headerAlpha by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                (1f - (lazyListState.firstVisibleItemScrollOffset / 400f)).coerceIn(0f, 1f)
+            } else 0f
+        }
+    }
+
     val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 600f)).coerceIn(0f, 1f) else 0f } }
     val transparentAppBar by remember { derivedStateOf { !disableBlur && !selection && !showTopBarTitle } }
     val headerItems by remember { derivedStateOf { val current = playlist; if (!isLoading && current != null && !isSearching) 1 else 0 } }
@@ -224,18 +193,12 @@ fun OnlinePlaylistScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(surfaceColor)
-            .pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
+        modifier = Modifier.fillMaxSize().background(surfaceColor).pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
     ) {
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxSize(0.6f)
-                    .align(Alignment.TopCenter)
-                    .zIndex(-1f)
+                    .fillMaxWidth().fillMaxSize(0.6f).align(Alignment.TopCenter).zIndex(-1f)
                     .drawBehind {
                         val headerColor = gradientColors.getOrNull(0) ?: surfaceColor
                         drawRect(
@@ -282,7 +245,10 @@ fun OnlinePlaylistScreen(
                     if (!isSearching) {
                         item(key = "header") {
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .graphicsLayer { alpha = headerAlpha }, // ⭐ Fade applied
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)) {
@@ -299,10 +265,7 @@ fun OnlinePlaylistScreen(
                                     Text(
                                         text = buildAnnotatedString {
                                             withStyle(style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary).toSpanStyle()) {
-                                                if (artist.id != null) {
-                                                    val link = LinkAnnotation.Clickable(artist.id!!) { navController.navigate("artist/${artist.id}") }
-                                                    withLink(link) { append(artist.name) }
-                                                } else append(artist.name)
+                                                if (artist.id != null) { val link = LinkAnnotation.Clickable(artist.id!!) { navController.navigate("artist/${artist.id}") }; withLink(link) { append(artist.name) } } else append(artist.name)
                                             }
                                         },
                                         textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp)
@@ -319,7 +282,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Main Pill Actions (Shuffle & Radio usually for Online Playlist)
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -354,7 +316,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Secondary Actions
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp),
                                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -373,18 +334,13 @@ fun OnlinePlaylistScreen(
                                             },
                                             shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(48.dp)
                                         ) {
-                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                Icon(painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp))
-                                            }
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painterResource(if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (dbPlaylist?.playlist?.bookmarkedAt != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp)) }
                                         }
                                     }
 
                                     val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
                                     if (mixEndpoint != null) {
-                                        Surface(
-                                            onClick = { playerConnection.playQueue(YouTubeQueue(mixEndpoint)) },
-                                            shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(48.dp)
-                                        ) {
+                                        Surface(onClick = { playerConnection.playQueue(YouTubeQueue(mixEndpoint)) }, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(48.dp)) {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.mix), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp)) }
                                         }
                                     }
@@ -420,10 +376,7 @@ fun OnlinePlaylistScreen(
                             modifier = Modifier.combinedClickable(
                                 enabled = !hideExplicit || !song.item.second.explicit,
                                 onClick = {
-                                    if (!selection) {
-                                        if (song.item.second.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                        else { playerConnection.service.getAutomix(playlistId = playlist.id); playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata())) }
-                                    } else song.isSelected = !song.isSelected
+                                    if (!selection) { if (song.item.second.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else { playerConnection.service.getAutomix(playlistId = playlist.id); playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata())) } } else song.isSelected = !song.isSelected
                                 },
                                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; song.isSelected = true },
                             )
