@@ -95,6 +95,7 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.AutoPlaylistViewModel
+import com.j.m3play.ui.utils.backToMain
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -340,7 +341,7 @@ fun AutoPlaylistScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = if (!isScrolled) Color.Transparent else MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surface),
             title = {
                 when {
-                    inSelectMode -> Text(pluralStringResource(R.plurals.n_song, selection.size, selection.size), style = MaterialTheme.typography.titleLarge)
+                    inSelectMode -> { Text(pluralStringResource(R.plurals.n_song, selection.size, selection.size), style = MaterialTheme.typography.titleLarge) }
                     isSearching -> {
                         TextField(
                             value = query, onValueChange = { query = it }, placeholder = { Text(stringResource(R.string.search), style = MaterialTheme.typography.titleMedium) }, singleLine = true, textStyle = MaterialTheme.typography.titleMedium, shape = CircleShape, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -348,7 +349,7 @@ fun AutoPlaylistScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 4.dp).focusRequester(focusRequester)
                         )
                     }
-                    isScrolled -> Text(playlist, style = MaterialTheme.typography.titleLarge)
+                    isScrolled -> { Text(playlist, style = MaterialTheme.typography.titleLarge) }
                 }
             },
             navigationIcon = {
