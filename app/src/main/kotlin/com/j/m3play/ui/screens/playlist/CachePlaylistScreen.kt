@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachReversed
+import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -251,7 +252,7 @@ fun CachePlaylistScreen(
                                 SortHeader(
                                     sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange,
                                     sortTypeText = { sortType -> when (sortType) { SongSortType.CREATE_DATE -> R.string.sort_by_create_date; SongSortType.NAME -> R.string.sort_by_name; SongSortType.ARTIST -> R.string.sort_by_artist; SongSortType.PLAY_TIME -> R.string.sort_by_play_time } },
-                                    modifier = Modifier
+                                    modifier = Modifier 
                                 )
                             }
                         }
@@ -261,7 +262,7 @@ fun CachePlaylistScreen(
                 itemsIndexed(filteredSongs, key = { _, song -> song.id }) { index, song ->
                     val onCheckedChange: (Boolean) -> Unit = { if (it) selection.add(song.id) else selection.remove(song.id) }
                     SongListItem(
-                        song = song, isActive = song.id == mediaMetadata?.id, isPlaying = isPlaying, showInLibraryIcon = true,
+                        song = song, isActive = song.id == mediaMetadata?.id, isPlaying = isPlaying, isSelected = song.id in selection, showInLibraryIcon = true,
                         trailingContent = {
                             if (inSelectMode) Checkbox(checked = song.id in selection, onCheckedChange = onCheckedChange)
                             else IconButton(onClick = { menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss, isFromCache = true) } }) { Icon(painterResource(R.drawable.more_vert), null) }
@@ -288,7 +289,7 @@ fun CachePlaylistScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = if (!isScrolled) Color.Transparent else MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surface),
             title = {
                 when {
-                    inSelectMode -> Text(pluralStringResource(R.plurals.n_song, selection.size, selection.size), style = MaterialTheme.typography.titleLarge)
+                    inSelectMode -> { Text(pluralStringResource(R.plurals.n_song, selection.size, selection.size), style = MaterialTheme.typography.titleLarge) }
                     isSearching -> {
                         TextField(
                             value = query, onValueChange = { query = it }, placeholder = { Text(stringResource(R.string.search), style = MaterialTheme.typography.titleMedium) }, singleLine = true, textStyle = MaterialTheme.typography.titleMedium, shape = CircleShape, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -296,7 +297,7 @@ fun CachePlaylistScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 4.dp).focusRequester(focusRequester)
                         )
                     }
-                    isScrolled -> Text(stringResource(R.string.cached_playlist), style = MaterialTheme.typography.titleLarge)
+                    isScrolled -> { Text(stringResource(R.string.cached_playlist), style = MaterialTheme.typography.titleLarge) }
                 }
             },
             navigationIcon = {
