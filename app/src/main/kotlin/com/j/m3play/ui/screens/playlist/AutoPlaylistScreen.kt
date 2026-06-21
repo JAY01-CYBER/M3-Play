@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.2   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -197,23 +197,17 @@ fun AutoPlaylistScreen(
         } else gradientColors = emptyList()
     }
 
-    // ⭐ Header Fade Alpha to prevent overlap
-    val headerAlpha by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                (1f - (lazyListState.firstVisibleItemScrollOffset / 400f)).coerceIn(0f, 1f)
-            } else 0f
-        }
-    }
+    // Scroll calculations for smooth effects
+    val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 40 } }
+    val imageScrollOffset by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset.toFloat() else 0f } }
 
-    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 600f)).coerceIn(0f, 1f) else 0f } }
-    val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
-    val transparentAppBar by remember { derivedStateOf { !disableBlur && !selection && !showTopBarTitle } }
+    val showTopBarTitle by remember { derivedStateOf { isScrolled } }
+    val transparentAppBar by remember { derivedStateOf { !disableBlur && !selection && !isScrolled } }
     val headerItems by remember { derivedStateOf { if (songs != null && songs!!.isNotEmpty() && !isSearching) 2 else 0 } }
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     Box(modifier = Modifier.fillMaxSize().background(surfaceColor)) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur && gradientColors.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth().fillMaxSize(0.6f).align(Alignment.TopCenter).zIndex(-1f)
@@ -221,7 +215,7 @@ fun AutoPlaylistScreen(
                         val headerColor = gradientColors.getOrNull(0) ?: surfaceColor
                         drawRect(
                             brush = Brush.verticalGradient(
-                                colors = listOf(headerColor.copy(alpha = 0.45f * gradientAlpha), surfaceColor.copy(alpha = 0.8f * gradientAlpha), surfaceColor),
+                                colors = listOf(headerColor.copy(alpha = 0.45f), surfaceColor.copy(alpha = 0.8f), surfaceColor),
                                 startY = 0f, endY = size.height
                             )
                         )
@@ -241,10 +235,18 @@ fun AutoPlaylistScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = systemBarsTopPadding + 48.dp)
-                                    .graphicsLayer { alpha = headerAlpha } // ⭐ Fade applied
                                     .padding(horizontal = 24.dp).padding(bottom = 16.dp)
                             ) {
-                                Box(modifier = Modifier.size(240.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary, spotColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary)) {
+                                // Parallax Image
+                                Box(
+                                    modifier = Modifier
+                                        .size(240.dp)
+                                        .graphicsLayer {
+                                            translationY = imageScrollOffset * 0.5f
+                                            alpha = (1f - (imageScrollOffset / 500f)).coerceIn(0f, 1f)
+                                        }
+                                        .shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary, spotColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary)
+                                ) {
                                     AsyncImage(model = songs!!.firstOrNull()?.song?.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)))
                                 }
                                 Spacer(modifier = Modifier.height(24.dp))
@@ -306,7 +308,6 @@ fun AutoPlaylistScreen(
                         }
                     }
 
-                    // ⭐ Pill Design Sort Header
                     item(key = "sortHeader") {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -322,7 +323,7 @@ fun AutoPlaylistScreen(
                                     SortHeader(
                                         sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange,
                                         sortTypeText = { sortType -> when (sortType) { AutoPlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date; AutoPlaylistSongSortType.NAME -> R.string.sort_by_name; AutoPlaylistSongSortType.ARTIST -> R.string.sort_by_artist; AutoPlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time } },
-                                        modifier = Modifier // No weight
+                                        modifier = Modifier
                                     )
                                 }
                             }
