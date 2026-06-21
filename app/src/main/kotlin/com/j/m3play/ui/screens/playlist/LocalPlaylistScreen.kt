@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -312,7 +313,7 @@ fun LocalPlaylistScreen(
     }
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    var dominantColor by remember { mutableStateOf<Color?>(null) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -325,12 +326,23 @@ fun LocalPlaylistScreen(
                 val bitmap = result.image?.toBitmap()
                 if (bitmap != null) {
                     val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
-                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = fallbackColor)
+                    dominantColor = Color(palette.getDominantColor(fallbackColor))
                 }
             }
-        } else gradientColors = emptyList()
+        }
     }
 
+    // ⭐ MAGIC FIX: Fade out Alpha so thumbnail doesn't overlap top bar (Labalab effect fix)
+    val headerAlpha by remember { 
+        derivedStateOf { 
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                // Fade out faster (400f instead of 600f) so it disappears before hitting the bar
+                (1f - (lazyListState.firstVisibleItemScrollOffset / 400f)).coerceIn(0f, 1f) 
+            } else 0f 
+        } 
+    }
+    
+    // Background gradient alpha controls how far down the bg color bleeds
     val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 600f)).coerceIn(0f, 1f) else 0f } }
     val transparentAppBar by remember { derivedStateOf { !disableBlur && !selection && !showTopBarTitle } }
 
@@ -340,7 +352,7 @@ fun LocalPlaylistScreen(
             .background(surfaceColor)
             .pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
     ) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
+        if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -348,7 +360,7 @@ fun LocalPlaylistScreen(
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawBehind {
-                        val headerColor = gradientColors.getOrNull(0) ?: surfaceColor
+                        val headerColor = dominantColor ?: surfaceColor
                         drawRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(headerColor.copy(alpha = 0.45f * gradientAlpha), surfaceColor.copy(alpha = 0.8f * gradientAlpha), surfaceColor),
@@ -370,39 +382,42 @@ fun LocalPlaylistScreen(
                     if (!isSearching) {
                         item(key = "header") {
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .graphicsLayer { alpha = headerAlpha }, // ⭐ Applies fade out on scroll
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Box(modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)) {
                                     if (playlist.thumbnails.size == 1) {
                                         Surface(
-                                            modifier = Modifier.size(240.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                                            modifier = Modifier.size(260.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = dominantColor ?: MaterialTheme.colorScheme.primary, spotColor = dominantColor ?: MaterialTheme.colorScheme.primary),
                                             shape = RoundedCornerShape(12.dp)
                                         ) { AsyncImage(model = playlist.thumbnails[0], contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
                                     } else if (playlist.thumbnails.size > 1) {
                                         Surface(
-                                            modifier = Modifier.size(240.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                                            modifier = Modifier.size(260.dp).shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = dominantColor ?: MaterialTheme.colorScheme.primary, spotColor = dominantColor ?: MaterialTheme.colorScheme.primary),
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             Box(modifier = Modifier.fillMaxSize()) {
                                                 listOf(Alignment.TopStart, Alignment.TopEnd, Alignment.BottomStart, Alignment.BottomEnd).fastForEachIndexed { index, alignment ->
-                                                    AsyncImage(model = playlist.thumbnails.getOrNull(index), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.align(alignment).size(120.dp))
+                                                    AsyncImage(model = playlist.thumbnails.getOrNull(index), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.align(alignment).size(130.dp))
                                                 }
                                             }
                                         }
                                     } else {
-                                        Surface(modifier = Modifier.size(240.dp).shadow(elevation = 16.dp, shape = RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                                        Surface(modifier = Modifier.size(260.dp).shadow(elevation = 16.dp, shape = RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.queue_music), null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                                         }
                                     }
                                 }
 
-                                Text(text = playlist.playlist.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp))
+                                Text(text = playlist.playlist.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 32.dp))
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -414,7 +429,6 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Main Pill Actions
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -445,9 +459,8 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Secondary Actions
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 48.dp),
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -507,15 +520,54 @@ fun LocalPlaylistScreen(
                         }
                     }
 
+                    // ⭐ PILL DESIGN FOR SORT & ROUND CIRCLE FOR LOCK
                     item(key = "sort_header") {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 16.dp)) {
-                            SortHeader(
-                                sortType = sortType, sortDescending = sortDescending, onSortTypeChange = onSortTypeChange, onSortDescendingChange = onSortDescendingChange,
-                                sortTypeText = { sortType -> when (sortType) { PlaylistSongSortType.CUSTOM -> R.string.sort_by_custom; PlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date; PlaylistSongSortType.NAME -> R.string.sort_by_name; PlaylistSongSortType.ARTIST -> R.string.sort_by_artist; PlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time } },
-                                modifier = Modifier.weight(1f),
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically, 
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), // Pill background
+                                modifier = Modifier.wrapContentWidth()
+                            ) {
+                                Box(modifier = Modifier.padding(horizontal = 4.dp)) {
+                                    SortHeader(
+                                        sortType = sortType, 
+                                        sortDescending = sortDescending, 
+                                        onSortTypeChange = onSortTypeChange, 
+                                        onSortDescendingChange = onSortDescendingChange,
+                                        sortTypeText = { sortType -> 
+                                            when (sortType) { 
+                                                PlaylistSongSortType.CUSTOM -> R.string.sort_by_custom; 
+                                                PlaylistSongSortType.CREATE_DATE -> R.string.sort_by_create_date; 
+                                                PlaylistSongSortType.NAME -> R.string.sort_by_name; 
+                                                PlaylistSongSortType.ARTIST -> R.string.sort_by_artist; 
+                                                PlaylistSongSortType.PLAY_TIME -> R.string.sort_by_play_time 
+                                            } 
+                                        },
+                                        modifier = Modifier, // Removed weight so it hugs the text tightly like a pill
+                                    )
+                                }
+                            }
+                            
                             if (editable && sortType == PlaylistSongSortType.CUSTOM) {
-                                IconButton(onClick = { locked = !locked }, onLongClick = {}, modifier = Modifier.padding(horizontal = 6.dp)) { Icon(painterResource(if (locked) R.drawable.lock else R.drawable.lock_open), null) }
+                                Surface(
+                                    onClick = { locked = !locked },
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier.size(42.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            painter = painterResource(if (locked) R.drawable.lock else R.drawable.lock_open), 
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -526,7 +578,7 @@ fun LocalPlaylistScreen(
                 itemsIndexed(items = if (isSearching) filteredSongs else mutableSongs, key = { _, song -> song.map.id }) { index, song ->
                     ReorderableItem(state = reorderableState, key = song.map.id, modifier = Modifier.graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }) {
                         val currentItem by rememberUpdatedState(song)
-                        fun deleteFromPlaylist() { /* Deletion Logic same as original */
+                        fun deleteFromPlaylist() { 
                             val map = currentItem.map
                             val browseId = playlist?.playlist?.browseId
                             coroutineScope.launch(Dispatchers.IO) {
@@ -573,7 +625,7 @@ fun LocalPlaylistScreen(
                 itemsIndexed(items = wrappedSongs, key = { _, song -> song.item.map.id }) { index, songWrapper ->
                     ReorderableItem(state = reorderableState, key = songWrapper.item.map.id, modifier = Modifier.graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }) {
                         val currentItem by rememberUpdatedState(songWrapper.item)
-                        fun deleteFromPlaylist() { /* Selection deletion logic */ val map = currentItem.map; coroutineScope.launch(Dispatchers.IO) { database.withTransaction { move(map.playlistId, map.position, Int.MAX_VALUE); delete(map.copy(position = Int.MAX_VALUE)) } } }
+                        fun deleteFromPlaylist() { val map = currentItem.map; coroutineScope.launch(Dispatchers.IO) { database.withTransaction { move(map.playlistId, map.position, Int.MAX_VALUE); delete(map.copy(position = Int.MAX_VALUE)) } } }
                         val dismissBoxState = rememberSwipeToDismissBoxState(positionalThreshold = { it }, confirmValueChange = { it == SwipeToDismissBoxValue.Settled || !lazyListState.isScrollInProgress })
                         var processedDismiss2 by remember { mutableStateOf(false) }
                         LaunchedEffect(dismissBoxState.currentValue) {
