@@ -105,6 +105,7 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import androidx.compose.foundation.clickable
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
