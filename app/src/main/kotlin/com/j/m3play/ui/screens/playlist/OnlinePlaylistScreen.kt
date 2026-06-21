@@ -16,7 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,6 +64,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.imageLoader
+import coil3.toBitmap
+import androidx.palette.graphics.Palette
+import com.valentinilk.shimmer.shimmer
+import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
@@ -132,8 +138,8 @@ fun OnlinePlaylistScreen(
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
 
     val filteredSongs = remember(songs, query) {
-        if (query.text.isEmpty()) songs.mapIndexed { i, s -> i to s }
-        else songs.mapIndexed { i, s -> i to s }.filter { it.second.title.contains(query.text, true) || it.second.artists.fastAny { a -> a.name.contains(query.text, true) } }
+        if (query.text.isEmpty()) songs
+        else songs.filter { it.title.contains(query.text, true) || it.artists.fastAny { a -> a.name.contains(query.text, true) } }
     }
 
     var inSelectMode by rememberSaveable { mutableStateOf(false) }
@@ -145,8 +151,8 @@ fun OnlinePlaylistScreen(
     LaunchedEffect(isSearching) { if (isSearching) focusRequester.requestFocus() }
 
     LaunchedEffect(filteredSongs) {
-        selection.fastForEachReversed { songId -> if (filteredSongs.find { it.second.id == songId } == null) selection.remove(songId) }
-        if (selectionAnchorSongId != null && filteredSongs.none { it.second.id == selectionAnchorSongId }) { selectionAnchorSongId = filteredSongs.firstOrNull { it.second.id in selection }?.second?.id }
+        selection.fastForEachReversed { songId -> if (filteredSongs.find { it.id == songId } == null) selection.remove(songId) }
+        if (selectionAnchorSongId != null && filteredSongs.none { it.id == selectionAnchorSongId }) { selectionAnchorSongId = filteredSongs.firstOrNull { it.id in selection }?.id }
     }
 
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue() }
@@ -342,6 +348,7 @@ fun OnlinePlaylistScreen(
                                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.more_vert), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(24.dp)) }
                                     }
                                 }
+
                                 Spacer(modifier = Modifier.height(24.dp))
                             }
                         }
@@ -357,13 +364,15 @@ fun OnlinePlaylistScreen(
                         }
                     }
 
-                    itemsIndexed(filteredSongs) { index, (_, songItem) ->
+                    itemsIndexed(items = filteredSongs, key = { _, songItem -> songItem.id }) { index, songItem ->
                         val onCheckedChange: (Boolean) -> Unit = { if (it) selection.add(songItem.id) else selection.remove(songItem.id) }
+                        val explicitEnabled = !hideExplicit || !songItem.explicit
+                        
                         YouTubeListItem(
                             item = songItem, viewCountText = viewCounts[songItem.id]?.let { count -> formatCompactCount(count.toLong()) },
                             isActive = mediaMetadata?.id == songItem.id, isPlaying = isPlaying, isSelected = inSelectMode && songItem.id in selection,
                             modifier = Modifier.combinedClickable(
-                                enabled = !hideExplicit || !songItem.explicit,
+                                enabled = explicitEnabled,
                                 onClick = {
                                     if (inSelectMode) onCheckedChange(songItem.id !in selection)
                                     else if (songItem.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
@@ -372,9 +381,14 @@ fun OnlinePlaylistScreen(
                                 onLongClick = {
                                     if (!inSelectMode) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); inSelectMode = true; onCheckedChange(true); selectionAnchorSongId = songItem.id }
                                     else {
-                                        val anchorIndex = selectionAnchorSongId?.let { anchorSongId -> filteredSongs.indexOfFirst { it.second.id == anchorSongId } } ?: -1
+                                        val anchorIndex = selectionAnchorSongId?.let { anchorSongId -> filteredSongs.indexOfFirst { it.id == anchorSongId } } ?: -1
                                         if (anchorIndex == -1) { onCheckedChange(true); selectionAnchorSongId = songItem.id }
-                                        else { val range = if (anchorIndex <= index) anchorIndex..index else index..anchorIndex; for (rIndex in range) { val rSongId = filteredSongs[rIndex].second.id; if (rSongId !in selection) selection.add(rSongId) } }
+                                        else { 
+                                            val anchorInt = anchorIndex.toInt()
+                                            val indexInt = index.toInt()
+                                            val range = if (anchorInt <= indexInt) anchorInt..indexInt else indexInt..anchorInt
+                                            for (rIndex in range) { val rSongId = filteredSongs[rIndex].id; if (rSongId !in selection) selection.add(rSongId) } 
+                                        }
                                     }
                                 }
                             ),
@@ -415,7 +429,7 @@ fun OnlinePlaylistScreen(
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surface),
             title = {
-                if (inSelectMode) Text(pluralStringResource(R.plurals.n_song, selection.size, selection.size), style = MaterialTheme.typography.titleLarge)
+                if (inSelectMode) { val count = selection.size; Text(pluralStringResource(R.plurals.n_song, count, count), style = MaterialTheme.typography.titleLarge) }
                 else if (isSearching) {
                     TextField(
                         value = query, onValueChange = { query = it }, placeholder = { Text(stringResource(R.string.search), style = MaterialTheme.typography.titleMedium) }, singleLine = true, textStyle = MaterialTheme.typography.titleMedium, shape = CircleShape, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -429,8 +443,9 @@ fun OnlinePlaylistScreen(
             },
             actions = {
                 if (inSelectMode) {
-                    Checkbox(checked = selection.size == filteredSongs.size && selection.isNotEmpty(), onCheckedChange = { if (selection.size == filteredSongs.size) selection.clear() else { selection.clear(); selection.addAll(filteredSongs.map { it.second.id }) } })
-                    IconButton(enabled = selection.isNotEmpty(), onClick = { menuState.show { SelectionMediaMetadataMenu(songSelection = filteredSongs.filter { it.second.id in selection }.map { it.second.toMediaItem().metadata!! }, onDismiss = menuState::dismiss, clearAction = onExitSelectionMode, currentItems = emptyList()) } }) { Icon(painterResource(R.drawable.more_vert), null) }
+                    val count = selection.size
+                    IconButton(onClick = { if (count == filteredSongs.size) selection.clear() else { selection.clear(); selection.addAll(filteredSongs.map { it.id }) } }) { Icon(painterResource(if (count == filteredSongs.size) R.drawable.deselect else R.drawable.select_all), null) }
+                    IconButton(onClick = { menuState.show { SelectionMediaMetadataMenu(songSelection = filteredSongs.filter { it.id in selection }.map { it.toMediaItem().metadata!! }, onDismiss = menuState::dismiss, clearAction = onExitSelectionMode, currentItems = emptyList()) } }) { Icon(painterResource(R.drawable.more_vert), null) }
                 } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), null) }
                 }
