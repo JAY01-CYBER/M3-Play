@@ -1,13 +1,11 @@
 package com.j.m3play.ui.screens.playlist
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -18,7 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -30,10 +28,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.j.m3play.R
-
-// ╭────────────────────────────────────────────╮
-// │        UNIFIED PLAYLIST DESIGN SYSTEM      │
-// ╰────────────────────────────────────────────╯
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +62,6 @@ fun BasePlaylistScreen(
     val transparentAppBar by remember { derivedStateOf { !disableBlur && !isSelectionMode && !showTopBarTitle } }
 
     Box(modifier = Modifier.fillMaxSize().background(surfaceColor)) {
-        // Dynamic Mesh Gradient
         if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
             Box(
                 modifier = Modifier
@@ -119,7 +112,6 @@ fun BasePlaylistScreen(
             listContent()
         }
 
-        // Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface,
@@ -161,7 +153,6 @@ fun BasePlaylistScreen(
     }
 }
 
-// 2. Glassmorphic Search Bar
 @Composable
 fun GlassmorphicSearch(query: TextFieldValue, onQueryChange: (TextFieldValue) -> Unit) {
     TextField(
@@ -185,7 +176,6 @@ fun GlassmorphicSearch(query: TextFieldValue, onQueryChange: (TextFieldValue) ->
     )
 }
 
-// 3. Premium Interactive Card Modifier (Scale on Press)
 fun Modifier.bounceClickable(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
