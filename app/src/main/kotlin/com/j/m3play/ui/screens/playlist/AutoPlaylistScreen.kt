@@ -2,8 +2,7 @@
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
  * │--------------------------------------------│
- * │  Crafted for premium music experience      │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
+ * │  Style: YT Music Simple & Premium          │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -202,16 +201,15 @@ fun AutoPlaylistScreen(
     val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 40 } }
     val imageScrollOffset by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) lazyListState.firstVisibleItemScrollOffset.toFloat() else 0f } }
     val headerAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 400f)).coerceIn(0f, 1f) else 0f } }
-    val gradientAlpha by remember { derivedStateOf { if (lazyListState.firstVisibleItemIndex == 0) (1f - (lazyListState.firstVisibleItemScrollOffset / 600f)).coerceIn(0f, 1f) else 0f } }
 
     Box(modifier = Modifier.fillMaxSize().background(surfaceColor)) {
         if (!disableBlur && gradientColors.isNotEmpty()) {
             Box(
-                modifier = Modifier.fillMaxWidth().fillMaxSize(0.6f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
+                modifier = Modifier.fillMaxWidth().fillMaxSize(0.5f).align(Alignment.TopCenter).zIndex(-1f).drawBehind {
                     val headerColor = gradientColors.getOrNull(0) ?: surfaceColor
                     drawRect(
                         brush = Brush.verticalGradient(
-                            colors = listOf(headerColor.copy(alpha = 0.45f * gradientAlpha), surfaceColor.copy(alpha = 0.8f * gradientAlpha), surfaceColor),
+                            colors = listOf(headerColor.copy(alpha = 0.5f), surfaceColor),
                             startY = 0f, endY = size.height
                         )
                     )
@@ -235,21 +233,26 @@ fun AutoPlaylistScreen(
                             ) {
                                 Box(
                                     modifier = Modifier.size(240.dp).graphicsLayer { translationY = imageScrollOffset * 0.5f }
-                                        .shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp), ambientColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary, spotColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary)
-                                ) { AsyncImage(model = songs!!.firstOrNull()?.song?.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))) }
+                                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(8.dp), ambientColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary, spotColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary)
+                                ) { AsyncImage(model = songs!!.firstOrNull()?.song?.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))) }
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Text(text = playlist, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                    MetadataChip(icon = R.drawable.music_note, text = pluralStringResource(R.plurals.n_song, songs!!.size, songs!!.size))
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    MetadataChip(icon = R.drawable.timer, text = makeTimeString(likeLength * 1000L))
-                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                // YT Music Style Simple Text
+                                val songCountText = pluralStringResource(R.plurals.n_song, songs!!.size, songs!!.size)
+                                val durationText = if (likeLength > 0) " • " + makeTimeString(likeLength * 1000L) else ""
+                                Text(
+                                    text = songCountText + durationText,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
                                 Spacer(modifier = Modifier.height(24.dp))
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Button(
                                         onClick = { playerConnection.playQueue(ListQueue(title = playlist, items = songs!!.map { it.toMediaItem() })) },
-                                        shape = CircleShape, contentPadding = PaddingValues(0.dp), modifier = Modifier.weight(1f).height(56.dp)
+                                        shape = CircleShape, contentPadding = PaddingValues(0.dp), modifier = Modifier.weight(1f).height(50.dp)
                                     ) {
                                         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                             Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
@@ -259,7 +262,7 @@ fun AutoPlaylistScreen(
                                     }
                                     FilledTonalButton(
                                         onClick = { playerConnection.playQueue(ListQueue(title = playlist, items = songs!!.shuffled().map { it.toMediaItem() })) },
-                                        shape = CircleShape, contentPadding = PaddingValues(0.dp), modifier = Modifier.weight(1f).height(56.dp)
+                                        shape = CircleShape, contentPadding = PaddingValues(0.dp), modifier = Modifier.weight(1f).height(50.dp)
                                     ) {
                                         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                             Icon(painterResource(R.drawable.shuffle), null, modifier = Modifier.size(24.dp))
@@ -321,7 +324,7 @@ fun AutoPlaylistScreen(
                             modifier = Modifier.fillMaxWidth().combinedClickable(
                                 onClick = {
                                     if (inSelectMode) onCheckedChange(song.id !in selection)
-                                    else if (song.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else if (song.song.id == mediaMetadata?.id) playerConnection.togglePlayPause()
                                     else playerConnection.playQueue(ListQueue(title = playlist, items = songs!!.map { it.toMediaItem() }, startIndex = songs!!.indexOfFirst { it.id == song.id }))
                                 },
                                 onLongClick = {
@@ -368,17 +371,5 @@ fun AutoPlaylistScreen(
                 }
             }
         )
-    }
-}
-
-enum class PlaylistType { LIKE, DOWNLOAD, OTHER }
-
-@Composable
-private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)) {
-        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(painterResource(icon), null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-        }
     }
 }
