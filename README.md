@@ -100,7 +100,7 @@ Help us translate M3 Play into your native language! Every contribution is highl
 ## 🌐 Community
 
 <p align="center">
-  <a href="https://discord.gg/zdbAuRpVt">
+  <a href="https://discord.gg/pDv6TYYkfE">
     <img src="https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
   </a>
   <a href="https://t.me/M3Play_supports">
