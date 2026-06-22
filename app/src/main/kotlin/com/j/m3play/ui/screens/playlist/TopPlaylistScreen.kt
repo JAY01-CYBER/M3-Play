@@ -2,10 +2,10 @@ package com.j.m3play.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,13 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.media3.exoplayer.offline.Download
-import androidx.media3.exoplayer.offline.DownloadRequest
-import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -40,22 +35,16 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-import com.j.m3play.LocalDownloadUtil
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.MyTopFilter
-import com.j.m3play.db.entities.Song
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
-import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.SortHeader
-import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
@@ -82,7 +71,6 @@ fun TopPlaylistScreen(
     val maxSize = viewModel.top
     val name = "${stringResource(R.string.my_top)} $maxSize"
 
-    // States
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     var selection by remember { mutableStateOf(false) }
@@ -103,12 +91,7 @@ fun TopPlaylistScreen(
     }
 
     val likeLength = remember(songs) { songs?.sumOf { it.song.duration } ?: 0 }
-    
-    val downloadUtil = LocalDownloadUtil.current
-    var downloadState by remember { mutableStateOf(Download.STATE_STOPPED) }
-    var showRemoveDownloadDialog by remember { mutableStateOf(false) }
 
-    // Gradient Extractor
     LaunchedEffect(songs) {
         val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
@@ -121,7 +104,6 @@ fun TopPlaylistScreen(
         } else gradientColors = emptyList()
     }
 
-    // Handlers
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue() }
     else if (selection) BackHandler { selection = false }
 
@@ -142,42 +124,15 @@ fun TopPlaylistScreen(
         disableBlur = disableBlur,
         headerContent = {
             if (!isSearching && songs?.isNotEmpty() == true) {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 80.dp, bottom = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Surface(
-                        modifier = Modifier.size(240.dp).shadow(24.dp, RoundedCornerShape(20.dp), spotColor = gradientColors.firstOrNull() ?: Color.Black),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        AsyncImage(model = songs!!.firstOrNull()?.song?.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop)
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(text = name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer.copy(0.7f)) {
-                            Text(pluralStringResource(R.plurals.n_song, songs!!.size, songs!!.size), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                        }
-                        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondaryContainer.copy(0.7f)) {
-                            Text(makeTimeString(likeLength * 1000L), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Button(onClick = { playerConnection.playQueue(ListQueue(name, songs!!.map { it.toMediaItem() })) }, shape = RoundedCornerShape(24.dp), modifier = Modifier.weight(1f).height(50.dp)) {
-                            Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Play")
-                        }
-                        Button(onClick = { playerConnection.playQueue(ListQueue(name, songs!!.shuffled().map { it.toMediaItem() })) }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer), modifier = Modifier.weight(1f).height(50.dp)) {
-                            Icon(painterResource(R.drawable.shuffle), null, modifier = Modifier.size(24.dp))
-                        }
-                    }
-                }
+                PlaylistHeroHeader(
+                    playlistName = name,
+                    thumbnails = listOfNotNull(songs!!.firstOrNull()?.song?.thumbnailUrl),
+                    gradientColors = gradientColors,
+                    songCount = songs!!.size,
+                    totalDurationMs = likeLength * 1000L,
+                    onPlay = { playerConnection.playQueue(ListQueue(name, songs!!.map { it.toMediaItem() })) },
+                    onShuffle = { playerConnection.playQueue(ListQueue(name, songs!!.shuffled().map { it.toMediaItem() })) }
+                )
             }
         },
         listContent = {
