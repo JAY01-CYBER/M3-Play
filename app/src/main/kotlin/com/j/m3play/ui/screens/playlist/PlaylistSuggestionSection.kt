@@ -2,9 +2,8 @@
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
  * │--------------------------------------------│
- * │  Crafted for premium music experience      │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
+ * │  Base: MetroList Original Structure        │
+ * │  Style: M3PLAY::UI::EXPRESSIVE::PREMIUM    │
  * ╰────────────────────────────────────────────╯
  */
 
