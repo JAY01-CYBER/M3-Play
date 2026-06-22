@@ -319,7 +319,11 @@ fun AutoPlaylistScreen(
                                 else IconButton(onClick = { menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), null) }
                             },
                             modifier = Modifier.fillMaxWidth().combinedClickable(
-                                onClick = { if (inSelectMode) onCheckedChange(song.id !in selection) else if (song.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(ListQueue(title = playlist, items = songs!!.map { it.toMediaItem() }, startIndex = songs!!.indexOfFirst { it.id == song.id })) },
+                                onClick = {
+                                    if (inSelectMode) onCheckedChange(song.id !in selection)
+                                    else if (song.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else playerConnection.playQueue(ListQueue(title = playlist, items = songs!!.map { it.toMediaItem() }, startIndex = songs!!.indexOfFirst { it.id == song.id }))
+                                },
                                 onLongClick = {
                                     if (!inSelectMode) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); inSelectMode = true; onCheckedChange(true); selectionAnchorSongId = song.id }
                                     else {
@@ -366,6 +370,8 @@ fun AutoPlaylistScreen(
         )
     }
 }
+
+enum class PlaylistType { LIKE, DOWNLOAD, OTHER }
 
 @Composable
 private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier) {
