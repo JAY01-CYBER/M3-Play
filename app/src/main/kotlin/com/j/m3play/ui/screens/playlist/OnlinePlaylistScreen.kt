@@ -2,10 +2,10 @@ package com.j.m3play.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -22,11 +22,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -37,24 +35,16 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.DisableBlurKey
-import com.j.m3play.db.entities.PlaylistEntity
-import com.j.m3play.db.entities.PlaylistSongMap
-import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
-import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
@@ -70,7 +60,6 @@ fun OnlinePlaylistScreen(
 ) {
     val context = LocalContext.current
     val menuState = LocalMenuState.current
-    val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -78,11 +67,9 @@ fun OnlinePlaylistScreen(
     
     val playlist by viewModel.playlist.collectAsState()
     val songs by viewModel.playlistSongs.collectAsState()
-    val dbPlaylist by viewModel.dbPlaylist.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    // States
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     var selection by remember { mutableStateOf(false) }
@@ -94,8 +81,6 @@ fun OnlinePlaylistScreen(
     
     val lazyListState = rememberLazyListState()
     val pullRefreshState = rememberPullToRefreshState()
-    val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     val filteredSongs = remember(songs, query) {
         if (query.text.isEmpty()) songs.mapIndexed { i, s -> i to s }
@@ -105,7 +90,6 @@ fun OnlinePlaylistScreen(
     }
     val wrappedSongs = remember(filteredSongs) { filteredSongs.map { ItemWrapper(it) }.toMutableStateList() }
 
-    // Gradient Extractor
     LaunchedEffect(playlist?.thumbnail) {
         val thumbnailUrl = playlist?.thumbnail
         if (thumbnailUrl != null) {
@@ -118,7 +102,6 @@ fun OnlinePlaylistScreen(
         } else gradientColors = emptyList()
     }
 
-    // Pagination
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }.collect { lastVisibleIndex ->
             if (songs.size >= 5 && lastVisibleIndex != null && lastVisibleIndex >= songs.size - 5) {
@@ -127,11 +110,10 @@ fun OnlinePlaylistScreen(
         }
     }
 
-    // Handlers
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue() }
     else if (selection) BackHandler { selection = false }
 
-    Box(modifier = Modifier.fillMaxSize().pullToRefresh(pullRefreshState, isRefreshing, viewModel::refresh)) {
+    Box(modifier = Modifier.fillMaxSize().pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh)) {
         BasePlaylistScreen(
             title = playlist?.title.orEmpty(),
             lazyListState = lazyListState,
@@ -176,19 +158,6 @@ fun OnlinePlaylistScreen(
                                     Icon(painterResource(R.drawable.mix), null, modifier = Modifier.size(24.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text("Start Mix")
-                                }
-                            }
-                            
-                            // Save Button
-                            if (playlist!!.id != "LM") {
-                                val isSaved = dbPlaylist?.playlist?.bookmarkedAt != null
-                                Button(
-                                    onClick = { /* ViewModel logic to save */ }, 
-                                    shape = RoundedCornerShape(24.dp), 
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = if(isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSecondaryContainer), 
-                                    modifier = Modifier.height(50.dp)
-                                ) {
-                                    Icon(painterResource(if(isSaved) R.drawable.favorite else R.drawable.favorite_border), null)
                                 }
                             }
                         }
