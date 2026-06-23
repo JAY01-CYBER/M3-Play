@@ -159,9 +159,9 @@ fun CachePlaylistScreen(
                     ) {
                         Surface(
                             modifier = Modifier
-                                .size(260.dp)
-                                .shadow(24.dp, RoundedCornerShape(12.dp)),
-                            shape = RoundedCornerShape(12.dp)
+                                .size(280.dp)
+                                .shadow(24.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             AsyncImage(
                                 model = cachedSongs.firstOrNull()?.song?.thumbnailUrl,
@@ -171,7 +171,7 @@ fun CachePlaylistScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(32.dp))
                         
                         Text(
                             text = stringResource(R.string.cached_playlist),
@@ -191,7 +191,7 @@ fun CachePlaylistScreen(
                             Surface(
                                 shape = CircleShape, color = Color.White,
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.song.toMediaItem() }))
+                                    playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.toMediaItem() }))
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
@@ -200,7 +200,7 @@ fun CachePlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
@@ -238,10 +238,10 @@ fun CachePlaylistScreen(
                 }
             }
             
-            itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.id }) { index, songWrapper ->
+            itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.song.id }) { index, songWrapper ->
                 SongListItem(
                     song = songWrapper.item,
-                    isActive = songWrapper.item.id == mediaMetadata?.id,
+                    isActive = songWrapper.item.song.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
                     modifier = Modifier
@@ -253,8 +253,8 @@ fun CachePlaylistScreen(
                                 if (selection) {
                                     songWrapper.isSelected = !songWrapper.isSelected
                                 } else {
-                                    if (songWrapper.item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() }, index))
+                                    if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
