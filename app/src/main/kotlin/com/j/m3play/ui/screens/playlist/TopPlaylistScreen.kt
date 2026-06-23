@@ -6,12 +6,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -20,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -32,6 +34,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -88,7 +91,6 @@ fun TopPlaylistScreen(
 
     val surfaceColor = MaterialTheme.colorScheme.surface
     var dominantColor by remember { mutableStateOf(surfaceColor) }
-    var onDominantTextColor by remember { mutableStateOf(Color.White) }
     
     val lazyListState = rememberLazyListState()
 
@@ -110,9 +112,6 @@ fun TopPlaylistScreen(
                 val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
                 val extractedInt = palette.getVibrantColor(palette.getDominantColor(surfaceColor.toArgb()))
                 dominantColor = Color(extractedInt)
-                
-                val luminance = (0.299 * Color(extractedInt).red + 0.587 * Color(extractedInt).green + 0.114 * Color(extractedInt).blue)
-                onDominantTextColor = if (luminance > 0.5) Color.Black else Color.White
             }
         }
     }
@@ -127,10 +126,10 @@ fun TopPlaylistScreen(
             .drawBehind {
                 if (dominantColor != surfaceColor) {
                     drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(dominantColor.copy(alpha = 0.35f), Color.Transparent),
-                            center = Offset(size.width / 2f, size.height * 0.15f),
-                            radius = size.width * 0.9f
+                        brush = Brush.verticalGradient(
+                            colors = listOf(dominantColor.copy(alpha = 0.5f), surfaceColor),
+                            startY = 0f,
+                            endY = size.height * 0.6f
                         )
                     )
                 }
@@ -144,14 +143,14 @@ fun TopPlaylistScreen(
             item {
                 if (!isSearching && songs?.isNotEmpty() == true) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 80.dp, bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 64.dp, bottom = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
                             modifier = Modifier
-                                .size(280.dp)
-                                .shadow(24.dp, RoundedCornerShape(16.dp), spotColor = dominantColor),
-                            shape = RoundedCornerShape(16.dp)
+                                .size(260.dp)
+                                .shadow(24.dp, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             AsyncImage(
                                 model = songs!!.firstOrNull()?.song?.thumbnailUrl,
@@ -161,7 +160,7 @@ fun TopPlaylistScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         
                         Text(
                             text = playlistName,
@@ -173,33 +172,39 @@ fun TopPlaylistScreen(
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Action Row (White buttons)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = CircleShape, color = Color.White,
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() }))
+                                }
+                            ) {
+                                Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
+                            }
+                            
+                            Spacer(Modifier.width(16.dp))
+                            
                             Button(
                                 onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (dominantColor != surfaceColor) dominantColor else MaterialTheme.colorScheme.primary,
-                                    contentColor = onDominantTextColor
-                                ),
-                                modifier = Modifier.weight(1f).height(56.dp)
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                modifier = Modifier.weight(1f).height(50.dp)
                             ) {
                                 Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
-                                Spacer(Modifier.width(12.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
-                            Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
-                                shape = RoundedCornerShape(50),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                modifier = Modifier.weight(1f).height(56.dp)
-                            ) {
-                                Icon(painterResource(R.drawable.shuffle), null, modifier = Modifier.size(24.dp))
-                                Spacer(Modifier.width(12.dp))
-                                Text("Shuffle", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
+                            Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -261,7 +266,10 @@ fun TopPlaylistScreen(
         }
 
         TopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isSearching || selection) MaterialTheme.colorScheme.surface else Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
+            ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
@@ -270,8 +278,12 @@ fun TopPlaylistScreen(
                     TextField(
                         value = query, onValueChange = { query = it },
                         placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) }, singleLine = true,
-                        colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, 
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
                     )
                 }
             },
