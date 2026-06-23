@@ -75,7 +75,6 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.viewmodels.OnlinePlaylistViewModel
-import com.j.m3play.ui.theme.PlayerColorExtractor
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -299,7 +298,6 @@ fun OnlinePlaylistScreen(
                     isSelected = songWrapper.isSelected && selection,
                     modifier = Modifier
                         .fillMaxWidth()
-                        // 1. YAHAN CLICK AUR LONG CLICK WAPAS ADD KIYA HAI
                         .combinedClickable(
                             onClick = {
                                 if (selection) {
@@ -331,7 +329,6 @@ fun OnlinePlaylistScreen(
             }
         }
 
-        // Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
             title = {
@@ -364,8 +361,8 @@ fun OnlinePlaylistScreen(
                     IconButton(onClick = {
                         menuState.show {
                             SelectionMediaMetadataMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.mapNotNull { it.item.second.toMediaItem().mediaMetadata },
-                                onDismiss = menuState::dismiss, clearAction = { selection = false }, currentItems = emptyList()
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaMetadata() }, // ✅ FIXED TYPE MISMATCH
+                                onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }, currentItems = emptyList()
                             )
                         }
                     }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
