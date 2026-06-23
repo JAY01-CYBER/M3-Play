@@ -56,8 +56,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.SongSortDescendingKey
 import com.j.m3play.constants.SongSortType
 import com.j.m3play.constants.SongSortTypeKey
-import com.j.m3play.db.entities.Song
-import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.queues.ListQueue
@@ -71,9 +69,6 @@ import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CachePlaylistViewModel
 import java.time.LocalDateTime
-
-// Safe Mapper for Database Entity
-private fun SongEntity.asSong() = Song(song = this, artists = emptyList())
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -97,12 +92,12 @@ fun CachePlaylistScreen(
     
     val wrappedSongs = remember(cachedSongs, sortType, sortDescending) {
         val sortedSongs = when (sortType) {
-            SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.dateDownload ?: LocalDateTime.MIN }
-            SongSortType.NAME -> cachedSongs.sortedBy { it.title }
-            SongSortType.ARTIST -> cachedSongs
-            SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.totalPlayTime }
+            SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.song.dateDownload ?: LocalDateTime.MIN }
+            SongSortType.NAME -> cachedSongs.sortedBy { it.song.title }
+            SongSortType.ARTIST -> cachedSongs.sortedBy { song -> song.artists.joinToString("") { it.name } }
+            SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.song.totalPlayTime }
         }.let { if (sortDescending) it.reversed() else it }
-        sortedSongs.map { ItemWrapper(it.asSong()) }.toMutableStateList()
+        sortedSongs.map { ItemWrapper(it) }.toMutableStateList()
     }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
@@ -123,7 +118,7 @@ fun CachePlaylistScreen(
     }
 
     LaunchedEffect(cachedSongs) {
-        val thumbnailUrl = cachedSongs.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = cachedSongs.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -161,7 +156,7 @@ fun CachePlaylistScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             AsyncImage(
-                                model = cachedSongs.firstOrNull()?.thumbnailUrl,
+                                model = cachedSongs.firstOrNull()?.song?.thumbnailUrl,
                                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -176,7 +171,7 @@ fun CachePlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.toMediaItem() })) },
                                 shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
                                 modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
@@ -184,7 +179,7 @@ fun CachePlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
@@ -243,7 +238,7 @@ fun CachePlaylistScreen(
                                 if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                 else {
                                     if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.asSong().toMediaItem() }, index))
+                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
