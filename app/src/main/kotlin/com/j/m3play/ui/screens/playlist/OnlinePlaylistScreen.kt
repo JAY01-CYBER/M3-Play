@@ -24,11 +24,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -39,7 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -48,8 +48,13 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
@@ -71,6 +76,7 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.viewmodels.OnlinePlaylistViewModel
+import androidx.palette.graphics.Palette
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -100,6 +106,7 @@ fun OnlinePlaylistScreen(
     var selection by remember { mutableStateOf(false) }
     
     val surfaceColor = MaterialTheme.colorScheme.surface
+    var dominantColor by remember { mutableStateOf(surfaceColor) }
     
     val lazyListState = rememberLazyListState()
     val pullRefreshState = rememberPullToRefreshState()
@@ -113,6 +120,20 @@ fun OnlinePlaylistScreen(
         }
     }
     val wrappedSongs = remember(filteredSongs) { filteredSongs.map { ItemWrapper(it) }.toMutableStateList() }
+
+    // Extract dominant color for Apple Music style gradient
+    LaunchedEffect(playlist?.thumbnail) {
+        val thumbnailUrl = playlist?.thumbnail
+        if (thumbnailUrl != null) {
+            val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
+            val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
+            result?.image?.toBitmap()?.let { bitmap ->
+                val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
+                val extractedInt = palette.getVibrantColor(palette.getDominantColor(surfaceColor.toArgb()))
+                dominantColor = Color(extractedInt)
+            }
+        }
+    }
 
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }.collect { lastVisibleIndex ->
@@ -129,39 +150,19 @@ fun OnlinePlaylistScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(surfaceColor)
-    ) {
-        // 1. IMMERSIVE BLURRED BACKGROUND
-        if (playlist?.thumbnail != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(550.dp)
-            ) {
-                AsyncImage(
-                    model = playlist!!.thumbnail,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(50.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.2f), 
-                                    surfaceColor.copy(alpha = 0.6f),
-                                    surfaceColor
-                                )
-                            )
+            .drawBehind {
+                // CLEAN APPLE MUSIC STYLE GRADIENT (NO BLUR)
+                if (dominantColor != surfaceColor) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(dominantColor.copy(alpha = 0.5f), surfaceColor),
+                            startY = 0f,
+                            endY = size.height * 0.6f
                         )
-                )
+                    )
+                }
             }
-        }
-
-        // 2. MAIN SCROLLABLE CONTENT
+    ) {
         LazyColumn(
             state = lazyListState,
             contentPadding = WindowInsets.systemBars.union(WindowInsets.ime).asPaddingValues(),
@@ -174,7 +175,7 @@ fun OnlinePlaylistScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 70.dp, bottom = 16.dp),
+                            .padding(top = 64.dp, bottom = 16.dp), // Space for TopAppBar
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
@@ -198,33 +199,26 @@ fun OnlinePlaylistScreen(
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,
-                            color = Color.White,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         
                         playlist!!.author?.let { artist ->
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text(artist.name, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
+                            Text(artist.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                         }
-                        
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Playlist • ${songs.size} tracks",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        // 3. ACTION ROW (Shuffle, PLAY, Download)
+                        // MAIN ACTION ROW (White Buttons)
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // 1. White Shuffle Button
                             Surface(
                                 shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.15f),
+                                color = Color.White,
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
                                     val mixEndpoint = playlist!!.shuffleEndpoint ?: playlist!!.radioEndpoint
                                     if (mixEndpoint != null) playerConnection.playQueue(YouTubeQueue(mixEndpoint))
@@ -232,12 +226,13 @@ fun OnlinePlaylistScreen(
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(painterResource(R.drawable.shuffle), contentDescription = "Shuffle", tint = Color.White, modifier = Modifier.size(24.dp))
+                                    Icon(painterResource(R.drawable.shuffle), contentDescription = "Shuffle", tint = Color.Black, modifier = Modifier.size(24.dp))
                                 }
                             }
                             
                             Spacer(Modifier.width(16.dp))
                             
+                            // 2. White Play Button
                             Button(
                                 onClick = { 
                                     if (songs.isNotEmpty()) playerConnection.playQueue(ListQueue(playlist!!.title, songs.map { it.toMediaItem() })) 
@@ -256,9 +251,10 @@ fun OnlinePlaylistScreen(
                             
                             Spacer(Modifier.width(16.dp))
                             
+                            // 3. White Download Button
                             Surface(
                                 shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.15f),
+                                color = Color.White,
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
                                     if (songs.isNotEmpty()) {
                                         songs.forEach { song ->
@@ -270,26 +266,64 @@ fun OnlinePlaylistScreen(
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Icon(painterResource(R.drawable.download), contentDescription = "Download", tint = Color.White, modifier = Modifier.size(24.dp))
+                                    Icon(painterResource(R.drawable.download), contentDescription = "Download", tint = Color.Black, modifier = Modifier.size(24.dp))
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // SECONDARY ACTIONS (Save, Share, More)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            if (playlist!!.id != "LM") {
+                                val isSaved = dbPlaylist?.playlist?.bookmarkedAt != null
+                                IconButton(onClick = {
+                                    if (dbPlaylist?.playlist == null) {
+                                        database.transaction {
+                                            val playlistEntity = PlaylistEntity(name = playlist!!.title, browseId = playlist!!.id, thumbnailUrl = playlist!!.thumbnail, isEditable = playlist!!.isEditable, playEndpointParams = playlist!!.playEndpoint?.params, shuffleEndpointParams = playlist!!.shuffleEndpoint?.params, radioEndpointParams = playlist!!.radioEndpoint?.params).toggleLike()
+                                            insert(playlistEntity)
+                                            songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { index, song -> PlaylistSongMap(songId = song.id, playlistId = playlistEntity.id, position = index) }.forEach(::insert)
+                                        }
+                                    } else {
+                                        database.transaction {
+                                            val currentPlaylist = dbPlaylist!!.playlist
+                                            update(currentPlaylist, playlist!!)
+                                            update(currentPlaylist.toggleLike())
+                                        }
+                                    }
+                                }) {
+                                    Icon(painterResource(if (isSaved) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (isSaved) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                            IconButton(onClick = {
+                                val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/playlist?list=${playlist!!.id}") }
+                                context.startActivity(Intent.createChooser(intent, "Share Playlist"))
+                            }) { Icon(painterResource(R.drawable.share), contentDescription = null) }
+                            
+                            IconButton(onClick = {
+                                menuState.show {
+                                    YouTubePlaylistMenu(
+                                        playlist = playlist!!, songs = songs, coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss, selectAction = { selection = true },
+                                        canSelect = true, snackbarHostState = snackbarHostState
+                                    )
+                                }
+                            }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
                             Text(
                                 text = "${songs.size} tracks",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
             }
 
-            // 4. SONGS LIST
             items(items = wrappedSongs, key = { it.item.second.id }) { songWrapper ->
                 YouTubeListItem(
                     item = songWrapper.item.second,
@@ -329,120 +363,56 @@ fun OnlinePlaylistScreen(
             }
         }
 
-        // 5. CUSTOM GLASS TOP APP BAR
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            if (isSearching) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
-                        IconButton(onClick = { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }) {
-                            Icon(painterResource(R.drawable.arrow_back), contentDescription = null, tint = Color.White)
-                        }
-                        TextField(
-                            value = query, onValueChange = { query = it },
-                            placeholder = { Text("Search...", color = Color.White.copy(alpha = 0.5f)) }, singleLine = true,
-                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+        // 4. OVERLAP FIXED TOP APP BAR
+        TopAppBar(
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = if (isSearching || selection) MaterialTheme.colorScheme.surface else Color.Transparent,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
+            ),
+            title = {
+                if (selection) {
+                    val count = wrappedSongs.count { it.isSelected }
+                    Text("$count Selected", style = MaterialTheme.typography.titleLarge)
+                } else if (isSearching) {
+                    TextField(
+                        value = query, onValueChange = { query = it },
+                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) }, singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, 
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                    )
                 }
-            } else if (selection) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
-                        IconButton(onClick = { selection = false; wrappedSongs.forEach { it.isSelected = false } }) {
-                            Icon(painterResource(R.drawable.close), contentDescription = null, tint = Color.White)
+            },
+            navigationIcon = {
+                IconButton(onClick = {
+                    if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
+                    else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } }
+                    else navController.navigateUp()
+                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
+            },
+            actions = {
+                if (selection) {
+                    IconButton(onClick = {
+                        val allSelected = wrappedSongs.all { it.isSelected }
+                        wrappedSongs.forEach { it.isSelected = !allSelected }
+                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null) }
+                    
+                    IconButton(onClick = {
+                        menuState.show {
+                            SelectionMediaMetadataMenu(
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaMetadata() },
+                                onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }, currentItems = emptyList()
+                            )
                         }
-                        val count = wrappedSongs.count { it.isSelected }
-                        Text("$count Selected", style = MaterialTheme.typography.titleMedium, color = Color.White, modifier = Modifier.weight(1f))
-                        IconButton(onClick = {
-                            val allSelected = wrappedSongs.all { it.isSelected }
-                            wrappedSongs.forEach { it.isSelected = !allSelected }
-                        }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), tint = Color.White, contentDescription = null) }
-                        IconButton(onClick = {
-                            menuState.show {
-                                SelectionMediaMetadataMenu(
-                                    songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaMetadata() },
-                                    onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }, currentItems = emptyList()
-                                )
-                            }
-                        }) { Icon(painterResource(R.drawable.more_vert), tint = Color.White, contentDescription = null) }
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.4f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(painterResource(R.drawable.arrow_back), contentDescription = null, tint = Color.White)
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color.Black.copy(alpha = 0.4f),
-                        modifier = Modifier.height(48.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
-                            if (playlist?.id != "LM") {
-                                val isSaved = dbPlaylist?.playlist?.bookmarkedAt != null
-                                IconButton(onClick = {
-                                    if (dbPlaylist?.playlist == null) {
-                                        database.transaction {
-                                            val playlistEntity = PlaylistEntity(name = playlist!!.title, browseId = playlist!!.id, thumbnailUrl = playlist!!.thumbnail, isEditable = playlist!!.isEditable, playEndpointParams = playlist!!.playEndpoint?.params, shuffleEndpointParams = playlist!!.shuffleEndpoint?.params, radioEndpointParams = playlist!!.radioEndpoint?.params).toggleLike()
-                                            insert(playlistEntity)
-                                            songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { index, song -> PlaylistSongMap(songId = song.id, playlistId = playlistEntity.id, position = index) }.forEach(::insert)
-                                        }
-                                    } else {
-                                        database.transaction {
-                                            val currentPlaylist = dbPlaylist!!.playlist
-                                            update(currentPlaylist, playlist!!)
-                                            update(currentPlaylist.toggleLike())
-                                        }
-                                    }
-                                }) {
-                                    Icon(painterResource(if (isSaved) R.drawable.favorite else R.drawable.favorite_border), contentDescription = null, tint = if (isSaved) MaterialTheme.colorScheme.error else Color.White)
-                                }
-                            }
-                            IconButton(onClick = { isSearching = true }) {
-                                Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White)
-                            }
-                            IconButton(onClick = {
-                                playlist?.let {
-                                    menuState.show {
-                                        YouTubePlaylistMenu(
-                                            playlist = it, songs = songs, coroutineScope = coroutineScope,
-                                            onDismiss = menuState::dismiss, selectAction = { selection = true },
-                                            canSelect = true, snackbarHostState = snackbarHostState
-                                        )
-                                    }
-                                }
-                            }) {
-                                Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White)
-                            }
-                        }
-                    }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                } else if (!isSearching) {
+                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null) }
                 }
             }
-        }
+        )
 
         PullToRefreshDefaults.Indicator(isRefreshing = isRefreshing, state = pullRefreshState, modifier = Modifier.align(Alignment.TopCenter).padding(top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()))
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
