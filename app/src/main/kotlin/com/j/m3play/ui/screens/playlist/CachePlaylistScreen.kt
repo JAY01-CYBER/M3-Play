@@ -1,5 +1,6 @@
 package com.j.m3play.ui.screens.playlist
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -39,7 +40,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -48,6 +52,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 import com.j.m3play.LocalPlayerConnection
@@ -57,6 +62,7 @@ import com.j.m3play.constants.SongSortType
 import com.j.m3play.constants.SongSortTypeKey
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
@@ -107,6 +113,8 @@ fun CachePlaylistScreen(
     var dominantColor by remember { mutableStateOf(surfaceColor) }
     
     val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val filteredSongs = remember(wrappedSongs, query) {
         if (query.text.isEmpty()) wrappedSongs else wrappedSongs.filter {
@@ -121,7 +129,9 @@ fun CachePlaylistScreen(
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
             result?.image?.toBitmap()?.let { bitmap ->
                 val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
-                val extractedInt = palette.getVibrantColor(palette.getDominantColor(surfaceColor.toArgb()))
+                val extractedInt = palette.getMutedColor(0).takeIf { it != 0 } 
+                    ?: palette.getDarkMutedColor(0).takeIf { it != 0 } 
+                    ?: palette.getDominantColor(surfaceColor.toArgb())
                 dominantColor = Color(extractedInt)
             }
         }
@@ -133,18 +143,7 @@ fun CachePlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor)
-            .drawBehind {
-                if (dominantColor != surfaceColor) {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(dominantColor.copy(alpha = 0.5f), surfaceColor),
-                            startY = 0f,
-                            endY = size.height * 0.6f
-                        )
-                    )
-                }
-            }
+            .background(dominantColor) // SOLID COLOR
     ) {
         LazyColumn(
             state = lazyListState,
@@ -159,9 +158,9 @@ fun CachePlaylistScreen(
                     ) {
                         Surface(
                             modifier = Modifier
-                                .size(280.dp)
-                                .shadow(24.dp, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp)
+                                .size(260.dp)
+                                .shadow(32.dp, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             AsyncImage(
                                 model = cachedSongs.firstOrNull()?.song?.thumbnailUrl,
@@ -171,13 +170,14 @@ fun CachePlaylistScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         
                         Text(
                             text = stringResource(R.string.cached_playlist),
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,
+                            color = Color.White,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         
@@ -189,32 +189,38 @@ fun CachePlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = CircleShape, color = Color.White,
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.toMediaItem() }))
+                                    playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.song.toMediaItem() }))
                                 }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
-                            }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() })) },
-                                shape = RoundedCornerShape(50),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() })) },
+                                shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
                                 Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
+                            
+                            Spacer(Modifier.width(16.dp))
+                            
+                            Surface(
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    coroutineScope.launch { snackbarHostState.showSnackbar("Songs already downloaded") }
+                                }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
-                            Text(text = "${cachedSongs.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = "${cachedSongs.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -238,10 +244,10 @@ fun CachePlaylistScreen(
                 }
             }
             
-            itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.song.id }) { index, songWrapper ->
+            itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.id }) { index, songWrapper ->
                 SongListItem(
                     song = songWrapper.item,
-                    isActive = songWrapper.item.song.id == mediaMetadata?.id,
+                    isActive = songWrapper.item.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
                     modifier = Modifier
@@ -250,11 +256,10 @@ fun CachePlaylistScreen(
                         .clip(RoundedCornerShape(20.dp))
                         .combinedClickable(
                             onClick = {
-                                if (selection) {
-                                    songWrapper.isSelected = !songWrapper.isSelected
-                                } else {
-                                    if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.toMediaItem() }, index))
+                                if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
+                                else {
+                                    if (songWrapper.item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
@@ -265,9 +270,7 @@ fun CachePlaylistScreen(
                             }
                         ),
                     trailingContent = {
-                        IconButton(onClick = {
-                            menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss, isFromCache = true) }
-                        }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                        IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss, isFromCache = true) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                     }
                 )
             }
@@ -275,20 +278,19 @@ fun CachePlaylistScreen(
 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (isSearching || selection) MaterialTheme.colorScheme.surface else Color.Transparent,
-                scrolledContainerColor = MaterialTheme.colorScheme.surface
+                containerColor = if (isSearching || selection) dominantColor else Color.Transparent,
+                scrolledContainerColor = dominantColor
             ),
             title = {
-                if (selection) {
-                    val count = wrappedSongs.count { it.isSelected }
-                    Text("$count Selected", style = MaterialTheme.typography.titleLarge)
-                } else if (isSearching) {
+                if (selection) { Text("${wrappedSongs.count { it.isSelected }} Selected", style = MaterialTheme.typography.titleLarge, color = Color.White) } 
+                else if (isSearching) {
                     TextField(
                         value = query, onValueChange = { query = it },
-                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) }, singleLine = true,
+                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.6f)) }, singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, 
-                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
@@ -300,14 +302,14 @@ fun CachePlaylistScreen(
                     if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
                     else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } }
                     else navController.navigateUp()
-                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
+                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null, tint = Color.White) }
             },
             actions = {
                 if (selection) {
                     IconButton(onClick = {
                         val allSelected = wrappedSongs.all { it.isSelected }
                         wrappedSongs.forEach { it.isSelected = !allSelected }
-                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null) }
+                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = Color.White) }
                     
                     IconButton(onClick = {
                         menuState.show {
@@ -316,11 +318,17 @@ fun CachePlaylistScreen(
                                 onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
                             )
                         }
-                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 } else if (!isSearching) {
-                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null) }
+                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to my Cached Tracks!") }
+                        context.startActivity(Intent.createChooser(intent, "Share Playlist"))
+                    }) { Icon(painterResource(R.drawable.share), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Options menu") } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 }
             }
         )
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
