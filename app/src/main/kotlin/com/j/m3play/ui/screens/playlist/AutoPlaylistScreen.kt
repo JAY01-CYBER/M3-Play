@@ -227,7 +227,7 @@ fun AutoPlaylistScreen(
             
             itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.id }) { index, songWrapper ->
                 SongListItem(
-                    song = songWrapper.item,
+                    song = songWrapper.item.song,
                     isActive = songWrapper.item.song.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
@@ -253,7 +253,7 @@ fun AutoPlaylistScreen(
                         ),
                     trailingContent = {
                         IconButton(onClick = {
-                            menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) }
+                            menuState.show { SongMenu(originalSong = songWrapper.item.song, navController = navController, onDismiss = menuState::dismiss) }
                         }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
                     }
                 )
@@ -292,7 +292,7 @@ fun AutoPlaylistScreen(
                     IconButton(onClick = {
                         menuState.show {
                             SelectionSongMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song },
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, // ✅ FIXED TYPE MISMATCH
                                 onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
                             )
                         }
