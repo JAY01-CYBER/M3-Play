@@ -143,9 +143,8 @@ fun OnlinePlaylistScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(50.dp) // Heavy blur like screenshot
+                        .blur(50.dp)
                 )
-                // Gradient to fade into the list surface smoothly
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -175,10 +174,9 @@ fun OnlinePlaylistScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 70.dp, bottom = 16.dp), // Padding for top bar
+                            .padding(top = 70.dp, bottom = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Artwork Cover
                         Surface(
                             modifier = Modifier
                                 .size(260.dp)
@@ -195,7 +193,6 @@ fun OnlinePlaylistScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        // Title
                         Text(
                             text = playlist!!.title,
                             style = MaterialTheme.typography.headlineLarge,
@@ -205,7 +202,6 @@ fun OnlinePlaylistScreen(
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         
-                        // Subtitles (YouTube Music / Playlist • Year)
                         playlist!!.author?.let { artist ->
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(artist.name, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
@@ -213,7 +209,7 @@ fun OnlinePlaylistScreen(
                         
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Playlist • ${playlist!!.year ?: "2024"}",
+                            text = "Playlist • ${songs.size} tracks",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -226,7 +222,6 @@ fun OnlinePlaylistScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Shuffle Button
                             Surface(
                                 shape = CircleShape,
                                 color = Color.White.copy(alpha = 0.15f),
@@ -243,7 +238,6 @@ fun OnlinePlaylistScreen(
                             
                             Spacer(Modifier.width(16.dp))
                             
-                            // Play Button (Large White Pill)
                             Button(
                                 onClick = { 
                                     if (songs.isNotEmpty()) playerConnection.playQueue(ListQueue(playlist!!.title, songs.map { it.toMediaItem() })) 
@@ -262,7 +256,6 @@ fun OnlinePlaylistScreen(
                             
                             Spacer(Modifier.width(16.dp))
                             
-                            // Download Button
                             Surface(
                                 shape = CircleShape,
                                 color = Color.White.copy(alpha = 0.15f),
@@ -284,21 +277,9 @@ fun OnlinePlaylistScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Description and Tracks count
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
-                            if (!playlist!!.description.isNullOrEmpty()) {
-                                Text(
-                                    text = playlist!!.description!!,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                            
                             Text(
-                                text = "${playlist!!.songCount ?: songs.size} tracks",
+                                text = "${songs.size} tracks",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -356,7 +337,6 @@ fun OnlinePlaylistScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             if (isSearching) {
-                // Search Mode Bar
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color.Black.copy(alpha = 0.7f),
@@ -375,7 +355,6 @@ fun OnlinePlaylistScreen(
                     }
                 }
             } else if (selection) {
-                // Selection Mode Bar
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color.Black.copy(alpha = 0.7f),
@@ -402,13 +381,11 @@ fun OnlinePlaylistScreen(
                     }
                 }
             } else {
-                // Default Immersive Glass Bar (Like Screenshot)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left: Back Pill
                     Surface(
                         shape = CircleShape,
                         color = Color.Black.copy(alpha = 0.4f),
@@ -419,7 +396,6 @@ fun OnlinePlaylistScreen(
                         }
                     }
 
-                    // Right: Actions Pill
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = Color.Black.copy(alpha = 0.4f),
