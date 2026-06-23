@@ -1,5 +1,6 @@
 package com.j.m3play.ui.screens.playlist
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -39,7 +40,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -48,6 +52,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 import com.j.m3play.LocalPlayerConnection
@@ -57,6 +62,7 @@ import com.j.m3play.constants.AutoPlaylistSongSortType
 import com.j.m3play.constants.AutoPlaylistSongSortTypeKey
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
@@ -97,6 +103,8 @@ fun AutoPlaylistScreen(
     var dominantColor by remember { mutableStateOf(surfaceColor) }
     
     val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf() }
     val filteredSongs = remember(wrappedSongs, query) {
@@ -112,7 +120,9 @@ fun AutoPlaylistScreen(
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
             result?.image?.toBitmap()?.let { bitmap ->
                 val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
-                val extractedInt = palette.getVibrantColor(palette.getDominantColor(surfaceColor.toArgb()))
+                val extractedInt = palette.getMutedColor(0).takeIf { it != 0 } 
+                    ?: palette.getDarkMutedColor(0).takeIf { it != 0 } 
+                    ?: palette.getDominantColor(surfaceColor.toArgb())
                 dominantColor = Color(extractedInt)
             }
         }
@@ -124,18 +134,7 @@ fun AutoPlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor)
-            .drawBehind {
-                if (dominantColor != surfaceColor) {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(dominantColor.copy(alpha = 0.5f), surfaceColor),
-                            startY = 0f,
-                            endY = size.height * 0.6f
-                        )
-                    )
-                }
-            }
+            .background(dominantColor) // SOLID COLOR
     ) {
         LazyColumn(
             state = lazyListState,
@@ -151,7 +150,7 @@ fun AutoPlaylistScreen(
                         Surface(
                             modifier = Modifier
                                 .size(280.dp)
-                                .shadow(24.dp, RoundedCornerShape(16.dp)),
+                                .shadow(32.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             AsyncImage(
@@ -169,6 +168,7 @@ fun AutoPlaylistScreen(
                             style = MaterialTheme.typography.headlineLarge,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,
+                            color = Color.White,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         
@@ -180,32 +180,42 @@ fun AutoPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = CircleShape, color = Color.White,
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() }))
+                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.song.toMediaItem() }))
                                 }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
-                            }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
-                                shape = RoundedCornerShape(50),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() })) },
+                                shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
                                 Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
+                            
+                            Spacer(Modifier.width(16.dp))
+                            
+                            Surface(
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    songs!!.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.song.title.toByteArray()).build()
+                                        DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
+                                    }
+                                    coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
+                                }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
-                            Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -231,7 +241,7 @@ fun AutoPlaylistScreen(
             
             itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.song.id }) { index, songWrapper ->
                 SongListItem(
-                    song = songWrapper.item,
+                    song = songWrapper.item.song,
                     isActive = songWrapper.item.song.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
@@ -245,7 +255,7 @@ fun AutoPlaylistScreen(
                                     songWrapper.isSelected = !songWrapper.isSelected
                                 } else {
                                     if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
+                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
@@ -257,8 +267,8 @@ fun AutoPlaylistScreen(
                         ),
                     trailingContent = {
                         IconButton(onClick = {
-                            menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) }
-                        }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                            menuState.show { SongMenu(originalSong = songWrapper.item.song, navController = navController, onDismiss = menuState::dismiss) }
+                        }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                     }
                 )
             }
@@ -266,20 +276,21 @@ fun AutoPlaylistScreen(
 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (isSearching || selection) MaterialTheme.colorScheme.surface else Color.Transparent,
-                scrolledContainerColor = MaterialTheme.colorScheme.surface
+                containerColor = if (isSearching || selection) dominantColor else Color.Transparent,
+                scrolledContainerColor = dominantColor
             ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    Text("$count Selected", style = MaterialTheme.typography.titleLarge)
+                    Text("$count Selected", style = MaterialTheme.typography.titleLarge, color = Color.White)
                 } else if (isSearching) {
                     TextField(
                         value = query, onValueChange = { query = it },
-                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) }, singleLine = true,
+                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.6f)) }, singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, 
-                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
@@ -291,27 +302,33 @@ fun AutoPlaylistScreen(
                     if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
                     else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } }
                     else navController.navigateUp()
-                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
+                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null, tint = Color.White) }
             },
             actions = {
                 if (selection) {
                     IconButton(onClick = {
                         val allSelected = wrappedSongs.all { it.isSelected }
                         wrappedSongs.forEach { it.isSelected = !allSelected }
-                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null) }
+                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = Color.White) }
                     
                     IconButton(onClick = {
                         menuState.show {
                             SelectionSongMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song },
                                 onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
                             )
                         }
-                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 } else if (!isSearching) {
-                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null) }
+                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to my Auto Playlist!") }
+                        context.startActivity(Intent.createChooser(intent, "Share Playlist"))
+                    }) { Icon(painterResource(R.drawable.share), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Options menu") } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 }
             }
         )
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
