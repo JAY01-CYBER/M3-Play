@@ -6,12 +6,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,13 +24,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,6 +58,7 @@ import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.SortHeader
+import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.utils.rememberEnumPreference
@@ -73,6 +75,7 @@ fun AutoPlaylistScreen(
     val context = LocalContext.current
     val menuState = LocalMenuState.current
     val focusManager = LocalFocusManager.current
+    val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     
     val isPlaying by playerConnection.isPlaying.collectAsState()
@@ -143,7 +146,7 @@ fun AutoPlaylistScreen(
             item {
                 if (!isSearching && songs?.isNotEmpty() == true) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 80.dp, bottom = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
@@ -172,21 +175,33 @@ fun AutoPlaylistScreen(
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        Button(
-                            onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
-                            shape = RoundedCornerShape(50),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (dominantColor != surfaceColor) dominantColor else MaterialTheme.colorScheme.primary,
-                                contentColor = onDominantTextColor
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp)
-                                .height(56.dp)
-                        ) {
-                            Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Button(
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
+                                shape = RoundedCornerShape(50),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (dominantColor != surfaceColor) dominantColor else MaterialTheme.colorScheme.primary,
+                                    contentColor = onDominantTextColor
+                                ),
+                                modifier = Modifier.weight(1f).height(56.dp)
+                            ) {
+                                Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Button(
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
+                                shape = RoundedCornerShape(50),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                modifier = Modifier.weight(1f).height(56.dp)
+                            ) {
+                                Icon(painterResource(R.drawable.shuffle), null, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Shuffle", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -216,9 +231,28 @@ fun AutoPlaylistScreen(
                     isActive = songWrapper.item.song.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .combinedClickable(
+                            onClick = {
+                                if (selection) {
+                                    songWrapper.isSelected = !songWrapper.isSelected
+                                } else {
+                                    if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
+                                }
+                            },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (!selection) selection = true
+                                wrappedSongs.forEach { it.isSelected = false }
+                                songWrapper.isSelected = true
+                            }
+                        ),
                     trailingContent = {
-                        androidx.compose.material3.IconButton(onClick = {
+                        IconButton(onClick = {
                             menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) }
                         }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
                     }
@@ -229,15 +263,14 @@ fun AutoPlaylistScreen(
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
             title = {
-                AnimatedVisibility(visible = isSearching, enter = fadeIn(), exit = fadeOut()) {
+                if (selection) {
+                    val count = wrappedSongs.count { it.isSelected }
+                    Text("$count Selected", style = MaterialTheme.typography.titleLarge)
+                } else if (isSearching) {
                     TextField(
                         value = query, onValueChange = { query = it },
-                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
-                        ),
+                        placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium) }, singleLine = true,
+                        colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -245,11 +278,26 @@ fun AutoPlaylistScreen(
             navigationIcon = {
                 IconButton(onClick = {
                     if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
+                    else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } }
                     else navController.navigateUp()
-                }) { Icon(painterResource(R.drawable.arrow_back), contentDescription = null) }
+                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null) }
             },
             actions = {
-                if (!isSearching) {
+                if (selection) {
+                    IconButton(onClick = {
+                        val allSelected = wrappedSongs.all { it.isSelected }
+                        wrappedSongs.forEach { it.isSelected = !allSelected }
+                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null) }
+                    
+                    IconButton(onClick = {
+                        menuState.show {
+                            SelectionSongMenu(
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song },
+                                onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
+                            )
+                        }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null) }
                 }
             }
