@@ -59,8 +59,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.AutoPlaylistSongSortDescendingKey
 import com.j.m3play.constants.AutoPlaylistSongSortType
 import com.j.m3play.constants.AutoPlaylistSongSortTypeKey
-import com.j.m3play.db.entities.Song
-import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.ExoDownloadService
@@ -74,9 +72,6 @@ import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.AutoPlaylistViewModel
-
-// Safe Mapper for Database Entity
-private fun SongEntity.asSong() = Song(song = this, artists = emptyList())
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +105,7 @@ fun AutoPlaylistScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it.asSong()) }?.toMutableStateList() ?: mutableStateListOf() }
+    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf() }
     val filteredSongs = remember(wrappedSongs, query) {
         if (query.text.isEmpty()) wrappedSongs else wrappedSongs.filter {
             it.item.song.title.contains(query.text, true) || it.item.artists.any { art -> art.name.contains(query.text, true) }
@@ -118,7 +113,7 @@ fun AutoPlaylistScreen(
     }
 
     LaunchedEffect(songs) {
-        val thumbnailUrl = songs?.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -156,7 +151,7 @@ fun AutoPlaylistScreen(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             AsyncImage(
-                                model = songs!!.firstOrNull()?.thumbnailUrl,
+                                model = songs!!.firstOrNull()?.song?.thumbnailUrl,
                                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -171,7 +166,7 @@ fun AutoPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
                                 shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
                                 modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
@@ -179,7 +174,7 @@ fun AutoPlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
@@ -192,8 +187,8 @@ fun AutoPlaylistScreen(
                             
                             Surface(
                                 onClick = {
-                                    songs!!.forEach { songEntity ->
-                                        val downloadRequest = DownloadRequest.Builder(songEntity.id, songEntity.id.toUri()).setCustomCacheKey(songEntity.id).setData(songEntity.title.toByteArray()).build()
+                                    songs!!.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
                                         DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                     }
                                     coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
@@ -243,7 +238,7 @@ fun AutoPlaylistScreen(
                                 if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                 else {
                                     if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() }, index))
+                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
