@@ -1,11 +1,13 @@
 package com.j.m3play.ui.screens.playlist
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +38,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.media3.exoplayer.offline.DownloadRequest
+import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
@@ -53,6 +58,7 @@ import com.j.m3play.R
 import com.j.m3play.constants.MyTopFilter
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
@@ -91,6 +97,8 @@ fun TopPlaylistScreen(
     var dominantColor by remember { mutableStateOf(surfaceColor) }
     
     val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val wrappedSongs = remember(songs) {
         songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf()
@@ -132,67 +140,61 @@ fun TopPlaylistScreen(
             item {
                 if (!isSearching && songs?.isNotEmpty() == true) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 64.dp, bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 70.dp, bottom = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            modifier = Modifier
-                                .size(260.dp)
-                                .shadow(32.dp, RoundedCornerShape(12.dp)),
+                            modifier = Modifier.size(260.dp).shadow(32.dp, RoundedCornerShape(12.dp)),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             AsyncImage(
                                 model = songs!!.firstOrNull()?.song?.thumbnailUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
-                        
-                        Text(
-                            text = playlistName,
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.Center,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                        
+                        Text(text = playlistName, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.White, modifier = Modifier.padding(horizontal = 24.dp))
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        // Action Row
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
                                 shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() }))
-                                }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) }
-                            }
+                                modifier = Modifier.size(50.dp)
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
                                 onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
-                                shape = RoundedCornerShape(50),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
                                 Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
+                            
+                            Spacer(Modifier.width(16.dp))
+                            
+                            Surface(
+                                onClick = {
+                                    songs!!.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
+                                        DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
+                                    }
+                                    coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
+                                },
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp)
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
-
                         Spacer(modifier = Modifier.height(24.dp))
-
                         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
                             Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -204,8 +206,7 @@ fun TopPlaylistScreen(
                 item {
                     SortHeader(
                         sortType = sortType, sortDescending = false, showDescending = false,
-                        onSortTypeChange = { viewModel.topPeriod.value = it },
-                        onSortDescendingChange = {},
+                        onSortTypeChange = { viewModel.topPeriod.value = it }, onSortDescendingChange = {},
                         sortTypeText = { t ->
                             when (t) {
                                 MyTopFilter.ALL_TIME -> R.string.all_time
@@ -232,9 +233,8 @@ fun TopPlaylistScreen(
                         .clip(RoundedCornerShape(20.dp))
                         .combinedClickable(
                             onClick = {
-                                if (selection) {
-                                    songWrapper.isSelected = !songWrapper.isSelected
-                                } else {
+                                if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
+                                else {
                                     if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
                                     else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
                                 }
@@ -247,9 +247,7 @@ fun TopPlaylistScreen(
                             }
                         ),
                     trailingContent = {
-                        IconButton(onClick = {
-                            menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) }
-                        }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
+                        IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                     }
                 )
             }
@@ -261,10 +259,8 @@ fun TopPlaylistScreen(
                 scrolledContainerColor = dominantColor
             ),
             title = {
-                if (selection) {
-                    val count = wrappedSongs.count { it.isSelected }
-                    Text("$count Selected", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                } else if (isSearching) {
+                if (selection) { Text("${wrappedSongs.count { it.isSelected }} Selected", style = MaterialTheme.typography.titleLarge, color = Color.White) } 
+                else if (isSearching) {
                     TextField(
                         value = query, onValueChange = { query = it },
                         placeholder = { Text("Search...", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.6f)) }, singleLine = true,
@@ -302,8 +298,14 @@ fun TopPlaylistScreen(
                     }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to My Top $maxSize tracks!") }
+                        context.startActivity(Intent.createChooser(intent, "Share Playlist"))
+                    }) { Icon(painterResource(R.drawable.share), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Options menu") } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 }
             }
         )
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
