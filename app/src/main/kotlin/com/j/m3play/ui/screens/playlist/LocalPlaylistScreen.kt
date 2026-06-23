@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -46,11 +48,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
+import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.palette.graphics.Palette
 
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
@@ -59,6 +65,7 @@ import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.ExoDownloadService
 import com.j.m3play.playback.queues.ListQueue
+import com.j.m3play.playback.queues.LocalMixQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.menu.SelectionSongMenu
@@ -188,11 +195,10 @@ fun LocalPlaylistScreen(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Shuffle Button
                             Surface(
                                 shape = CircleShape, color = Color.White,
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    if (songs.isNotEmpty()) playerConnection.playQueue(ListQueue(playlist!!.playlist.name, songs.shuffled().map { it.song.toMediaItem() }))
+                                    playerConnection.playQueue(LocalMixQueue(database, playlist!!.id, 50))
                                 }
                             ) {
                                 Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.Black, modifier = Modifier.size(24.dp)) }
@@ -200,7 +206,6 @@ fun LocalPlaylistScreen(
                             
                             Spacer(Modifier.width(16.dp))
                             
-                            // Play Button
                             Button(
                                 onClick = { 
                                     if (songs.isNotEmpty()) playerConnection.playQueue(ListQueue(playlist!!.playlist.name, songs.map { it.song.toMediaItem() })) 
@@ -216,7 +221,6 @@ fun LocalPlaylistScreen(
                             
                             Spacer(Modifier.width(16.dp))
                             
-                            // Download Button
                             Surface(
                                 shape = CircleShape, color = Color.White,
                                 modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
