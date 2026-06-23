@@ -177,7 +177,7 @@ fun AutoPlaylistScreen(
                         
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (dominantColor != surfaceColor) dominantColor else MaterialTheme.colorScheme.primary,
@@ -190,7 +190,7 @@ fun AutoPlaylistScreen(
                                 Text("Play All", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.song.toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -227,7 +227,7 @@ fun AutoPlaylistScreen(
             
             itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.song.id }) { index, songWrapper ->
                 SongListItem(
-                    song = songWrapper.item.song,
+                    song = songWrapper.item,
                     isActive = songWrapper.item.song.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
                     isSelected = songWrapper.isSelected && selection,
@@ -241,7 +241,7 @@ fun AutoPlaylistScreen(
                                     songWrapper.isSelected = !songWrapper.isSelected
                                 } else {
                                     if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() }, index))
+                                    else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
                                 }
                             },
                             onLongClick = {
@@ -253,7 +253,7 @@ fun AutoPlaylistScreen(
                         ),
                     trailingContent = {
                         IconButton(onClick = {
-                            menuState.show { SongMenu(originalSong = songWrapper.item.song, navController = navController, onDismiss = menuState::dismiss) }
+                            menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) }
                         }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
                     }
                 )
@@ -292,7 +292,7 @@ fun AutoPlaylistScreen(
                     IconButton(onClick = {
                         menuState.show {
                             SelectionSongMenu(
-                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, // FIXED TYPE
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
                                 onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
                             )
                         }
