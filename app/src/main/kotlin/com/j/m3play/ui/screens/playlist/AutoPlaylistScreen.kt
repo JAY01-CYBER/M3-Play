@@ -22,7 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -59,8 +61,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.AutoPlaylistSongSortDescendingKey
 import com.j.m3play.constants.AutoPlaylistSongSortType
 import com.j.m3play.constants.AutoPlaylistSongSortTypeKey
-import com.j.m3play.db.entities.Song
-import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.ExoDownloadService
@@ -75,8 +75,6 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.AutoPlaylistViewModel
-
-private fun SongEntity.asSong() = Song(song = this, artists = emptyList())
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -111,7 +109,7 @@ fun AutoPlaylistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showOptionsMenu by remember { mutableStateOf(false) }
 
-    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it.asSong()) }?.toMutableStateList() ?: mutableStateListOf() }
+    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf() }
     val filteredSongs = remember(wrappedSongs, query) {
         if (query.text.isEmpty()) wrappedSongs else wrappedSongs.filter {
             it.item.song.title.contains(query.text, true) || it.item.artists.any { art -> art.name.contains(query.text, true) }
@@ -119,7 +117,7 @@ fun AutoPlaylistScreen(
     }
 
     LaunchedEffect(songs) {
-        val thumbnailUrl = songs?.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -136,7 +134,21 @@ fun AutoPlaylistScreen(
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
     else if (selection) BackHandler { selection = false }
 
-    Box(modifier = Modifier.fillMaxSize().background(dominantColor)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dominantColor)
+            .drawBehind {
+                if (dominantColor != surfaceColor) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(dominantColor.copy(alpha = 0.8f), dominantColor.copy(alpha = 0.4f), surfaceColor),
+                            startY = 0f, endY = size.height
+                        )
+                    )
+                }
+            }
+    ) {
         LazyColumn(
             state = lazyListState,
             contentPadding = WindowInsets.systemBars.union(WindowInsets.ime).asPaddingValues(),
@@ -153,7 +165,7 @@ fun AutoPlaylistScreen(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             AsyncImage(
-                                model = songs!!.firstOrNull()?.thumbnailUrl,
+                                model = songs!!.firstOrNull()?.song?.thumbnailUrl,
                                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -172,16 +184,15 @@ fun AutoPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
                                 shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.asSong().toMediaItem() }))
-                                }
+                                modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
                                 shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
@@ -193,14 +204,15 @@ fun AutoPlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Surface(
-                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    songs!!.forEach { songEntity ->
-                                        val downloadRequest = DownloadRequest.Builder(songEntity.id, songEntity.id.toUri()).setCustomCacheKey(songEntity.id).setData(songEntity.title.toByteArray()).build()
+                                onClick = {
+                                    songs!!.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
                                         DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                     }
                                     coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
-                                }
+                                },
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
@@ -231,7 +243,7 @@ fun AutoPlaylistScreen(
             itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.song.id }) { index, songWrapper ->
                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                     SongListItem(
-                        song = songWrapper.item.song,
+                        song = songWrapper.item,
                         isActive = songWrapper.item.song.id == mediaMetadata?.id,
                         isPlaying = isPlaying,
                         isSelected = songWrapper.isSelected && selection,
@@ -244,7 +256,7 @@ fun AutoPlaylistScreen(
                                     if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                     else {
                                         if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                        else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() }, index))
+                                        else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() }, index))
                                     }
                                 },
                                 onLongClick = {
@@ -255,7 +267,7 @@ fun AutoPlaylistScreen(
                                 }
                             ),
                         trailingContent = {
-                            IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item.song, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
+                            IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                         }
                     )
                 }
@@ -263,7 +275,7 @@ fun AutoPlaylistScreen(
 
             if (songs?.isNotEmpty() == true && !isSearching) {
                 item {
-                    val duration = songs!!.sumOf { (it.duration ?: 0).toLong() } * 1000L
+                    val duration = songs!!.sumOf { (it.song.duration ?: 0).toLong() } * 1000L
                     Text(
                         text = "${songs!!.size} songs, ${makeTimeString(duration)}",
                         color = Color.White.copy(alpha = 0.8f),
@@ -283,7 +295,8 @@ fun AutoPlaylistScreen(
                         value = query, onValueChange = { query = it },
                         placeholder = { Text("Search...", color = Color.White.copy(alpha = 0.6f)) }, singleLine = true,
                         colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
                     )
                 }
             },
@@ -300,6 +313,15 @@ fun AutoPlaylistScreen(
                         val allSelected = wrappedSongs.all { it.isSelected }
                         wrappedSongs.forEach { it.isSelected = !allSelected }
                     }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = Color.White) }
+                    
+                    IconButton(onClick = {
+                        menuState.show {
+                            SelectionSongMenu(
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
+                            )
+                        }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
                     
@@ -308,8 +330,17 @@ fun AutoPlaylistScreen(
                         DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                             DropdownMenuItem(
                                 text = { Text("Add to Queue") },
-                                onClick = { songs?.let { playerConnection.addToQueue(it.map { s -> s.asSong().toMediaItem() }) }; showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
+                                onClick = { songs?.let { playerConnection.addToQueue(it.map { s -> s.toMediaItem() }) }; showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
                                 leadingIcon = { Icon(painterResource(R.drawable.queue_music), null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                onClick = {
+                                    showOptionsMenu = false
+                                    val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to my Auto Playlist!") }
+                                    context.startActivity(Intent.createChooser(intent, "Share Playlist"))
+                                },
+                                leadingIcon = { Icon(painterResource(R.drawable.share), null) }
                             )
                         }
                     }
