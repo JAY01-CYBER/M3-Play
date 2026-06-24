@@ -114,7 +114,6 @@ fun OnlinePlaylistScreen(
     val pullRefreshState = rememberPullToRefreshState()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
     var showOptionsMenu by remember { mutableStateOf(false) }
 
     val filteredSongs = remember(songs, query) {
@@ -255,8 +254,9 @@ fun OnlinePlaylistScreen(
                                 onClick = {
                                     if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                     else {
-                                        if (songWrapper.item.second.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                        else {
+                                        if (songWrapper.item.second.id == mediaMetadata?.id) {
+                                            playerConnection.player.togglePlayPause()
+                                        } else {
                                             playerConnection.service.getAutomix(playlistId = playlist!!.id)
                                             playerConnection.playQueue(YouTubeQueue(songWrapper.item.second.endpoint ?: WatchEndpoint(videoId = songWrapper.item.second.id), songWrapper.item.second.toMediaMetadata()))
                                         }
@@ -278,7 +278,7 @@ fun OnlinePlaylistScreen(
             
             if (songs.isNotEmpty() && !isSearching) {
                 item {
-                    val duration = songs.sumOf { it.duration.toLong() } * 1000L
+                    val duration = songs.sumOf { (it.duration ?: 0).toLong() } * 1000L
                     Text(
                         text = "${songs.size} songs, ${makeTimeString(duration)}",
                         color = Color.White.copy(alpha = 0.8f),
