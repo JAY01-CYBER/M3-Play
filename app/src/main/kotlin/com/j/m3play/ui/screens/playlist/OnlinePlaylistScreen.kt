@@ -34,7 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -83,6 +83,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -307,7 +308,6 @@ fun OnlinePlaylistScreen(
                                 modifier = Modifier.fillMaxWidth().animateItem(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Immersive Full-Width Artwork
                                 Box(modifier = Modifier.fillMaxWidth().height(350.dp)) {
                                     if (playlist.thumbnail != null) {
                                         AsyncImage(
@@ -326,7 +326,6 @@ fun OnlinePlaylistScreen(
                                             Icon(painterResource(R.drawable.queue_music), null, modifier = Modifier.size(80.dp), tint = Color.White.copy(alpha = 0.5f))
                                         }
                                     }
-                                    // Bottom gradient overlay for smooth transition
                                     Box(
                                         modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(150.dp)
                                             .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent, mutedPaletteBg.copy(alpha = 0.5f), mutedPaletteBg, surfaceColor)))
@@ -359,14 +358,12 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Apple Music Style Action Row
                                 val isThisPlaying = isPlaying && songs.any { it.id == mediaMetadata?.id }
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Shuffle / Mix Button
                                     val mixEndpoint = playlist.shuffleEndpoint ?: playlist.radioEndpoint
                                     if (mixEndpoint != null) {
                                         Surface(
@@ -383,7 +380,6 @@ fun OnlinePlaylistScreen(
                                         Spacer(modifier = Modifier.size(48.dp))
                                     }
 
-                                    // Play Pill Button
                                     Box(
                                         modifier = Modifier
                                             .height(48.dp)
@@ -421,7 +417,6 @@ fun OnlinePlaylistScreen(
                                         }
                                     }
 
-                                    // More Options / Context Menu Button
                                     Surface(
                                         onClick = {
                                             menuState.show { YouTubePlaylistMenu(playlist = playlist, songs = songs, coroutineScope = coroutineScope, onDismiss = menuState::dismiss, selectAction = { selection = true }, canSelect = true, snackbarHostState = snackbarHostState) }
@@ -507,7 +502,6 @@ fun OnlinePlaylistScreen(
 
         DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
-        // Animated Glass Top App Bar Transition
         AnimatedVisibility(
             visible = showTopBarTitle || isSearching || selection,
             enter = fadeIn() + slideInVertically(),
@@ -550,21 +544,24 @@ fun OnlinePlaylistScreen(
                         IconButton(onClick = { menuState.show { SelectionMediaMetadataMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.second.toMediaItem().metadata!! }, onDismiss = menuState::dismiss, clearAction = { selection = false }, currentItems = emptyList()) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
                     } else if (!isSearching) {
                         if (playlist != null && playlist!!.id != "LM") {
-                            IconButton(onClick = {
-                                if (dbPlaylist?.playlist == null) {
-                                    database.transaction {
-                                        val playlistEntity = PlaylistEntity(name = playlist!!.title, browseId = playlist!!.id, thumbnailUrl = playlist!!.thumbnail, isEditable = playlist!!.isEditable, playEndpointParams = playlist!!.playEndpoint?.params, shuffleEndpointParams = playlist!!.shuffleEndpoint?.params, radioEndpointParams = playlist!!.radioEndpoint?.params).toggleLike()
-                                        insert(playlistEntity)
-                                        songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { index, song -> PlaylistSongMap(songId = song.id, playlistId = playlistEntity.id, position = index) }.forEach(::insert)
+                            IconButton(
+                                onClick = {
+                                    if (dbPlaylist?.playlist == null) {
+                                        database.transaction {
+                                            val playlistEntity = PlaylistEntity(name = playlist!!.title, browseId = playlist!!.id, thumbnailUrl = playlist!!.thumbnail, isEditable = playlist!!.isEditable, playEndpointParams = playlist!!.playEndpoint?.params, shuffleEndpointParams = playlist!!.shuffleEndpoint?.params, radioEndpointParams = playlist!!.radioEndpoint?.params).toggleLike()
+                                            insert(playlistEntity)
+                                            songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { index, song -> PlaylistSongMap(songId = song.id, playlistId = playlistEntity.id, position = index) }.forEach(::insert)
+                                        }
+                                    } else {
+                                        database.transaction {
+                                            val currentPlaylist = dbPlaylist!!.playlist
+                                            update(currentPlaylist, playlist!!)
+                                            update(currentPlaylist.toggleLike())
+                                        }
                                     }
-                                } else {
-                                    database.transaction {
-                                        val currentPlaylist = dbPlaylist!!.playlist
-                                        update(currentPlaylist, playlist!!)
-                                        update(currentPlaylist.toggleLike())
-                                    }
-                                }
-                            }) {
+                                },
+                                onLongClick = {}
+                            ) {
                                 val isLiked = dbPlaylist?.playlist?.bookmarkedAt != null
                                 Icon(
                                     painter = painterResource(if (isLiked) R.drawable.favorite else R.drawable.favorite_border),
@@ -579,7 +576,6 @@ fun OnlinePlaylistScreen(
             )
         }
 
-        // Back button that floats on top of the image when at the very top
         if (!showTopBarTitle && !isSearching && !selection) {
             Row(
                 modifier = Modifier
@@ -612,7 +608,6 @@ fun OnlinePlaylistScreen(
     }
 }
 
-// Fallback Gradient Generator helper function
 private fun generateGradientFromTitle(title: String): List<Color> {
     val hash = title.hashCode()
     val hue1 = ((hash and 0xFF) / 255f) * 360f
