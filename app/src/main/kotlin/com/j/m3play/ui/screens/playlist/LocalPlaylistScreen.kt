@@ -41,6 +41,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -112,7 +114,6 @@ fun LocalPlaylistScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Dialog States (From Old File)
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeletePlaylistDialog by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
@@ -142,7 +143,6 @@ fun LocalPlaylistScreen(
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
     else if (selection) BackHandler { selection = false }
 
-    // --- DIALOGS ---
     if (showEditDialog && playlist != null) {
         EditPlaylistDialog(
             initialName = playlist!!.playlist.name,
@@ -175,7 +175,7 @@ fun LocalPlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(dominantColor) // Solid background
+            .background(dominantColor)
     ) {
         LazyColumn(
             state = lazyListState,
@@ -252,7 +252,6 @@ fun LocalPlaylistScreen(
                 }
             }
 
-            // SONGS LIST WITH WHITE TEXT ENFORCED
             itemsIndexed(wrappedSongs, key = { _, wrap -> wrap.item.map.id }) { index, songWrapper ->
                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                     SongListItem(
@@ -286,10 +285,9 @@ fun LocalPlaylistScreen(
                 }
             }
 
-            // BOTTOM DETAILS (Apple Music Style)
             if (songs.isNotEmpty() && !isSearching) {
                 item {
-                    val duration = songs.sumOf { it.song.song.duration } * 1000L
+                    val duration = songs.sumOf { it.song.song.duration.toLong() } * 1000L
                     Text(
                         text = "${songs.size} songs, ${makeTimeString(duration)}",
                         color = Color.White.copy(alpha = 0.8f),
@@ -333,7 +331,6 @@ fun LocalPlaylistScreen(
                     }
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
                     
-                    // Options Menu Dropdown
                     Box {
                         IconButton(onClick = { showOptionsMenu = true }) {
                             Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White)
