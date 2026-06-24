@@ -96,7 +96,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -334,7 +333,6 @@ fun LocalPlaylistScreen(
     }
 
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
     LaunchedEffect(playlist?.thumbnails) {
         val thumbnailUrl = playlist?.thumbnails?.firstOrNull()
@@ -345,7 +343,7 @@ fun LocalPlaylistScreen(
                 val bitmap = result.image?.toBitmap()
                 if (bitmap != null) {
                     val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
-                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = Color(0xFF121212).toArgb())
+                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = 0xFF121212.toInt())
                 }
             }
         } else if (playlist != null) {
@@ -420,7 +418,7 @@ fun LocalPlaylistScreen(
                                         Spacer(modifier = Modifier.height(6.dp))
 
                                         val metadataText = buildString {
-                                            append(stringResource(R.string.local_playlist))
+                                            append("Local Playlist")
                                             if (playlistLength > 0) append(" • ${makeTimeString(playlistLength * 1000L)}")
                                         }
                                         Text(
@@ -632,6 +630,7 @@ fun LocalPlaylistScreen(
 
         DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
+        // Floating Glass Top Bar OR Standard TopAppBar for Selection/Search
         if (isSearching || selection) {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
