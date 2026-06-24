@@ -47,6 +47,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -60,7 +61,6 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -100,7 +100,6 @@ import androidx.compose.ui.util.fastAny
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
-import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -141,6 +140,7 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.OnlinePlaylistViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import coil3.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -203,11 +203,9 @@ fun OnlinePlaylistScreen(
 
     val wrappedSongs = remember(filteredSongs) { filteredSongs.map { item -> ItemWrapper(item) } }.toMutableStateList()
 
-    // Base colors
-    val baseDark = Color(0xFF121212)
+    // Color extraction logic
     var extractedColor by remember { mutableStateOf<Color?>(null) }
 
-    // Color extraction logic
     LaunchedEffect(playlist?.thumbnail) {
         val thumbnailUrl = playlist?.thumbnail
         if (thumbnailUrl != null) {
@@ -220,24 +218,23 @@ fun OnlinePlaylistScreen(
             val bitmap = result?.image?.toBitmap()
             if (bitmap != null) {
                 val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
-                // Get dominant color and fallback to dark muted
-                val colorInt = palette.getDarkMutedColor(palette.getDominantColor(baseDark.toArgb()))
-                extractedColor = Color(colorInt)
+                // Extract Dominant Color for best match
+                val dominant = palette.getDominantColor(Color.DarkGray.toArgb())
+                extractedColor = Color(dominant)
             }
         } else if (playlist != null) {
-            // Fallback generation
             val hash = playlist!!.title.hashCode()
             val hue = ((hash and 0xFF) / 255f) * 360f
-            extractedColor = hsvToColor(hue, 0.6f, 0.3f)
+            extractedColor = hsvToColor(hue, 0.6f, 0.4f)
         }
     }
 
-    // Creating that premium dark tinted background based on the cover art
+    // Creating that premium dark tinted background
     val bgColor by remember(extractedColor) {
         derivedStateOf {
-            val color = extractedColor ?: baseDark
-            // Blend heavily with black to keep it dark mode friendly
-            lerp(color, baseDark, 0.85f)
+            val color = extractedColor ?: Color(0xFF121212)
+            // Blend 60% with Black to get a deep but visible tint
+            lerp(color, Color(0xFF121212), 0.65f)
         }
     }
 
@@ -258,7 +255,7 @@ fun OnlinePlaylistScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(bgColor)
+                .background(bgColor) // Static tinted background
                 .pullToRefresh(state = pullRefreshState, isRefreshing = isRefreshing, onRefresh = viewModel::refresh),
         ) {
             LazyColumn(
@@ -271,7 +268,7 @@ fun OnlinePlaylistScreen(
                         item(key = "shimmer") {
                             ShimmerHost {
                                 Column(modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(modifier = Modifier.size(260.dp).shimmer().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.1f)))
+                                    Box(modifier = Modifier.size(260.dp).shimmer().clip(RoundedCornerShape(12.dp)).background(Color.White.copy(alpha = 0.2f)))
                                     Spacer(modifier = Modifier.height(24.dp))
                                     TextPlaceholder(height = 32.dp, modifier = Modifier.fillMaxWidth(0.6f).padding(horizontal = 32.dp))
                                     Spacer(modifier = Modifier.height(12.dp))
@@ -281,9 +278,9 @@ fun OnlinePlaylistScreen(
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
                                     ) {
-                                        Box(modifier = Modifier.size(56.dp).shimmer().clip(CircleShape).background(Color.White.copy(0.1f)))
+                                        Box(modifier = Modifier.size(56.dp).shimmer().clip(CircleShape).background(Color.White.copy(0.2f)))
                                         ButtonPlaceholder(modifier = Modifier.height(56.dp).width(160.dp).clip(RoundedCornerShape(50)))
-                                        Box(modifier = Modifier.size(56.dp).shimmer().clip(CircleShape).background(Color.White.copy(0.1f)))
+                                        Box(modifier = Modifier.size(56.dp).shimmer().clip(CircleShape).background(Color.White.copy(0.2f)))
                                     }
                                     Spacer(modifier = Modifier.height(32.dp))
                                 }
@@ -299,7 +296,7 @@ fun OnlinePlaylistScreen(
                                 ) {
                                     Spacer(modifier = Modifier.height(systemBarsTopPadding + AppBarHeight))
 
-                                    // Square Thumbnail with rounded corners
+                                    // Square Thumbnail
                                     Surface(
                                         modifier = Modifier.size(260.dp).shadow(12.dp, RoundedCornerShape(12.dp)),
                                         shape = RoundedCornerShape(12.dp),
@@ -321,7 +318,7 @@ fun OnlinePlaylistScreen(
 
                                     Spacer(modifier = Modifier.height(24.dp))
 
-                                    // Text Information
+                                    // Title
                                     Text(
                                         text = playlist.title,
                                         style = MaterialTheme.typography.headlineMedium,
@@ -347,7 +344,7 @@ fun OnlinePlaylistScreen(
 
                                     Spacer(modifier = Modifier.height(24.dp))
 
-                                    // Integrated Search Bar below text
+                                    // Integrated Search Bar
                                     Surface(
                                         color = Color.White.copy(alpha = 0.15f),
                                         shape = RoundedCornerShape(12.dp),
@@ -390,7 +387,7 @@ fun OnlinePlaylistScreen(
                                             Spacer(modifier = Modifier.size(56.dp))
                                         }
 
-                                        // Play Pill Button (White Background, Black Text)
+                                        // Play Pill Button
                                         Box(
                                             modifier = Modifier
                                                 .height(56.dp)
@@ -469,7 +466,7 @@ fun OnlinePlaylistScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 12.dp, vertical = 2.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
+                                .background(if (isActive) Color.White.copy(alpha = 0.15f) else Color.Transparent)
 
                             CompositionLocalProvider(LocalContentColor provides Color.White) {
                                 YouTubeListItem(
@@ -523,7 +520,6 @@ fun OnlinePlaylistScreen(
 
             DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
-            // Transparent TopAppBar (Title hides unless scrolling or searching)
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (isSearching || showTopBarTitle) bgColor.copy(alpha = 0.95f) else Color.Transparent,
@@ -599,9 +595,8 @@ fun OnlinePlaylistScreen(
 
 private fun generateGradientFromTitle(title: String): List<Color> {
     val hash = title.hashCode()
-    val hue1 = ((hash and 0xFF) / 255f) * 360f
-    val hue2 = (((hash shr 8) and 0xFF) / 255f) * 360f
-    return listOf(hsvToColor(hue1, 0.7f, 0.9f), hsvToColor(hue2, 0.7f, 0.85f))
+    val hue = ((hash and 0xFF) / 255f) * 360f
+    return listOf(hsvToColor(hue, 0.6f, 0.3f))
 }
 
 private fun hsvToColor(hue: Float, saturation: Float, value: Float): Color {
