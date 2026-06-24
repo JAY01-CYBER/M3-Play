@@ -22,7 +22,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -103,7 +105,9 @@ fun TopPlaylistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showOptionsMenu by remember { mutableStateOf(false) }
 
-    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf() }
+    val wrappedSongs = remember(songs) {
+        songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf()
+    }
     val filteredSongs = remember(wrappedSongs, query) {
         if (query.text.isEmpty()) wrappedSongs else wrappedSongs.filter {
             it.item.song.title.contains(query.text, true) || it.item.artists.any { art -> art.name.contains(query.text, true) }
@@ -128,7 +132,21 @@ fun TopPlaylistScreen(
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
     else if (selection) BackHandler { selection = false }
 
-    Box(modifier = Modifier.fillMaxSize().background(dominantColor)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dominantColor)
+            .drawBehind {
+                if (dominantColor != surfaceColor) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(dominantColor.copy(alpha = 0.8f), dominantColor.copy(alpha = 0.4f), surfaceColor),
+                            startY = 0f, endY = size.height
+                        )
+                    )
+                }
+            }
+    ) {
         LazyColumn(
             state = lazyListState,
             contentPadding = WindowInsets.systemBars.union(WindowInsets.ime).asPaddingValues(),
@@ -164,10 +182,9 @@ fun TopPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
                                 shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
-                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() }))
-                                }
+                                modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
@@ -185,17 +202,21 @@ fun TopPlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Surface(
-                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                onClick = {
                                     songs!!.forEach { song ->
                                         val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
                                         DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                     }
                                     coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
-                                }
+                                },
+                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp)
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
+                            Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
                     }
                 }
             }
@@ -287,6 +308,15 @@ fun TopPlaylistScreen(
                         val allSelected = wrappedSongs.all { it.isSelected }
                         wrappedSongs.forEach { it.isSelected = !allSelected }
                     }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = Color.White) }
+                    
+                    IconButton(onClick = {
+                        menuState.show {
+                            SelectionSongMenu(
+                                songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
+                                onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
+                            )
+                        }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                 } else if (!isSearching) {
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
                     
@@ -302,7 +332,7 @@ fun TopPlaylistScreen(
                                 text = { Text("Share") },
                                 onClick = {
                                     showOptionsMenu = false
-                                    val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to My Top Tracks!") }
+                                    val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to My Top $maxSize tracks!") }
                                     context.startActivity(Intent.createChooser(intent, "Share"))
                                 },
                                 leadingIcon = { Icon(painterResource(R.drawable.share), null) }
