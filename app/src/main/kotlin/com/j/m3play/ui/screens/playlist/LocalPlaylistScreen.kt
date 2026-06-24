@@ -88,7 +88,6 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -121,10 +120,10 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import coil3.compose.AsyncImage
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -166,7 +165,6 @@ import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.screens.playlist.PlaylistSuggestionsSection
-import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.ui.utils.formatCompactCount
@@ -326,35 +324,30 @@ fun LocalPlaylistScreen(
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
 
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
+    var extractedColor by remember { mutableStateOf<Color?>(null) }
     val baseDark = Color(0xFF121212)
 
     LaunchedEffect(playlist?.thumbnails) {
         val thumbnailUrl = playlist?.thumbnails?.firstOrNull()
         if (thumbnailUrl != null) {
-            val request = ImageRequest.Builder(context).data(thumbnailUrl).size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE).allowHardware(false).build()
+            val request = ImageRequest.Builder(context).data(thumbnailUrl).size(128).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
-            if (result != null) {
-                val bitmap = result.image?.toBitmap()
-                if (bitmap != null) {
-                    val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
-                    val colorInt = palette.getDarkMutedColor(palette.getDominantColor(baseDark.toArgb()))
-                    gradientColors = listOf(Color(colorInt))
-                }
+            val bitmap = result?.image?.toBitmap()
+            if (bitmap != null) {
+                val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).generate() }
+                extractedColor = Color(palette.getDominantColor(baseDark.toArgb()))
             }
         } else if (playlist != null) {
             val hash = playlist!!.playlist.name.hashCode()
             val hue = ((hash and 0xFF) / 255f) * 360f
-            gradientColors = listOf(hsvToColor(hue, 0.6f, 0.3f))
-        } else { 
-            gradientColors = emptyList() 
+            extractedColor = hsvToColor(hue, 0.6f, 0.4f)
         }
     }
 
-    val bgColor by remember(gradientColors) {
+    val bgColor by remember(extractedColor) {
         derivedStateOf {
-            val color = gradientColors.firstOrNull() ?: baseDark
-            lerp(color, baseDark, 0.85f)
+            val color = extractedColor ?: baseDark
+            lerp(color, baseDark, 0.65f)
         }
     }
 
@@ -578,7 +571,7 @@ fun LocalPlaylistScreen(
 
                             val content: @Composable () -> Unit = {
                                 val isActive = song.song.id == mediaMetadata?.id
-                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
+                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.15f) else Color.Transparent)
                                 
                                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                                     SongListItem(
@@ -622,7 +615,7 @@ fun LocalPlaylistScreen(
 
                             val content: @Composable () -> Unit = {
                                 val isActive = songWrapper.item.song.id == mediaMetadata?.id
-                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
+                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.15f) else Color.Transparent)
                                 
                                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                                     SongListItem(
@@ -728,9 +721,8 @@ fun LocalPlaylistScreen(
 
 private fun generateGradientFromTitle(title: String): List<Color> {
     val hash = title.hashCode()
-    val hue1 = ((hash and 0xFF) / 255f) * 360f
-    val hue2 = (((hash shr 8) and 0xFF) / 255f) * 360f
-    return listOf(hsvToColor(hue1, 0.7f, 0.9f), hsvToColor(hue2, 0.7f, 0.85f))
+    val hue = ((hash and 0xFF) / 255f) * 360f
+    return listOf(hsvToColor(hue, 0.6f, 0.4f))
 }
 
 private fun hsvToColor(hue: Float, saturation: Float, value: Float): Color {
