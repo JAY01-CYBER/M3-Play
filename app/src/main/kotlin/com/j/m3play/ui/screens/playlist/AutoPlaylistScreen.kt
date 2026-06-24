@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -62,7 +64,6 @@ import com.j.m3play.constants.AutoPlaylistSongSortDescendingKey
 import com.j.m3play.constants.AutoPlaylistSongSortType
 import com.j.m3play.constants.AutoPlaylistSongSortTypeKey
 import com.j.m3play.db.entities.Song
-import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.ExoDownloadService
@@ -77,8 +78,6 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.AutoPlaylistViewModel
-
-private fun SongEntity.asSong() = Song(song = this, artists = emptyList())
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +113,7 @@ fun AutoPlaylistScreen(
     var showOptionsMenu by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it.asSong()) }?.toMutableStateList() ?: mutableStateListOf() }
+    val wrappedSongs = remember(songs) { songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf() }
     val filteredSongs = remember(wrappedSongs, query) {
         if (query.text.isEmpty()) wrappedSongs else wrappedSongs.filter {
             it.item.song.title.contains(query.text, true) || it.item.artists.any { art -> art.name.contains(query.text, true) }
@@ -122,7 +121,7 @@ fun AutoPlaylistScreen(
     }
 
     LaunchedEffect(songs) {
-        val thumbnailUrl = songs?.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -161,11 +160,11 @@ fun AutoPlaylistScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            modifier = Modifier.size(260.dp).shadow(32.dp, RoundedCornerShape(12.dp)),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier.size(280.dp).shadow(32.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             AsyncImage(
-                                model = songs!!.firstOrNull()?.thumbnailUrl,
+                                model = songs!!.firstOrNull()?.song?.thumbnailUrl,
                                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -184,15 +183,16 @@ fun AutoPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.asSong().toMediaItem() })) },
                                 shape = CircleShape, color = textColor.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp)
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.song.toMediaItem() }))
+                                }
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() })) },
                                 shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = textColor, contentColor = dominantColor),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
@@ -204,15 +204,14 @@ fun AutoPlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Surface(
-                                onClick = {
-                                    songs!!.forEach { songEntity ->
-                                        val downloadRequest = DownloadRequest.Builder(songEntity.id, songEntity.id.toUri()).setCustomCacheKey(songEntity.id).setData(songEntity.title.toByteArray()).build()
+                                shape = CircleShape, color = textColor.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    songs!!.forEach { song ->
+                                        val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
                                         DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                     }
                                     coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
-                                },
-                                shape = CircleShape, color = textColor.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp)
+                                }
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
@@ -259,7 +258,7 @@ fun AutoPlaylistScreen(
                                     if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                     else {
                                         if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                        else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.asSong().toMediaItem() }, index))
+                                        else playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.song.toMediaItem() }, index))
                                     }
                                 },
                                 onLongClick = {
@@ -278,7 +277,7 @@ fun AutoPlaylistScreen(
 
             if (songs?.isNotEmpty() == true && !isSearching) {
                 item {
-                    val duration = songs!!.map { (it.duration ?: 0).toLong() }.sum() * 1000L
+                    val duration = songs!!.map { (it.song.duration ?: 0).toLong() }.sum() * 1000L
                     Text(
                         text = "${songs!!.size} songs, ${makeTimeString(duration)}",
                         color = secondaryTextColor,
@@ -344,7 +343,7 @@ fun AutoPlaylistScreen(
                         DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                             DropdownMenuItem(
                                 text = { Text("Add to Queue") },
-                                onClick = { songs?.let { playerConnection.addToQueue(it.map { s -> s.asSong().toMediaItem() }) }; showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
+                                onClick = { songs?.let { playerConnection.addToQueue(it.map { s -> s.song.toMediaItem() }) }; showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
                                 leadingIcon = { Icon(painterResource(R.drawable.queue_music), null) }
                             )
                             DropdownMenuItem(
