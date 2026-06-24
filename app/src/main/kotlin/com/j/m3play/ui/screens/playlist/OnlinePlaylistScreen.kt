@@ -100,6 +100,7 @@ import androidx.compose.ui.util.fastAny
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
+import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
@@ -470,39 +471,41 @@ fun OnlinePlaylistScreen(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
 
-                            YouTubeListItem(
-                                item = song.item.second,
-                                viewCountText = viewCounts[song.item.second.id]?.let { count -> formatCompactCount(count.toLong()) },
-                                isActive = isActive,
-                                isPlaying = isPlaying,
-                                isSelected = song.isSelected && selection,
-                                trailingContent = {
-                                    IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) {
-                                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
-                                    }
-                                },
-                                modifier = itemModifier.combinedClickable(
-                                    enabled = !hideExplicit || !song.item.second.explicit,
-                                    onClick = {
-                                        if (!selection) {
-                                            if (isActive) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.service.getAutomix(playlistId = playlist.id)
-                                                playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata()))
-                                            }
-                                        } else {
-                                            song.isSelected = !song.isSelected
+                            CompositionLocalProvider(LocalContentColor provides Color.White) {
+                                YouTubeListItem(
+                                    item = song.item.second,
+                                    viewCountText = viewCounts[song.item.second.id]?.let { count -> formatCompactCount(count.toLong()) },
+                                    isActive = isActive,
+                                    isPlaying = isPlaying,
+                                    isSelected = song.isSelected && selection,
+                                    trailingContent = {
+                                        IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song.item.second, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) {
+                                            Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White.copy(alpha = 0.7f))
                                         }
                                     },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!selection) selection = true
-                                        wrappedSongs.forEach { it.isSelected = false }
-                                        song.isSelected = true
-                                    }
-                                ).animateItem()
-                            )
+                                    modifier = itemModifier.combinedClickable(
+                                        enabled = !hideExplicit || !song.item.second.explicit,
+                                        onClick = {
+                                            if (!selection) {
+                                                if (isActive) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.service.getAutomix(playlistId = playlist.id)
+                                                    playerConnection.playQueue(YouTubeQueue(song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id), song.item.second.toMediaMetadata()))
+                                                }
+                                            } else {
+                                                song.isSelected = !song.isSelected
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (!selection) selection = true
+                                            wrappedSongs.forEach { it.isSelected = false }
+                                            song.isSelected = true
+                                        }
+                                    ).animateItem()
+                                )
+                            }
                         }
 
                         if (viewModel.continuation != null && songs.isNotEmpty() && isLoadingMore) {
@@ -520,7 +523,7 @@ fun OnlinePlaylistScreen(
 
             DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
-            // TopAppBar
+            // Transparent TopAppBar (Title hides unless scrolling or searching)
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (isSearching || showTopBarTitle) bgColor.copy(alpha = 0.95f) else Color.Transparent,
@@ -543,7 +546,7 @@ fun OnlinePlaylistScreen(
                         if (isSearching) { isSearching = false; query = TextFieldValue() }
                         else if (selection) { selection = false }
                         else { navController.navigateUp() }
-                    }, onLongClick = { if (!isSearching && !selection) navController.backToMain() }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = Color.White) }
+                    }, onLongClick = {}) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), null, tint = Color.White) }
                 },
                 actions = {
                     if (selection) {
