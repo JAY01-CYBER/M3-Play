@@ -94,6 +94,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -318,12 +319,13 @@ fun LocalPlaylistScreen(
         if (!reorderableState.isAnyItemDragging) {
             dragInfo?.let { (from, to) ->
                 database.transaction { move(viewModel.playlistId, from, to) }
-                if (viewModel.playlist.value?.playlist?.browseId != null) {
+                val currentBrowseId = viewModel.playlist.value?.playlist?.browseId
+                if (currentBrowseId != null) {
                     viewModel.viewModelScope.launch(Dispatchers.IO) {
                         val playlistSongMap = database.playlistSongMaps(viewModel.playlistId, 0)
                         val successorIndex = if (from > to) to else to + 1
                         val successorSetVideoId = playlistSongMap.getOrNull(successorIndex)?.setVideoId
-                        playlistSongMap.getOrNull(from)?.setVideoId?.let { setVideoId -> YouTube.moveSongPlaylist(viewModel.playlist.value?.playlist?.browseId!!, setVideoId, successorSetVideoId) }
+                        playlistSongMap.getOrNull(from)?.setVideoId?.let { setVideoId -> YouTube.moveSongPlaylist(currentBrowseId, setVideoId, successorSetVideoId) }
                     }
                 }
                 dragInfo = null
@@ -393,7 +395,6 @@ fun LocalPlaylistScreen(
                                 modifier = Modifier.fillMaxWidth().animateItem(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Immersive Full-Width Artwork
                                 Box(modifier = Modifier.fillMaxWidth().height(350.dp)) {
                                     if (playlist.thumbnails.size == 1) {
                                         AsyncImage(model = playlist.thumbnails[0], contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -433,7 +434,6 @@ fun LocalPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Apple Music Style Action Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
@@ -528,12 +528,12 @@ fun LocalPlaylistScreen(
                         val currentItem by rememberUpdatedState(song)
                         fun deleteFromPlaylist() {
                             val map = currentItem.map
-                            val browseId = playlist?.playlist?.browseId
+                            val currentBrowseId = playlist?.playlist?.browseId
                             coroutineScope.launch(Dispatchers.IO) {
                                 database.withTransaction { move(map.playlistId, map.position, Int.MAX_VALUE); delete(map.copy(position = Int.MAX_VALUE)) }
-                                if (browseId != null) {
+                                if (currentBrowseId != null) {
                                     val setVideoId = map.setVideoId ?: database.getSetVideoId(map.songId)?.setVideoId
-                                    if (setVideoId != null) YouTube.removeFromPlaylist(browseId, map.songId, setVideoId)
+                                    if (setVideoId != null) YouTube.removeFromPlaylist(currentBrowseId, map.songId, setVideoId)
                                 }
                             }
                         }
@@ -622,7 +622,6 @@ fun LocalPlaylistScreen(
 
         DraggableScrollbar(modifier = Modifier.padding(LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues()).align(Alignment.CenterEnd), scrollState = lazyListState, headerItems = headerItems)
 
-        // Animated Glass Top App Bar Transition
         AnimatedVisibility(
             visible = showTopBarTitle || isSearching || selection,
             enter = fadeIn() + slideInVertically(),
@@ -661,24 +660,32 @@ fun LocalPlaylistScreen(
                         IconButton(onClick = { menuState.show { SelectionSongMenu(songSelection = wrappedSongs.filter { it.isSelected }.map { it.item.song }, songPosition = wrappedSongs.filter { it.isSelected }.map { it.item.map }, onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null) }
                     } else if (!isSearching) {
                         if (editable) {
-                            IconButton(onClick = { showEditDialog = true }) { Icon(painterResource(R.drawable.edit), null) }
-                            IconButton(onClick = { showDeletePlaylistDialog = true }) { Icon(painterResource(R.drawable.delete), null, tint = MaterialTheme.colorScheme.error) }
+                            IconButton(onClick = { showEditDialog = true }, onLongClick = {}) { Icon(painterResource(R.drawable.edit), null) }
+                            IconButton(onClick = { showDeletePlaylistDialog = true }, onLongClick = {}) { Icon(painterResource(R.drawable.delete), null, tint = MaterialTheme.colorScheme.error) }
                         } else {
                             val liked = playlist?.playlist?.bookmarkedAt != null
-                            IconButton(onClick = { database.transaction { playlist?.let { update(it.playlist.toggleLike()) } } }) {
+                            IconButton(
+                                onClick = { database.transaction { playlist?.let { update(it.playlist.toggleLike()) } } },
+                                onLongClick = {}
+                            ) {
                                 Icon(painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border), null, tint = if (liked) MaterialTheme.colorScheme.error else LocalContentColor.current)
                             }
-                            if (playlist?.playlist?.browseId != null) {
-                                IconButton(onClick = {
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        val playlistPage = YouTube.playlist(playlist!!.playlist.browseId).completed().getOrNull() ?: return@launch
-                                        database.transaction {
-                                            clearPlaylist(playlist!!.id)
-                                            playlistPage.songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { position, song -> PlaylistSongMap(songId = song.id, playlistId = playlist!!.id, position = position, setVideoId = song.setVideoId) }.forEach(::insert)
+                            
+                            val currentBrowseId = playlist?.playlist?.browseId
+                            if (currentBrowseId != null) {
+                                IconButton(
+                                    onClick = {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val playlistPage = YouTube.playlist(currentBrowseId).completed().getOrNull() ?: return@launch
+                                            database.transaction {
+                                                clearPlaylist(playlist!!.id)
+                                                playlistPage.songs.map(SongItem::toMediaMetadata).onEach(::insert).mapIndexed { position, song -> PlaylistSongMap(songId = song.id, playlistId = playlist!!.id, position = position, setVideoId = song.setVideoId) }.forEach(::insert)
+                                            }
                                         }
-                                    }
-                                    coroutineScope.launch(Dispatchers.Main) { snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced)) }
-                                }) { Icon(painterResource(R.drawable.sync), null) }
+                                        coroutineScope.launch(Dispatchers.Main) { snackbarHostState.showSnackbar(context.getString(R.string.playlist_synced)) }
+                                    },
+                                    onLongClick = {}
+                                ) { Icon(painterResource(R.drawable.sync), null) }
                             }
                         }
                         IconButton(onClick = { isSearching = true }, onLongClick = {}) { Icon(painterResource(R.drawable.search), null) }
@@ -687,7 +694,6 @@ fun LocalPlaylistScreen(
             )
         }
 
-        // Back button that floats on top of the image when at the very top
         if (!showTopBarTitle && !isSearching && !selection) {
             Row(
                 modifier = Modifier
@@ -720,7 +726,6 @@ fun LocalPlaylistScreen(
     }
 }
 
-// Fallback Gradient Generator helper function
 private fun generateGradientFromTitle(title: String): List<Color> {
     val hash = title.hashCode()
     val hue1 = ((hash and 0xFF) / 255f) * 360f
