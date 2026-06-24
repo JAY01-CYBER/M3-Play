@@ -73,6 +73,8 @@ import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
+import com.j.m3play.ui.menu.SelectionMediaMetadataMenu
+import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.utils.makeTimeString
@@ -152,7 +154,7 @@ fun OnlinePlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(dominantColor) // Solid background color
+            .background(dominantColor)
     ) {
         LazyColumn(
             state = lazyListState,
@@ -234,13 +236,13 @@ fun OnlinePlaylistScreen(
                                 }
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
                         }
+
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
 
             items(items = wrappedSongs, key = { it.item.second.id }) { songWrapper ->
-                // WRAPPED WITH WHITE TEXT PROVIDER
                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                     YouTubeListItem(
                         item = songWrapper.item.second,
@@ -274,10 +276,9 @@ fun OnlinePlaylistScreen(
                 }
             }
             
-            // BOTTOM DETAILS (Apple Music Style)
             if (songs.isNotEmpty() && !isSearching) {
                 item {
-                    val duration = songs.sumOf { it.duration } * 1000L
+                    val duration = songs.sumOf { it.duration.toLong() } * 1000L
                     Text(
                         text = "${songs.size} songs, ${makeTimeString(duration)}",
                         color = Color.White.copy(alpha = 0.8f),
@@ -335,7 +336,6 @@ fun OnlinePlaylistScreen(
                     }
                     IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
                     
-                    // Options Menu Dropdown
                     Box {
                         IconButton(onClick = { showOptionsMenu = true }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
                         DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
@@ -358,7 +358,7 @@ fun OnlinePlaylistScreen(
                             DropdownMenuItem(
                                 text = { Text("Export Playlist") },
                                 onClick = { showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Export Feature coming soon!") } },
-                                leadingIcon = { Icon(painterResource(R.drawable.sync), null) } // Sync icon as placeholder
+                                leadingIcon = { Icon(painterResource(R.drawable.sync), null) }
                             )
                         }
                     }
