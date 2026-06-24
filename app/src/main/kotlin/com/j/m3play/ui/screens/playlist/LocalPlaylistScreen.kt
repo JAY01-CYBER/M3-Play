@@ -89,6 +89,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -162,10 +163,6 @@ import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.SortHeader
-import com.j.m3play.ui.component.shimmer.ButtonPlaceholder
-import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
-import com.j.m3play.ui.component.shimmer.ShimmerHost
-import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.screens.playlist.PlaylistSuggestionsSection
@@ -580,7 +577,7 @@ fun LocalPlaylistScreen(
 
                             val content: @Composable () -> Unit = {
                                 val isActive = song.song.id == mediaMetadata?.id
-                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp))
+                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
                                 
                                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                                     SongListItem(
@@ -598,8 +595,9 @@ fun LocalPlaylistScreen(
                                             },
                                             onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; wrappedSongs.find { it.item.map.id == song.map.id }?.isSelected = true }
                                         )
-                                    }
+                                    )
                                 }
+                            }
 
                             if (locked || selection || swipeToSongEnabled) content() else SwipeToDismissBox(state = dismissBoxState, backgroundContent = {}) { content() }
                         }
@@ -623,7 +621,7 @@ fun LocalPlaylistScreen(
 
                             val content: @Composable () -> Unit = {
                                 val isActive = songWrapper.item.song.id == mediaMetadata?.id
-                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp))
+                                val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
                                 
                                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                                     SongListItem(
@@ -643,8 +641,9 @@ fun LocalPlaylistScreen(
                                             },
                                             onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; songWrapper.isSelected = true }
                                         )
-                                    }
+                                    )
                                 }
+                            }
 
                             if (locked || !editable || swipeToSongEnabled) content() else SwipeToDismissBox(state = dismissBoxState, backgroundContent = {}) { content() }
                         }
