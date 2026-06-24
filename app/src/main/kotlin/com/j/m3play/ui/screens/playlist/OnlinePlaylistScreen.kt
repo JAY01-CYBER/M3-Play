@@ -11,11 +11,6 @@
 package com.j.m3play.ui.screens.playlist
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,7 +42,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -214,7 +208,7 @@ fun OnlinePlaylistScreen(
                 val bitmap = result.image?.toBitmap()
                 if (bitmap != null) {
                     val palette = withContext(Dispatchers.Default) { Palette.from(bitmap).maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT).resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA).generate() }
-                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = Color(0xFF121212).toArgb())
+                    gradientColors = PlayerColorExtractor.extractGradientColors(palette = palette, fallbackColor = 0xFF121212.toInt())
                 }
             }
         } else if (playlist != null) {
@@ -333,12 +327,8 @@ fun OnlinePlaylistScreen(
 
                                         Spacer(modifier = Modifier.height(4.dp))
 
-                                        val metadataText = buildString {
-                                            append("Playlist")
-                                            playlist.year?.let { if(it.isNotEmpty()) append(" • $it") }
-                                        }
                                         Text(
-                                            text = metadataText,
+                                            text = "Playlist",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = Color.White.copy(alpha = 0.6f),
                                             textAlign = TextAlign.Center
@@ -421,21 +411,6 @@ fun OnlinePlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                playlist.description?.let { desc ->
-                                    if(desc.isNotEmpty()){
-                                        Text(
-                                            text = desc,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = Color.White.copy(alpha = 0.7f),
-                                            modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth(),
-                                            textAlign = TextAlign.Start,
-                                            maxLines = 3,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                    }
-                                }
-
                                 playlist.songCountText?.let { countText ->
                                     Text(
                                         text = countText,
@@ -465,7 +440,6 @@ fun OnlinePlaylistScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 2.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            // Completely transparent background unless active
                             .background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
 
                         YouTubeListItem(
