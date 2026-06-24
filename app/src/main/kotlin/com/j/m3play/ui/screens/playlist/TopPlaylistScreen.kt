@@ -2,9 +2,10 @@ package com.j.m3play.ui.screens.playlist
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,9 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -104,6 +105,7 @@ fun TopPlaylistScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var showOptionsMenu by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     val wrappedSongs = remember(songs) {
         songs?.map { ItemWrapper(it) }?.toMutableStateList() ?: mutableStateListOf()
@@ -129,24 +131,19 @@ fun TopPlaylistScreen(
         }
     }
 
+    val luminance = (0.299 * dominantColor.red + 0.587 * dominantColor.green + 0.114 * dominantColor.blue)
+    val isLight = luminance > 0.5f
+    val textColor = if (isLight) Color.Black else Color.White
+    val secondaryTextColor = if (isLight) Color.DarkGray else Color.White.copy(alpha = 0.7f)
+
+    LaunchedEffect(isSearching) {
+        if (isSearching) focusRequester.requestFocus()
+    }
+
     if (isSearching) BackHandler { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
     else if (selection) BackHandler { selection = false }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(dominantColor)
-            .drawBehind {
-                if (dominantColor != surfaceColor) {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(dominantColor.copy(alpha = 0.8f), dominantColor.copy(alpha = 0.4f), surfaceColor),
-                            startY = 0f, endY = size.height
-                        )
-                    )
-                }
-            }
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(dominantColor)) {
         LazyColumn(
             state = lazyListState,
             contentPadding = WindowInsets.systemBars.union(WindowInsets.ime).asPaddingValues(),
@@ -172,7 +169,7 @@ fun TopPlaylistScreen(
                         Text(
                             text = playlistName,
                             style = MaterialTheme.typography.headlineLarge.copy(fontFamily = FontFamily.SansSerif, letterSpacing = (-0.5).sp),
-                            fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color.White, modifier = Modifier.padding(horizontal = 24.dp)
+                            fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = textColor, modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         
@@ -182,16 +179,17 @@ fun TopPlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() })) },
-                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp)
-                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
+                                shape = CircleShape, color = textColor.copy(alpha = 0.15f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    playerConnection.playQueue(ListQueue(playlistName, songs!!.shuffled().map { it.toMediaItem() }))
+                                }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
                                 onClick = { playerConnection.playQueue(ListQueue(playlistName, songs!!.map { it.toMediaItem() })) },
-                                shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = textColor, contentColor = dominantColor),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
                                 Icon(painterResource(R.drawable.play), null, modifier = Modifier.size(24.dp))
@@ -202,28 +200,24 @@ fun TopPlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Surface(
-                                onClick = {
+                                shape = CircleShape, color = textColor.copy(alpha = 0.15f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
                                     songs!!.forEach { song ->
                                         val downloadRequest = DownloadRequest.Builder(song.song.id, song.song.id.toUri()).setCustomCacheKey(song.song.id).setData(song.song.title.toByteArray()).build()
                                         DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                     }
                                     coroutineScope.launch { snackbarHostState.showSnackbar("Downloading Playlist...") }
-                                },
-                                shape = CircleShape, color = Color.White.copy(alpha = 0.2f),
-                                modifier = Modifier.size(50.dp)
-                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = Color.White, modifier = Modifier.size(24.dp)) } }
+                                }
+                            ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
-                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.Start) {
-                            Text(text = "${songs!!.size} tracks", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
                     }
                 }
             }
 
             if (!isSearching && songs?.isNotEmpty() == true) {
                 item {
-                    CompositionLocalProvider(LocalContentColor provides Color.White) {
+                    CompositionLocalProvider(LocalContentColor provides textColor) {
                         SortHeader(
                             sortType = sortType, sortDescending = false, showDescending = false,
                             onSortTypeChange = { viewModel.topPeriod.value = it }, onSortDescendingChange = {},
@@ -237,7 +231,7 @@ fun TopPlaylistScreen(
             }
             
             itemsIndexed(filteredSongs, key = { _, wrap -> wrap.item.id }) { index, songWrapper ->
-                CompositionLocalProvider(LocalContentColor provides Color.White) {
+                CompositionLocalProvider(LocalContentColor provides textColor) {
                     SongListItem(
                         song = songWrapper.item,
                         isActive = songWrapper.item.song.id == mediaMetadata?.id,
@@ -263,7 +257,7 @@ fun TopPlaylistScreen(
                                 }
                             ),
                         trailingContent = {
-                            IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
+                            IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = textColor) }
                         }
                     )
                 }
@@ -271,10 +265,10 @@ fun TopPlaylistScreen(
 
             if (songs?.isNotEmpty() == true && !isSearching) {
                 item {
-                    val duration = songs!!.sumOf { (it.song.duration ?: 0).toLong() } * 1000L
+                    val duration = songs!!.map { (it.song.duration ?: 0).toLong() }.sum() * 1000L
                     Text(
                         text = "${songs!!.size} songs, ${makeTimeString(duration)}",
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = secondaryTextColor,
                         style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.SansSerif),
                         modifier = Modifier.padding(top = 16.dp, bottom = 48.dp, start = 24.dp, end = 24.dp)
                     )
@@ -285,14 +279,26 @@ fun TopPlaylistScreen(
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = dominantColor),
             title = {
-                if (selection) { Text("${wrappedSongs.count { it.isSelected }} Selected", style = MaterialTheme.typography.titleLarge.copy(color = Color.White)) } 
-                else if (isSearching) {
-                    TextField(
-                        value = query, onValueChange = { query = it },
-                        placeholder = { Text("Search...", color = Color.White.copy(alpha = 0.6f)) }, singleLine = true,
-                        colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                AnimatedContent(
+                    targetState = when {
+                        selection -> 0
+                        isSearching -> 1
+                        else -> 2
+                    },
+                    transitionSpec = { fadeIn().togetherWith(fadeOut()) },
+                    label = "TopBarState"
+                ) { state ->
+                    when (state) {
+                        0 -> Text("${wrappedSongs.count { it.isSelected }} Selected", style = MaterialTheme.typography.titleLarge.copy(color = textColor))
+                        1 -> TextField(
+                            value = query, onValueChange = { query = it },
+                            placeholder = { Text("Search...", color = secondaryTextColor) }, singleLine = true,
+                            colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedTextColor = textColor, unfocusedTextColor = textColor),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+                        )
+                        2 -> Text(playlistName, color = textColor)
+                    }
                 }
             },
             navigationIcon = {
@@ -300,14 +306,14 @@ fun TopPlaylistScreen(
                     if (isSearching) { isSearching = false; query = TextFieldValue(); focusManager.clearFocus() }
                     else if (selection) { selection = false; wrappedSongs.forEach { it.isSelected = false } }
                     else navController.navigateUp()
-                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null, tint = Color.White) }
+                }) { Icon(painterResource(if (selection) R.drawable.close else R.drawable.arrow_back), contentDescription = null, tint = textColor) }
             },
             actions = {
                 if (selection) {
                     IconButton(onClick = {
                         val allSelected = wrappedSongs.all { it.isSelected }
                         wrappedSongs.forEach { it.isSelected = !allSelected }
-                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = Color.White) }
+                    }) { Icon(painterResource(if (wrappedSongs.all { it.isSelected }) R.drawable.deselect else R.drawable.select_all), contentDescription = null, tint = textColor) }
                     
                     IconButton(onClick = {
                         menuState.show {
@@ -316,13 +322,13 @@ fun TopPlaylistScreen(
                                 onDismiss = menuState::dismiss, clearAction = { selection = false; wrappedSongs.clear() }
                             )
                         }
-                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
+                    }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = textColor) }
                 } else if (!isSearching) {
-                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = Color.White) }
+                    IconButton(onClick = { isSearching = true }) { Icon(painterResource(R.drawable.search), contentDescription = null, tint = textColor) }
                     
                     Box {
-                        IconButton(onClick = { showOptionsMenu = true }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
-                        DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+                        IconButton(onClick = { showOptionsMenu = true }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = textColor) }
+                        DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }) {
                             DropdownMenuItem(
                                 text = { Text("Add to Queue") },
                                 onClick = { songs?.let { playerConnection.addToQueue(it.map { s -> s.toMediaItem() }) }; showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
@@ -333,7 +339,7 @@ fun TopPlaylistScreen(
                                 onClick = {
                                     showOptionsMenu = false
                                     val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Listen to My Top $maxSize tracks!") }
-                                    context.startActivity(Intent.createChooser(intent, "Share"))
+                                    context.startActivity(Intent.createChooser(intent, "Share Playlist"))
                                 },
                                 leadingIcon = { Icon(painterResource(R.drawable.share), null) }
                             )
