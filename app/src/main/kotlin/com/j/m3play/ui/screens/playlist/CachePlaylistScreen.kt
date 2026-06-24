@@ -61,7 +61,6 @@ import com.j.m3play.constants.SongSortDescendingKey
 import com.j.m3play.constants.SongSortType
 import com.j.m3play.constants.SongSortTypeKey
 import com.j.m3play.db.entities.Song
-import com.j.m3play.db.entities.SongEntity
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.playback.queues.ListQueue
@@ -75,8 +74,6 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CachePlaylistViewModel
-
-private fun SongEntity.asSong() = Song(song = this, artists = emptyList())
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -100,12 +97,12 @@ fun CachePlaylistScreen(
     
     val wrappedSongs = remember(cachedSongs, sortType, sortDescending) {
         val sortedSongs = when (sortType) {
-            SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.dateDownload ?: LocalDateTime.MIN }
-            SongSortType.NAME -> cachedSongs.sortedBy { it.title }
-            SongSortType.ARTIST -> cachedSongs
-            SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.totalPlayTime }
+            SongSortType.CREATE_DATE -> cachedSongs.sortedBy { it.song.dateDownload ?: LocalDateTime.MIN }
+            SongSortType.NAME -> cachedSongs.sortedBy { it.song.title }
+            SongSortType.ARTIST -> cachedSongs.sortedBy { song -> song.artists.joinToString("") { it.name } }
+            SongSortType.PLAY_TIME -> cachedSongs.sortedBy { it.song.totalPlayTime }
         }.let { if (sortDescending) it.reversed() else it }
-        sortedSongs.map { ItemWrapper(it.asSong()) }.toMutableStateList()
+        sortedSongs.map { ItemWrapper(it) }.toMutableStateList()
     }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
@@ -128,7 +125,7 @@ fun CachePlaylistScreen(
     }
 
     LaunchedEffect(cachedSongs) {
-        val thumbnailUrl = cachedSongs.firstOrNull()?.thumbnailUrl
+        val thumbnailUrl = cachedSongs.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
             val request = ImageRequest.Builder(context).data(thumbnailUrl).allowHardware(false).build()
             val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
@@ -171,7 +168,7 @@ fun CachePlaylistScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             AsyncImage(
-                                model = cachedSongs.firstOrNull()?.thumbnailUrl,
+                                model = cachedSongs.firstOrNull()?.song?.thumbnailUrl,
                                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -190,15 +187,16 @@ fun CachePlaylistScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.asSong().toMediaItem() })) },
-                                shape = CircleShape, color = textColor.copy(alpha = 0.15f),
-                                modifier = Modifier.size(50.dp)
+                                shape = CircleShape, color = textColor.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.shuffled().map { it.song.toMediaItem() }))
+                                }
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.shuffle), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                             
                             Spacer(Modifier.width(16.dp))
                             
                             Button(
-                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.asSong().toMediaItem() })) },
+                                onClick = { playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() })) },
                                 shape = RoundedCornerShape(50), colors = ButtonDefaults.buttonColors(containerColor = textColor, contentColor = dominantColor),
                                 modifier = Modifier.weight(1f).height(50.dp)
                             ) {
@@ -210,9 +208,10 @@ fun CachePlaylistScreen(
                             Spacer(Modifier.width(16.dp))
                             
                             Surface(
-                                onClick = { coroutineScope.launch { snackbarHostState.showSnackbar("Songs already downloaded") } },
-                                shape = CircleShape, color = textColor.copy(alpha = 0.15f),
-                                modifier = Modifier.size(50.dp)
+                                shape = CircleShape, color = textColor.copy(alpha = 0.2f),
+                                modifier = Modifier.size(50.dp).clip(CircleShape).clickable {
+                                    coroutineScope.launch { snackbarHostState.showSnackbar("Songs already downloaded") }
+                                }
                             ) { Box(contentAlignment = Alignment.Center) { Icon(painterResource(R.drawable.download), null, tint = textColor, modifier = Modifier.size(24.dp)) } }
                         }
                         Spacer(modifier = Modifier.height(24.dp))
@@ -259,7 +258,7 @@ fun CachePlaylistScreen(
                                     if (selection) { songWrapper.isSelected = !songWrapper.isSelected } 
                                     else {
                                         if (songWrapper.item.song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                        else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.asSong().toMediaItem() }, index))
+                                        else playerConnection.playQueue(ListQueue("Cache Songs", cachedSongs.map { it.song.toMediaItem() }, index))
                                     }
                                 },
                                 onLongClick = {
@@ -278,7 +277,7 @@ fun CachePlaylistScreen(
 
             if (cachedSongs.isNotEmpty() && !isSearching) {
                 item {
-                    val duration = cachedSongs.map { (it.duration ?: 0).toLong() }.sum() * 1000L
+                    val duration = cachedSongs.map { (it.song.duration ?: 0).toLong() }.sum() * 1000L
                     Text(
                         text = "${cachedSongs.size} songs, ${makeTimeString(duration)}",
                         color = secondaryTextColor,
@@ -341,10 +340,10 @@ fun CachePlaylistScreen(
                     
                     Box {
                         IconButton(onClick = { showOptionsMenu = true }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = textColor) }
-                        DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }) {
+                        DropdownMenu(expanded = showOptionsMenu, onDismissRequest = { showOptionsMenu = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                             DropdownMenuItem(
                                 text = { Text("Add to Queue") },
-                                onClick = { playerConnection.addToQueue(cachedSongs.map { it.asSong().toMediaItem() }); showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
+                                onClick = { playerConnection.addToQueue(cachedSongs.map { it.song.toMediaItem() }); showOptionsMenu = false; coroutineScope.launch { snackbarHostState.showSnackbar("Added to Queue") } },
                                 leadingIcon = { Icon(painterResource(R.drawable.queue_music), null) }
                             )
                             DropdownMenuItem(
