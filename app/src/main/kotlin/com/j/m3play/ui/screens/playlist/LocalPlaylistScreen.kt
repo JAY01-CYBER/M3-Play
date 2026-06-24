@@ -166,6 +166,7 @@ import com.j.m3play.ui.component.SortHeader
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.screens.playlist.PlaylistSuggestionsSection
+import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.ui.utils.formatCompactCount
@@ -173,7 +174,6 @@ import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.LocalPlaylistViewModel
-import com.valentinilk.shimmer.shimmer
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.time.LocalDateTime
@@ -580,22 +580,25 @@ fun LocalPlaylistScreen(
                                 val isActive = song.song.id == mediaMetadata?.id
                                 val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
                                 
-                                SongListItem(
-                                    song = song.song,
-                                    viewCountText = viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
-                                    isActive = isActive, isPlaying = isPlaying, showInLibraryIcon = true,
-                                    trailingContent = {
-                                        IconButton(onClick = { menuState.show { SongMenu(originalSong = song.song, playlistSong = song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null, tint = Color.White.copy(alpha = 0.7f)) }
-                                        if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) { IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) { Icon(painterResource(R.drawable.drag_handle), null, tint = Color.White.copy(alpha = 0.7f)) } }
-                                    },
-                                    modifier = itemModifier.combinedClickable(
-                                        onClick = {
-                                            if (isActive) playerConnection.player.togglePlayPause()
-                                            else playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = songs.indexOfFirst { it.map.id == song.map.id }))
+                                CompositionLocalProvider(LocalContentColor provides Color.White) {
+                                    SongListItem(
+                                        song = song.song,
+                                        viewCountText = viewCounts[song.song.id]?.let { count -> formatCompactCount(count.toLong()) },
+                                        isActive = isActive, isPlaying = isPlaying, showInLibraryIcon = true,
+                                        trailingContent = {
+                                            IconButton(onClick = { menuState.show { SongMenu(originalSong = song.song, playlistSong = song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null, tint = Color.White.copy(alpha = 0.7f)) }
+                                            if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) { IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) { Icon(painterResource(R.drawable.drag_handle), null, tint = Color.White.copy(alpha = 0.7f)) } }
                                         },
-                                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; wrappedSongs.find { it.item.map.id == song.map.id }?.isSelected = true }
+                                        modifier = itemModifier.combinedClickable(
+                                            onClick = {
+                                                if (isActive) playerConnection.player.togglePlayPause()
+                                                else playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = songs.indexOfFirst { it.map.id == song.map.id }))
+                                            },
+                                            onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; wrappedSongs.find { it.item.map.id == song.map.id }?.isSelected = true }
+                                        )
                                     )
                                 }
+                            }
 
                             if (locked || selection || swipeToSongEnabled) content() else SwipeToDismissBox(state = dismissBoxState, backgroundContent = {}) { content() }
                         }
@@ -621,24 +624,27 @@ fun LocalPlaylistScreen(
                                 val isActive = songWrapper.item.song.id == mediaMetadata?.id
                                 val itemModifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(if (isActive) Color.White.copy(alpha = 0.1f) else Color.Transparent)
                                 
-                                SongListItem(
-                                    song = songWrapper.item.song,
-                                    viewCountText = viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
-                                    isActive = isActive, isPlaying = isPlaying, isSelected = songWrapper.isSelected && selection, showInLibraryIcon = true,
-                                    trailingContent = {
-                                        IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item.song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null, tint = Color.White.copy(alpha = 0.7f)) }
-                                        if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) { IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) { Icon(painterResource(R.drawable.drag_handle), null, tint = Color.White.copy(alpha = 0.7f)) } }
-                                    },
-                                    modifier = itemModifier.combinedClickable(
-                                        onClick = {
-                                            if (!selection) {
-                                                if (isActive) playerConnection.player.togglePlayPause()
-                                                else playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = index))
-                                            } else { songWrapper.isSelected = !songWrapper.isSelected }
+                                CompositionLocalProvider(LocalContentColor provides Color.White) {
+                                    SongListItem(
+                                        song = songWrapper.item.song,
+                                        viewCountText = viewCounts[songWrapper.item.song.id]?.let { count -> formatCompactCount(count.toLong()) },
+                                        isActive = isActive, isPlaying = isPlaying, isSelected = songWrapper.isSelected && selection, showInLibraryIcon = true,
+                                        trailingContent = {
+                                            IconButton(onClick = { menuState.show { SongMenu(originalSong = songWrapper.item.song, playlistBrowseId = playlist?.playlist?.browseId, navController = navController, onDismiss = menuState::dismiss) } }, onLongClick = {}) { Icon(painterResource(R.drawable.more_vert), null, tint = Color.White.copy(alpha = 0.7f)) }
+                                            if (sortType == PlaylistSongSortType.CUSTOM && !locked && !selection && !isSearching && editable) { IconButton(onClick = { }, onLongClick = {}, modifier = Modifier.draggableHandle().graphicsLayer { alpha = 0.99f }) { Icon(painterResource(R.drawable.drag_handle), null, tint = Color.White.copy(alpha = 0.7f)) } }
                                         },
-                                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; songWrapper.isSelected = true }
+                                        modifier = itemModifier.combinedClickable(
+                                            onClick = {
+                                                if (!selection) {
+                                                    if (isActive) playerConnection.player.togglePlayPause()
+                                                    else playerConnection.playQueue(ListQueue(title = playlist!!.playlist.name, items = songs.map { it.song.toMediaItem() }, startIndex = index))
+                                                } else { songWrapper.isSelected = !songWrapper.isSelected }
+                                            },
+                                            onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); if (!selection) selection = true; wrappedSongs.forEach { it.isSelected = false }; songWrapper.isSelected = true }
+                                        )
                                     )
                                 }
+                            }
 
                             if (locked || !editable || swipeToSongEnabled) content() else SwipeToDismissBox(state = dismissBoxState, backgroundContent = {}) { content() }
                         }
