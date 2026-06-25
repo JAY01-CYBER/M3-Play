@@ -243,8 +243,9 @@ fun CachePlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor),
+            .background(surfaceColor), // MESH GRADIENT REMOVED FOR CLEAN UI
     ) {
+
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
@@ -283,7 +284,6 @@ fun CachePlaylistScreen(
                                     .shadow(
                                         elevation = 24.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                                         spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                                     )
                             ) {
@@ -332,6 +332,7 @@ fun CachePlaylistScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
+                            // CARD-STYLE ACTION BUTTONS
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(24.dp),
@@ -450,7 +451,6 @@ fun CachePlaylistScreen(
                     }
                 }
 
-                // Song items
                 itemsIndexed(filteredSongs, key = { _, song -> song.item.id }) { index, songWrapper ->
                     SongListItem(
                         song = songWrapper.item,
@@ -530,67 +530,61 @@ fun CachePlaylistScreen(
                 actionIconContentColor = MaterialTheme.colorScheme.onBackground
             ),
             title = {
-                when {
-                    selection -> {
-                        val count = wrappedSongs.count { it.isSelected }
-                        Text(
-                            text = pluralStringResource(R.plurals.n_song, count, count),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                    isSearching -> {
-                        TextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            placeholder = {
-                                Text(
-                                    text = stringResource(R.string.search),
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                            },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.titleLarge,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester)
-                        )
-                    }
-                    showTopBarTitle -> {
-                        Text(
-                            text = stringResource(R.string.cached_playlist),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                if (selection) {
+                    val count = wrappedSongs.count { it.isSelected }
+                    Text(
+                        text = pluralStringResource(R.plurals.n_song, count, count),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                } else if (isSearching) {
+                    TextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.search),
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.titleLarge,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                    )
+                } else if (showTopBarTitle) {
+                    Text(
+                        text = stringResource(R.string.cached_playlist),
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
             },
             navigationIcon = {
-                IconButton(onClick = {
-                    when {
-                        isSearching -> {
+                IconButton(
+                    onClick = {
+                        if (isSearching) {
                             isSearching = false
                             query = TextFieldValue()
                             focusManager.clearFocus()
-                        }
-                        selection -> {
+                        } else if (selection) {
                             selection = false
-                        }
-                        else -> {
+                        } else {
                             navController.navigateUp()
                         }
-                    }
-                }, onLongClick = {
-                    if (!isSearching && !selection) {
-                        navController.backToMain()
-                    }
-                },
+                    },
+                    onLongClick = {
+                        if (!isSearching && !selection) {
+                            navController.backToMain()
+                        }
+                    }, // ON LONG CLICK ADDED
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -606,7 +600,7 @@ fun CachePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
@@ -614,6 +608,7 @@ fun CachePlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
+                        onLongClick = {}, // ON LONG CLICK ADDED
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -626,7 +621,7 @@ fun CachePlaylistScreen(
                         )
                     }
 
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -636,6 +631,7 @@ fun CachePlaylistScreen(
                                 )
                             }
                         },
+                        onLongClick = {}, // ON LONG CLICK ADDED
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -646,8 +642,9 @@ fun CachePlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = { isSearching = true },
+                        onLongClick = {}, // ON LONG CLICK ADDED
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -660,6 +657,38 @@ fun CachePlaylistScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun MetadataChip(
+    icon: Int,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
     }
 }
 
