@@ -72,12 +72,9 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -98,7 +95,6 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAny
-import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
@@ -115,7 +111,6 @@ import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.AppBarHeight
-import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.db.entities.PlaylistEntity
 import com.j.m3play.db.entities.PlaylistSongMap
@@ -170,7 +165,6 @@ fun OnlinePlaylistScreen(
 
     var selection by remember { mutableStateOf(false) }
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
@@ -220,12 +214,12 @@ fun OnlinePlaylistScreen(
 
     val showTopBarTitle by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 } }
 
-    // Gradient colors state for playlist cover
+    // Gradient colors state for playlist cover shadow
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Extract gradient colors from playlist cover
+    // Extract gradient colors from playlist cover just for the shadow
     LaunchedEffect(playlist?.thumbnail) {
         val thumbnailUrl = playlist?.thumbnail
         if (thumbnailUrl != null) {
@@ -265,22 +259,6 @@ fun OnlinePlaylistScreen(
         }
     }
 
-    // Calculate gradient opacity based on scroll position
-    val gradientAlpha by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                val offset = lazyListState.firstVisibleItemScrollOffset
-                (1f - (offset / 600f)).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-        }
-    }
-
-    val transparentAppBar by remember {
-        derivedStateOf { !disableBlur && !selection && !showTopBarTitle }
-    }
-
     val headerItems by remember {
         derivedStateOf {
             val current = playlist
@@ -311,114 +289,7 @@ fun OnlinePlaylistScreen(
                 onRefresh = viewModel::refresh
             ),
     ) {
-        // Mesh gradient background layer
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .fillMaxSize(0.55f)
-                        .align(Alignment.TopCenter)
-                        .zIndex(-1f)
-                        .drawBehind {
-                            val width = size.width
-                            val height = size.height
-
-                            if (gradientColors.size >= 3) {
-                                val c0 = gradientColors[0]
-                                val c1 = gradientColors[1]
-                                val c2 = gradientColors[2]
-                                val c3 = gradientColors.getOrElse(3) { c0 }
-                                val c4 = gradientColors.getOrElse(4) { c1 }
-                                
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    c0.copy(alpha = gradientAlpha * 0.75f),
-                                                    c0.copy(alpha = gradientAlpha * 0.4f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.5f, height * 0.15f),
-                                            radius = width * 0.8f
-                                        )
-                                )
-
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    c1.copy(alpha = gradientAlpha * 0.55f),
-                                                    c1.copy(alpha = gradientAlpha * 0.3f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.1f, height * 0.4f),
-                                            radius = width * 0.6f
-                                        )
-                                )
-
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    c2.copy(alpha = gradientAlpha * 0.5f),
-                                                    c2.copy(alpha = gradientAlpha * 0.25f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.9f, height * 0.35f),
-                                            radius = width * 0.55f
-                                        )
-                                )
-
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    c3.copy(alpha = gradientAlpha * 0.35f),
-                                                    c3.copy(alpha = gradientAlpha * 0.18f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.25f, height * 0.65f),
-                                            radius = width * 0.75f
-                                        )
-                                )
-
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    c4.copy(alpha = gradientAlpha * 0.3f),
-                                                    c4.copy(alpha = gradientAlpha * 0.15f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.55f, height * 0.85f),
-                                            radius = width * 0.9f
-                                        )
-                                )
-                            } else if (gradientColors.isNotEmpty()) {
-                                drawRect(
-                                    brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                    gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                                                    gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
-                                                    Color.Transparent
-                                                ),
-                                            center = Offset(width * 0.5f, height * 0.25f),
-                                            radius = width * 0.85f
-                                        )
-                                )
-                            }
-
-                            drawRect(
-                                brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                                Color.Transparent,
-                                                Color.Transparent,
-                                                surfaceColor.copy(alpha = gradientAlpha * 0.22f),
-                                                surfaceColor.copy(alpha = gradientAlpha * 0.55f),
-                                                surfaceColor
-                                            ),
-                                        startY = height * 0.4f,
-                                        endY = height
-                                    )
-                            )
-                        }
-            )
-        }
+        // MESH GRADIENT HATA DIYA GAYA HAI FOR CLEAN UI
 
         LazyColumn(
             state = lazyListState,
@@ -466,7 +337,7 @@ fun OnlinePlaylistScreen(
                         // Hero Header
                         item(key = "header") {
                             Column(
-                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight).animateItem(),
+                                modifier = Modifier.fillMaxWidth().padding(top = systemBarsTopPadding + AppBarHeight),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 // Playlist Thumbnail
@@ -542,7 +413,7 @@ fun OnlinePlaylistScreen(
                                 Spacer(modifier = Modifier.height(24.dp))
 
                                 // -----------------------------------------------------------
-                                // NAYA CARD-STYLE ACTION BUTTONS LAYOUT
+                                // CARD-STYLE ACTION BUTTONS LAYOUT
                                 // -----------------------------------------------------------
                                 Surface(
                                     modifier = Modifier
@@ -627,8 +498,8 @@ fun OnlinePlaylistScreen(
 
                                             // 4. More Options Button
                                             ActionItem(
-                                                icon = R.drawable.add, // Or R.drawable.more_vert if add isn't available
-                                                label = "More", 
+                                                icon = R.drawable.add, 
+                                                label = "Add", 
                                                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                                                 onClick = {
@@ -771,8 +642,7 @@ fun OnlinePlaylistScreen(
                                             wrappedSongs.forEach { it.isSelected = false }
                                             song.isSelected = true
                                         },
-                                    )
-                                    .animateItem(),
+                                    ),
                         )
                     }
 
@@ -839,23 +709,14 @@ fun OnlinePlaylistScreen(
         )
 
         // Top App Bar
-        val topAppBarColors = if (transparentAppBar) {
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            } else {
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
-            }
-
         TopAppBar(
-            colors = topAppBarColors,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent, // Solid background ke upar clear rakhne ke liye
+                scrolledContainerColor = Color.Transparent,
+                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                titleContentColor = MaterialTheme.colorScheme.onBackground,
+                actionIconContentColor = MaterialTheme.colorScheme.onBackground
+            ),
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
@@ -900,7 +761,10 @@ fun OnlinePlaylistScreen(
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape) // Back button round chip
                 ) {
                     Icon(
                         painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
@@ -919,7 +783,10 @@ fun OnlinePlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        onLongClick = {}
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null)
                     }
@@ -934,13 +801,45 @@ fun OnlinePlaylistScreen(
                                 )
                             }
                         },
-                        onLongClick = {}
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else if (!isSearching) {
-                    IconButton(onClick = { isSearching = true }, onLongClick = {}) {
+                    // Search Button with Round Chip
+                    IconButton(
+                        onClick = { isSearching = true }, 
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    ) {
                         Icon(painter = painterResource(R.drawable.search), contentDescription = null)
+                    }
+                    // Add/More Button with Round Chip
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                YouTubePlaylistMenu(
+                                    playlist = playlist,
+                                    songs = songs,
+                                    coroutineScope = coroutineScope,
+                                    onDismiss = menuState::dismiss,
+                                    selectAction = { selection = true },
+                                    canSelect = true,
+                                    snackbarHostState = snackbarHostState,
+                                )
+                            }
+                        }, 
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    ) {
+                        Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 }
             }
@@ -989,7 +888,6 @@ private fun MetadataChip(icon: Int, text: String, modifier: Modifier = Modifier)
     }
 }
 
-// Naya Custom Action Button component (File ke end me)
 @Composable
 private fun ActionItem(
     icon: Int,
@@ -1002,7 +900,7 @@ private fun ActionItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
-            indication = null, // Ripple logic container mein handle ho raha hai
+            indication = null, 
             onClick = onClick
         )
     ) {
