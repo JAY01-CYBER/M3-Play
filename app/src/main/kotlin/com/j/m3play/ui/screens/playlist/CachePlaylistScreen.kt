@@ -584,10 +584,7 @@ fun CachePlaylistScreen(
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    }, // ON LONG CLICK ADDED
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    }
                 ) {
                     Icon(
                         painter = painterResource(
@@ -600,18 +597,14 @@ fun CachePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    IconButton(
+                    androidx.compose.material3.IconButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
                             } else {
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
-                        },
-                        onLongClick = {}, // ON LONG CLICK ADDED
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                        }
                     ) {
                         Icon(
                             painter = painterResource(
@@ -621,7 +614,7 @@ fun CachePlaylistScreen(
                         )
                     }
 
-                    IconButton(
+                    androidx.compose.material3.IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -630,11 +623,7 @@ fun CachePlaylistScreen(
                                     clearAction = { selection = false }
                                 )
                             }
-                        },
-                        onLongClick = {}, // ON LONG CLICK ADDED
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                        }
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -642,12 +631,8 @@ fun CachePlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
-                    IconButton(
-                        onClick = { isSearching = true },
-                        onLongClick = {}, // ON LONG CLICK ADDED
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    androidx.compose.material3.IconButton(
+                        onClick = { isSearching = true }
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
@@ -657,38 +642,6 @@ fun CachePlaylistScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun MetadataChip(
-    icon: Int,
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-        }
     }
 }
 
