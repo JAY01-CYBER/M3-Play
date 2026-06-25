@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width // YAHAN IMPORT ADD KIYA GAYA HAI
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -584,7 +585,10 @@ fun CachePlaylistScreen(
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(
@@ -597,14 +601,18 @@ fun CachePlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
                             } else {
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
-                        }
+                        },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(
@@ -614,7 +622,7 @@ fun CachePlaylistScreen(
                         )
                     }
 
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -623,7 +631,11 @@ fun CachePlaylistScreen(
                                     clearAction = { selection = false }
                                 )
                             }
-                        }
+                        },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -631,8 +643,12 @@ fun CachePlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
-                    androidx.compose.material3.IconButton(
-                        onClick = { isSearching = true }
+                    IconButton(
+                        onClick = { isSearching = true },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
