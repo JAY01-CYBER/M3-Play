@@ -86,6 +86,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastSumBy
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -329,6 +330,12 @@ fun AutoPlaylistScreen(
         }
     }
 
+    val transparentAppBar by remember {
+        derivedStateOf {
+            !disableBlur && !selection && !showTopBarTitle
+        }
+    }
+
     val headerItems by remember {
         derivedStateOf {
             val currentSongs = songs
@@ -341,7 +348,7 @@ fun AutoPlaylistScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor), // MESH GRADIENT REMOVED FOR CLEAN UI
+            .background(surfaceColor),
     ) {
 
         LazyColumn(
@@ -474,7 +481,7 @@ fun AutoPlaylistScreen(
                                                         }
                                                     }
                                                 },
-                                                label = stringResource(R.string.download),
+                                                label = "Download",
                                                 backgroundColor = MaterialTheme.colorScheme.primary,
                                                 onClick = {
                                                     when (downloadState) {
@@ -544,7 +551,7 @@ fun AutoPlaylistScreen(
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                 },
-                                                label = stringResource(R.string.queue),
+                                                label = "Queue",
                                                 backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                                                 onClick = {
                                                     playerConnection.addToQueue(
@@ -694,11 +701,8 @@ fun AutoPlaylistScreen(
 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                titleContentColor = MaterialTheme.colorScheme.onBackground,
-                actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface
             ),
             title = {
                 if (selection) {
@@ -755,10 +759,7 @@ fun AutoPlaylistScreen(
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    },
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    }
                 ) {
                     Icon(
                         painter = painterResource(
@@ -771,7 +772,7 @@ fun AutoPlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    IconButton(
+                    androidx.compose.material3.IconButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
@@ -779,10 +780,6 @@ fun AutoPlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        onLongClick = {}, // Fixed
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(
@@ -792,7 +789,7 @@ fun AutoPlaylistScreen(
                         )
                     }
 
-                    IconButton(
+                    androidx.compose.material3.IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -803,10 +800,6 @@ fun AutoPlaylistScreen(
                                 )
                             }
                         },
-                        onLongClick = {}, // Fixed
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -814,12 +807,8 @@ fun AutoPlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
-                    IconButton(
-                        onClick = { isSearching = true },
-                        onLongClick = {}, // Fixed
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                    androidx.compose.material3.IconButton(
+                        onClick = { isSearching = true }
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
