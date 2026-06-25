@@ -31,7 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width // IMPORT FIXED
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -128,7 +128,7 @@ import com.j.m3play.viewmodels.TopPlaylistViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TopPlaylistScreen( // NAMING FIXED HERE
+fun TopPlaylistScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
     viewModel: TopPlaylistViewModel = hiltViewModel(),
@@ -255,14 +255,10 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
 
     val lazyListState = rememberLazyListState()
 
-    // Gradient colors state for playlist cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-
-    // Capture fallback color in composable context
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Extract gradient colors from playlist cover (first song thumbnail)
     LaunchedEffect(songs) {
         val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
@@ -311,13 +307,12 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
         }
     }
 
-    // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor), // MESH GRADIENT REMOVED FOR CLEAN UI
+            .background(surfaceColor),
     ) {
 
         LazyColumn(
@@ -450,7 +445,7 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                                                         }
                                                     }
                                                 },
-                                                label = stringResource(R.string.download),
+                                                label = "Download",
                                                 backgroundColor = MaterialTheme.colorScheme.primary,
                                                 onClick = {
                                                     when (downloadState) {
@@ -494,7 +489,7 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                                                 icon = {
                                                     Icon(
                                                         painter = painterResource(R.drawable.shuffle),
-                                                        contentDescription = null,
+                                                        contentDescription = stringResource(R.string.shuffle),
                                                         tint = MaterialTheme.colorScheme.onPrimary,
                                                         modifier = Modifier.size(24.dp)
                                                     )
@@ -515,12 +510,12 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                                                 icon = {
                                                     Icon(
                                                         painter = painterResource(R.drawable.queue_music),
-                                                        contentDescription = null,
+                                                        contentDescription = "Queue",
                                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                 },
-                                                label = stringResource(R.string.queue),
+                                                label = "Queue",
                                                 backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                                                 onClick = {
                                                     playerConnection.addToQueue(
@@ -726,25 +721,21 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
             navigationIcon = {
                 IconButton(
                     onClick = {
-                        when {
-                            isSearching -> {
-                                isSearching = false
-                                query = TextFieldValue()
-                                focusManager.clearFocus()
-                            }
-                            selection -> {
-                                selection = false
-                            }
-                            else -> {
-                                navController.navigateUp()
-                            }
+                        if (isSearching) {
+                            isSearching = false
+                            query = TextFieldValue()
+                            focusManager.clearFocus()
+                        } else if (selection) {
+                            selection = false
+                        } else {
+                            navController.navigateUp()
                         }
                     },
                     onLongClick = {
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    }, // ON LONG CLICK ADDED
+                    },
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -768,7 +759,7 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        onLongClick = {}, // ON LONG CLICK ADDED
+                        onLongClick = {},
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -792,7 +783,7 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                                 )
                             }
                         },
-                        onLongClick = {}, // ON LONG CLICK ADDED
+                        onLongClick = {},
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -805,7 +796,7 @@ fun TopPlaylistScreen( // NAMING FIXED HERE
                 } else if (!isSearching) {
                     IconButton(
                         onClick = { isSearching = true },
-                        onLongClick = {}, // ON LONG CLICK ADDED
+                        onLongClick = {},
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
