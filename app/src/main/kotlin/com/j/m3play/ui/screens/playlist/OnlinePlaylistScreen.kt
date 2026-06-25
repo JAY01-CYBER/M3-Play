@@ -289,8 +289,6 @@ fun OnlinePlaylistScreen(
                 onRefresh = viewModel::refresh
             ),
     ) {
-        // MESH GRADIENT HATA DIYA GAYA HAI FOR CLEAN UI
-
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.union(WindowInsets.ime).asPaddingValues(),
@@ -622,7 +620,9 @@ fun OnlinePlaylistScreen(
                                                 if (song.item.second.id == mediaMetadata?.id) {
                                                     playerConnection.player.togglePlayPause()
                                                 } else {
-                                                    playerConnection.service.getAutomix(playlistId = playlist.id)
+                                                    playlist.id.let { pid -> 
+                                                        playerConnection.service.getAutomix(playlistId = pid) 
+                                                    }
                                                     playerConnection.playQueue(
                                                         YouTubeQueue(
                                                             song.item.second.endpoint ?: WatchEndpoint(videoId = song.item.second.id),
@@ -711,7 +711,7 @@ fun OnlinePlaylistScreen(
         // Top App Bar
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent, // Solid background ke upar clear rakhne ke liye
+                containerColor = Color.Transparent, 
                 scrolledContainerColor = Color.Transparent,
                 navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -764,7 +764,7 @@ fun OnlinePlaylistScreen(
                     },
                     modifier = Modifier
                         .padding(start = 8.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape) // Back button round chip
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape) 
                 ) {
                     Icon(
                         painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
@@ -809,7 +809,6 @@ fun OnlinePlaylistScreen(
                         Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else if (!isSearching) {
-                    // Search Button with Round Chip
                     IconButton(
                         onClick = { isSearching = true }, 
                         onLongClick = {},
@@ -819,19 +818,20 @@ fun OnlinePlaylistScreen(
                     ) {
                         Icon(painter = painterResource(R.drawable.search), contentDescription = null)
                     }
-                    // Add/More Button with Round Chip
                     IconButton(
                         onClick = {
-                            menuState.show {
-                                YouTubePlaylistMenu(
-                                    playlist = playlist,
-                                    songs = songs,
-                                    coroutineScope = coroutineScope,
-                                    onDismiss = menuState::dismiss,
-                                    selectAction = { selection = true },
-                                    canSelect = true,
-                                    snackbarHostState = snackbarHostState,
-                                )
+                            playlist?.let { currentPlaylist ->
+                                menuState.show {
+                                    YouTubePlaylistMenu(
+                                        playlist = currentPlaylist,
+                                        songs = songs,
+                                        coroutineScope = coroutineScope,
+                                        onDismiss = menuState::dismiss,
+                                        selectAction = { selection = true },
+                                        canSelect = true,
+                                        snackbarHostState = snackbarHostState,
+                                    )
+                                }
                             }
                         }, 
                         onLongClick = {},
