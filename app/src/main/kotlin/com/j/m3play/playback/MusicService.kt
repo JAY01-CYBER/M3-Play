@@ -254,6 +254,9 @@ class MusicService :
     @Inject
     lateinit var mediaLibrarySessionCallback: MediaLibrarySessionCallback
 
+    @Inject
+    lateinit var widgetManager: com.j.m3play.widget.M3PlayWidgetManager
+
     private lateinit var audioManager: AudioManager
     private var audioFocusRequest: AudioFocusRequest? = null
     private var lastAudioFocusState = AudioManager.AUDIOFOCUS_NONE
@@ -1090,7 +1093,8 @@ class MusicService :
         }
     }
 
-    private fun ensureScopesActive() {
+
+         private fun ensureScopesActive() {
         if (!scopeJob.isActive) {
             scopeJob = Job()
         }
@@ -2370,7 +2374,7 @@ class MusicService :
         }
     }
 
-    fun joinTogether(
+        fun joinTogether(
         rawLink: String,
         displayName: String,
     ) {
@@ -3972,13 +3976,25 @@ class MusicService :
             }
         }
 
-   if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
         ensurePresenceManager()
         scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
     } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
         ensurePresenceManager()
     } else {
         ensurePresenceManager()
+    }
+
+    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+        scope.launch {
+            val meta = currentMediaMetadata.value
+            widgetManager.updateWidget(
+                title = meta?.title ?: getString(R.string.app_name),
+                artist = meta?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
+                artworkUri = meta?.thumbnailUrl,
+                isPlaying = player.isPlaying
+            )
+        }
     }
   }
 
@@ -4618,10 +4634,8 @@ class MusicService :
                 }
                 
                 if (persistentFile.exists() && !persistentFile.delete()) {
-                    // Ignored intentionally 
                 }
                 if (!tempFile.renameTo(persistentFile)) {
-                     // Ignored intentionally
                  }
             } catch (e: Exception) {
                 runCatching { tempFile.delete() }
@@ -4950,6 +4964,27 @@ class MusicService :
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        
+        when (intent?.action) {
+            com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_PLAY_PAUSE -> {
+                if (player.isPlaying) player.pause() else player.play()
+            }
+            com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_NEXT -> {
+                if (player.hasNextMediaItem()) {
+                    player.seekToNext()
+                    player.prepare()
+                    player.playWhenReady = true
+                }
+            }
+            com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_PREVIOUS -> {
+                if (player.hasPreviousMediaItem()) {
+                    player.seekToPrevious()
+                    player.prepare()
+                    player.playWhenReady = true
+                }
+            }
+        }
+        
         return START_NOT_STICKY
     }
 
@@ -4988,3 +5023,5 @@ class MusicService :
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
     }
 }
+
+    
