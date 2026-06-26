@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
-    <!-- Ye tumhare device/theme ke hisaab se expensive M3 color auto-pick karega -->
-    <solid android:color="?attr/colorSecondaryContainer" />
+    <solid android:color="#FADCD9" />
 </shape>
