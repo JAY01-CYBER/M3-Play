@@ -197,6 +197,18 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/m3play_widget_info" />
         </receiver>
-        </application>
+
+        <receiver
+            android:name=".widget.M3VinylWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/m3play_vinyl_info" />
+        </receiver>
+
+    </application>
 
 </manifest>
