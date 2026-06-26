@@ -63,7 +63,7 @@ class M3PlayWidgetManager @Inject constructor(
             }
         }
 
-        // 2. Update Vinyl/Turntable Style Widget
+        // 2. Update Vinyl/Turntable Style Widget (REDESIGNED FLOATING LOOK)
         val vinylComponentName = ComponentName(context, M3VinylWidgetReceiver::class.java)
         val vinylWidgetIds = appWidgetManager.getAppWidgetIds(vinylComponentName)
 
@@ -78,16 +78,20 @@ class M3PlayWidgetManager @Inject constructor(
                     views.setImageViewResource(R.id.widget_vinyl_art, R.drawable.default_album_art)
                 }
 
+                // Dynamic Play/Pause Icon
                 val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
                 views.setImageViewResource(R.id.widget_vinyl_play_pause, playPauseIcon)
+                
+                // Like Icon Set
+                views.setImageViewResource(R.id.widget_vinyl_like, R.drawable.ic_widget_heart_outline_nav)
 
                 // App open action on album cover tap
                 views.setOnClickPendingIntent(R.id.widget_vinyl_art, getOpenAppIntent())
                 
-                // Controls
+                // Floating Controls Clicks
                 views.setOnClickPendingIntent(R.id.widget_vinyl_play_pause, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
-                views.setOnClickPendingIntent(R.id.widget_vinyl_next, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_NEXT))
-                views.setOnClickPendingIntent(R.id.widget_vinyl_prev, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PREVIOUS))
+                // Like Button Click Intent
+                views.setOnClickPendingIntent(R.id.widget_vinyl_like, getActionIntent(M3VinylWidgetReceiver::class.java, "com.j.m3play.widget.LIKE"))
 
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
