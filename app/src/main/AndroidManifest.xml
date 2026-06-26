@@ -67,7 +67,6 @@
                     android:scheme="m3play" />
             </intent-filter>
 
-            <!-- Youtube filter -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
@@ -82,19 +81,14 @@
                 <data android:host="m.youtube.com" />
                 <data android:host="www.youtube.com" />
                 <data android:host="music.youtube.com" />
-                <!-- video prefix -->
                 <data android:pathPrefix="/v/" />
                 <data android:pathPrefix="/embed/" />
                 <data android:pathPrefix="/watch" />
-                <!-- channel prefix -->
                 <data android:pathPrefix="/channel/" />
                 <data android:pathPrefix="/user/" />
                 <data android:pathPrefix="/c/" />
-                <!-- playlist prefix -->
                 <data android:pathPrefix="/playlist" />
-                <!-- browse prefix -->
                 <data android:pathPrefix="/browse/" />
-                <!-- search prefix -->
                 <data android:pathPrefix="/search" />
             </intent-filter>
 
@@ -123,7 +117,6 @@
                 <data android:scheme="vnd.youtube.launch" />
             </intent-filter>
 
-            <!-- Share filter -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
@@ -193,6 +186,17 @@
             android:name=".ui.screens.settings.PoTokenExtractionActivity"
             android:exported="false"
             android:theme="@style/Theme.M3Play" />
-    </application>
+
+        <receiver
+            android:name=".widget.M3PlayWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/m3play_widget_info" />
+        </receiver>
+        </application>
 
 </manifest>
