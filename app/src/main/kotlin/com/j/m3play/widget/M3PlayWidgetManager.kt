@@ -63,36 +63,33 @@ class M3PlayWidgetManager @Inject constructor(
             }
         }
 
-        // 2. Update Vinyl/Turntable Style Widget (REDESIGNED FLOATING LOOK)
+        // 2. Update Vinyl/Turntable Style Widget (GLOSSY CONTAINER METHOD)
         val vinylComponentName = ComponentName(context, M3VinylWidgetReceiver::class.java)
         val vinylWidgetIds = appWidgetManager.getAppWidgetIds(vinylComponentName)
 
         if (vinylWidgetIds.isNotEmpty()) {
             vinylWidgetIds.forEach { widgetId ->
                 val views = RemoteViews(context.packageName, R.layout.widget_vinyl)
+                
+                // Song Title Set Karein
                 views.setTextViewText(R.id.widget_vinyl_title, title)
                 
+                // Album Art Set Karein
                 if (albumArt != null) {
                     views.setImageViewBitmap(R.id.widget_vinyl_art, getCircularBitmap(albumArt))
                 } else {
                     views.setImageViewResource(R.id.widget_vinyl_art, R.drawable.default_album_art)
                 }
 
-                // Dynamic Play/Pause Icon
+                
                 val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-                views.setImageViewResource(R.id.widget_vinyl_play_pause, playPauseIcon)
-                
-                // Like Icon Set
-                views.setImageViewResource(R.id.widget_vinyl_like, R.drawable.ic_widget_heart_outline_nav)
+                views.setImageViewResource(R.id.widget_vinyl_play_icon, playPauseIcon)
+                views.setImageViewResource(R.id.widget_vinyl_like_icon, R.drawable.ic_widget_heart_outline_nav)
 
-                // App open action on album cover tap
+                
                 views.setOnClickPendingIntent(R.id.widget_vinyl_art, getOpenAppIntent())
-                
-                // Floating Controls Clicks
-                views.setOnClickPendingIntent(R.id.widget_vinyl_play_pause, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
-                
-                // 👇 YAHAN FIX KIYA HAI: "com.j..." hata kar ACTION_LIKE lagaya hai 👇
-                views.setOnClickPendingIntent(R.id.widget_vinyl_like, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_LIKE))
+                views.setOnClickPendingIntent(R.id.widget_vinyl_play_container, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
+                views.setOnClickPendingIntent(R.id.widget_vinyl_like_container, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_LIKE))
 
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
@@ -144,7 +141,6 @@ class M3PlayWidgetManager @Inject constructor(
         }
     }
 
-    // Yeh image ko gol (circle) banane ke liye logic hai
     private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
         val size = minOf(bitmap.width, bitmap.height)
         val xOffset = (bitmap.width - size) / 2
