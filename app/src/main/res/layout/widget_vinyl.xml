@@ -1,58 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="8dp">
 
-    <RelativeLayout
-        android:layout_width="160dp"
-        android:layout_height="160dp">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="4dp">
 
         <ImageView
             android:id="@+id/widget_vinyl_art"
-            android:layout_width="130dp"
-            android:layout_height="130dp"
-            android:layout_centerInParent="true"
-            android:scaleType="centerCrop"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
             android:src="@drawable/default_album_art" />
-
-        <ImageView
-            android:id="@+id/widget_vinyl_play_pause"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentStart="true"
-            android:layout_marginStart="4dp"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/bg_circle_floating"
-            android:padding="14dp"
-            android:src="@drawable/ic_play" />
 
         <ImageView
             android:id="@+id/widget_vinyl_like"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:background="@drawable/bg_circle_floating"
-            android:padding="10dp"
+            android:padding="9dp"
             android:src="@drawable/ic_widget_heart_outline_nav" />
 
-    </RelativeLayout>
+        <ImageView
+            android:id="@+id/widget_vinyl_play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom|start"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_circle_floating"
+            android:padding="14dp"
+            android:src="@drawable/ic_play" />
+
+    </FrameLayout>
 
     <TextView
         android:id="@+id/widget_vinyl_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
         android:singleLine="true"
         android:text="Song Title"
         android:textColor="?android:attr/textColorPrimary"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:textStyle="bold" />
 
 </LinearLayout>
