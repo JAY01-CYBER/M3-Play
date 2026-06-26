@@ -90,8 +90,9 @@ class M3PlayWidgetManager @Inject constructor(
                 
                 // Floating Controls Clicks
                 views.setOnClickPendingIntent(R.id.widget_vinyl_play_pause, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
-                // Like Button Click Intent
-                views.setOnClickPendingIntent(R.id.widget_vinyl_like, getActionIntent(M3VinylWidgetReceiver::class.java, "com.j.m3play.widget.LIKE"))
+                
+                // 👇 YAHAN FIX KIYA HAI: "com.j..." hata kar ACTION_LIKE lagaya hai 👇
+                views.setOnClickPendingIntent(R.id.widget_vinyl_like, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_LIKE))
 
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
