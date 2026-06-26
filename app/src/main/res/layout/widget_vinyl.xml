@@ -2,18 +2,47 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg_rounded"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="8dp">
 
-    <ImageView
-        android:id="@+id/widget_vinyl_art"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:scaleType="centerCrop"
-        android:src="@drawable/default_album_art" />
+    <!-- Circle Vinyl Container -->
+    <FrameLayout
+        android:layout_width="140dp"
+        android:layout_height="140dp">
 
+        <!-- Circular Vinyl Art -->
+        <ImageView
+            android:id="@+id/widget_vinyl_art"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/default_album_art" />
+
+        <!-- Floating Play/Pause Button (Bottom Left) -->
+        <ImageView
+            android:id="@+id/widget_vinyl_play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_circle_floating"
+            android:padding="14dp"
+            android:src="@drawable/ic_play" />
+
+        <!-- Floating Like Button (Top Right) -->
+        <ImageView
+            android:id="@+id/widget_vinyl_like"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_circle_floating"
+            android:padding="10dp"
+            android:src="@drawable/ic_widget_heart_outline_nav" />
+    </FrameLayout>
+
+    <!-- Song Title -->
     <TextView
         android:id="@+id/widget_vinyl_title"
         android:layout_width="wrap_content"
@@ -21,37 +50,8 @@
         android:layout_marginTop="12dp"
         android:singleLine="true"
         android:text="Song Title"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
         android:textStyle="bold" />
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <ImageView
-            android:id="@+id/widget_vinyl_prev"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_previous" />
-
-        <ImageView
-            android:id="@+id/widget_vinyl_play_pause"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:src="@drawable/ic_play" />
-
-        <ImageView
-            android:id="@+id/widget_vinyl_next"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_next" />
-    </LinearLayout>
 </LinearLayout>
