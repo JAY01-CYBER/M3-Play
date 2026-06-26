@@ -13,7 +13,9 @@ package com.j.m3play.ui.screens.playlist
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -36,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,14 +65,10 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -85,7 +85,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastSumBy
-import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
@@ -256,14 +255,10 @@ fun TopPlaylistScreen(
 
     val lazyListState = rememberLazyListState()
 
-    // Gradient colors state for playlist cover
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-
-    // Capture fallback color in composable context
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Extract gradient colors from playlist cover (first song thumbnail)
     LaunchedEffect(songs) {
         val thumbnailUrl = songs?.firstOrNull()?.song?.thumbnailUrl
         if (thumbnailUrl != null) {
@@ -299,27 +294,9 @@ fun TopPlaylistScreen(
         }
     }
 
-    // Calculate gradient opacity based on scroll position
-    val gradientAlpha by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                val offset = lazyListState.firstVisibleItemScrollOffset
-                (1f - (offset / 600f)).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-        }
-    }
-
     val showTopBarTitle by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0
-        }
-    }
-
-    val transparentAppBar by remember {
-        derivedStateOf {
-            !disableBlur && !selection && !showTopBarTitle
         }
     }
 
@@ -330,7 +307,6 @@ fun TopPlaylistScreen(
         }
     }
 
-    // System bars padding
     val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
 
     Box(
@@ -338,113 +314,6 @@ fun TopPlaylistScreen(
             .fillMaxSize()
             .background(surfaceColor),
     ) {
-        // Mesh gradient background layer
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawBehind {
-                        val width = size.width
-                        val height = size.height * 0.55f
-
-                        if (gradientColors.size >= 3) {
-                            val c0 = gradientColors[0]
-                            val c1 = gradientColors[1]
-                            val c2 = gradientColors[2]
-                            val c3 = gradientColors.getOrElse(3) { c0 }
-                            val c4 = gradientColors.getOrElse(4) { c1 }
-                            // Primary color blob - top center
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c0.copy(alpha = gradientAlpha * 0.75f),
-                                        c0.copy(alpha = gradientAlpha * 0.4f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.15f),
-                                    radius = width * 0.8f
-                                )
-                            )
-
-                            // Secondary color blob - left side
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c1.copy(alpha = gradientAlpha * 0.55f),
-                                        c1.copy(alpha = gradientAlpha * 0.3f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.1f, height * 0.4f),
-                                    radius = width * 0.6f
-                                )
-                            )
-
-                            // Third color blob - right side
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c2.copy(alpha = gradientAlpha * 0.5f),
-                                        c2.copy(alpha = gradientAlpha * 0.25f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.9f, height * 0.35f),
-                                    radius = width * 0.55f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c3.copy(alpha = gradientAlpha * 0.35f),
-                                        c3.copy(alpha = gradientAlpha * 0.18f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.25f, height * 0.65f),
-                                    radius = width * 0.75f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c4.copy(alpha = gradientAlpha * 0.3f),
-                                        c4.copy(alpha = gradientAlpha * 0.15f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.55f, height * 0.85f),
-                                    radius = width * 0.9f
-                                )
-                            )
-                        } else if (gradientColors.isNotEmpty()) {
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.25f),
-                                    radius = width * 0.85f
-                                )
-                            )
-                        }
-
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Transparent,
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
-                                    surfaceColor
-                                ),
-                                startY = size.height * 0.35f,
-                                endY = size.height
-                            )
-                        )
-                    }
-            )
-        }
 
         LazyColumn(
             state = lazyListState,
@@ -460,7 +329,6 @@ fun TopPlaylistScreen(
                     }
                 } else {
                     if (!isSearching) {
-                        // Hero Header Item
                         item(key = "header") {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -470,15 +338,13 @@ fun TopPlaylistScreen(
                                     .padding(horizontal = 24.dp)
                                     .padding(bottom = 16.dp)
                             ) {
-                                // Large centered artwork with shadow
                                 Box(
                                     modifier = Modifier
                                         .size(240.dp)
                                         .shadow(
                                             elevation = 24.dp,
                                             shape = RoundedCornerShape(16.dp),
-                                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                            spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.5f) ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                                         )
                                 ) {
                                     AsyncImage(
@@ -493,7 +359,6 @@ fun TopPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(24.dp))
 
-                                // Playlist title
                                 Text(
                                     text = name,
                                     style = MaterialTheme.typography.headlineMedium,
@@ -505,12 +370,10 @@ fun TopPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Metadata chips row
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Song count chip
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
@@ -526,7 +389,6 @@ fun TopPlaylistScreen(
                                         )
                                     }
 
-                                    // Duration chip
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
@@ -541,149 +403,158 @@ fun TopPlaylistScreen(
 
                                 Spacer(modifier = Modifier.height(20.dp))
 
-                                // Action buttons row
-                                Row(
+                                // CARD-STYLE ACTION BUTTONS
+                                Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 ) {
-                                    // Download Button
-                                    Surface(
-                                        onClick = {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
-                                                    showRemoveDownloadDialog = true
-                                                }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    songs!!.forEach { song ->
-                                                        DownloadService.sendRemoveDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            song.song.id,
-                                                            false,
-                                                        )
-                                                    }
-                                                }
-                                                else -> {
-                                                    songs!!.forEach { song ->
-                                                        val downloadRequest =
-                                                            DownloadRequest
-                                                                .Builder(
-                                                                    song.song.id,
-                                                                    song.song.id.toUri(),
-                                                                )
-                                                                .setCustomCacheKey(song.song.id)
-                                                                .setData(song.song.title.toByteArray())
-                                                                .build()
-                                                        DownloadService.sendAddDownload(
-                                                            context,
-                                                            ExoDownloadService::class.java,
-                                                            downloadRequest,
-                                                            false,
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
                                     ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            when (downloadState) {
-                                                Download.STATE_COMPLETED -> {
+                                            ActionItem(
+                                                icon = {
+                                                    when (downloadState) {
+                                                        Download.STATE_COMPLETED -> {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.offline),
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                                modifier = Modifier.size(24.dp)
+                                                            )
+                                                        }
+                                                        Download.STATE_DOWNLOADING -> {
+                                                            CircularProgressIndicator(
+                                                                strokeWidth = 2.dp,
+                                                                modifier = Modifier.size(24.dp),
+                                                                color = MaterialTheme.colorScheme.onPrimary
+                                                            )
+                                                        }
+                                                        else -> {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.download),
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                                modifier = Modifier.size(24.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                },
+                                                label = "Download",
+                                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                                onClick = {
+                                                    when (downloadState) {
+                                                        Download.STATE_COMPLETED -> {
+                                                            showRemoveDownloadDialog = true
+                                                        }
+                                                        Download.STATE_DOWNLOADING -> {
+                                                            songs!!.forEach { song ->
+                                                                DownloadService.sendRemoveDownload(
+                                                                    context,
+                                                                    ExoDownloadService::class.java,
+                                                                    song.song.id,
+                                                                    false,
+                                                                )
+                                                            }
+                                                        }
+                                                        else -> {
+                                                            songs!!.forEach { song ->
+                                                                val downloadRequest =
+                                                                    DownloadRequest
+                                                                        .Builder(
+                                                                            song.song.id,
+                                                                            song.song.id.toUri(),
+                                                                        )
+                                                                        .setCustomCacheKey(song.song.id)
+                                                                        .setData(song.song.title.toByteArray())
+                                                                        .build()
+                                                                DownloadService.sendAddDownload(
+                                                                    context,
+                                                                    ExoDownloadService::class.java,
+                                                                    downloadRequest,
+                                                                    false,
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            )
+
+                                            ActionItem(
+                                                icon = {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.offline),
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        painter = painterResource(R.drawable.shuffle),
+                                                        contentDescription = stringResource(R.string.shuffle),
+                                                        tint = MaterialTheme.colorScheme.onPrimary,
                                                         modifier = Modifier.size(24.dp)
                                                     )
-                                                }
-                                                Download.STATE_DOWNLOADING -> {
-                                                    CircularProgressIndicator(
-                                                        strokeWidth = 2.dp,
-                                                        modifier = Modifier.size(24.dp)
+                                                },
+                                                label = stringResource(R.string.shuffle),
+                                                backgroundColor = MaterialTheme.colorScheme.primary,
+                                                onClick = {
+                                                    playerConnection.playQueue(
+                                                        ListQueue(
+                                                            title = name,
+                                                            items = songs!!.shuffled().map { it.toMediaItem() },
+                                                        ),
                                                     )
                                                 }
-                                                else -> {
+                                            )
+
+                                            ActionItem(
+                                                icon = {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.download),
-                                                        contentDescription = null,
+                                                        painter = painterResource(R.drawable.queue_music),
+                                                        contentDescription = "Queue",
                                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         modifier = Modifier.size(24.dp)
                                                     )
+                                                },
+                                                label = "Queue",
+                                                backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                                onClick = {
+                                                    playerConnection.addToQueue(
+                                                        items = songs!!.map { it.toMediaItem() },
+                                                    )
                                                 }
-                                            }
+                                            )
                                         }
-                                    }
 
-                                    // Play Button
-                                    Button(
-                                        onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = name,
-                                                    items = songs!!.map { it.toMediaItem() },
-                                                ),
-                                            )
-                                        },
-                                        shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = stringResource(R.string.play),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
+                                        Spacer(modifier = Modifier.height(24.dp))
 
-                                    // Shuffle Button
-                                    Button(
-                                        onClick = {
-                                            playerConnection.playQueue(
-                                                ListQueue(
-                                                    title = name,
-                                                    items = songs!!.shuffled().map { it.toMediaItem() },
-                                                ),
-                                            )
-                                        },
-                                        shape = RoundedCornerShape(24.dp),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(48.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.shuffle),
-                                            contentDescription = stringResource(R.string.shuffle),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-
-                                    // Add to Queue Button
-                                    Surface(
-                                        onClick = {
-                                            playerConnection.addToQueue(
-                                                items = songs!!.map { it.toMediaItem() },
-                                            )
-                                        },
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.size(48.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.Center
+                                        Button(
+                                            onClick = {
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        title = name,
+                                                        items = songs!!.map { it.toMediaItem() },
+                                                    ),
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(50),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp)
+                                                .height(56.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                         ) {
                                             Icon(
-                                                painter = painterResource(R.drawable.queue_music),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
+                                                painter = painterResource(R.drawable.play),
+                                                contentDescription = stringResource(R.string.play),
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(28.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = stringResource(R.string.play),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimary
                                             )
                                         }
                                     }
@@ -694,7 +565,6 @@ fun TopPlaylistScreen(
                         }
                     }
 
-                    // Sort Header (Period Filter)
                     item(key = "sortHeader") {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -707,8 +577,8 @@ fun TopPlaylistScreen(
                                     viewModel.topPeriod.value = it
                                 },
                                 onSortDescendingChange = {},
-                                sortTypeText = { sortType ->
-                                    when (sortType) {
+                                sortTypeText = { type ->
+                                    when (type) {
                                         MyTopFilter.ALL_TIME -> R.string.all_time
                                         MyTopFilter.DAY -> R.string.past_24_hours
                                         MyTopFilter.WEEK -> R.string.past_week
@@ -722,7 +592,6 @@ fun TopPlaylistScreen(
                         }
                     }
 
-                    // Song items
                     itemsIndexed(
                         items = filteredSongs,
                         key = { _, song -> song.item.id },
@@ -801,8 +670,11 @@ fun TopPlaylistScreen(
 
         TopAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface,
-                scrolledContainerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                titleContentColor = MaterialTheme.colorScheme.onBackground,
+                actionIconContentColor = MaterialTheme.colorScheme.onBackground
             ),
             title = {
                 when {
@@ -849,25 +721,24 @@ fun TopPlaylistScreen(
             navigationIcon = {
                 IconButton(
                     onClick = {
-                        when {
-                            isSearching -> {
-                                isSearching = false
-                                query = TextFieldValue()
-                                focusManager.clearFocus()
-                            }
-                            selection -> {
-                                selection = false
-                            }
-                            else -> {
-                                navController.navigateUp()
-                            }
+                        if (isSearching) {
+                            isSearching = false
+                            query = TextFieldValue()
+                            focusManager.clearFocus()
+                        } else if (selection) {
+                            selection = false
+                        } else {
+                            navController.navigateUp()
                         }
                     },
                     onLongClick = {
                         if (!isSearching && !selection) {
                             navController.backToMain()
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(
@@ -880,7 +751,7 @@ fun TopPlaylistScreen(
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
@@ -888,6 +759,10 @@ fun TopPlaylistScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(
@@ -897,7 +772,7 @@ fun TopPlaylistScreen(
                         )
                     }
 
-                    androidx.compose.material3.IconButton(
+                    IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -908,6 +783,10 @@ fun TopPlaylistScreen(
                                 )
                             }
                         },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.more_vert),
@@ -915,8 +794,12 @@ fun TopPlaylistScreen(
                         )
                     }
                 } else if (!isSearching) {
-                    androidx.compose.material3.IconButton(
-                        onClick = { isSearching = true }
+                    IconButton(
+                        onClick = { isSearching = true },
+                        onLongClick = {},
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
@@ -925,6 +808,38 @@ fun TopPlaylistScreen(
                     }
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun ActionItem(icon: @Composable () -> Unit, label: String, backgroundColor: Color, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = onClick
+        )
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = backgroundColor,
+            modifier = Modifier.size(56.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                icon()
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

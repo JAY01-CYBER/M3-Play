@@ -57,6 +57,7 @@ val EnableLrcLibKey = booleanPreferencesKey("enableLrcLib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
+val EnablePaxsenixKey = booleanPreferencesKey("enablePaxsenix")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
@@ -399,6 +400,7 @@ enum class PreferredLyricsProvider {
     BETTER_LYRICS,
     SIMPMUSIC,
     YOULYPLUS,
+    PAXSENIX,
 }
 
 enum class PlayerButtonsStyle {
@@ -415,7 +417,7 @@ enum class PlayerDesignStyle {
     V6,
 }
 
-// 🔥 YAHAN HAIN AAPKE SAARE OPTIONS JO MISSING THE 🔥
+
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
