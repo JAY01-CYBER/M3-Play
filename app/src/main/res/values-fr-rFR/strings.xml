@@ -21,10 +21,10 @@
     <string name="stats">Statistiques</string>
     <string name="mood_and_genres">Ambiance &amp; Genres</string>
     <string name="account">Compte</string>
-    <string name="liked">Liked</string>
-    <string name="downloads">Downloads</string>
+    <string name="liked">Favoris</string>
+    <string name="downloads">Téléchargements</string>
     <string name="library">Bibliothèque</string>
-    <string name="play_all">Play all</string>
+    <string name="play_all">Tout lire</string>
     <string name="identify_music">Identifier la musique</string>
     <string name="lyrics_v2_experimental">Paroles V2 (Expérimental)</string>
     <string name="lyrics_v2_description">Utilisez le nouveau moteur de paroles synchronisées avec le texte</string>
@@ -48,7 +48,7 @@
     <string name="yesterday">Hier</string>
     <string name="this_week">Cette semaine</string>
     <string name="last_week">Semaine dernière</string>
-    <string name="most_played_songs">Most played songs</string>
+    <string name="most_played_songs">Titres les plus écoutés</string>
     <string name="most_played_artists">Artistes les plus écoutés</string>
     <string name="most_played_albums">Albums les plus écoutés</string>
     <string name="search">Rechercher</string>
@@ -762,4 +762,10 @@ M3Play se contente d\'extraire votre jeton ; toutes les autres données sont sto
     <string name="token_copied">Jeton copié dans le presse-papiers</string>
     <string name="no_visitor_data">Aucune donnée relative aux visiteurs n\'est disponible. Il est impossible de générer des jetons.</string>
     <string name="extracting_from_url">Extraction des jetons de l\'URL…</string>
+    <string name="spotify_not_connected">Non connecté à Spotify</string>
+    <string name="spotify_reload_playlist">Actualiser la playlist</string>
+    <string name="spotify_no_tracks">Aucun titre trouvé</string>
+    <string name="ai_model_no_results">Aucun résultat trouvé</string>
+    <string name="spotify_playlists">Playlists Spotify</string>
+    <string name="spotify_account">Compte Spotify</string>
 </resources>

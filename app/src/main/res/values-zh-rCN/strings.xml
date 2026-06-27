@@ -752,4 +752,10 @@
     <string name="token_copied">令牌已复制到剪贴板</string>
     <string name="no_visitor_data">未获取到访客数据，无法生成令牌</string>
     <string name="extracting_from_url">正在从 URL 提取令牌…</string>
+    <string name="spotify_not_connected">Not connected to Spotify</string>
+    <string name="spotify_reload_playlist">Reload Playlist</string>
+    <string name="spotify_no_tracks">No tracks found</string>
+    <string name="ai_model_no_results">No results found</string>
+    <string name="spotify_playlists">Spotify Playlists</string>
+    <string name="spotify_account">Spotify Account</string>
 </resources>
