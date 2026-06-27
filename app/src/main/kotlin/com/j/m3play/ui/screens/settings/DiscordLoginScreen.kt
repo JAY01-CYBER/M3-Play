@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -17,6 +16,7 @@ import android.view.ViewGroup
 import android.webkit.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -59,161 +60,168 @@ fun DiscordLoginScreen(navController: NavController) {
         navController.navigateUp()
     }
 
-    AndroidView(
-        modifier = Modifier
-            .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-            .fillMaxSize(),
-        factory = { context ->
-            WebView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-
-                WebView.setWebContentsDebuggingEnabled(true)
-
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.setSupportZoom(true)
-                settings.builtInZoomControls = true
-
-                CookieManager.getInstance().apply {
-                    removeAllCookies(null)
-                    flush()
-                }
-
-                WebStorage.getInstance().deleteAllData()
-
-                addJavascriptInterface(object {
-                    @JavascriptInterface
-                    fun onRetrieveToken(token: String) {
-                        Log.d("DiscordWebView", "Token: $token")
-                        scope.launch(Dispatchers.Main) { completeLogin(token) }
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.action_login), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
-                }, "Android")
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        AndroidView(
+            modifier = Modifier
+                .padding(padding)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+                .fillMaxSize(),
+            factory = { context ->
+                WebView(context).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
 
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String) {
-                        if (isCompleting) return
-                        if (!url.contains("discord.com")) return
-                        if (url.contains("/login")) return
+                    WebView.setWebContentsDebuggingEnabled(true)
 
-                        val js = """
-                            (function() {
-                                function cleanToken(t) {
-                                    if (!t) return null;
-                                    try {
-                                        var s = String(t);
-                                        if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') {
-                                            s = s.slice(1, -1);
-                                        }
-                                        return s;
-                                    } catch (e) { return null; }
-                                }
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.setSupportZoom(true)
+                    settings.builtInZoomControls = true
 
-                                function send(t) {
-                                    var s = cleanToken(t);
-                                    if (s && s !== "null" && s !== "error") {
-                                        Android.onRetrieveToken(s);
-                                        return true;
+                    CookieManager.getInstance().apply {
+                        removeAllCookies(null)
+                        flush()
+                    }
+
+                    WebStorage.getInstance().deleteAllData()
+
+                    addJavascriptInterface(object {
+                        @JavascriptInterface
+                        fun onRetrieveToken(token: String) {
+                            Log.d("DiscordWebView", "Token: $token")
+                            scope.launch(Dispatchers.Main) { completeLogin(token) }
+                        }
+                    }, "Android")
+
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String) {
+                            if (isCompleting) return
+                            if (!url.contains("discord.com")) return
+                            if (url.contains("/login")) return
+
+                            val js = """
+                                (function() {
+                                    function cleanToken(t) {
+                                        if (!t) return null;
+                                        try {
+                                            var s = String(t);
+                                            if (s.length >= 2 && s[0] === '"' && s[s.length - 1] === '"') {
+                                                s = s.slice(1, -1);
+                                            }
+                                            return s;
+                                        } catch (e) { return null; }
                                     }
-                                    return false;
-                                }
 
-                                function tryLocalStorage() {
-                                    try {
-                                        return send(window.localStorage.getItem("token") || window.localStorage.token);
-                                    } catch (e) { return false; }
-                                }
+                                    function send(t) {
+                                        var s = cleanToken(t);
+                                        if (s && s !== "null" && s !== "error") {
+                                            Android.onRetrieveToken(s);
+                                            return true;
+                                        }
+                                        return false;
+                                    }
 
-                                function tryIframe() {
-                                    try {
-                                        var i = document.createElement('iframe');
-                                        i.style.display = 'none';
-                                        document.body.appendChild(i);
-                                        var alt = i.contentWindow.localStorage.token || i.contentWindow.localStorage.getItem("token");
-                                        return send(alt);
-                                    } catch (e) { return false; }
-                                }
+                                    function tryLocalStorage() {
+                                        try {
+                                            return send(window.localStorage.getItem("token") || window.localStorage.token);
+                                        } catch (e) { return false; }
+                                    }
 
-                                function tryWebpack() {
-                                    try {
-                                        var w = window.webpackChunkdiscord_app;
-                                        if (!w || !w.push) return false;
-                                        var token = null;
-                                        w.push([[Math.random()], {}, function(req) {
-                                            try {
-                                                for (var k in req.c) {
-                                                    var m = req.c[k];
-                                                    var exp = m && m.exports && m.exports.default;
-                                                    if (exp && typeof exp.getToken === "function") {
-                                                        token = exp.getToken();
-                                                        break;
+                                    function tryIframe() {
+                                        try {
+                                            var i = document.createElement('iframe');
+                                            i.style.display = 'none';
+                                            document.body.appendChild(i);
+                                            var alt = i.contentWindow.localStorage.token || i.contentWindow.localStorage.getItem("token");
+                                            return send(alt);
+                                        } catch (e) { return false; }
+                                    }
+
+                                    function tryWebpack() {
+                                        try {
+                                            var w = window.webpackChunkdiscord_app;
+                                            if (!w || !w.push) return false;
+                                            var token = null;
+                                            w.push([[Math.random()], {}, function(req) {
+                                                try {
+                                                    for (var k in req.c) {
+                                                        var m = req.c[k];
+                                                        var exp = m && m.exports && m.exports.default;
+                                                        if (exp && typeof exp.getToken === "function") {
+                                                            token = exp.getToken();
+                                                            break;
+                                                        }
                                                     }
-                                                }
-                                            } catch (e) {}
-                                        }]);
-                                        return send(token);
-                                    } catch (e) { return false; }
-                                }
+                                                } catch (e) {}
+                                            }]);
+                                            return send(token);
+                                        } catch (e) { return false; }
+                                    }
 
-                                function run() {
-                                    if (tryLocalStorage()) return;
-                                    if (tryWebpack()) return;
-                                    tryIframe();
-                                }
+                                    function run() {
+                                        if (tryLocalStorage()) return;
+                                        if (tryWebpack()) return;
+                                        tryIframe();
+                                    }
 
-                                run();
-                                setTimeout(run, 1200);
-                                setTimeout(run, 3000);
-                            })();
-                        """.trimIndent()
+                                    run();
+                                    setTimeout(run, 1200);
+                                    setTimeout(run, 3000);
+                                })();
+                            """.trimIndent()
 
-                        view.evaluateJavascript(js, null)
+                            view.evaluateJavascript(js, null)
+                        }
+
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView,
+                            request: WebResourceRequest
+                        ): Boolean {
+                            if (isCompleting) return true
+                            return false
+                        }
                     }
 
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ): Boolean {
-                        if (isCompleting) return true
-                        return false
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onJsAlert(
+                            view: WebView,
+                            url: String,
+                            message: String,
+                            result: JsResult
+                        ): Boolean {
+                            scope.launch(Dispatchers.Main) { completeLogin(message) }
+                            result.confirm()
+                            return true
+                        }
                     }
+
+                    webView = this
+                    loadUrl("https://discord.com/login")
                 }
-
-                webChromeClient = object : WebChromeClient() {
-                    override fun onJsAlert(
-                        view: WebView,
-                        url: String,
-                        message: String,
-                        result: JsResult
-                    ): Boolean {
-                        scope.launch(Dispatchers.Main) { completeLogin(message) }
-                        result.confirm()
-                        return true
-                    }
-                }
-
-                webView = this
-                loadUrl("https://discord.com/login")
             }
-        }
-    )
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.action_login)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null
-                )
-            }
-        }
-    )
+        )
+    }
 
     BackHandler(enabled = webView?.canGoBack() == true) {
         webView?.goBack()

@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -27,9 +26,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -37,24 +38,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -66,12 +70,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -221,7 +227,7 @@ fun PoTokenScreen(
                 Text(
                     text = stringResource(R.string.source_url),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
 
@@ -239,7 +245,7 @@ fun PoTokenScreen(
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                         focusedLabelColor = MaterialTheme.colorScheme.primary,
                     ),
-                    shape = RoundedCornerShape(16.dp), // Premium Shape
+                    shape = RoundedCornerShape(20.dp),
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -251,16 +257,16 @@ fun PoTokenScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
-                    shape = RoundedCornerShape(16.dp), // Premium Shape
+                    shape = RoundedCornerShape(20.dp),
                 ) {
                     Text(
                         stringResource(R.string.regenerate_token),
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -269,182 +275,216 @@ fun PoTokenScreen(
         }
     }
 
-    Column(
-        Modifier
-            .windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { 
+                    Text(
+                        stringResource(R.string.po_token_generation),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.arrow_back),
+                            contentDescription = null
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
-            .verticalScroll(rememberScrollState())
-            .animateContentSize(
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            )
-    ) {
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-            )
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.web_client_po_token)) },
-            description = stringResource(R.string.web_client_po_token_desc),
-            icon = { Icon(painterResource(R.drawable.token), null) },
-            checked = webClientPoTokenEnabled,
-            onCheckedChange = onWebClientPoTokenEnabledChange,
-        )
-
-        AnimatedVisibility(
-            visible = webClientPoTokenEnabled,
-            enter = expandVertically(
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            ) + fadeIn(),
-            exit = shrinkVertically(
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-            ) + fadeOut(),
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .windowInsetsPadding(
+                    LocalPlayerAwareWindowInsets.current.only(
+                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                    )
+                ),
+            contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column {
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.generated_tokens)
-                )
-
-                SelectableTokenCard(
-                    label = stringResource(R.string.po_token_gvs),
-                    token = displayGvsToken,
-                    onCopy = {
-                        clipboardManager.setText(AnnotatedString(displayGvsToken))
-                        Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-
-                SelectableTokenCard(
-                    label = stringResource(R.string.po_token_player),
-                    token = displayPlayerToken,
-                    onCopy = {
-                        clipboardManager.setText(AnnotatedString(displayPlayerToken))
-                        Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-
-                SelectableTokenCard(
-                    label = stringResource(R.string.visitor_data),
-                    token = displayVisitorData,
-                    onCopy = {
-                        clipboardManager.setText(AnnotatedString(displayVisitorData))
-                        Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
-
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.supported_clients)
-                )
-
-                FlowRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    SUPPORTED_CLIENTS.forEach { client ->
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    text = client,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                )
-                            },
-                            shape = RoundedCornerShape(12.dp), // Squircle Chip
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            ),
-                            border = AssistChipDefaults.assistChipBorder(
-                                enabled = true,
-                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            )
+                    Column(Modifier.padding(vertical = 12.dp)) {
+                        SwitchPreference(
+                            title = { Text(stringResource(R.string.web_client_po_token)) },
+                            description = stringResource(R.string.web_client_po_token_desc),
+                            icon = { Icon(painterResource(R.drawable.token), null) },
+                            checked = webClientPoTokenEnabled,
+                            onCheckedChange = onWebClientPoTokenEnabledChange,
                         )
                     }
                 }
+            }
 
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.token_settings)
-                )
+            item {
+                AnimatedVisibility(
+                    visible = webClientPoTokenEnabled,
+                    enter = expandVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                    ) + fadeIn(),
+                    exit = shrinkVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                    ) + fadeOut(),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        PreferenceGroupTitle(
+                            title = stringResource(R.string.generated_tokens),
+                            modifier = Modifier.padding(start = 24.dp)
+                        )
 
-                SwitchPreference(
-                    title = { Text(stringResource(R.string.use_visitor_data)) },
-                    description = stringResource(R.string.use_visitor_data_desc),
-                    icon = { Icon(painterResource(R.drawable.person), null) },
-                    checked = useVisitorData,
-                    onCheckedChange = { enabled ->
-                        if (enabled && hasCookie) {
-                            Toast.makeText(
-                                context,
-                                R.string.cookies_must_be_disabled,
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            onUseVisitorDataChange(enabled)
+                        SelectableTokenCard(
+                            label = stringResource(R.string.po_token_gvs),
+                            token = displayGvsToken,
+                            onCopy = {
+                                clipboardManager.setText(AnnotatedString(displayGvsToken))
+                                Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        SelectableTokenCard(
+                            label = stringResource(R.string.po_token_player),
+                            token = displayPlayerToken,
+                            onCopy = {
+                                clipboardManager.setText(AnnotatedString(displayPlayerToken))
+                                Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        SelectableTokenCard(
+                            label = stringResource(R.string.visitor_data),
+                            token = displayVisitorData,
+                            onCopy = {
+                                clipboardManager.setText(AnnotatedString(displayVisitorData))
+                                Toast.makeText(context, R.string.token_copied, Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        PreferenceGroupTitle(
+                            title = stringResource(R.string.supported_clients),
+                            modifier = Modifier.padding(start = 24.dp)
+                        )
+
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SUPPORTED_CLIENTS.forEach { client ->
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text(
+                                            text = client,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                        labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    ),
+                                    border = AssistChipDefaults.assistChipBorder(
+                                        enabled = true,
+                                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                                    )
+                                )
+                            }
                         }
-                    },
-                )
 
-                Spacer(Modifier.height(16.dp))
-
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        showRegenerateSheet = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .height(56.dp),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shape = RoundedCornerShape(24.dp), // Premium Action Radius
-                    icon = {
-                        Icon(
-                        painter = painterResource(R.drawable.sync),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        PreferenceGroupTitle(
+                            title = stringResource(R.string.token_settings),
+                            modifier = Modifier.padding(start = 24.dp)
                         )
-                    },
-                    text = {
-                        Text(
-                            text = stringResource(R.string.regenerate),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                )
 
-                Spacer(Modifier.height(32.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(32.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+                            Column(Modifier.padding(vertical = 12.dp)) {
+                                SwitchPreference(
+                                    title = { Text(stringResource(R.string.use_visitor_data)) },
+                                    description = stringResource(R.string.use_visitor_data_desc),
+                                    icon = { Icon(painterResource(R.drawable.person), null) },
+                                    checked = useVisitorData,
+                                    onCheckedChange = { enabled ->
+                                        if (enabled && hasCookie) {
+                                            Toast.makeText(
+                                                context,
+                                                R.string.cookies_must_be_disabled,
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        } else {
+                                            onUseVisitorDataChange(enabled)
+                                        }
+                                    },
+                                )
+                            }
+                        }
+
+                        ExtendedFloatingActionButton(
+                            onClick = {
+                                showRegenerateSheet = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 8.dp)
+                                .height(56.dp),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(24.dp),
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.sync),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.regenerate),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                        )
+                    }
+                }
             }
         }
     }
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.po_token_generation)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain
-            ) {
-                Icon(
-                    painterResource(R.drawable.arrow_back),
-                    contentDescription = null
-                )
-            }
-        }
-    )
 }
 
 @Composable
@@ -456,8 +496,8 @@ private fun SelectableTokenCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp), // Premium Large Radius
-        color = MaterialTheme.colorScheme.surfaceContainerHigh, // Expensive color
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 0.dp
     ) {
         Row(
@@ -472,7 +512,7 @@ private fun SelectableTokenCard(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(Modifier.height(8.dp))

@@ -1,8 +1,11 @@
 /*
- * M3Play - Modern Music Player
- *
- * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.constants
@@ -50,10 +53,11 @@ val AppLanguageKey = stringPreferencesKey("appLanguage")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
-val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
+val EnableLrcLibKey = booleanPreferencesKey("enableLrcLib")
 val EnableBetterLyricsKey = booleanPreferencesKey("enableBetterLyrics")
 val EnableSimpMusicLyricsKey = booleanPreferencesKey("enableSimpMusicLyrics")
 val EnableYouLyPlusKey = booleanPreferencesKey("enableYouLyPlus")
+val EnablePaxsenixKey = booleanPreferencesKey("enablePaxsenix")
 val HideExplicitKey = booleanPreferencesKey("hideExplicit")
 val HideVideoKey = booleanPreferencesKey("hideVideo")
 val ProxyEnabledKey = booleanPreferencesKey("proxyEnabled")
@@ -84,6 +88,29 @@ val LastFMUseNowPlaying = booleanPreferencesKey("lastfmUseNowPlaying")
 val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
 val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
+
+// ====================================================
+// 🔥 SPOTIFY INTEGRATION KEYS 🔥
+// ====================================================
+
+// M3Play Original Keys
+val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
+val SpotifyTokenKey = stringPreferencesKey("spotify_token")
+val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
+val SpotifyUserNameKey = stringPreferencesKey("spotify_user_name")
+val ShowSpotifyPlaylistKey = booleanPreferencesKey("show_spotify_playlist")
+
+// ArchiveTune Core Spotify Keys
+val SpotifySpDcKey = stringPreferencesKey("spotify_sp_dc")
+val SpotifySpKeyKey = stringPreferencesKey("spotify_sp_key")
+val SpotifyAccessTokenKey = stringPreferencesKey("spotify_access_token")
+val SpotifyAccessTokenExpiresAtKey = longPreferencesKey("spotify_access_token_expires_at")
+val SpotifyAccountNameKey = stringPreferencesKey("spotify_account_name")
+val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_url")
+val ShowSpotifyPlaylistsKey = booleanPreferencesKey("show_spotify_playlists")
+val SpotifyLibraryPlaylistsCacheKey = stringPreferencesKey("spotify_library_playlists_cache")
+
+// ====================================================
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
@@ -172,7 +199,6 @@ val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceInterv
 val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") // "ONLINE", "IDLE", "DND", "INVISIBLE"
 
 // Discord image selection keys
-// Values for type keys: "thumbnail", "artist", "appicon", "custom"
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeTextSourceKey = stringPreferencesKey("discordLargeTextSource")
 val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
@@ -233,7 +259,6 @@ enum class LibraryViewType {
     LIST,
     GRID,
     ;
-
     fun toggle() =
         when (this) {
             LIST -> GRID
@@ -330,7 +355,6 @@ enum class MyTopFilter {
     MONTH,
     YEAR,
     ;
-
     fun toTimeMillis(): Long =
         when (this) {
             DAY ->
@@ -376,6 +400,7 @@ enum class PreferredLyricsProvider {
     BETTER_LYRICS,
     SIMPMUSIC,
     YOULYPLUS,
+    PAXSENIX,
 }
 
 enum class PlayerButtonsStyle {
@@ -391,6 +416,7 @@ enum class PlayerDesignStyle {
     V5,
     V6,
 }
+
 
 enum class PlayerBackgroundStyle {
     DEFAULT,
@@ -411,7 +437,6 @@ val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
-
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle {
     NONE,
@@ -430,6 +455,7 @@ val HistoryDuration = floatPreferencesKey("historyDuration")
 
 val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style") 
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
 val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
 val LyricsClickKey = booleanPreferencesKey("lyricsClick")
@@ -454,7 +480,6 @@ enum class SearchSource {
     LOCAL,
     ONLINE,
     ;
-
     fun toggle() =
         when (this) {
             LOCAL -> ONLINE

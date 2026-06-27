@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -12,6 +11,7 @@ package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues // <-- ADDED THIS IMPORT
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -30,16 +30,18 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -103,48 +105,42 @@ fun ChangelogScreen(
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = "Changelog", 
-                        fontWeight = FontWeight.Bold 
-                    ) 
-                },
+            LargeTopAppBar(
+                title = { Text(text = "Changelog", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
                         onLongClick = navController::backToMain,
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = "Back",
-                        )
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back")
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
-                    ),
-                )
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp), // MD3 Expressive spacing
+            contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                // Expressive Hero Card for Header
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(32.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -191,18 +187,17 @@ fun ChangelogScreen(
 
 @Composable
 private fun ExpressiveVersionCard(item: ChangeLog) {
-    // MD3 Elevated Card for beautiful depth
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp), // Large corner radius for expressive look
+        shape = RoundedCornerShape(32.dp),
         elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = if (item.isLatest) 6.dp else 2.dp
+            defaultElevation = if (item.isLatest) 6.dp else 0.dp
         ),
         colors = CardDefaults.elevatedCardColors(
             containerColor = if (item.isLatest) 
                 MaterialTheme.colorScheme.surfaceVariant 
             else 
-                MaterialTheme.colorScheme.surface,
+                MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     ) {
         Column(
@@ -238,7 +233,6 @@ private fun ExpressiveVersionCard(item: ChangeLog) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // State to group warning lines together
             val warningBlock = mutableListOf<String>()
 
             item.lines.forEach { line ->
@@ -292,7 +286,6 @@ private fun ExpressiveVersionCard(item: ChangeLog) {
                 }
             }
             
-            // Flush any remaining warnings at the end
             if (warningBlock.isNotEmpty()) {
                 WarningBox(warningBlock)
                 warningBlock.clear()
@@ -307,7 +300,7 @@ private fun WarningBox(lines: List<String>) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer
     ) {
@@ -327,7 +320,6 @@ private fun WarningBox(lines: List<String>) {
     }
 }
 
-// Helper to convert Markdown **bold** tags into actual Compose Bold text
 @Composable
 private fun FormattedText(
     text: String, 
@@ -339,7 +331,6 @@ private fun FormattedText(
         val parts = text.split("**")
         parts.forEachIndexed { index, part ->
             if (index % 2 == 1) { 
-                // Odd index means it was wrapped in **
                 withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
                     append(part)
                 }

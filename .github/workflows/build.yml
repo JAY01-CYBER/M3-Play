@@ -45,6 +45,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # YAHAN GITHUB KHUD LOCAL.PROPERTIES BANAYEGA
+      - name: Inject Secrets into local.properties
+        run: |
+          echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> local.properties
+          echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> local.properties
+
       - name: Build Release APK
         run: ./gradlew assemble${{ matrix.abi }}Release
         env:
@@ -96,6 +102,12 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      # YAHAN BHI SECRETS INJECT HONGE
+      - name: Inject Secrets into local.properties
+        run: |
+          echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> local.properties
+          echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> local.properties
 
       - name: Build Debug APK
         run: ./gradlew assembleUniversalDebug

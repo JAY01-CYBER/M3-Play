@@ -161,12 +161,11 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
-    // Loading Text vs Provider Text
     val providerBadgeText = remember(currentLyrics) {
         if (currentLyrics == null) {
             "LOADING LYRICS"
         } else {
-            "LYRICS BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+            "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
         }
     }
 
@@ -214,8 +213,7 @@ fun LyricsScreen(
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
 
     LaunchedEffect(mediaMetadata.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW ||
-            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED || playerBackground == PlayerBackgroundStyle.APPLE_MUSIC || playerBackground == PlayerBackgroundStyle.LIVE_MESH) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             if (mediaMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[mediaMetadata.id]
                 if (cachedColors != null) {
@@ -266,28 +264,22 @@ fun LyricsScreen(
 
     val textBackgroundColor = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-        PlayerBackgroundStyle.BLUR -> Color.White
         PlayerBackgroundStyle.GRADIENT -> Color.White
         PlayerBackgroundStyle.COLORING -> Color.White
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.White
         PlayerBackgroundStyle.GLOW -> Color.White
         PlayerBackgroundStyle.GLOW_ANIMATED -> Color.White
         PlayerBackgroundStyle.CUSTOM -> Color.White
-        PlayerBackgroundStyle.APPLE_MUSIC -> Color.White
-        PlayerBackgroundStyle.LIVE_MESH -> Color.White
+        else -> Color.White
     }
 
     val icBackgroundColor = when (playerBackground) {
         PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-        PlayerBackgroundStyle.BLUR -> Color.Black
         PlayerBackgroundStyle.GRADIENT -> Color.Black
         PlayerBackgroundStyle.COLORING -> Color.Black
-        PlayerBackgroundStyle.BLUR_GRADIENT -> Color.Black
         PlayerBackgroundStyle.GLOW -> Color.Black
         PlayerBackgroundStyle.GLOW_ANIMATED -> Color.Black
         PlayerBackgroundStyle.CUSTOM -> Color.Black
-        PlayerBackgroundStyle.APPLE_MUSIC -> Color.Black
-        PlayerBackgroundStyle.LIVE_MESH -> Color.Black
+        else -> Color.Black
     }
 
     LaunchedEffect(playbackState) {
@@ -881,5 +873,81 @@ fun PremiumProviderBadge(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             )
         )
+    }
+}
+
+// 🔥 INLINE LYRICS COMPONENT FOR PLAYER 🔥
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InlineLyricsView(
+    mediaMetadata: MediaMetadata,
+    showLyrics: Boolean,
+    positionProvider: () -> Long,
+    textBackgroundColor: Color
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val coroutineScope = rememberCoroutineScope()
+    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
+
+    val providerBadgeText = remember(currentLyrics) {
+        if (currentLyrics == null) "LOADING LYRICS"
+        else "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+    }
+
+    LaunchedEffect(mediaMetadata.id, currentLyrics) {
+        if (currentLyrics == null) {
+            delay(500)
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val entryPoint = dagger.hilt.android.EntryPointAccessors.fromApplication(
+                        context.applicationContext,
+                        com.j.m3play.di.LyricsHelperEntryPoint::class.java
+                    )
+                    val lyricsHelper = entryPoint.lyricsHelper()
+                    val result = lyricsHelper.getLyrics(mediaMetadata)
+                    database.query {
+                        upsert(LyricsEntity(mediaMetadata.id, result.lyrics, result.providerName))
+                    }
+                } catch (e: Exception) { }
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(12.dp)),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        PremiumProviderBadge(
+            text = providerBadgeText, 
+            textColor = textBackgroundColor,
+            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+        )
+        
+        Box(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (currentLyrics == null) {
+                CircularProgressIndicator(color = textBackgroundColor, modifier = Modifier.align(Alignment.Center))
+            } else if (currentLyrics?.lyrics == LyricsEntity.LYRICS_NOT_FOUND) {
+                Text(
+                    text = stringResource(R.string.lyrics_not_found),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textBackgroundColor.copy(alpha = 0.7f),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                if (useLyricsV2) {
+                    LyricsV2(sliderPositionProvider = { positionProvider() })
+                } else {
+                    Lyrics(sliderPositionProvider = { positionProvider() })
+                }
+            }
+        }
     }
 }

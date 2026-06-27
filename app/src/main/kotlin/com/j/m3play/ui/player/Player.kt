@@ -20,8 +20,15 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.with
 import androidx.compose.foundation.Image
@@ -314,6 +321,9 @@ fun BottomSheetPlayer(
     var isUserSeeking by remember(mediaMetadata?.id) {
         mutableStateOf(false)
     }
+
+    var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
+    var isFullScreen by rememberSaveable { mutableStateOf(false) }
     
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
@@ -341,7 +351,10 @@ fun BottomSheetPlayer(
     }
     
     LaunchedEffect(mediaMetadata?.id, playerBackground) {
-        if (playerBackground == PlayerBackgroundStyle.GRADIENT || playerBackground == PlayerBackgroundStyle.COLORING || playerBackground == PlayerBackgroundStyle.BLUR_GRADIENT || playerBackground == PlayerBackgroundStyle.GLOW || playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+        if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
+            playerBackground == PlayerBackgroundStyle.COLORING || 
+            playerBackground == PlayerBackgroundStyle.GLOW ||
+            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
                 val cachedColors = gradientColorsCache[currentMetadata.id]
@@ -397,29 +410,23 @@ fun BottomSheetPlayer(
     val TextBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-            PlayerBackgroundStyle.BLUR,
             PlayerBackgroundStyle.GRADIENT,
             PlayerBackgroundStyle.COLORING,
-            PlayerBackgroundStyle.BLUR_GRADIENT,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.APPLE_MUSIC,
-            PlayerBackgroundStyle.LIVE_MESH -> Color.White
+            PlayerBackgroundStyle.CUSTOM -> Color.White
+            else -> Color.White
         }
 
     val icBackgroundColor =
         when (playerBackground) {
             PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.surface
-            PlayerBackgroundStyle.BLUR,
             PlayerBackgroundStyle.GRADIENT,
             PlayerBackgroundStyle.COLORING,
-            PlayerBackgroundStyle.BLUR_GRADIENT,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.APPLE_MUSIC,
-            PlayerBackgroundStyle.LIVE_MESH -> Color.Black
+            PlayerBackgroundStyle.CUSTOM -> Color.Black
+            else -> Color.Black
         }
 
     val (textButtonColor, iconButtonColor) = when (playerButtonsStyle) {
@@ -586,21 +593,12 @@ fun BottomSheetPlayer(
         collapsedBound = dismissedBound + 1.dp,
         initialAnchor = 1
     )
-    
-    val lyricsSheetState = rememberBottomSheetState(
-        dismissedBound = 0.dp,
-        expandedBound = state.expandedBound,
-        collapsedBound = 0.dp,
-        initialAnchor = 1
-    )
 
     BackHandler(
-        enabled =
-        (!lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed) || (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
-            (!state.isCollapsed && !state.isDismissed)
+        enabled = (!queueSheetState.isCollapsed && !queueSheetState.isDismissed) ||
+        (!state.isCollapsed && !state.isDismissed)
     ) {
         when {
-            !lyricsSheetState.isCollapsed && !lyricsSheetState.isDismissed -> lyricsSheetState.collapseSoft()
             !queueSheetState.isCollapsed && !queueSheetState.isDismissed -> queueSheetState.collapseSoft()
             !state.isCollapsed && !state.isDismissed -> state.collapseSoft()
         }
@@ -679,7 +677,7 @@ fun BottomSheetPlayer(
             }
         },
         backgroundColor = when (playerBackground) {
-            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT -> {
+            PlayerBackgroundStyle.GRADIENT -> {
                 val bgRange = state.expandedBound - state.collapsedBound
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
@@ -704,24 +702,16 @@ fun BottomSheetPlayer(
             playerConnection.service.stopAndClearPlayback()
         },
         collapsedContent = {
-            // 🔥 YAHAN MAGIC HUA HAI: Full Player to Mini Player Return Animation Fixed!
             Box(
                 modifier = Modifier.graphicsLayer {
                     val range = state.expandedBound - state.collapsedBound
                     val expandProgressRaw = if (range.value != 0f) {
                         (state.value - state.collapsedBound) / range
                     } else 0f
-                    // collapseProgress 1 = pura mini player dikhega, 0 = pura hide rahega
                     val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
-                    
-                    // Mini player chote se bada hoga (0.85x to 1.0x) taaki lage wo screen mein emerge ho raha hai
                     val scale = 0.85f + (0.15f * collapseProgress)
                     scaleX = scale
                     scaleY = scale
-                    
-                    // NOTE: Translation Y yahan se hata diya gaya hai kyunki ye aur BottomSheet ka
-                    // movement clash karke mini-player ko screen se bahar dhakel deta tha!
-                    // Ab sirf Smooth Scale aur BottomSheet ka native fade hoga.
                 }
             ) {
                 MiniPlayer(
@@ -804,6 +794,10 @@ fun BottomSheetPlayer(
                 context = context,
                 onSliderValueChange = onSliderValueChange,
                 onSliderValueChangeFinished = onSliderValueChangeFinished,
+                currentFormat = currentFormat,
+                showInlineLyrics = showInlineLyrics,
+                isFullScreen = isFullScreen,
+                onToggleFullScreen = { isFullScreen = !isFullScreen }
             )
         }
 
@@ -820,12 +814,21 @@ fun BottomSheetPlayer(
             )
         }
 
-        // 🔥 MAGIC HAPPENS HERE: Spring Reveal Animation Progress
         val mainRange = state.expandedBound - state.collapsedBound
         val expandProgressRaw = if (mainRange.value != 0f) {
             (state.value - state.collapsedBound) / mainRange
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
+
+        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
+        val bottomPadding by animateDpAsState(
+            targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
+            label = "bottomPadding"
+        )
+        val landscapeBottomPadding by animateDpAsState(
+            targetValue = if (isFullScreen) 24.dp else (queueSheetState.collapsedBound + 48.dp),
+            label = "landscapeBottomPadding"
+        )
 
         when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
@@ -845,27 +848,23 @@ fun BottomSheetPlayer(
                         Modifier
                             .fillMaxSize()
                             .background(littleBackground)
-                            // Animated Reveal
                             .graphicsLayer {
                                 val scale = 0.85f + (0.15f * expandProgressRaw)
                                 scaleX = scale
                                 scaleY = scale
-                                // Yahan bhi 150dp ko kam karke 60dp kar diya taaki offscreen na jaaye
                                 translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                 alpha = expandProgressSafeAlpha
                             },
                     ) {
                         Box(
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight(progressFraction)
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
@@ -902,9 +901,7 @@ fun BottomSheetPlayer(
                                                 navController = navController,
                                                 playerBottomSheetState = state,
                                                 onShowDetailsDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(metadata.id)
-                                                    }
+                                                    bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
                                                 },
                                                 onDismiss = menuState::dismiss
                                             )
@@ -916,10 +913,10 @@ fun BottomSheetPlayer(
                     }
                 } else {
                     Row(
-                        modifier =
-                        Modifier
+                        modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound + 48.dp),
+                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
+                            .animateContentSize(),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
@@ -929,18 +926,35 @@ fun BottomSheetPlayer(
                                     val scale = 0.8f + (0.2f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    // 100dp ko 50dp kiya taaki control mein rahe
-                                    translationX = -(1f - expandProgressRaw) * 50.dp.toPx()
+                                    translationY = -(1f - expandProgressRaw) * 50.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
                             val screenWidth = LocalConfiguration.current.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
-                            Thumbnail(
-                                sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.size(thumbnailSize),
-                                isPlayerExpanded = state.isExpanded
-                            )
+                            AnimatedContent(
+                                targetState = showInlineLyrics,
+                                label = "LyricsTransition",
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
+                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
+                            ) { showLyrics ->
+                                if (showLyrics) {
+                                    enrichedMetadata?.let { metadata ->
+                                        InlineLyricsView(
+                                            mediaMetadata = metadata,
+                                            showLyrics = showLyrics,
+                                            positionProvider = { position },
+                                            textBackgroundColor = TextBackgroundColor
+                                        )
+                                    }
+                                } else {
+                                    Thumbnail(
+                                        sliderPositionProvider = { sliderPosition },
+                                        modifier = Modifier.size(thumbnailSize),
+                                        isPlayerExpanded = state.isExpanded
+                                    )
+                                }
+                            }
                         }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -953,11 +967,7 @@ fun BottomSheetPlayer(
                                 },
                         ) {
                             Spacer(Modifier.weight(1f))
-
-                            enrichedMetadata?.let {
-                                controlsContent(it)
-                            }
-
+                            enrichedMetadata?.let { controlsContent(it) }
                             Spacer(Modifier.weight(1f))
                         }
                     }
@@ -975,15 +985,12 @@ fun BottomSheetPlayer(
                             else (displayPositionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                         }
                     val progressOverlayColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                
                     val seekEnabled = duration > 0L && duration != C.TIME_UNSET
 
                     Box(
-                        modifier =
-                        Modifier
+                        modifier = Modifier
                             .fillMaxSize()
                             .background(littleBackground)
-                            // Animated Reveal
                             .graphicsLayer {
                                 val scale = 0.85f + (0.15f * expandProgressRaw)
                                 scaleX = scale
@@ -993,16 +1000,14 @@ fun BottomSheetPlayer(
                             },
                     ) {
                         Box(
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .fillMaxHeight(progressFraction)
                                 .align(Alignment.TopStart)
                                 .background(progressOverlayColor),
                         )
                         Box(
-                            modifier =
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxSize()
                                 .littlePlayerOverlayGestures(
                                     seekEnabled = seekEnabled,
@@ -1040,9 +1045,7 @@ fun BottomSheetPlayer(
                                                     navController = navController,
                                                     playerBottomSheetState = state,
                                                     onShowDetailsDialog = {
-                                                        bottomSheetPageState.show {
-                                                            ShowMediaInfo(metadata.id)
-                                                        }
+                                                        bottomSheetPageState.show { ShowMediaInfo(metadata.id) }
                                                     },
                                                     onDismiss = menuState::dismiss
                                                 )
@@ -1058,43 +1061,54 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = queueSheetState.collapsedBound),
+                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
+                            .animateContentSize(),
                     ) {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    // 🌸 BEAUTIFUL SPRING REVEAL FOR ALBUM ART 🌸
-                                    // Scale from 75% to 100% with physical bottom sheet bounce
                                     val scale = 0.75f + (0.25f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    // Slide up distance kam kiya (150dp se 60dp) taaki smooth lage!
                                     translationY = (1f - expandProgressRaw) * 60.dp.toPx()
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
-                            Thumbnail(
-                                sliderPositionProvider = { sliderPosition },
-                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                isPlayerExpanded = state.isExpanded
-                            )
+                            AnimatedContent(
+                                targetState = showInlineLyrics,
+                                label = "LyricsTransition",
+                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
+                                transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
+                            ) { showLyrics ->
+                                if (showLyrics) {
+                                    enrichedMetadata?.let { metadata ->
+                                        InlineLyricsView(
+                                            mediaMetadata = metadata,
+                                            showLyrics = showLyrics,
+                                            positionProvider = { position },
+                                            textBackgroundColor = TextBackgroundColor
+                                        )
+                                    }
+                                } else {
+                                    Thumbnail(
+                                        sliderPositionProvider = { sliderPosition },
+                                        modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                        isPlayerExpanded = state.isExpanded
+                                    )
+                                }
+                            }
                         }
 
                         Column(
                             modifier = Modifier.graphicsLayer {
-                                // 🌸 CONTROLS FOLLOW WITH SLIGHTLY DIFFERENT TIMING 🌸
-                                // Yahan bhi 250dp se 80dp kar diya taaki controls gayab na ho jayein
                                 translationY = (1f - expandProgressRaw) * 80.dp.toPx()
                                 alpha = expandProgressSafeAlpha
                             }
                         ) {
-                            enrichedMetadata?.let {
-                                controlsContent(it)
-                            }
+                            enrichedMetadata?.let { controlsContent(it) }
                         }
-
                         Spacer(Modifier.height(30.dp))
                     }
                 }
@@ -1112,50 +1126,23 @@ fun BottomSheetPlayer(
             )
         }
 
-        Queue(
-            state = queueSheetState,
-            playerBottomSheetState = state,
-            navController = navController,
-            backgroundColor =
-            if (useBlackBackground) {
-                Color.Black
-            } else {
-                MaterialTheme.colorScheme.surfaceContainer
-            },
-            onBackgroundColor = queueOnBackgroundColor,
-            TextBackgroundColor = TextBackgroundColor,
-            textButtonColor = textButtonColor,
-            iconButtonColor = iconButtonColor,
-            onShowLyrics = { lyricsSheetState.expandSoft() },
-            pureBlack = pureBlack,
-        )
-
-        // Lyrics BottomSheet - separate from Queue
-        mediaMetadata?.let { metadata ->
-            BottomSheet(
-                state = lyricsSheetState,
-                backgroundColor = Color.Unspecified,
-                onDismiss = { /* Optional dismiss action */ },
-                collapsedContent = {
-                    // Empty collapsed content - fully hidden when collapsed
-                }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(
-                                alpha = lyricsSheetState.progress.coerceIn(0f, 1f)
-                            )
-                        )
-                ) {
-                    LyricsScreen(
-                        mediaMetadata = metadata,
-                        onBackClick = { lyricsSheetState.collapseSoft() },
-                        navController = navController
-                    )
-                }
-            }
+        AnimatedVisibility(
+            visible = !isFullScreen,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top) + slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            Queue(
+                state = queueSheetState,
+                playerBottomSheetState = state,
+                navController = navController,
+                backgroundColor = if (useBlackBackground) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                onBackgroundColor = queueOnBackgroundColor,
+                TextBackgroundColor = TextBackgroundColor,
+                textButtonColor = textButtonColor,
+                iconButtonColor = iconButtonColor,
+                onShowLyrics = { showInlineLyrics = !showInlineLyrics },
+                pureBlack = pureBlack,
+            )
         }
     }
 }
@@ -1178,11 +1165,7 @@ private fun LittlePlayerContent(
         val titleColor = textColor.copy(alpha = 0.95f)
         val secondaryColor = textColor.copy(alpha = 0.6f)
         val timeColor = textColor.copy(alpha = 0.85f)
-
-        val scale =
-            minOf(maxWidth / 420.dp, maxHeight / 260.dp)
-                .coerceIn(0.78f, 1.15f)
-
+        val scale = minOf(maxWidth / 420.dp, maxHeight / 260.dp).coerceIn(0.78f, 1.15f)
         val titleSize = (56f * scale).sp
         val timeSize = (44f * scale).sp
         val iconSize = (26f * scale).dp
@@ -1191,25 +1174,19 @@ private fun LittlePlayerContent(
         val verticalPadding = (10f * scale).dp
 
         val displayPositionMs = sliderPosition ?: positionMs
-
         val timeText = remember(displayPositionMs, durationMs) {
             val positionText = makeTimeString(displayPositionMs)
             val durationText = if (durationMs != C.TIME_UNSET) makeTimeString(durationMs) else ""
             if (durationText.isBlank()) positionText else "$positionText/$durationText"
         }
-
         val artistsText = remember(mediaMetadata.artists) {
             mediaMetadata.artists.joinToString(separator = ", ") { artist -> artist.name }
         }
 
         Column(
-            modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding, vertical = verticalPadding),
         ) {
             Spacer(Modifier.weight(1f))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top,
@@ -1231,9 +1208,7 @@ private fun LittlePlayerContent(
                             modifier = Modifier.basicMarquee(),
                         )
                     }
-
                     Spacer(Modifier.height((10f * scale).dp))
-
                     mediaMetadata.album?.title?.takeIf { it.isNotBlank() }?.let { albumTitle ->
                         AnimatedContent(
                             targetState = albumTitle,
@@ -1250,7 +1225,6 @@ private fun LittlePlayerContent(
                             )
                         }
                     }
-
                     artistsText.takeIf { it.isNotBlank() }?.let { artists ->
                         AnimatedContent(
                             targetState = artists,
@@ -1268,9 +1242,7 @@ private fun LittlePlayerContent(
                         }
                     }
                 }
-
                 Spacer(Modifier.width((16f * scale).dp))
-
                 Text(
                     text = timeText,
                     color = timeColor,
@@ -1281,11 +1253,8 @@ private fun LittlePlayerContent(
                     modifier = Modifier.widthIn(min = (140f * scale).dp),
                 )
             }
-
             Spacer(Modifier.height((14f * scale).dp))
-
             Spacer(Modifier.height((6f * scale).dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1294,64 +1263,28 @@ private fun LittlePlayerContent(
                     painter = painterResource(R.drawable.expand_more),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.8f),
-                    modifier =
-                    Modifier
-                        .size(collapseIconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onCollapse,
-                        ),
+                    modifier = Modifier.size(collapseIconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCollapse),
                 )
-
                 Spacer(Modifier.weight(1f))
-
                 Icon(
                     painter = painterResource(if (liked) R.drawable.favorite else R.drawable.favorite_border),
                     contentDescription = null,
-                    tint =
-                    if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f)
-                    else textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onToggleLike,
-                        ),
+                    tint = if (liked) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else textColor.copy(alpha = 0.78f),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onToggleLike),
                 )
-
                 Spacer(Modifier.width((18f * scale).dp))
-
                 Icon(
                     painter = painterResource(R.drawable.queue_music),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onExpandQueue,
-                        ),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onExpandQueue),
                 )
-
                 Spacer(Modifier.width((18f * scale).dp))
-
                 Icon(
                     painter = painterResource(R.drawable.more_vert),
                     contentDescription = null,
                     tint = textColor.copy(alpha = 0.78f),
-                    modifier =
-                    Modifier
-                        .size(iconSize)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onMenuClick,
-                        ),
+                    modifier = Modifier.size(iconSize).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onMenuClick),
                 )
             }
         }
@@ -1378,13 +1311,11 @@ private fun LandscapeLikeBox(
                     minHeight = constraints.minWidth,
                     maxHeight = constraints.maxWidth,
                 )
-
             val placeable = measurable.measure(swappedConstraints)
             val width = constraints.maxWidth
             val height = constraints.maxHeight
             val rotatedWidth = placeable.height
             val rotatedHeight = placeable.width
-
             val x = ((width - rotatedWidth) / 2).coerceAtLeast(0)
             val y = ((height - rotatedHeight) / 2).coerceAtLeast(0)
 
@@ -1419,38 +1350,25 @@ private fun Modifier.littlePlayerOverlayGestures(
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = true)
             val pointerId = down.id
-
             var upPosition = down.position
             val minOverlayHeightPx = 24.dp.toPx()
-            val overlayHeightPx =
-                (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
-            val seekAllowedFromDown =
-                seekEnabled &&
-                    durationMs > 0L &&
-                    durationMs != C.TIME_UNSET &&
-                    down.position.y <= overlayHeightPx
-
+            val overlayHeightPx = (progressFraction * size.height).coerceAtLeast(minOverlayHeightPx)
+            val seekAllowedFromDown = seekEnabled && durationMs > 0L && durationMs != C.TIME_UNSET && down.position.y <= overlayHeightPx
             var isSeeking = false
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Main)
                 val change = event.changes.firstOrNull { it.id == pointerId } ?: continue
                 upPosition = change.position
-
                 if (!change.pressed) break
-
                 if (!isSeeking && seekAllowedFromDown) {
                     val distanceFromDown = (change.position - down.position).getDistance()
                     if (distanceFromDown > touchSlop) isSeeking = true
                 }
-
                 if (isSeeking) {
-                    val fraction =
-                        if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
+                    val fraction = if (size.height > 0) (change.position.y / size.height.toFloat()) else 0f
                     val clampedFraction = fraction.coerceIn(0f, 1f)
-
-                    val targetMs =
-                        (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
+                    val targetMs = (durationMs.toDouble() * clampedFraction.toDouble()).roundToLong().coerceIn(0L, durationMs)
                     onSeekToPositionMs(targetMs)
                     change.consume()
                 }
@@ -1463,10 +1381,7 @@ private fun Modifier.littlePlayerOverlayGestures(
             } else {
                 val now = SystemClock.uptimeMillis()
                 val previousTapPosition = lastTapPosition
-                val isDoubleTap =
-                    previousTapPosition != null &&
-                            (now - lastTapUptimeMs) <= doubleTapTimeoutMs &&
-                            (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
+                val isDoubleTap = previousTapPosition != null && (now - lastTapUptimeMs) <= doubleTapTimeoutMs && (upPosition - previousTapPosition).getDistance() <= (touchSlop * 2f)
 
                 if (isDoubleTap) {
                     val isTopSide = upPosition.y < size.height / 2f

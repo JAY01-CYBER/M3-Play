@@ -20,8 +20,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -59,6 +57,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -135,9 +134,6 @@ import com.j.m3play.ui.component.SongGridItem
 import com.j.m3play.ui.component.SongListItem
 import com.j.m3play.ui.component.YouTubeGridItem
 import com.j.m3play.ui.component.YouTubeListItem
-import com.j.m3play.ui.component.shimmer.GridItemPlaceHolder
-import com.j.m3play.ui.component.shimmer.ShimmerHost
-import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.ArtistMenu
 import com.j.m3play.ui.menu.SongMenu
@@ -182,8 +178,7 @@ fun YTPremiumDiscoverCard(
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(item.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w544-h544"))
-                    .crossfade(true)
-                    .build(),
+                    .build(), 
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -566,7 +561,7 @@ fun QuickPicksSection(
                 )
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current).data(song.song.thumbnailUrl).crossfade(true).build(),
+                model = ImageRequest.Builder(LocalContext.current).data(song.song.thumbnailUrl).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -730,15 +725,13 @@ fun KeepListeningSection(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// YAHAN PAR FORGOTTEN FAVORITES M3 CAROUSEL ME UPGRADE KIYA HAI
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ForgottenFavoritesSection(
     forgottenFavorites: List<Song>,
     mediaMetadata: MediaMetadata?,
     isPlaying: Boolean,
-    horizontalLazyGridItemWidth: Dp,
-    lazyGridState: LazyGridState,
-    snapLayoutInfoProvider: SnapLayoutInfoProvider,
     navController: NavController,
     playerConnection: PlayerConnection,
     menuState: MenuState,
@@ -747,36 +740,72 @@ fun ForgottenFavoritesSection(
 ) {
     val distinctForgottenFavorites = remember(forgottenFavorites) { forgottenFavorites.distinctBy { it.id } }
     
-    LazyRow(
+    val carouselState = rememberCarouselState { distinctForgottenFavorites.size }
+
+    HorizontalMultiBrowseCarousel(
+        state = carouselState,
+        preferredItemWidth = 160.dp,
+        itemSpacing = 16.dp,
         contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        items(items = distinctForgottenFavorites, key = { it.id }) { song ->
-            Column(
+        modifier = modifier.fillMaxWidth().height(210.dp)
+    ) { index ->
+        val song = distinctForgottenFavorites[index]
+        
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .maskClip(RoundedCornerShape(12.dp))
+                .combinedClickable(
+                    onClick = { 
+                        if (song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() 
+                        else playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) 
+                    },
+                    onLongClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) } 
+                    }
+                )
+        ) {
+            Box(
                 modifier = Modifier
-                    .width(160.dp)
-                    .combinedClickable(
-                        onClick = { if (song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata())) },
-                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) } }
-                    )
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(12.dp))
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp))
-                ) {
-                    AsyncImage(model = song.song.thumbnailUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Box(modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape), contentAlignment = Alignment.Center) {
-                            val isActive = song.id == mediaMetadata?.id
-                            Icon(painter = painterResource(if (isActive && isPlaying) R.drawable.pause else R.drawable.play), contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp).padding(start = if (isActive && isPlaying) 0.dp else 2.dp))
-                        }
+                AsyncImage(
+                    model = song.song.thumbnailUrl, 
+                    contentDescription = null, 
+                    contentScale = ContentScale.Crop, 
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(36.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape), contentAlignment = Alignment.Center) {
+                        val isActive = song.id == mediaMetadata?.id
+                        Icon(
+                            painter = painterResource(if (isActive && isPlaying) R.drawable.pause else R.drawable.play), 
+                            contentDescription = null, 
+                            tint = Color.White, 
+                            modifier = Modifier.size(20.dp).padding(start = if (isActive && isPlaying) 0.dp else 2.dp)
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = song.song.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(text = song.artists.joinToString(", ") { it.name }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = song.song.title, 
+                style = MaterialTheme.typography.bodyMedium, 
+                fontWeight = FontWeight.SemiBold, 
+                maxLines = 2, 
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = song.artists.joinToString(", ") { it.name }, 
+                style = MaterialTheme.typography.bodySmall, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                maxLines = 1, 
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -824,11 +853,19 @@ fun SimilarRecommendationsSection(
     }
 }
 
+// YAHAN PAR NAYA WAVY PROGRESS ANIMATION BANAYA HAI
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeLoadingShimmer(modifier: Modifier = Modifier) {
-    ShimmerHost(modifier = modifier) {
-        TextPlaceholder(height = 36.dp, modifier = Modifier.padding(12.dp).width(250.dp))
-        LazyRow { items(4) { GridItemPlaceHolder() } }
+fun HomeWavyLoading(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxWidth().padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularWavyProgressIndicator(
+            modifier = Modifier.size(54.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     }
 }
 
@@ -931,7 +968,7 @@ fun AccountPlaylistsTitle(
         title = accountName,
         thumbnail = {
             if (accountImageUrl != null) {
-                AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(accountImageUrl).diskCachePolicy(CachePolicy.ENABLED).diskCacheKey(accountImageUrl).crossfade(true).build(), placeholder = painterResource(id = R.drawable.person), error = painterResource(id = R.drawable.person), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(ListThumbnailSize).clip(CircleShape))
+                AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(accountImageUrl).diskCachePolicy(CachePolicy.ENABLED).diskCacheKey(accountImageUrl).build(), placeholder = painterResource(id = R.drawable.person), error = painterResource(id = R.drawable.person), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(ListThumbnailSize).clip(CircleShape))
             } else {
                 Icon(painter = painterResource(id = R.drawable.person), contentDescription = null, modifier = Modifier.size(ListThumbnailSize))
             }
@@ -1039,7 +1076,7 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// MISSING FUNCTION RE-ADDED: METRO SPEED DIAL SECTION 
+// METRO SPEED DIAL SECTION 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MetroSpeedDialSection(
@@ -1250,6 +1287,7 @@ fun MetroSpeedDialSection(
                             .background(dotColor.copy(alpha = if (isRandomizing) 0.35f else 1f))
                     )
                 }
+                
                 if (isRandomizing) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
@@ -1346,11 +1384,9 @@ fun HomePageSectionContent(
     
     val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
-    //  Listen Again, Mixed for you, Discover (Standard Square Cards)
     val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar")
     
     when {
-        // 1. Listen Again, Mixes, Discover (Square Cards 1:1 format)
         isSquareGridSection -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
@@ -1386,7 +1422,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 2. Large Video Cards
         isVideoSection -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),
@@ -1408,7 +1443,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 3. 4-Row Lists (Trending, Covers)
         isSongsOnlySection -> {
             BoxWithConstraints {
                 val horizontalLazyGridItemWidth = maxWidth * 0.92f
@@ -1443,7 +1477,6 @@ fun HomePageSectionContent(
             }
         }
 
-        // 4. Default Fallback
         else -> {
             LazyRow(
                 contentPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues(),

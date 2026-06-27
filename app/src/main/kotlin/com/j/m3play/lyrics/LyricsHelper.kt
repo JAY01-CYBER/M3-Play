@@ -39,6 +39,7 @@ constructor(
         listOf(
             SimpMusicLyricsProvider,
             BetterLyricsProvider,
+            PaxsenixLyricsProvider, // <-- PAXSENIX ADDED HERE
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
@@ -170,7 +171,8 @@ constructor(
                 PreferredLyricsProvider.KUGOU -> KuGouLyricsProvider
                 PreferredLyricsProvider.BETTER_LYRICS -> BetterLyricsProvider
                 PreferredLyricsProvider.SIMPMUSIC -> SimpMusicLyricsProvider
-                PreferredLyricsProvider.YOULYPLUS -> YouLyPlusLyricsProvider 
+                PreferredLyricsProvider.YOULYPLUS -> YouLyPlusLyricsProvider
+                PreferredLyricsProvider.PAXSENIX -> PaxsenixLyricsProvider
             }
 
         return listOf(first) + baseProviders.filterNot { provider -> provider == first }

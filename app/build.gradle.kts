@@ -23,8 +23,8 @@ android {
         applicationId = "com.j.m3play"
         minSdk = 26
         targetSdk = 36
-        versionCode = 141
-        versionName = "3.0.8"
+        versionCode = 142
+        versionName = "3.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -45,6 +45,26 @@ android {
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
                 ?: ""
         buildConfigField("String", "TOGETHER_BEARER_TOKEN", "\"$togetherBearerToken\"")
+
+        // === FOOLPROOF SPOTIFY SECRETS LOGIC ===
+        var spotifyId = System.getenv("SPOTIFY_CLIENT_ID")
+        if (spotifyId.isNullOrEmpty()) {
+            spotifyId = localProperties.getProperty("SPOTIFY_CLIENT_ID")
+        }
+        if (spotifyId.isNullOrEmpty()) {
+            spotifyId = "" 
+        }
+
+        var spotifySecret = System.getenv("SPOTIFY_CLIENT_SECRET")
+        if (spotifySecret.isNullOrEmpty()) {
+            spotifySecret = localProperties.getProperty("SPOTIFY_CLIENT_SECRET")
+        }
+        if (spotifySecret.isNullOrEmpty()) {
+            spotifySecret = "" 
+        }
+
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyId\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_SECRET", "\"$spotifySecret\"")
     }
 
     flavorDimensions += "abi"
@@ -103,7 +123,6 @@ android {
     }
 
     compileOptions {
-        // YAHAN CHANGE KIYA HAI: false se true kar diya
         isCoreLibraryDesugaringEnabled = true 
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -160,6 +179,10 @@ dependencies {
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // RETROFIT DEPENDENCIES (Added here)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
     implementation(libs.activity)
     implementation(libs.navigation)
@@ -219,12 +242,14 @@ dependencies {
     implementation(project(":canvas"))
     implementation(project(":shazamkit"))
     implementation(project(":youlyplus"))
+    implementation(project(":paxsenix"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.11")
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.websockets)
     implementation(libs.ktor.server.core)
@@ -246,8 +271,14 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
         freeCompilerArgs.add("-Xannotation-default-target=param-property")
+        
+        // Yahan par humne Material 3 aur Foundation API ke sabhi warnings ko suppress kar diya hai
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
+            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
+            "-opt-in=androidx.compose.animation.ExperimentalSharedTransitionApi",
             "-Xcontext-parameters"
         )
         suppressWarnings.set(true)

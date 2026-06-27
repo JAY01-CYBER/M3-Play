@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -55,6 +54,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -64,7 +64,8 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -115,6 +116,8 @@ import kotlin.math.roundToInt
 fun DebugSettings(
     navController: NavController
 ) {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     val (showDevDebug, onShowDevDebugChange) = rememberPreference(
         key = booleanPreferencesKey("dev_show_discord_debug"),
         defaultValue = false
@@ -133,15 +136,14 @@ fun DebugSettings(
     val playerConnection = LocalPlayerConnection.current
 
     Scaffold(
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.experiment_settings),
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.experiment_settings),
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 navigationIcon = {
                     IconButton(
@@ -150,44 +152,60 @@ fun DebugSettings(
                     ) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
-        }
-    ) { innerPadding: PaddingValues ->
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             PreferenceGroupTitle(
-                title = stringResource(R.string.experimental_features)
+                title = stringResource(R.string.experimental_features),
+                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp, top = 8.dp)
             )
 
-            SwitchPreference(
-                title = { Text(stringResource(R.string.show_discord_debug_ui)) },
-                description = stringResource(R.string.enable_discord_debug_lines),
-                icon = { Icon(painterResource(R.drawable.discord), null) },
-                checked = showDevDebug,
-                onCheckedChange = onShowDevDebugChange
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(Modifier.padding(vertical = 12.dp)) {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_discord_debug_ui)) },
+                        description = stringResource(R.string.enable_discord_debug_lines),
+                        icon = { Icon(painterResource(R.drawable.discord), null) },
+                        checked = showDevDebug,
+                        onCheckedChange = onShowDevDebugChange
+                    )
 
-            SwitchPreference(
-                title = { Text(stringResource(R.string.show_nerd_stats)) },
-                description = stringResource(R.string.description_show_nerd_stats),
-                icon = { Icon(painterResource(R.drawable.stats), null) },
-                checked = showNerdStats,
-                onCheckedChange = onShowNerdStatsChange
-            )
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.show_nerd_stats)) },
+                        description = stringResource(R.string.description_show_nerd_stats),
+                        icon = { Icon(painterResource(R.drawable.stats), null) },
+                        checked = showNerdStats,
+                        onCheckedChange = onShowNerdStatsChange
+                    )
 
-            SwitchPreference(
-                title = { Text(stringResource(R.string.display_codec_on_player)) },
-                description = stringResource(R.string.description_display_codec_on_player),
-                icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
-                checked = showCodecOnPlayer,
-                onCheckedChange = onShowCodecOnPlayerChange
-            )
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.display_codec_on_player)) },
+                        description = stringResource(R.string.description_display_codec_on_player),
+                        icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
+                        checked = showCodecOnPlayer,
+                        onCheckedChange = onShowCodecOnPlayerChange
+                    )
+                }
+            }
 
             AnimatedVisibility(
                 visible = showDevDebug,
@@ -198,7 +216,6 @@ fun DebugSettings(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
                     DiscordDebugSection()
                 }
             }
@@ -212,7 +229,6 @@ fun DebugSettings(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
                     NerdStatsSection(playerConnection = playerConnection)
                 }
             }
@@ -232,7 +248,7 @@ private fun DiscordDebugSection() {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp), // Premium Large Radius
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
@@ -393,9 +409,7 @@ private fun LogViewerPanel() {
     val clipboard = LocalClipboardManager.current
 
     var filterMode by remember { mutableStateOf(0) }
-    var selectedLevels by remember {
-        mutableStateOf(setOf(Log.INFO, Log.WARN, Log.ERROR))
-    }
+    var selectedLevels by remember { mutableStateOf(setOf(Log.INFO, Log.WARN, Log.ERROR)) }
     var levelsMenuExpanded by remember { mutableStateOf(false) }
 
     val filtered = remember(allLogs, filterMode, selectedLevels) {
@@ -416,16 +430,12 @@ private fun LogViewerPanel() {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp), // Premium Large Radius
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
+        shape = RoundedCornerShape(32.dp), 
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(
@@ -463,163 +473,68 @@ private fun LogViewerPanel() {
                 }
 
                 Box {
-                    FilledTonalIconButton(
-                        onClick = { levelsMenuExpanded = true }
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.filter_alt),
-                            contentDescription = stringResource(R.string.filter_levels)
-                        )
+                    FilledTonalIconButton(onClick = { levelsMenuExpanded = true }) {
+                        Icon(painterResource(R.drawable.filter_alt), contentDescription = stringResource(R.string.filter_levels))
                     }
 
                     DropdownMenu(
                         expanded = levelsMenuExpanded,
                         onDismissRequest = { levelsMenuExpanded = false }
                     ) {
-                        LogLevelMenuItem(
-                            label = stringResource(R.string.log_level_verbose),
-                            level = Log.VERBOSE,
-                            selectedLevels = selectedLevels,
-                            onToggle = { level ->
-                                selectedLevels = if (selectedLevels.contains(level))
-                                    selectedLevels - level
-                                else
-                                    selectedLevels + level
-                            }
-                        )
-                        LogLevelMenuItem(
-                            label = stringResource(R.string.log_level_debug),
-                            level = Log.DEBUG,
-                            selectedLevels = selectedLevels,
-                            onToggle = { level ->
-                                selectedLevels = if (selectedLevels.contains(level))
-                                    selectedLevels - level
-                                else
-                                    selectedLevels + level
-                            }
-                        )
-                        LogLevelMenuItem(
-                            label = stringResource(R.string.log_level_info),
-                            level = Log.INFO,
-                            selectedLevels = selectedLevels,
-                            onToggle = { level ->
-                                selectedLevels = if (selectedLevels.contains(level))
-                                    selectedLevels - level
-                                else
-                                    selectedLevels + level
-                            }
-                        )
-                        LogLevelMenuItem(
-                            label = stringResource(R.string.log_level_warning),
-                            level = Log.WARN,
-                            selectedLevels = selectedLevels,
-                            onToggle = { level ->
-                                selectedLevels = if (selectedLevels.contains(level))
-                                    selectedLevels - level
-                                else
-                                    selectedLevels + level
-                            }
-                        )
-                        LogLevelMenuItem(
-                            label = stringResource(R.string.log_level_error),
-                            level = Log.ERROR,
-                            selectedLevels = selectedLevels,
-                            onToggle = { level ->
-                                selectedLevels = if (selectedLevels.contains(level))
-                                    selectedLevels - level
-                                else
-                                    selectedLevels + level
-                            }
-                        )
+                        LogLevelMenuItem(label = stringResource(R.string.log_level_verbose), level = Log.VERBOSE, selectedLevels = selectedLevels, onToggle = { level -> selectedLevels = if (selectedLevels.contains(level)) selectedLevels - level else selectedLevels + level })
+                        LogLevelMenuItem(label = stringResource(R.string.log_level_debug), level = Log.DEBUG, selectedLevels = selectedLevels, onToggle = { level -> selectedLevels = if (selectedLevels.contains(level)) selectedLevels - level else selectedLevels + level })
+                        LogLevelMenuItem(label = stringResource(R.string.log_level_info), level = Log.INFO, selectedLevels = selectedLevels, onToggle = { level -> selectedLevels = if (selectedLevels.contains(level)) selectedLevels - level else selectedLevels + level })
+                        LogLevelMenuItem(label = stringResource(R.string.log_level_warning), level = Log.WARN, selectedLevels = selectedLevels, onToggle = { level -> selectedLevels = if (selectedLevels.contains(level)) selectedLevels - level else selectedLevels + level })
+                        LogLevelMenuItem(label = stringResource(R.string.log_level_error), level = Log.ERROR, selectedLevels = selectedLevels, onToggle = { level -> selectedLevels = if (selectedLevels.contains(level)) selectedLevels - level else selectedLevels + level })
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         DropdownMenuItem(
                             onClick = {
                                 selectedLevels = setOf(Log.INFO, Log.WARN, Log.ERROR)
                                 levelsMenuExpanded = false
                             },
-                            text = {
-                                Text(
-                                    text = stringResource(R.string.reset_to_default_levels),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.restore),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                            text = { Text(text = stringResource(R.string.reset_to_default_levels), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold) },
+                            leadingIcon = { Icon(painterResource(R.drawable.restore), contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
                         )
                     }
                 }
             }
 
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                SegmentedButton(
-                    selected = filterMode == 0,
-                    onClick = { filterMode = 0 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    icon = { }
-                ) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(selected = filterMode == 0, onClick = { filterMode = 0 }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2), icon = { }) {
                     Text(stringResource(R.string.filter_discord_only))
                 }
-                SegmentedButton(
-                    selected = filterMode == 1,
-                    onClick = { filterMode = 1 },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    icon = { }
-                ) {
+                SegmentedButton(selected = filterMode == 1, onClick = { filterMode = 1 }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2), icon = { }) {
                     Text(stringResource(R.string.filter_all_logs))
                 }
             }
 
             Surface(
-                shape = RoundedCornerShape(24.dp), // Premium radius for internal panel
+                shape = RoundedCornerShape(24.dp), 
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 200.dp, max = 400.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 200.dp, max = 400.dp)
             ) {
                 if (filtered.isEmpty()) {
                     EmptyLogPlaceholder()
                 } else {
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .nestedScroll(rememberNestedScrollInteropConnection())
-                            .padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().nestedScroll(rememberNestedScrollInteropConnection()).padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(filtered) { _, entry ->
-                            LogEntryItem(
-                                entry = entry,
-                                clipboard = clipboard,
-                                coroutineScope = coroutineScope
-                            )
+                            LogEntryItem(entry = entry, clipboard = clipboard, coroutineScope = coroutineScope)
                         }
                     }
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FilledTonalButton(
                     onClick = { GlobalLog.clear() },
                     enabled = filtered.isNotEmpty(),
                     modifier = Modifier.weight(1f).height(48.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.clear_all),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(painterResource(R.drawable.clear_all), contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.clear), fontWeight = FontWeight.SemiBold)
                 }
@@ -638,11 +553,7 @@ private fun LogViewerPanel() {
                     enabled = filtered.isNotEmpty(),
                     modifier = Modifier.weight(1f).height(48.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.share),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(painterResource(R.drawable.share), contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.share), fontWeight = FontWeight.SemiBold)
                 }
@@ -656,29 +567,16 @@ private fun LogViewerPanel() {
 }
 
 @Composable
-private fun LogLevelMenuItem(
-    label: String,
-    level: Int,
-    selectedLevels: Set<Int>,
-    onToggle: (Int) -> Unit
-) {
+private fun LogLevelMenuItem(label: String, level: Int, selectedLevels: Set<Int>, onToggle: (Int) -> Unit) {
     DropdownMenuItem(
         onClick = { onToggle(level) },
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Checkbox(
-                    checked = selectedLevels.contains(level),
-                    onCheckedChange = { onToggle(level) }
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Checkbox(checked = selectedLevels.contains(level), onCheckedChange = { onToggle(level) })
                 Text(label, fontWeight = FontWeight.Medium)
             }
         },
-        leadingIcon = {
-            LogLevelBadge(level = level, compact = true)
-        }
+        leadingIcon = { LogLevelBadge(level = level, compact = true) }
     )
 }
 
@@ -687,46 +585,23 @@ private fun EmptyLogPlaceholder() {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 400))
-    ) {
+    AnimatedVisibility(visible = visible, enter = fadeIn(animationSpec = tween(durationMillis = 400))) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
+            modifier = Modifier.fillMaxSize().padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(R.drawable.anime_blank),
-                contentDescription = null,
-                modifier = Modifier.size(120.dp)
-            )
+            Image(painter = painterResource(R.drawable.anime_blank), contentDescription = null, modifier = Modifier.size(120.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.no_logs),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold
-            )
+            Text(text = stringResource(R.string.no_logs), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = stringResource(R.string.logs_empty_message),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center
-            )
+            Text(text = stringResource(R.string.logs_empty_message), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), textAlign = TextAlign.Center)
         }
     }
 }
 
 @Composable
-private fun LogEntryItem(
-    entry: LogEntry,
-    clipboard: androidx.compose.ui.platform.ClipboardManager,
-    coroutineScope: kotlinx.coroutines.CoroutineScope
-) {
+private fun LogEntryItem(entry: LogEntry, clipboard: androidx.compose.ui.platform.ClipboardManager, coroutineScope: kotlinx.coroutines.CoroutineScope) {
     var isExpanded by remember { mutableStateOf(false) }
     val copiedMessage = stringResource(R.string.copied_to_clipboard)
     val levelColor = when (entry.level) {
@@ -738,67 +613,29 @@ private fun LogEntryItem(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp), // Premium item shape
+        shape = RoundedCornerShape(16.dp),
         color = levelColor.copy(alpha = 0.08f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = { isExpanded = !isExpanded },
-                onLongClick = {
-                    clipboard.setText(AnnotatedString(entry.message))
-                    coroutineScope.launch {
-                        GlobalLog.append(Log.INFO, "DebugSettings", copiedMessage)
-                    }
-                }
-            )
+        modifier = Modifier.fillMaxWidth().combinedClickable(
+            onClick = { isExpanded = !isExpanded },
+            onLongClick = {
+                clipboard.setText(AnnotatedString(entry.message))
+                coroutineScope.launch { GlobalLog.append(Log.INFO, "DebugSettings", copiedMessage) }
+            }
+        )
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     LogLevelBadge(level = entry.level)
-                    Text(
-                        text = DateFormat.format("HH:mm:ss", entry.time).toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = DateFormat.format("HH:mm:ss", entry.time).toString(), style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                 }
                 if (!entry.tag.isNullOrBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest
-                    ) {
-                        Text(
-                            text = entry.tag,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                        Text(text = entry.tag, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
-
-            Text(
-                text = if (isExpanded) entry.message else entry.message.lines().firstOrNull() ?: "",
-                style = MaterialTheme.typography.bodySmall,
-                color = levelColor,
-                maxLines = if (isExpanded) Int.MAX_VALUE else 2,
-                overflow = TextOverflow.Ellipsis,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium
-            )
+            Text(text = if (isExpanded) entry.message else entry.message.lines().firstOrNull() ?: "", style = MaterialTheme.typography.bodySmall, color = levelColor, maxLines = if (isExpanded) Int.MAX_VALUE else 2, overflow = TextOverflow.Ellipsis, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -814,19 +651,9 @@ private fun LogLevelBadge(level: Int, compact: Boolean = false) {
         else -> MaterialTheme.colorScheme.outline to "?"
     }
 
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = color,
-        modifier = Modifier.size(if (compact) 22.dp else 28.dp)
-    ) {
+    Surface(shape = RoundedCornerShape(8.dp), color = color, modifier = Modifier.size(if (compact) 22.dp else 28.dp)) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.surface,
-                fontSize = if (compact) 10.sp else 14.sp
-            )
+            Text(text = label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.surface, fontSize = if (compact) 10.sp else 14.sp)
         }
     }
 }
@@ -856,124 +683,45 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp), // Premium MD3 Radius
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(52.dp)
-                ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(52.dp)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            painter = painterResource(R.drawable.graphic_eq),
-                            contentDescription = null,
-                            modifier = Modifier.size(26.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Icon(painter = painterResource(R.drawable.graphic_eq), contentDescription = null, modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
                 Column {
-                    Text(
-                        text = stringResource(R.string.nerd_stats),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = stringResource(R.string.real_time_playback_stats),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text(text = stringResource(R.string.nerd_stats), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(text = stringResource(R.string.real_time_playback_stats), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
             if (mediaMetadata != null) {
-                NerdStatCard(
-                    icon = R.drawable.music_note,
-                    label = stringResource(R.string.track_label),
-                    value = mediaMetadata?.title ?: stringResource(R.string.no_track_playing),
-                    accentColor = MaterialTheme.colorScheme.primary
-                )
+                NerdStatCard(icon = R.drawable.music_note, label = stringResource(R.string.track_label), value = mediaMetadata?.title ?: stringResource(R.string.no_track_playing), accentColor = MaterialTheme.colorScheme.primary)
 
                 if (currentFormat != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        NerdStatChip(
-                            icon = R.drawable.graphic_eq,
-                            label = stringResource(R.string.codec_label),
-                            value = currentFormat?.mimeType?.substringAfter("/")?.uppercase()
-                                ?: stringResource(R.string.unknown_codec),
-                            modifier = Modifier.weight(1f)
-                        )
-
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        NerdStatChip(icon = R.drawable.graphic_eq, label = stringResource(R.string.codec_label), value = currentFormat?.mimeType?.substringAfter("/")?.uppercase() ?: stringResource(R.string.unknown_codec), modifier = Modifier.weight(1f))
                         val bitrateKbps = currentFormat?.bitrate?.let { it / 1000 } ?: 0
-                        NerdStatChip(
-                            icon = R.drawable.speed,
-                            label = stringResource(R.string.bitrate_label),
-                            value = if (bitrateKbps > 0) "$bitrateKbps kbps" else stringResource(R.string.unknown_bitrate),
-                            modifier = Modifier.weight(1f)
-                        )
+                        NerdStatChip(icon = R.drawable.speed, label = stringResource(R.string.bitrate_label), value = if (bitrateKbps > 0) "$bitrateKbps kbps" else stringResource(R.string.unknown_bitrate), modifier = Modifier.weight(1f))
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         val sampleRateKhz = currentFormat?.sampleRate?.let { (it / 1000.0).roundToInt() } ?: 0
-                        NerdStatChip(
-                            icon = R.drawable.waves,
-                            label = stringResource(R.string.sample_rate_label),
-                            value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else stringResource(R.string.unknown_sample_rate),
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        NerdStatChip(
-                            icon = R.drawable.storage,
-                            label = stringResource(R.string.content_length_label),
-                            value = currentFormat?.contentLength?.let {
-                                if (it > 0) "${String.format("%.2f", it / 1024.0 / 1024.0)} MB"
-                                else stringResource(R.string.unknown_content_length)
-                            } ?: stringResource(R.string.unknown_content_length),
-                            modifier = Modifier.weight(1f)
-                        )
+                        NerdStatChip(icon = R.drawable.waves, label = stringResource(R.string.sample_rate_label), value = if (sampleRateKhz > 0) "$sampleRateKhz kHz" else stringResource(R.string.unknown_sample_rate), modifier = Modifier.weight(1f))
+                        NerdStatChip(icon = R.drawable.storage, label = stringResource(R.string.content_length_label), value = currentFormat?.contentLength?.let { if (it > 0) "${String.format("%.2f", it / 1024.0 / 1024.0)} MB" else stringResource(R.string.unknown_content_length) } ?: stringResource(R.string.unknown_content_length), modifier = Modifier.weight(1f))
                     }
                 } else {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            LinearProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                            )
-                            Text(
-                                text = stringResource(R.string.loading_format),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            LinearProgressIndicator(modifier = Modifier.size(24.dp), strokeCap = androidx.compose.ui.graphics.StrokeCap.Round)
+                            Text(text = stringResource(R.string.loading_format), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -981,38 +729,16 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                 val bufferDuration = ((bufferedPosition - currentPosition) / 1000.0).roundToInt()
-                val bufferProgress by animateFloatAsState(
-                    targetValue = bufferPercentage / 100f,
-                    animationSpec = tween(300),
-                    label = "buffer"
-                )
+                val bufferProgress by animateFloatAsState(targetValue = bufferPercentage / 100f, animationSpec = tween(300), label = "buffer")
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.buffer_health_label),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "$bufferPercentage% ($bufferDuration sec ahead)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(R.string.buffer_health_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                        Text(text = "$bufferPercentage% ($bufferDuration sec ahead)", style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                     }
-
                     LinearProgressIndicator(
                         progress = { bufferProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp)),
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                         color = when {
                             bufferPercentage > 70 -> Color(0xFF43B581)
                             bufferPercentage > 30 -> MaterialTheme.colorScheme.tertiary
@@ -1022,10 +748,7 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     val playbackStateText = when (player.playbackState) {
                         Player.STATE_IDLE -> stringResource(R.string.playback_state_idle)
                         Player.STATE_BUFFERING -> stringResource(R.string.playback_state_buffering)
@@ -1033,7 +756,6 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
                         Player.STATE_ENDED -> stringResource(R.string.playback_state_ended)
                         else -> stringResource(R.string.playback_state_unknown)
                     }
-
                     val stateColor = when (player.playbackState) {
                         Player.STATE_READY -> Color(0xFF43B581)
                         Player.STATE_BUFFERING -> MaterialTheme.colorScheme.tertiary
@@ -1041,86 +763,24 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
                         else -> MaterialTheme.colorScheme.error
                     }
 
-                    NerdStatChip(
-                        icon = R.drawable.status,
-                        label = stringResource(R.string.state_label),
-                        value = playbackStateText,
-                        modifier = Modifier.weight(1f),
-                        valueColor = stateColor
-                    )
-
-                    NerdStatChip(
-                        icon = R.drawable.slow_motion_video,
-                        label = stringResource(R.string.playback_speed_label),
-                        value = "${playbackSpeed}x",
-                        modifier = Modifier.weight(1f)
-                    )
+                    NerdStatChip(icon = R.drawable.status, label = stringResource(R.string.state_label), value = playbackStateText, modifier = Modifier.weight(1f), valueColor = stateColor)
+                    NerdStatChip(icon = R.drawable.slow_motion_video, label = stringResource(R.string.playback_speed_label), value = "${playbackSpeed}x", modifier = Modifier.weight(1f))
                 }
 
-                OutlinedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp), // Premium radius
-                    colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.token),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = stringResource(R.string.media_id_label),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                OutlinedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent)) {
+                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(painter = painterResource(R.drawable.token), contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = stringResource(R.string.media_id_label), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text(
-                            text = mediaMetadata?.id?.take(16)?.plus("...") ?: "N/A",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = mediaMetadata?.id?.take(16)?.plus("...") ?: "N/A", style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             } else {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.music_note),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .alpha(0.6f),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = stringResource(R.string.no_track_playing),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Icon(painter = painterResource(R.drawable.music_note), contentDescription = null, modifier = Modifier.size(56.dp).alpha(0.6f), tint = MaterialTheme.colorScheme.primary)
+                        Text(text = stringResource(R.string.no_track_playing), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1129,98 +789,31 @@ private fun NerdStatsSection(playerConnection: com.j.m3play.playback.PlayerConne
 }
 
 @Composable
-private fun NerdStatCard(
-    icon: Int,
-    label: String,
-    value: String,
-    accentColor: Color
-) {
-    Surface(
-        shape = RoundedCornerShape(20.dp), // Elevated rounded feel
-        color = accentColor.copy(alpha = 0.12f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = accentColor.copy(alpha = 0.25f),
-                modifier = Modifier.size(42.dp)
-            ) {
+private fun NerdStatCard(icon: Int, label: String, value: String, accentColor: Color) {
+    Surface(shape = RoundedCornerShape(20.dp), color = accentColor.copy(alpha = 0.12f), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = CircleShape, color = accentColor.copy(alpha = 0.25f), modifier = Modifier.size(42.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        painter = painterResource(icon),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = accentColor
-                    )
+                    Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp), tint = accentColor)
                 }
             }
             Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
 }
 
 @Composable
-private fun NerdStatChip(
-    icon: Int,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold
-                )
+private fun NerdStatChip(icon: Int, label: String, value: String, modifier: Modifier = Modifier, valueColor: Color = MaterialTheme.colorScheme.onSurface) {
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = modifier) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(painter = painterResource(icon), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.ExtraBold,
-                color = valueColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(text = value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, color = valueColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

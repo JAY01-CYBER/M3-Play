@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Style: ANDROID 17 (Modern WebView & FAB)  │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -30,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.j.m3play.R
@@ -177,7 +179,6 @@ class PoTokenExtractionActivity : ComponentActivity() {
             }
 
             isExtracting = true
-
             extractedVisitorData = null
             extractedGvsToken = null
 
@@ -283,8 +284,14 @@ class PoTokenExtractionActivity : ComponentActivity() {
                 }
             )
 
+            // Standard TopAppBar for WebView to not mess up its scroll behavior
             TopAppBar(
-                title = { Text(stringResource(R.string.extracting_from_url)) },
+                title = { 
+                    Text(
+                        stringResource(R.string.extracting_from_url),
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = { closeCanceled() },
@@ -295,17 +302,22 @@ class PoTokenExtractionActivity : ComponentActivity() {
                             contentDescription = null,
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                )
             )
 
+            // Modern Android 17 style ultra-rounded Extended FAB
             ExtendedFloatingActionButton(
                 text = {
                     Text(
-                        if (isExtracting) {
+                        text = if (isExtracting) {
                             stringResource(R.string.generating_tokens)
                         } else {
                             stringResource(R.string.regenerate_token)
-                        }
+                        },
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 icon = {
@@ -313,6 +325,7 @@ class PoTokenExtractionActivity : ComponentActivity() {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     } else {
                         Icon(
@@ -331,6 +344,7 @@ class PoTokenExtractionActivity : ComponentActivity() {
                     .windowInsetsPadding(WindowInsets.systemBars)
                     .padding(16.dp),
                 expanded = true,
+                shape = RoundedCornerShape(24.dp), // Pill-shaped modern FAB
                 containerColor = if (canExtract) {
                     MaterialTheme.colorScheme.primary
                 } else {

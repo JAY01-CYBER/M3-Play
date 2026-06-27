@@ -13,6 +13,7 @@ import com.j.m3play.innertube.models.Artist
 import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.BrowseEndpoint
 import com.j.m3play.innertube.models.MusicCarouselShelfRenderer
+import com.j.m3play.innertube.models.MusicResponsiveListItemRenderer 
 import com.j.m3play.innertube.models.MusicTwoRowItemRenderer
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.SectionListRenderer
@@ -56,13 +57,43 @@ data class HomePage(
                     label = renderer.header.musicCarouselShelfBasicHeaderRenderer.strapline?.runs?.firstOrNull()?.text,
                     thumbnail = renderer.header.musicCarouselShelfBasicHeaderRenderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl(),
                     endpoint = renderer.header.musicCarouselShelfBasicHeaderRenderer.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint,
-                    items = renderer.contents.mapNotNull {
-                        it.musicTwoRowItemRenderer
-                    }.mapNotNull {
-                        fromMusicTwoRowItemRenderer(it)
+                    
+                    // FIX 1: Ab dono format (Grid aur List) ko read karke combine karega
+                    items = renderer.contents.mapNotNull { content ->
+                        content.musicTwoRowItemRenderer?.let { fromMusicTwoRowItemRenderer(it) }
+                            ?: content.musicResponsiveListItemRenderer?.let { fromMusicResponsiveListItemRenderer(it) }
                     }.ifEmpty {
                         return null
                     }
+                )
+            }
+
+            // FIX 2: Naya parser jo Quick Picks aur Speed Dial (Lists) ko handle karega
+            private fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+                val videoId = renderer.playlistItemData?.videoId
+                    ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                    ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+                    ?: return null
+
+                return SongItem(
+                    id = videoId,
+                    title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null,
+                    artists = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.oddElements()?.map {
+                        Artist(
+                            name = it.text,
+                            id = it.navigationEndpoint?.browseEndpoint?.browseId
+                        )
+                    }.orEmpty(),
+                    album = renderer.flexColumns.getOrNull(2)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.let {
+                        Album(
+                            name = it.text,
+                            id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return@let null
+                        )
+                    },
+                    duration = null,
+                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                    explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true,
+                    endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint
                 )
             }
 
@@ -73,12 +104,15 @@ data class HomePage(
                         val (artistRuns, albumRuns) = subtitleRuns.partition { run ->
                             run.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true
                         }
+                        
+                        // FIX 3: ?: return null hata diya taaki kisi artist ki ID missing hone par poora gaana na ude
                         val artists = artistRuns.map {
                             Artist(
                                 name = it.text,
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return null
+                                id = it.navigationEndpoint?.browseEndpoint?.browseId
                             )
                         }
+                        
                         SongItem(
                             id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
                             title = renderer.title.runs?.firstOrNull()?.text ?: return null,

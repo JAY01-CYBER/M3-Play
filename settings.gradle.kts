@@ -35,6 +35,7 @@ include(":kizzy")
 include(":canvas")
 include(":shazamkit")
 include(":youlyplus")
+include(":paxsenix")
 
 
 // Use a local copy of NewPipe Extractor by uncommenting the lines below.

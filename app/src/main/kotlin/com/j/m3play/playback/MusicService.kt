@@ -761,14 +761,13 @@ class MusicService :
             if (showLyrics && mediaMetadata != null && database.lyrics(mediaMetadata.id)
                     .first() == null
             ) {
-                // 👇 Yahan getLyrics ko result se fetch karenge
                 val result = lyricsHelper.getLyrics(mediaMetadata)
                 database.query {
                     upsert(
                         LyricsEntity(
                             id = mediaMetadata.id,
                             lyrics = result.lyrics,
-                            provider = result.providerName // 👇 Provider save hoga
+                            provider = result.providerName
                         ),
                     )
                 }
@@ -1494,7 +1493,7 @@ class MusicService :
             .onFailure { reportException(it) }
     }
 
-    private suspend fun recoverSong(
+        private suspend fun recoverSong(
         mediaId: String,
         playbackData: YTPlayerUtils.PlaybackData? = null
     ) {
@@ -1628,11 +1627,27 @@ class MusicService :
             if (initialStatus.title != null) {
                 queueTitle = initialStatus.title
             }
-            val items = initialStatus.items
+            
+            var items = initialStatus.items
             if (items.isEmpty()) return@launch
 
-            val index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
+            var index = initialStatus.mediaItemIndex.coerceIn(0, items.lastIndex)
             
+            val preloadedId = queue.preloadItem?.id 
+            if (preloadedId != null) {
+                val realIndex = items.indexOfFirst { it.mediaId == preloadedId || it.mediaId.endsWith("/$preloadedId") }
+                
+                if (realIndex != -1) {
+                    index = realIndex 
+                } else if (queue is com.j.m3play.playback.queues.YouTubeQueue) {
+                    val preloadItemAsMedia = queue.preloadItem?.toMediaItem()
+                    if (preloadItemAsMedia != null) {
+                        items = listOf(preloadItemAsMedia) + items
+                        index = 0
+                    }
+                }
+            }
+
             val isPlayingPreload = queue.preloadItem != null && 
                     player.currentMediaItem?.mediaId == items.getOrNull(index)?.mediaId &&
                     player.mediaItemCount == 1
@@ -1667,7 +1682,7 @@ class MusicService :
             shuffledIndices[currentPos] = shuffledIndices[0]
         }
         shuffledIndices[0] = currentIndex
-        player.setShuffleOrder(DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
+        player.setShuffleOrder(androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
     fun startRadioSeamlessly() {

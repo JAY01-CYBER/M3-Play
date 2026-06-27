@@ -2,6 +2,16 @@
 
 All notable changes to the M3-Play project will be documented in this file.
 
+---v3.0.9
+# Major changes
+- Integrated the lyrics view directly into the active screen instead of opening a separate screen (@JAY01-CYBER)
+
+## Fixes
+- Fixed rendering issues that caused playlists to appear empty (@JAY01-CYBER)
+- Fixed rendering issues on the Album page (@JAY01-CYBER)
+- Fixed rendering issues on the Artist page (@JAY01-CYBER)
+- Fixed display issues with search results (@JAY01-CYBER)
+
 ---v3.0.8
 > [!WARNING]
 > **CRITICAL UPDATE NOTICE (CLEAN INSTALL REQUIRED)**

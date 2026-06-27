@@ -85,13 +85,25 @@ Inspired by modern streaming platforms — built for power users.
 
 ---
 
+## 🌍 Translations
+
+Help us translate M3 Play into your native language! Every contribution is highly appreciated.
+
+<p align="center">
+  <a href="https://crowdin.com/project/M3Play">
+    <img src="https://img.shields.io/badge/Translate-on%20Crowdin-2E3340?style=for-the-badge&logo=crowdin&logoColor=white" />
+  </a>
+</p>
+
+---
+
 ## 🌐 Community
 
 <p align="center">
-  <a href="https://discord.gg/zdbAuRpVt">
+  <a href="https://discord.gg/pDv6TYYkfE">
     <img src="https://img.shields.io/badge/Discord-Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" />
   </a>
-  <a href="https://t.me/M3Play_updates">
+  <a href="https://t.me/M3Play_supports">
     <img src="https://img.shields.io/badge/Telegram-Updates-229ED9?style=for-the-badge&logo=telegram&logoColor=white" />
   </a>
 </p>

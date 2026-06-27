@@ -3,8 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -59,16 +58,13 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.utils.TranslatorLanguages
 import com.j.m3play.utils.dataStore
 import com.j.m3play.utils.get
-import androidx.compose.material3.AlertDialog
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.TextButton
 import com.my.kizzy.rpc.KizzyRPC
 import timber.log.Timber
 import com.j.m3play.utils.DiscordRPC
 import com.j.m3play.utils.getPresenceIntervalMillis
 import kotlinx.coroutines.*
 import com.j.m3play.utils.ArtworkStorage
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 enum class ActivitySource { ARTIST, ALBUM, SONG, APP }
 
@@ -120,7 +116,7 @@ fun DiscordSettings(
         if (discordRPC && discordToken.isNotBlank()) {
             Timber.tag("DiscordSettings").d("RPC enabled with token, MusicService will handle start")
         } else {
-            Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
+             Timber.tag("DiscordSettings").d("RPC disabled or no token, stopping manager")
             DiscordPresenceManager.stop()
         }
     }
@@ -128,83 +124,128 @@ fun DiscordSettings(
     val isLoggedIn = remember(discordToken) { discordToken.isNotEmpty() }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.discord_integration), fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        onLongClick = navController::backToMain,
+                    ) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    }
+                },
+                actions = {
+                    var threeDotMenuExpanded by remember { mutableStateOf(false) }
+
+                    IconButton(onClick = { threeDotMenuExpanded = true }) {
+                        Icon(painterResource(R.drawable.more_vert), contentDescription = null)
+                    }
+
+                    DropdownMenu(
+                        expanded = threeDotMenuExpanded,
+                        onDismissRequest = { threeDotMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.experiment_settings)) },
+                            onClick = {
+                                threeDotMenuExpanded = false
+                                navController.navigate("settings/discord/experimental")
+                            },
+                            leadingIcon = {
+                                Icon(painterResource(R.drawable.experiment), contentDescription = null)
+                            }
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
         Column(
             Modifier
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-                )
+                .fillMaxSize()
+                .padding(innerPadding)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                 .verticalScroll(rememberScrollState())
         ) {
-        Spacer(
-            Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
-            )
-        )
+            Spacer(Modifier.height(8.dp))
 
-        AnimatedVisibility(visible = !infoDismissed) {
-            Card(
-                shape = RoundedCornerShape(32.dp), // Premium Large Radius
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
-                elevation = CardDefaults.cardElevation(0.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Icon(
-                        painter = painterResource(R.drawable.info),
-                        contentDescription = null,
-                        modifier = Modifier.padding(bottom = 12.dp, start = 8.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(R.string.discord_information),
-                        textAlign = TextAlign.Start,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                    TextButton(
-                        onClick = { infoDismissed = true },
-                        modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
-                    ) {
-                        Text(stringResource(R.string.dismiss), fontWeight = FontWeight.Bold)
+            AnimatedVisibility(visible = !infoDismissed) {
+                Card(
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Icon(
+                            painter = painterResource(R.drawable.info),
+                            contentDescription = null,
+                            modifier = Modifier.padding(bottom = 12.dp, start = 8.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = stringResource(R.string.discord_information),
+                            textAlign = TextAlign.Start,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                        TextButton(
+                            onClick = { infoDismissed = true },
+                            modifier = Modifier.align(Alignment.End).padding(top = 8.dp),
+                        ) {
+                            Text(stringResource(R.string.dismiss), fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
-        }
 
-        PreferenceGroupTitle(title = stringResource(R.string.account))
+            PreferenceGroupTitle(
+                title = stringResource(R.string.account),
+                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+            )
 
-    var showLogoutConfirm by remember { mutableStateOf(false) }
+            var showLogoutConfirm by remember { mutableStateOf(false) }
 
-    PreferenceEntry(
-            title = {
-                Text(
-                    text = if (isLoggedIn) discordName else stringResource(R.string.not_logged_in),
-                    modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                PreferenceEntry(
+                    title = {
+                        Text(
+                            text = if (isLoggedIn) discordName else stringResource(R.string.not_logged_in),
+                            modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
+                        )
+                    },
+                    description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
+                    icon = { Icon(painterResource(R.drawable.discord), null) },
+                    trailingContent = {
+                        if (isLoggedIn) {
+                            OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
+                        } else {
+                            OutlinedButton(onClick = { navController.navigate("settings/discord/login") }) { Text(stringResource(R.string.action_login)) }
+                        }
+                    },
                 )
-            },
-            description = if (discordUsername.isNotEmpty()) "@$discordUsername" else null,
-            icon = { Icon(painterResource(R.drawable.discord), null) },
-            trailingContent = {
-                if (isLoggedIn) {
-                        OutlinedButton(onClick = { showLogoutConfirm = true }) { Text(stringResource(R.string.action_logout)) }
-                    } else {
-                    OutlinedButton(onClick = {
-                        navController.navigate("settings/discord/login")
-                    }) { Text(stringResource(R.string.action_login)) }
-                }
-            },
-        )
+            }
 
             if (showLogoutConfirm) {
                 AlertDialog(
                     onDismissRequest = { showLogoutConfirm = false },
-                    title = { Text(stringResource(R.string.logout_confirm_title)) },
+                    shape = RoundedCornerShape(32.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    title = { Text(stringResource(R.string.logout_confirm_title), fontWeight = FontWeight.Bold) },
                     text = { Text(stringResource(R.string.logout_confirm_message)) },
                     confirmButton = {
                         TextButton(onClick = {
@@ -220,584 +261,501 @@ fun DiscordSettings(
                 )
             }
 
-        PreferenceGroupTitle(title = stringResource(R.string.options))
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.enable_discord_rpc)) },
-            checked = discordRPC,
-            onCheckedChange = onDiscordRPCChange,
-            isEnabled = isLoggedIn,
-        )
-
-        val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
-        val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
-
-        val (largeImageType, onLargeImageTypeChange) = rememberPreference(
-            key = DiscordLargeImageTypeKey,
-            defaultValue = "thumbnail"
-     )
-        val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(
-            key = DiscordLargeImageCustomUrlKey,
-            defaultValue = ""
-     )
-        val (smallImageType, onSmallImageTypeChange) = rememberPreference(
-            key = DiscordSmallImageTypeKey,
-            defaultValue = "artist"
-     )
-        val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(
-            key = DiscordSmallImageCustomUrlKey,
-            defaultValue = ""
-     )
-
-        LaunchedEffect(largeImageType, smallImageType) {
-            ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
-        }
-
-        var isRefreshing by remember { mutableStateOf(false) }
-
-        PreferenceEntry(
-        title = { Text(stringResource(R.string.refresh)) },
-        description = stringResource(R.string.description_refresh),
-        icon = { Icon(painterResource(R.drawable.update), null) },
-        isEnabled = discordRPC,
-        trailingContent = {
-           if (isRefreshing) {
-                CircularProgressIndicator(
-                modifier = Modifier.size(28.dp),
-                strokeWidth = 2.dp
+            PreferenceGroupTitle(
+                title = stringResource(R.string.options),
+                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp, top = 16.dp)
             )
-        } else {
-            OutlinedButton(
-                enabled = discordRPC,
-                onClick = {
-                    coroutineScope.launch {
-                       isRefreshing = true
-                       val start = System.currentTimeMillis()
 
-                       val success = DiscordPresenceManager.updatePresence(
-                           context = context,
-                           token = discordToken,
-                           song = song,
-                           positionMs = playerConnection.player.currentPosition,
-                           isPaused = !playerConnection.player.isPlaying,
-                       )
-                       isRefreshing = false
-                        withContext(Dispatchers.Main) {
-                            if (success) {
-                                snackbarHostState.showSnackbar("Refreshed!")
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(Modifier.padding(vertical = 12.dp)) {
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.enable_discord_rpc)) },
+                        checked = discordRPC,
+                        onCheckedChange = onDiscordRPCChange,
+                        isEnabled = isLoggedIn,
+                    )
+
+                    var isRefreshing by remember { mutableStateOf(false) }
+
+                    PreferenceEntry(
+                        title = { Text(stringResource(R.string.refresh)) },
+                        description = stringResource(R.string.description_refresh),
+                        icon = { Icon(painterResource(R.drawable.update), null) },
+                        isEnabled = discordRPC,
+                        trailingContent = {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 2.dp)
                             } else {
-                                snackbarHostState.showSnackbar("Refresh failed")
+                                OutlinedButton(
+                                    enabled = discordRPC,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                           isRefreshing = true
+                                           val start = System.currentTimeMillis()
+                                           val success = DiscordPresenceManager.updatePresence(
+                                               context = context,
+                                               token = discordToken,
+                                               song = song,
+                                               positionMs = playerConnection.player.currentPosition,
+                                               isPaused = !playerConnection.player.isPlaying,
+                                           )
+                                            isRefreshing = false
+                                            withContext(Dispatchers.Main) {
+                                                if (success) {
+                                                    snackbarHostState.showSnackbar("Refreshed!")
+                                                } else {
+                                                    snackbarHostState.showSnackbar("Refresh failed")
+                                                }
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.refresh))
+                                }
+                            }
+                        }
+                    )
+                    
+                    val activityStatus = listOf("online", "dnd", "idle", "streaming")
+                    val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(key = DiscordPresenceStatusKey, defaultValue = "online")
+
+                    var activityStatusExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = activityStatusExpanded, onExpandedChange = { activityStatusExpanded = it }) {
+                        TextField(
+                            value = when (activityStatusSelection) {
+                                "online" -> "Online"
+                                "dnd" -> "Do Not Disturb"
+                                "idle" -> "Idle"
+                                "streaming" -> "Streaming"
+                                else -> "Online"
+                            },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.activity_status)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .pointerInput(Unit) { detectTapGestures { activityStatusExpanded = true } },
+                            leadingIcon = { Icon(painterResource(R.drawable.status), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = activityStatusExpanded, onDismissRequest = { activityStatusExpanded = false }) {
+                            activityStatus.forEach { opt ->
+                                val display = when (opt) {
+                                    "online" -> "Online"
+                                    "dnd" -> "Do Not Disturb"
+                                    "idle" -> "Idle"
+                                    "streaming" -> "Streaming"
+                                    else -> opt
+                                }
+                                DropdownMenuItem(text = { Text(display) }, onClick = {
+                                    onActivityStatusSelectionChange(opt)
+                                    activityStatusExpanded = false
+                                })
+                            }
+                        }
+                    }
+
+                    val platformOptions = listOf("android", "desktop", "web")
+                    val (platformSelection, onPlatformSelectionChange) = rememberPreference(key = DiscordActivityPlatformKey, defaultValue = "desktop")
+
+                    var platformExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = platformExpanded, onExpandedChange = { platformExpanded = it }) {
+                        TextField(
+                            value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.platform_status)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
+                            leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = platformExpanded, onDismissRequest = { platformExpanded = false }) {
+                            platformOptions.forEach { opt ->
+                                DropdownMenuItem(text = { Text(opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) }, onClick = {
+                                    onPlatformSelectionChange(opt)
+                                    platformExpanded = false
+                                })
+                            }
+                        }
+                    }
+
+                    val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
+                    val (intervalSelection, onIntervalSelectionChange) = rememberPreference(key = stringPreferencesKey("discordPresenceIntervalPreset"), defaultValue = "20s")
+
+                    var intervalExpanded by remember { mutableStateOf(false) }
+
+                    ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { intervalExpanded = it }) {
+                        TextField(
+                            value = intervalSelection,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.update_interval)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = intervalExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .pointerInput(Unit) { detectTapGestures { intervalExpanded = true } },
+                            leadingIcon = { Icon(painterResource(R.drawable.timer), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = intervalExpanded, onDismissRequest = { intervalExpanded = false }) {
+                            intervalOptions.forEach { opt ->
+                                DropdownMenuItem(text = { Text(opt) }, onClick = {
+                                    onIntervalSelectionChange(opt)
+                                    intervalExpanded = false
+                                })
+                            }
+                        }
+                    }
+
+                    if (intervalSelection == "Custom") {
+                        val (customValue, onCustomValueChange) = rememberPreference(key = DiscordPresenceIntervalValueKey, defaultValue = 30)
+                        val (customUnit, onCustomUnitChange) = rememberPreference(key = DiscordPresenceIntervalUnitKey, defaultValue = "S")
+
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = customValue.toString(),
+                                onValueChange = { text ->
+                                    val number = text.toIntOrNull()
+                                    if (number != null) {
+                                        if (customUnit == "S" && number < 30) {
+                                            onCustomValueChange(30)
+                                        } else {
+                                            onCustomValueChange(number)
+                                        }
+                                    }
+                                },
+                                label = { Text("Value") },
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+
+                            var unitExpanded by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
+                                OutlinedTextField(
+                                    value = when (customUnit) {
+                                        "S" -> "Seconds"
+                                        "M" -> "Minutes"
+                                        "H" -> "Hours"
+                                        else -> "Seconds"
+                                    },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Unit") },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .weight(1f)
+                                        .pointerInput(Unit) { detectTapGestures { unitExpanded = true } },
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                ExposedDropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
+                                    listOf("S" to "Seconds", "M" to "Minutes", "H" to "Hours").forEach { (code, label) ->
+                                        DropdownMenuItem(text = { Text(label) }, onClick = {
+                                            if (code == "S" && customValue < 30) {
+                                                onCustomValueChange(30)
+                                            }
+                                            onCustomUnitChange(code)
+                                            unitExpanded = false
+                                        })
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            PreferenceGroupTitle(
+                title = stringResource(R.string.preview),
+                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp, top = 16.dp)
+            )
+            
+            val (nameSource, onNameSourceChange) = rememberEnumPreference(key = DiscordActivityNameKey, defaultValue = ActivitySource.APP)
+            val (detailsSource, onDetailsSourceChange) = rememberEnumPreference(key = DiscordActivityDetailsKey, defaultValue = ActivitySource.SONG)
+            val (stateSource, onStateSourceChange) = rememberEnumPreference(key = DiscordActivityStateKey, defaultValue = ActivitySource.ARTIST)
+
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
-                Text(stringResource(R.string.refresh))
-            }
-        }
-    }
-)
+                Column(Modifier.padding(vertical = 12.dp)) {
+                    ActivitySourceDropdown(title = stringResource(R.string.discord_activity_name), iconRes = R.drawable.text_fields, selected = nameSource, onChange = onNameSourceChange)
+                    ActivitySourceDropdown(title = stringResource(R.string.discord_activity_details), iconRes = R.drawable.text_fields, selected = detailsSource, onChange = onDetailsSourceChange)
+                    ActivitySourceDropdown(title = stringResource(R.string.discord_activity_state), iconRes = R.drawable.text_fields, selected = stateSource, onChange = onStateSourceChange)
 
-        val activityStatus = listOf("online", "dnd", "idle", "streaming")
-        val (activityStatusSelection, onActivityStatusSelectionChange) = rememberPreference(
-            key = DiscordPresenceStatusKey,
-            defaultValue = "online"
-        )
+                    val (button1Label, onButton1LabelChange) = rememberPreference(key = DiscordActivityButton1LabelKey, defaultValue = "Listen on YouTube Music")
+                    val (button1Enabled, onButton1EnabledChange) = rememberPreference(key = DiscordActivityButton1EnabledKey, defaultValue = true)
+                    val (button2Label, onButton2LabelChange) = rememberPreference(key = DiscordActivityButton2LabelKey, defaultValue = "Go to M3Play")
+                    val (button2Enabled, onButton2EnabledChange) = rememberPreference(key = DiscordActivityButton2EnabledKey, defaultValue = true)
+                    val (activityType, onActivityTypeChange) = rememberPreference(key = DiscordActivityTypeKey, defaultValue = "LISTENING")
+                    val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
+                    var showWhenPaused by rememberPreference(key = DiscordShowWhenPausedKey, defaultValue = false)
 
-        var activityStatusExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = activityStatusExpanded, onExpandedChange = { activityStatusExpanded = it }) {
-            TextField(
-                value = when (activityStatusSelection) {
-                    "online" -> "Online"
-                    "dnd" -> "Do Not Disturb"
-                    "idle" -> "Idle"
-                    "streaming" -> "Streaming"
-                    else -> "Online"
-                },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.activity_status)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityStatusExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .pointerInput(Unit) { detectTapGestures { activityStatusExpanded = true } },
-                leadingIcon = { Icon(painterResource(R.drawable.status), null) },
-                shape = RoundedCornerShape(16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                )
-            )
-            ExposedDropdownMenu(expanded = activityStatusExpanded, onDismissRequest = { activityStatusExpanded = false }) {
-                activityStatus.forEach { opt ->
-                    val display = when (opt) {
-                        "online" -> "Online"
-                        "dnd" -> "Do Not Disturb"
-                        "idle" -> "Idle"
-                        "streaming" -> "Streaming"
-                        else -> opt
-                    }
-                    DropdownMenuItem(text = { Text(display) }, onClick = {
-                        onActivityStatusSelectionChange(opt)
-                        activityStatusExpanded = false
-                    })
-                }
-            }
-        }
+                    SwitchPreference(
+                        title = { Text(stringResource(R.string.discord_show_when_paused)) },
+                        description = stringResource(R.string.discord_show_when_paused_desc),
+                        icon = { Icon(painterResource(R.drawable.ic_pause_white), null) },
+                        checked = showWhenPaused,
+                        onCheckedChange = { showWhenPaused = it }
+                    )
 
-        val platformOptions = listOf("android", "desktop", "web")
-        val (platformSelection, onPlatformSelectionChange) = rememberPreference(
-            key = DiscordActivityPlatformKey,
-            defaultValue = "desktop"
-        )
-
-        var platformExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = platformExpanded, onExpandedChange = { platformExpanded = it }) {
-            TextField(
-                value = platformSelection.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.platform_status)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = platformExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .pointerInput(Unit) { detectTapGestures { platformExpanded = true } },
-                leadingIcon = { Icon(painterResource(R.drawable.desktop_windows), null) },
-                shape = RoundedCornerShape(16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                )
-            )
-            ExposedDropdownMenu(expanded = platformExpanded, onDismissRequest = { platformExpanded = false }) {
-                platformOptions.forEach { opt ->
-                    DropdownMenuItem(text = { Text(opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }) }, onClick = {
-                        onPlatformSelectionChange(opt)
-                        platformExpanded = false
-                    })
-                }
-            }
-        }
-
-       val intervalOptions = listOf("20s", "50s", "1m", "5m", "Custom", "Disabled")
-       val (intervalSelection, onIntervalSelectionChange) = rememberPreference(
-           key = stringPreferencesKey("discordPresenceIntervalPreset"),
-           defaultValue = "20s"
-        )
-
-        var intervalExpanded by remember { mutableStateOf(false) }
-
-ExposedDropdownMenuBox(expanded = intervalExpanded, onExpandedChange = { intervalExpanded = it }) {
-    TextField(
-        value = intervalSelection,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(stringResource(R.string.update_interval)) },
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = intervalExpanded) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .menuAnchor()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .pointerInput(Unit) { detectTapGestures { intervalExpanded = true } },
-        leadingIcon = { Icon(painterResource(R.drawable.timer), null) },
-        shape = RoundedCornerShape(16.dp),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-        )
-    )
-    ExposedDropdownMenu(expanded = intervalExpanded, onDismissRequest = { intervalExpanded = false }) {
-        intervalOptions.forEach { opt ->
-            DropdownMenuItem(text = { Text(opt) }, onClick = {
-                onIntervalSelectionChange(opt)
-                intervalExpanded = false
-            })
-        }
-    }
-}
-
-if (intervalSelection == "Custom") {
-    val (customValue, onCustomValueChange) = rememberPreference(
-        key = DiscordPresenceIntervalValueKey,
-        defaultValue = 30
-    )
-    val (customUnit, onCustomUnitChange) = rememberPreference(
-        key = DiscordPresenceIntervalUnitKey,
-        defaultValue = "S"
-    )
-
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        OutlinedTextField(
-            value = customValue.toString(),
-            onValueChange = { text ->
-                val number = text.toIntOrNull()
-                if (number != null) {
-                    if (customUnit == "S" && number < 30) {
-                        onCustomValueChange(30)
-                    } else {
-                        onCustomValueChange(number)
-                    }
-                }
-            },
-            label = { Text("Value") },
-            modifier = Modifier.weight(1f).padding(end = 8.dp),
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        var unitExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = unitExpanded, onExpandedChange = { unitExpanded = it }) {
-            OutlinedTextField(
-                value = when (customUnit) {
-                    "S" -> "Seconds"
-                    "M" -> "Minutes"
-                    "H" -> "Hours"
-                    else -> "Seconds"
-                },
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Unit") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .weight(1f)
-                    .pointerInput(Unit) { detectTapGestures { unitExpanded = true } },
-                shape = RoundedCornerShape(16.dp)
-            )
-            ExposedDropdownMenu(expanded = unitExpanded, onDismissRequest = { unitExpanded = false }) {
-                listOf("S" to "Seconds", "M" to "Minutes", "H" to "Hours").forEach { (code, label) ->
-                    DropdownMenuItem(text = { Text(label) }, onClick = {
-                        if (code == "S" && customValue < 30) {
-                            onCustomValueChange(30)
+                    var activityExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = activityExpanded, onExpandedChange = { activityExpanded = it }) {
+                        TextField(
+                            value = activityType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.discord_activity_type)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            leadingIcon = { Icon(painterResource(R.drawable.discord), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
+                            activityOptions.forEach { opt ->
+                                DropdownMenuItem(text = { Text(opt) }, onClick = {
+                                    onActivityTypeChange(opt)
+                                    activityExpanded = false
+                                })
+                            }
                         }
-                        onCustomUnitChange(code)
-                        unitExpanded = false
-                    })
+                    }
                 }
             }
-        }
-    }
-}
-
-        PreferenceGroupTitle(title = stringResource(R.string.preview))
-
-        val (nameSource, onNameSourceChange) = rememberEnumPreference(
-            key = DiscordActivityNameKey, defaultValue = ActivitySource.APP
-        )
-        val (detailsSource, onDetailsSourceChange) = rememberEnumPreference(
-            key = DiscordActivityDetailsKey, defaultValue = ActivitySource.SONG
-        )
-        val (stateSource, onStateSourceChange) = rememberEnumPreference(
-            key = DiscordActivityStateKey, defaultValue = ActivitySource.ARTIST
-        )
-
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_name),
-            iconRes = R.drawable.text_fields,
-            selected = nameSource,
-            onChange = onNameSourceChange
-        )
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_details),
-            iconRes = R.drawable.text_fields,
-            selected = detailsSource,
-            onChange = onDetailsSourceChange
-        )
-        ActivitySourceDropdown(
-            title = stringResource(R.string.discord_activity_state),
-            iconRes = R.drawable.text_fields,
-            selected = stateSource,
-            onChange = onStateSourceChange
-        )
-
-        val (button1Label, onButton1LabelChange) = rememberPreference(
-            key = DiscordActivityButton1LabelKey,
-            defaultValue = "Listen on YouTube Music"
-        )
-        val (button1Enabled, onButton1EnabledChange) = rememberPreference(
-            key = DiscordActivityButton1EnabledKey,
-            defaultValue = true
-        )
-        val (button2Label, onButton2LabelChange) = rememberPreference(
-            key = DiscordActivityButton2LabelKey,
-            defaultValue = "Go to M3Play"
-        )
-        val (button2Enabled, onButton2EnabledChange) = rememberPreference(
-            key = DiscordActivityButton2EnabledKey,
-            defaultValue = true
-        )
-
-        val (activityType, onActivityTypeChange) = rememberPreference(
-            key = DiscordActivityTypeKey,
-            defaultValue = "LISTENING"
-        )
-        val activityOptions = listOf("PLAYING", "STREAMING", "LISTENING", "WATCHING", "COMPETING")
-
-        var showWhenPaused by rememberPreference(
-        key = DiscordShowWhenPausedKey,
-        defaultValue = false
-        )
-
-        SwitchPreference(
-            title = { Text(stringResource(R.string.discord_show_when_paused)) },
-            description = stringResource(R.string.discord_show_when_paused_desc),
-            icon = { Icon(painterResource(R.drawable.ic_pause_white), null) },
-            checked = showWhenPaused,
-            onCheckedChange = { showWhenPaused = it }
-        )
-
-        var activityExpanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = activityExpanded, onExpandedChange = { activityExpanded = it }) {
-            TextField(
-                value = activityType,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text(stringResource(R.string.discord_activity_type)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = activityExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-                    .pointerInput(Unit) { detectTapGestures { activityExpanded = true } }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                leadingIcon = { Icon(painterResource(R.drawable.discord), null) },
-                shape = RoundedCornerShape(16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                )
+            
+            PreferenceGroupTitle(
+                title = stringResource(R.string.discord_image_options),
+                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp, top = 16.dp)
             )
-            ExposedDropdownMenu(expanded = activityExpanded, onDismissRequest = { activityExpanded = false }) {
-                activityOptions.forEach { opt ->
-                    DropdownMenuItem(text = { Text(opt) }, onClick = {
-                        onActivityTypeChange(opt)
-                        activityExpanded = false
-                    })
-                }
+
+            val imageOptions = listOf("thumbnail", "artist", "appicon", "custom")
+            val smallImageOptions = listOf("thumbnail", "artist", "appicon", "custom", "dontshow")
+            val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
+
+            val (largeImageType, onLargeImageTypeChange) = rememberPreference(key = DiscordLargeImageTypeKey, defaultValue = "thumbnail")
+            val (largeImageCustomUrl, onLargeImageCustomUrlChange) = rememberPreference(key = DiscordLargeImageCustomUrlKey, defaultValue = "")
+            val (smallImageType, onSmallImageTypeChange) = rememberPreference(key = DiscordSmallImageTypeKey, defaultValue = "artist")
+            val (smallImageCustomUrl, onSmallImageCustomUrlChange) = rememberPreference(key = DiscordSmallImageCustomUrlKey, defaultValue = "")
+            val (largeTextSource, onLargeTextSourceChange) = rememberPreference(key = DiscordLargeTextSourceKey, defaultValue = "album")
+            val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(key = DiscordLargeTextCustomKey, defaultValue = "")
+
+            LaunchedEffect(largeImageType, smallImageType) {
+                ArtworkStorage.removeBySongId(context, song?.song?.id ?: return@LaunchedEffect)
             }
-        }
 
-    PreferenceGroupTitle(title = stringResource(R.string.discord_image_options))
-
-        val largeTextOptions = listOf("song", "artist", "album", "app", "custom", "dontshow")
-
-        val (largeTextSource, onLargeTextSourceChange) = rememberPreference(
-            key = DiscordLargeTextSourceKey,
-            defaultValue = "album"
-     )
-        val (largeTextCustom, onLargeTextCustomChange) = rememberPreference(
-            key = DiscordLargeTextCustomKey,
-            defaultValue = ""
-     )
-
-var largeImageExpanded by remember { mutableStateOf(false) }
-ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
-    TextField(
-        value = largeImageType,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(stringResource(R.string.large_image)) },
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .menuAnchor()
-            .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.image), null) },
-        shape = RoundedCornerShape(16.dp),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-        )
-    )
-    ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
-        imageOptions.forEach { opt ->
-            val display = when (opt) {
-                "appicon" -> "App Icon"
-                else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-            }
-            DropdownMenuItem(text = { Text(display) }, onClick = {
-                onLargeImageTypeChange(opt)
-                largeImageExpanded = false
-            })
-        }
-    }
-}
-if (largeImageType == "custom") {
-    EditablePreference(
-        title = stringResource(R.string.large_image_custom_url),
-        iconRes = R.drawable.link,
-        value = largeImageCustomUrl,
-        defaultValue = "",
-        onValueChange = onLargeImageCustomUrlChange,
-    )
-}
-
-var largeTextExpanded by remember { mutableStateOf(false) }
-ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeTextExpanded = it }) {
-    TextField(
-        value = largeTextSource,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(stringResource(R.string.large_text)) },
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeTextExpanded) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .menuAnchor()
-            .pointerInput(Unit) { detectTapGestures { largeTextExpanded = true } }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) },
-        shape = RoundedCornerShape(16.dp),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-        )
-    )
-    ExposedDropdownMenu(expanded = largeTextExpanded, onDismissRequest = { largeTextExpanded = false }) {
-        largeTextOptions.forEach { opt ->
-            val display = when (opt) {
-                "song" -> "Song name"
-                "artist" -> "Artist name"
-                "album" -> "Album name"
-                "app" -> "App name"
-                "custom" -> "Custom text"
-                "dontshow" -> "Don't show"
-                else -> opt
-            }
-            DropdownMenuItem(
-                text = { Text(display) },
-                onClick = {
-                    onLargeTextSourceChange(opt)
-                    largeTextExpanded = false
-                }
-            )
-        }
-    }
-}
-
-if (largeTextSource == "custom") {
-    EditablePreference(
-        title = stringResource(R.string.custom_large_text),
-        iconRes = R.drawable.text_fields,
-        value = largeTextCustom,
-        defaultValue = "",
-        onValueChange = onLargeTextCustomChange
-    )
-}
-
-var smallImageExpanded by remember { mutableStateOf(false) }
-ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
-    TextField(
-        value = smallImageType,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(stringResource(R.string.small_image)) },
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .menuAnchor()
-            .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        leadingIcon = { Icon(painterResource(R.drawable.image), null) },
-        shape = RoundedCornerShape(16.dp),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-        )
-    )
-    ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
-        smallImageOptions.forEach { opt ->
-            val display = when (opt) {
-                "appicon" -> "App Icon"
-                "dontshow" -> "Don't show"
-                else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-            }
-            DropdownMenuItem(text = { Text(display) }, onClick = {
-                onSmallImageTypeChange(opt)
-                smallImageExpanded = false
-            })
-        }
-    }
-}
-if (smallImageType == "custom") {
-    EditablePreference(
-        title = stringResource(R.string.small_image_custom_url),
-        iconRes = R.drawable.link,
-        value = smallImageCustomUrl,
-        defaultValue = "",
-        onValueChange = onSmallImageCustomUrlChange,
-    )
-}
-
-    val playerIsPlayingForPreview = playerConnection.player.playWhenReady && playbackState == STATE_READY
-
-    RichPresence(
-        song,
-        currentPlaybackTimeMillis = playerConnection.player.currentPosition,
-        nameSource = nameSource,
-        detailsSource = detailsSource,
-        stateSource = stateSource,
-        activityType = activityType,
-        largeImageType = largeImageType,
-        largeImageCustomUrl = largeImageCustomUrl,
-        smallImageType = smallImageType,
-        smallImageCustomUrl = smallImageCustomUrl,
-        button1Enabled = button1Enabled,
-        button2Enabled = button2Enabled,
-        isPlaying = playerConnection.player.isPlaying
-    )
-    Spacer(Modifier.height(32.dp))
-}
-
-    TopAppBar(
-        title = { Text(stringResource(R.string.discord_integration)) },
-        navigationIcon = {
-            IconButton(
-                onClick = navController::navigateUp,
-                onLongClick = navController::backToMain,
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = null
-                )
-            }
-        },
-        actions = {
-            var threeDotMenuExpanded by remember { mutableStateOf(false) }
-
-            IconButton(onClick = { threeDotMenuExpanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.more_vert),
-                    contentDescription = null
-                )
-            }
-
-            DropdownMenu(
-                expanded = threeDotMenuExpanded,
-                onDismissRequest = { threeDotMenuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.experiment_settings)) },
-                    onClick = {
-                        threeDotMenuExpanded = false
-                        navController.navigate("settings/discord/experimental")
-                    },
-                    leadingIcon = {
-                        Icon(
-                            painter = painterResource(R.drawable.experiment),
-                            contentDescription = null
+                Column(Modifier.padding(vertical = 12.dp)) {
+                    var largeImageExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = largeImageExpanded, onExpandedChange = { largeImageExpanded = it }) {
+                        TextField(
+                            value = largeImageType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.large_image)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeImageExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .pointerInput(Unit) { detectTapGestures { largeImageExpanded = true } }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            leadingIcon = { Icon(painterResource(R.drawable.image), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = largeImageExpanded, onDismissRequest = { largeImageExpanded = false }) {
+                            imageOptions.forEach { opt ->
+                                val display = when (opt) {
+                                    "appicon" -> "App Icon"
+                                    else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                }
+                                DropdownMenuItem(text = { Text(display) }, onClick = {
+                                    onLargeImageTypeChange(opt)
+                                    largeImageExpanded = false
+                                })
+                            }
+                        }
+                    }
+                    if (largeImageType == "custom") {
+                        EditablePreference(
+                            title = stringResource(R.string.large_image_custom_url),
+                            iconRes = R.drawable.link,
+                            value = largeImageCustomUrl,
+                            defaultValue = "",
+                            onValueChange = onLargeImageCustomUrlChange,
                         )
                     }
-                )
+
+                    var largeTextExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = largeTextExpanded, onExpandedChange = { largeTextExpanded = it }) {
+                        TextField(
+                            value = largeTextSource,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.large_text)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = largeTextExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .pointerInput(Unit) { detectTapGestures { largeTextExpanded = true } }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            leadingIcon = { Icon(painterResource(R.drawable.text_fields), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = largeTextExpanded, onDismissRequest = { largeTextExpanded = false }) {
+                            largeTextOptions.forEach { opt ->
+                                val display = when (opt) {
+                                    "song" -> "Song name"
+                                    "artist" -> "Artist name"
+                                    "album" -> "Album name"
+                                    "app" -> "App name"
+                                    "custom" -> "Custom text"
+                                    "dontshow" -> "Don't show"
+                                    else -> opt
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(display) },
+                                    onClick = {
+                                        onLargeTextSourceChange(opt)
+                                        largeTextExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (largeTextSource == "custom") {
+                        EditablePreference(
+                            title = stringResource(R.string.custom_large_text),
+                            iconRes = R.drawable.text_fields,
+                            value = largeTextCustom,
+                            defaultValue = "",
+                            onValueChange = onLargeTextCustomChange
+                        )
+                    }
+
+                    var smallImageExpanded by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(expanded = smallImageExpanded, onExpandedChange = { smallImageExpanded = it }) {
+                        TextField(
+                            value = smallImageType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.small_image)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = smallImageExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                                .pointerInput(Unit) { detectTapGestures { smallImageExpanded = true } }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            leadingIcon = { Icon(painterResource(R.drawable.image), null) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                        ExposedDropdownMenu(expanded = smallImageExpanded, onDismissRequest = { smallImageExpanded = false }) {
+                            smallImageOptions.forEach { opt ->
+                                val display = when (opt) {
+                                    "appicon" -> "App Icon"
+                                    "dontshow" -> "Don't show"
+                                    else -> opt.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                }
+                                DropdownMenuItem(text = { Text(display) }, onClick = {
+                                    onSmallImageTypeChange(opt)
+                                    smallImageExpanded = false
+                                })
+                            }
+                        }
+                    }
+                    if (smallImageType == "custom") {
+                        EditablePreference(
+                            title = stringResource(R.string.small_image_custom_url),
+                            iconRes = R.drawable.link,
+                            value = smallImageCustomUrl,
+                            defaultValue = "",
+                            onValueChange = onSmallImageCustomUrlChange,
+                        )
+                    }
+                }
             }
+
+            val playerIsPlayingForPreview = playerConnection.player.playWhenReady && playbackState == STATE_READY
+            val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
+            val (button1Enabled) = rememberPreference(DiscordActivityButton1EnabledKey, true)
+            val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "Go to M3Play")
+            val (button2Enabled) = rememberPreference(DiscordActivityButton2EnabledKey, true)
+            val (activityType) = rememberPreference(DiscordActivityTypeKey, "LISTENING")
+
+            RichPresence(
+                song = song,
+                currentPlaybackTimeMillis = playerConnection.player.currentPosition,
+                nameSource = nameSource,
+                detailsSource = detailsSource,
+                stateSource = stateSource,
+                activityType = activityType,
+                largeImageType = largeImageType,
+                largeImageCustomUrl = largeImageCustomUrl,
+                smallImageType = smallImageType,
+                smallImageCustomUrl = smallImageCustomUrl,
+                button1Enabled = button1Enabled,
+                button2Enabled = button2Enabled,
+                isPlaying = playerIsPlayingForPreview
+            )
+            Spacer(Modifier.height(32.dp))
         }
-      )
     }
 }
 
@@ -814,9 +772,7 @@ fun ActivitySourceDropdown(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
     ) {
         TextField(
             value = selected.name,
@@ -874,17 +830,19 @@ fun EditablePreference(
     if (showDialog) {
         var text by remember { mutableStateOf(value) }
         AlertDialog(
+            shape = RoundedCornerShape(32.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             onDismissRequest = { showDialog = false },
             confirmButton = {
                 TextButton(onClick = {
                     onValueChange(if (text.isBlank()) "" else text)
                     showDialog = false
-                }) { Text("Save") }
+                }) { Text("Save", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) { Text("Cancel") }
             },
-            title = { Text("Edit $title") },
+            title = { Text("Edit $title", fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = text,
@@ -918,14 +876,14 @@ fun RichPresence(
     val context = LocalContext.current
 
     fun resolveUrl(source: String, song: Song?, custom: String): String? {
-    return when (source.lowercase()) {
-        "songurl" -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
-        "artisturl" -> song?.artists?.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
-        "albumurl" -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
-        "custom" -> if (custom.isNotBlank()) custom else null
-        else -> null
+        return when (source.lowercase()) {
+            "songurl" -> song?.id?.let { "https://music.youtube.com/watch?v=$it" }
+            "artisturl" -> song?.artists?.firstOrNull()?.id?.let { "https://music.youtube.com/channel/$it" }
+            "albumurl" -> song?.album?.playlistId?.let { "https://music.youtube.com/playlist?list=$it" }
+            "custom" -> if (custom.isNotBlank()) custom else null
+            else -> null
+        }
     }
-   }
 
    val (button1Label) = rememberPreference(DiscordActivityButton1LabelKey, "Listen on YouTube Music")
    val (button2Label) = rememberPreference(DiscordActivityButton2LabelKey, "Go to M3Play")
@@ -937,56 +895,55 @@ fun RichPresence(
    val (largeTextCustom) = rememberPreference(DiscordLargeTextCustomKey, "")
 
     val previewLargeText = when (largeTextSource) {
-    "song" -> song?.song?.title ?: "Song name"
-    "artist" -> song?.artists?.firstOrNull()?.name ?: "Artist"
-    "album" -> song?.song?.albumName ?: song?.album?.title ?: "Album"
-    "app" -> stringResource(R.string.app_name)
-    "custom" -> largeTextCustom.ifBlank { "Custom text" }
-    "dontshow" -> null
-    else -> song?.song?.albumName ?: song?.album?.title
+        "song" -> song?.song?.title ?: "Song name"
+        "artist" -> song?.artists?.firstOrNull()?.name ?: "Artist"
+        "album" -> song?.song?.albumName ?: song?.album?.title ?: "Album"
+        "app" -> stringResource(R.string.app_name)
+        "custom" -> largeTextCustom.ifBlank { "Custom text" }
+        "dontshow" -> null
+        else -> song?.song?.albumName ?: song?.album?.title
     }
+    
     val resolvedButton1Url = resolveUrl(button1UrlSource, song, button1CustomUrl)
     val resolvedButton2Url = resolveUrl(button2UrlSource, song, button2CustomUrl)
     val activityVerb = when (activityType.uppercase()) {
-    "PLAYING" -> "Playing"
-    "LISTENING" -> "Listening to"
-    "WATCHING" -> "Watching"
-    "STREAMING" -> "Streaming"
-    "COMPETING" -> "Competing in"
-    else -> activityType.replaceFirstChar { 
-        if (it.isLowerCase()) it.titlecase() else it.toString() 
-       }
+        "PLAYING" -> "Playing"
+        "LISTENING" -> "Listening to"
+        "WATCHING" -> "Watching"
+        "STREAMING" -> "Streaming"
+        "COMPETING" -> "Competing in"
+        else -> activityType.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 
     val previewTitle = when (nameSource) {
-    ActivitySource.ARTIST -> "$activityVerb ${song?.artists?.firstOrNull()?.name ?: "Artist"}"
-    ActivitySource.ALBUM -> "$activityVerb ${song?.album?.title ?: song?.song?.albumName ?: "Album"}"
-    ActivitySource.SONG -> "$activityVerb ${song?.song?.title ?: "Song"}"
-    ActivitySource.APP -> "$activityVerb M3Play"
-   }
+        ActivitySource.ARTIST -> "$activityVerb ${song?.artists?.firstOrNull()?.name ?: "Artist"}"
+        ActivitySource.ALBUM -> "$activityVerb ${song?.album?.title ?: song?.song?.albumName ?: "Album"}"
+        ActivitySource.SONG -> "$activityVerb ${song?.song?.title ?: "Song"}"
+        ActivitySource.APP -> "$activityVerb M3Play"
+    }
 
     PreferenceEntry(
         title = {
             Text(
-            text = stringResource(R.string.preview),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 16.dp)
+                text = stringResource(R.string.preview),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 16.dp, start = 8.dp)
             )
         },
         content = {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh, // Premium Color
-                shape = RoundedCornerShape(32.dp), // Premium Radius
+                color = MaterialTheme.colorScheme.surfaceContainerHigh, 
+                shape = RoundedCornerShape(32.dp),
                 shadowElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp), // More breathing room
+                    modifier = Modifier.padding(24.dp), 
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         text = previewTitle,
-                        style = MaterialTheme.typography.titleMedium, // Better typography
+                        style = MaterialTheme.typography.titleMedium, 
                         textAlign = TextAlign.Start,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.fillMaxWidth(),
@@ -1007,7 +964,7 @@ fun RichPresence(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(96.dp)
-                                    .clip(RoundedCornerShape(20.dp)) // Pixel Squircle look
+                                    .clip(RoundedCornerShape(20.dp)) 
                                     .align(Alignment.TopStart)
                                     .run {
                                         if (song == null) border(
@@ -1071,12 +1028,12 @@ fun RichPresence(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             previewLargeText?.let {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontSize = 16.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                Text(
+                                    text = it,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    fontSize = 16.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                             if (song != null) {
@@ -1095,11 +1052,9 @@ fun RichPresence(
                         FilledTonalButton(
                             enabled = !resolvedButton1Url.isNullOrBlank(),
                             onClick = {
-                              resolvedButton1Url?.let {
-                              context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                         }
-                     },
-                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                                resolvedButton1Url?.let { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) {
                             Text(button1Label.ifBlank { "Listen on YouTube Music" }, fontWeight = FontWeight.Bold)
                         }
@@ -1113,11 +1068,9 @@ fun RichPresence(
                         FilledTonalButton(
                             enabled = !resolvedButton2Url.isNullOrBlank(),
                             onClick = {
-                              resolvedButton2Url?.let {
-                              context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-                        }
-                     },
-                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                                resolvedButton2Url?.let { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it))) }
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) {
                             Text(button2Label.ifBlank { "View Album" }, fontWeight = FontWeight.Bold)
                         }

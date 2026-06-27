@@ -111,7 +111,7 @@ fun StarDialog(
                         try {
                             val intent = Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://t.me/M3Play_updates")
+                                Uri.parse("https://t.me/M3Play_supports")
                             )
                             context.startActivity(intent)
                         } catch (e: Exception) {
