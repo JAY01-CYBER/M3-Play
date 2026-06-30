@@ -12,13 +12,17 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.CenterFocusStrong
 import androidx.compose.material.icons.rounded.Celebration
+import androidx.compose.material.icons.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Nightlight
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -144,17 +148,17 @@ fun MoodAndGenresButton(
     val contentColor = if (isLightBackground) Color.Black else Color.White
     val genreData = getGenreVisuals(title)
     
-    // Nayi Trick: Image ko Black & White karne ke liye
+    // Grayscale converter for exact color blending
     val grayscaleMatrix = ColorMatrix().apply { setToSaturation(0f) }
 
     Box(
         modifier = modifier
             .height(MoodAndGenresButtonHeight)
-            .clip(RoundedCornerShape(20.dp)) // Corners aur smooth (same as design)
+            .clip(RoundedCornerShape(20.dp))
             .background(baseColor)
             .clickable(onClick = onClick)
     ) {
-        // 1. Image Loaded as Black & White
+        // 1. Load Background Image
         if (genreData.bgImageUrl != null) {
             AsyncImage(
                 model = genreData.bgImageUrl,
@@ -162,34 +166,33 @@ fun MoodAndGenresButton(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.65f) // Right 65% area
+                    .fillMaxWidth(0.65f) // Keeps text readable by only taking right side
                     .align(Alignment.CenterEnd),
-                colorFilter = ColorFilter.colorMatrix(grayscaleMatrix) // Converts image to B&W
+                colorFilter = ColorFilter.colorMatrix(grayscaleMatrix) // B&W magic
             )
         }
 
-        // 2. The Magic Gradient (Hides the edge and colors the B&W image)
+        // 2. Smooth Blending Gradient over the image
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0.0f to baseColor, // Solid start
-                        0.4f to baseColor, // Solid over the image's left edge (Fixes the hard line)
-                        0.7f to baseColor.copy(alpha = 0.65f), // Fades smoothly
-                        1.0f to baseColor.copy(alpha = 0.15f) // Lets image show through a colored tint
+                        0.0f to baseColor, 
+                        0.4f to baseColor, 
+                        0.7f to baseColor.copy(alpha = 0.65f), 
+                        1.0f to baseColor.copy(alpha = 0.15f) 
                     )
                 )
         )
 
-        // 3. Foreground Texts and Icons
+        // 3. Text and Icons
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Circle Icon
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -216,7 +219,6 @@ fun MoodAndGenresButton(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Title & Subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -243,7 +245,6 @@ fun MoodAndGenresButton(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Right Arrow
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -254,7 +255,7 @@ fun MoodAndGenresButton(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.7f), // Arrow exactly matching design
+                    tint = Color.Black.copy(alpha = 0.7f),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -262,7 +263,7 @@ fun MoodAndGenresButton(
     }
 }
 
-val MoodAndGenresButtonHeight = 100.dp // Height slightly reduced to match sleek design
+val MoodAndGenresButtonHeight = 100.dp
 
 data class GenreVisuals(
     val subtitle: String,
@@ -282,10 +283,30 @@ fun getGenreVisuals(title: String): GenreVisuals {
         lowerTitle.contains("2010") -> GenreVisuals(
             subtitle = "The best of the 2010s",
             textIcon = "2010s",
-            bgImageUrl = "https://images.unsplash.com/photo-1540960060815-f855d4bc6287?q=80&w=800&auto=format&fit=crop"
+            bgImageUrl = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop" // Cassette Tape
+        )
+        lowerTitle.contains("jazz") -> GenreVisuals(
+            subtitle = "Smooth & soulful",
+            icon = Icons.Rounded.Album,
+            bgImageUrl = "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop" // Saxophone
+        )
+        lowerTitle.contains("classical") -> GenreVisuals(
+            subtitle = "Timeless masterpieces",
+            icon = Icons.Rounded.LibraryMusic,
+            bgImageUrl = "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=800&auto=format&fit=crop" // Piano keys
+        )
+        lowerTitle.contains("workout") -> GenreVisuals(
+            subtitle = "Push your limits",
+            icon = Icons.Rounded.DirectionsRun,
+            bgImageUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop" // Gym / Shoes
+        )
+        lowerTitle.contains("indie") -> GenreVisuals(
+            subtitle = "Fresh local sounds",
+            icon = Icons.Rounded.GraphicEq,
+            bgImageUrl = "https://images.unsplash.com/photo-1516280440502-869f4e41bf17?q=80&w=800&auto=format&fit=crop" // Acoustic guitar vibes
         )
         lowerTitle.contains("family") -> GenreVisuals(
-            subtitle = "Songs for the whole family",
+            subtitle = "Songs for everyone",
             icon = Icons.Rounded.People,
             bgImageUrl = "https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=800&auto=format&fit=crop"
         )
@@ -313,6 +334,11 @@ fun getGenreVisuals(title: String): GenreVisuals {
             subtitle = "Stay in the zone",
             icon = Icons.Rounded.CenterFocusStrong,
             bgImageUrl = "https://images.unsplash.com/photo-1520112185208-a54d5b248eb3?q=80&w=800&auto=format&fit=crop"
+        )
+        lowerTitle.contains("sleep") || lowerTitle.contains("relax") -> GenreVisuals(
+            subtitle = "Unwind and drift away",
+            icon = Icons.Rounded.Nightlight,
+            bgImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" // Beach/Sunset
         )
         else -> GenreVisuals(
             subtitle = "Explore top tracks",
