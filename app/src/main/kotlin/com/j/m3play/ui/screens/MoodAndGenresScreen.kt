@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -104,7 +106,7 @@ fun MoodAndGenresScreen(
                 ShimmerHost {
                     TextPlaceholder(
                         height = MoodAndGenresButtonHeight,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.padding(vertical = 6.dp),
                     )
                 }
@@ -141,15 +143,18 @@ fun MoodAndGenresButton(
     val isLightBackground = baseColor.luminance() > 0.4f
     val contentColor = if (isLightBackground) Color.Black else Color.White
     val genreData = getGenreVisuals(title)
+    
+    // Nayi Trick: Image ko Black & White karne ke liye
+    val grayscaleMatrix = ColorMatrix().apply { setToSaturation(0f) }
 
     Box(
         modifier = modifier
             .height(MoodAndGenresButtonHeight)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp)) // Corners aur smooth (same as design)
             .background(baseColor)
             .clickable(onClick = onClick)
     ) {
-        // 1. Image on the right side (Loaded from URL)
+        // 1. Image Loaded as Black & White
         if (genreData.bgImageUrl != null) {
             AsyncImage(
                 model = genreData.bgImageUrl,
@@ -159,20 +164,20 @@ fun MoodAndGenresButton(
                     .fillMaxHeight()
                     .fillMaxWidth(0.65f) // Right 65% area
                     .align(Alignment.CenterEnd),
-                alpha = 0.85f // Slightly transparent so it looks softer
+                colorFilter = ColorFilter.colorMatrix(grayscaleMatrix) // Converts image to B&W
             )
         }
 
-        // 2. Smooth Gradient Blend (Fades base color from left to right)
+        // 2. The Magic Gradient (Hides the edge and colors the B&W image)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0.0f to baseColor,
-                        0.35f to baseColor.copy(alpha = 0.9f), // Strong color on text area
-                        0.7f to baseColor.copy(alpha = 0.4f), // Smooth fade
-                        1.0f to Color.Transparent
+                        0.0f to baseColor, // Solid start
+                        0.4f to baseColor, // Solid over the image's left edge (Fixes the hard line)
+                        0.7f to baseColor.copy(alpha = 0.65f), // Fades smoothly
+                        1.0f to baseColor.copy(alpha = 0.15f) // Lets image show through a colored tint
                     )
                 )
         )
@@ -189,7 +194,7 @@ fun MoodAndGenresButton(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(contentColor.copy(alpha = 0.15f)),
+                    .background(contentColor.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (genreData.icon != null) {
@@ -243,13 +248,13 @@ fun MoodAndGenresButton(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f)),
+                    .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = if (isLightBackground) Color.Black.copy(alpha = 0.7f) else baseColor,
+                    tint = Color.Black.copy(alpha = 0.7f), // Arrow exactly matching design
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -257,7 +262,7 @@ fun MoodAndGenresButton(
     }
 }
 
-val MoodAndGenresButtonHeight = 110.dp
+val MoodAndGenresButtonHeight = 100.dp // Height slightly reduced to match sleek design
 
 data class GenreVisuals(
     val subtitle: String,
@@ -299,7 +304,6 @@ fun getGenreVisuals(title: String): GenreVisuals {
             icon = Icons.Rounded.LibraryMusic,
             bgImageUrl = "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=800&auto=format&fit=crop"
         )
-        // Nayi categories jo screenshot me hain
         lowerTitle.contains("party") -> GenreVisuals(
             subtitle = "Get the party started",
             icon = Icons.Rounded.Celebration,
