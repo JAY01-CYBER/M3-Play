@@ -1,7 +1,6 @@
 package com.j.m3play.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +12,8 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CenterFocusStrong
+import androidx.compose.material.icons.rounded.Celebration
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.LibraryMusic
@@ -35,7 +36,6 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import coil.compose.AsyncImage
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.ui.component.NavigationTitle
@@ -137,70 +138,58 @@ fun MoodAndGenresButton(
     modifier: Modifier = Modifier,
 ) {
     val baseColor = Color(stripeColor)
-    
-    // Yahan check kar rahe hain ki background dark hai ya light
-    val isLightBackground = baseColor.luminance() > 0.4f 
-    // Light bg pe Black text, Dark bg pe White text
-    val contentColor = if (isLightBackground) Color.Black else Color.White 
-
+    val isLightBackground = baseColor.luminance() > 0.4f
+    val contentColor = if (isLightBackground) Color.Black else Color.White
     val genreData = getGenreVisuals(title)
 
     Box(
         modifier = modifier
             .height(MoodAndGenresButtonHeight)
             .clip(RoundedCornerShape(16.dp))
+            .background(baseColor)
             .clickable(onClick = onClick)
     ) {
-        // Naya Gradient: Bina image ke bhi card premium lagega
+        // 1. Image on the right side (Loaded from URL)
+        if (genreData.bgImageUrl != null) {
+            AsyncImage(
+                model = genreData.bgImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.65f) // Right 65% area
+                    .align(Alignment.CenterEnd),
+                alpha = 0.85f // Slightly transparent so it looks softer
+            )
+        }
+
+        // 2. Smooth Gradient Blend (Fades base color from left to right)
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0.0f to baseColor.copy(alpha = 0.6f), // Left side slightly lighter
-                        1.0f to baseColor // Right side full color
+                        0.0f to baseColor,
+                        0.35f to baseColor.copy(alpha = 0.9f), // Strong color on text area
+                        0.7f to baseColor.copy(alpha = 0.4f), // Smooth fade
+                        1.0f to Color.Transparent
                     )
                 )
         )
 
-        // Agar future me Image add karni ho (Commented)
-        if (genreData.bgImageRes != null) {
-            Image(
-                painter = painterResource(id = genreData.bgImageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.6f)
-                    .align(Alignment.CenterEnd)
-            )
-            // Gradient Overlay for Image blending
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            0.0f to baseColor,
-                            0.5f to baseColor.copy(alpha = 0.85f),
-                            0.8f to baseColor.copy(alpha = 0.3f),
-                            1.0f to Color.Transparent
-                        )
-                    )
-            )
-        }
-
+        // 3. Foreground Texts and Icons
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Circular Icon
+            // Left Circle Icon
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(contentColor.copy(alpha = 0.15f)), // Translucent matching circle
+                    .background(contentColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (genreData.icon != null) {
@@ -222,7 +211,7 @@ fun MoodAndGenresButton(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Title and Subtitle Column
+            // Title & Subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -249,7 +238,7 @@ fun MoodAndGenresButton(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Right Arrow Button
+            // Right Arrow
             Box(
                 modifier = Modifier
                     .size(32.dp)
@@ -260,7 +249,6 @@ fun MoodAndGenresButton(
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    // Arrow ka color dark cards par base color hoga, light cards par dark gray
                     tint = if (isLightBackground) Color.Black.copy(alpha = 0.7f) else baseColor,
                     modifier = Modifier.size(24.dp)
                 )
@@ -275,40 +263,52 @@ data class GenreVisuals(
     val subtitle: String,
     val textIcon: String? = null,
     val icon: ImageVector? = null,
-    val bgImageRes: Int? = null
+    val bgImageUrl: String? = null
 )
 
-// Logic update: Ab directly compare karne ke bajaye "contains" check karega
 fun getGenreVisuals(title: String): GenreVisuals {
     val lowerTitle = title.lowercase()
     return when {
         lowerTitle.contains("hindi") -> GenreVisuals(
             subtitle = "Bollywood hits & more",
             textIcon = "अ",
+            bgImageUrl = "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("2010") -> GenreVisuals(
             subtitle = "The best of the 2010s",
             textIcon = "2010s",
+            bgImageUrl = "https://images.unsplash.com/photo-1540960060815-f855d4bc6287?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("family") -> GenreVisuals(
             subtitle = "Songs for the whole family",
             icon = Icons.Rounded.People,
+            bgImageUrl = "https://images.unsplash.com/photo-1511895426328-dc8714191300?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("romance") -> GenreVisuals(
             subtitle = "Feel the love",
             icon = Icons.Rounded.Favorite,
+            bgImageUrl = "https://images.unsplash.com/photo-1518621736915-f346c4136e28?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("pop") -> GenreVisuals(
             subtitle = "Today's top hits",
             icon = Icons.Rounded.Mic,
+            bgImageUrl = "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("hip-hop") -> GenreVisuals(
             subtitle = "Beats that move you",
             icon = Icons.Rounded.LibraryMusic,
+            bgImageUrl = "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?q=80&w=800&auto=format&fit=crop"
         )
-        lowerTitle.contains("haryanvi") -> GenreVisuals(
-            subtitle = "Top Haryanvi bangers",
-            icon = Icons.Rounded.MusicNote,
+        // Nayi categories jo screenshot me hain
+        lowerTitle.contains("party") -> GenreVisuals(
+            subtitle = "Get the party started",
+            icon = Icons.Rounded.Celebration,
+            bgImageUrl = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=800&auto=format&fit=crop"
+        )
+        lowerTitle.contains("focus") -> GenreVisuals(
+            subtitle = "Stay in the zone",
+            icon = Icons.Rounded.CenterFocusStrong,
+            bgImageUrl = "https://images.unsplash.com/photo-1520112185208-a54d5b248eb3?q=80&w=800&auto=format&fit=crop"
         )
         else -> GenreVisuals(
             subtitle = "Explore top tracks",
