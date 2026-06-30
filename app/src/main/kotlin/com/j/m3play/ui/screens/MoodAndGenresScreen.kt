@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Landscape
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MusicNote
@@ -148,7 +149,6 @@ fun MoodAndGenresButton(
     val contentColor = if (isLightBackground) Color.Black else Color.White
     val genreData = getGenreVisuals(title)
     
-    // Grayscale converter for exact color blending
     val grayscaleMatrix = ColorMatrix().apply { setToSaturation(0f) }
 
     Box(
@@ -158,7 +158,6 @@ fun MoodAndGenresButton(
             .background(baseColor)
             .clickable(onClick = onClick)
     ) {
-        // 1. Load Background Image
         if (genreData.bgImageUrl != null) {
             AsyncImage(
                 model = genreData.bgImageUrl,
@@ -166,13 +165,12 @@ fun MoodAndGenresButton(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.65f) // Keeps text readable by only taking right side
+                    .fillMaxWidth(0.65f)
                     .align(Alignment.CenterEnd),
-                colorFilter = ColorFilter.colorMatrix(grayscaleMatrix) // B&W magic
+                colorFilter = ColorFilter.colorMatrix(grayscaleMatrix)
             )
         }
 
-        // 2. Smooth Blending Gradient over the image
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -186,7 +184,6 @@ fun MoodAndGenresButton(
                 )
         )
 
-        // 3. Text and Icons
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -272,38 +269,79 @@ data class GenreVisuals(
     val bgImageUrl: String? = null
 )
 
+// Yaha maine "Mega List" add kar di hai
 fun getGenreVisuals(title: String): GenreVisuals {
     val lowerTitle = title.lowercase()
     return when {
-        lowerTitle.contains("hindi") -> GenreVisuals(
+        lowerTitle.contains("hindi") || lowerTitle.contains("bollywood") -> GenreVisuals(
             subtitle = "Bollywood hits & more",
             textIcon = "अ",
             bgImageUrl = "https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=800&auto=format&fit=crop"
         )
-        lowerTitle.contains("2010") -> GenreVisuals(
+        lowerTitle.contains("country") || lowerTitle.contains("americana") -> GenreVisuals(
+            subtitle = "Roots & storytelling",
+            icon = Icons.Rounded.Landscape,
+            bgImageUrl = "https://images.unsplash.com/photo-1510486835266-96b65313936a?q=80&w=800&auto=format&fit=crop" // Acoustic guitar / field
+        )
+        lowerTitle.contains("1980") || lowerTitle.contains("80s") -> GenreVisuals(
+            subtitle = "Retro vibes",
+            textIcon = "80s",
+            bgImageUrl = "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=800&auto=format&fit=crop" // Neon retro
+        )
+        lowerTitle.contains("1990") || lowerTitle.contains("90s") -> GenreVisuals(
+            subtitle = "The golden era",
+            textIcon = "90s",
+            bgImageUrl = "https://images.unsplash.com/photo-1621360841013-c76831f12282?q=80&w=800&auto=format&fit=crop" // CD / Grunge
+        )
+        lowerTitle.contains("2000") || lowerTitle.contains("00s") -> GenreVisuals(
+            subtitle = "Y2K hits",
+            textIcon = "00s",
+            bgImageUrl = "https://images.unsplash.com/photo-1516280440502-869f4e41bf17?q=80&w=800&auto=format&fit=crop"
+        )
+        lowerTitle.contains("2010") || lowerTitle.contains("10s") -> GenreVisuals(
             subtitle = "The best of the 2010s",
-            textIcon = "2010s",
-            bgImageUrl = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop" // Cassette Tape
+            textIcon = "10s",
+            bgImageUrl = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=800&auto=format&fit=crop" 
+        )
+        lowerTitle.contains("metal") -> GenreVisuals(
+            subtitle = "Heavy hits",
+            icon = Icons.Rounded.GraphicEq,
+            bgImageUrl = "https://images.unsplash.com/photo-1598387993441-a364f854c3e1?q=80&w=800&auto=format&fit=crop" // Electric guitar shred
+        )
+        lowerTitle.contains("rock") -> GenreVisuals(
+            subtitle = "Classic & modern",
+            icon = Icons.Rounded.GraphicEq,
+            bgImageUrl = "https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?q=80&w=800&auto=format&fit=crop"
+        )
+        lowerTitle.contains("r&b") || lowerTitle.contains("soul") -> GenreVisuals(
+            subtitle = "Smooth vibes",
+            icon = Icons.Rounded.Mic,
+            bgImageUrl = "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop"
+        )
+        lowerTitle.contains("dance") || lowerTitle.contains("electronic") -> GenreVisuals(
+            subtitle = "Drop the bass",
+            icon = Icons.Rounded.Celebration,
+            bgImageUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop"
         )
         lowerTitle.contains("jazz") -> GenreVisuals(
             subtitle = "Smooth & soulful",
             icon = Icons.Rounded.Album,
-            bgImageUrl = "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop" // Saxophone
+            bgImageUrl = "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop" 
         )
         lowerTitle.contains("classical") -> GenreVisuals(
             subtitle = "Timeless masterpieces",
             icon = Icons.Rounded.LibraryMusic,
-            bgImageUrl = "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=800&auto=format&fit=crop" // Piano keys
+            bgImageUrl = "https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=800&auto=format&fit=crop" 
         )
         lowerTitle.contains("workout") -> GenreVisuals(
             subtitle = "Push your limits",
             icon = Icons.Rounded.DirectionsRun,
-            bgImageUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop" // Gym / Shoes
+            bgImageUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop" 
         )
         lowerTitle.contains("indie") -> GenreVisuals(
             subtitle = "Fresh local sounds",
             icon = Icons.Rounded.GraphicEq,
-            bgImageUrl = "https://images.unsplash.com/photo-1516280440502-869f4e41bf17?q=80&w=800&auto=format&fit=crop" // Acoustic guitar vibes
+            bgImageUrl = "https://images.unsplash.com/photo-1516280440502-869f4e41bf17?q=80&w=800&auto=format&fit=crop" 
         )
         lowerTitle.contains("family") -> GenreVisuals(
             subtitle = "Songs for everyone",
@@ -338,7 +376,7 @@ fun getGenreVisuals(title: String): GenreVisuals {
         lowerTitle.contains("sleep") || lowerTitle.contains("relax") -> GenreVisuals(
             subtitle = "Unwind and drift away",
             icon = Icons.Rounded.Nightlight,
-            bgImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" // Beach/Sunset
+            bgImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" 
         )
         else -> GenreVisuals(
             subtitle = "Explore top tracks",
