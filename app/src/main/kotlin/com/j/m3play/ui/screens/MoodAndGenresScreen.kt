@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -74,7 +75,7 @@ fun MoodAndGenresScreen(
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 320.dp), // Single column like screenshot
+        columns = GridCells.Adaptive(minSize = 320.dp),
         state = gridState,
         contentPadding = PaddingValues(
             start = 16.dp,
@@ -88,7 +89,6 @@ fun MoodAndGenresScreen(
                 NavigationTitle(
                     title = stringResource(R.string.mood_and_genres),
                 )
-                // Same to same sub-heading
                 Text(
                     text = "Music for every vibe",
                     style = MaterialTheme.typography.bodyLarge,
@@ -137,16 +137,33 @@ fun MoodAndGenresButton(
     modifier: Modifier = Modifier,
 ) {
     val baseColor = Color(stripeColor)
+    
+    // Yahan check kar rahe hain ki background dark hai ya light
+    val isLightBackground = baseColor.luminance() > 0.4f 
+    // Light bg pe Black text, Dark bg pe White text
+    val contentColor = if (isLightBackground) Color.Black else Color.White 
+
     val genreData = getGenreVisuals(title)
 
     Box(
         modifier = modifier
             .height(MoodAndGenresButtonHeight)
             .clip(RoundedCornerShape(16.dp))
-            .background(baseColor)
             .clickable(onClick = onClick)
     ) {
-        // 1. Background Image on the Right (If Available)
+        // Naya Gradient: Bina image ke bhi card premium lagega
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        0.0f to baseColor.copy(alpha = 0.6f), // Left side slightly lighter
+                        1.0f to baseColor // Right side full color
+                    )
+                )
+        )
+
+        // Agar future me Image add karni ho (Commented)
         if (genreData.bgImageRes != null) {
             Image(
                 painter = painterResource(id = genreData.bgImageRes),
@@ -154,26 +171,24 @@ fun MoodAndGenresButton(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(0.6f) // Take up 60% of right side
+                    .fillMaxWidth(0.6f)
                     .align(Alignment.CenterEnd)
+            )
+            // Gradient Overlay for Image blending
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            0.0f to baseColor,
+                            0.5f to baseColor.copy(alpha = 0.85f),
+                            0.8f to baseColor.copy(alpha = 0.3f),
+                            1.0f to Color.Transparent
+                        )
+                    )
             )
         }
 
-        // 2. Gradient Overlay for Smooth Blending (Fades image left edge into solid color)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        0.0f to baseColor,
-                        0.4f to baseColor.copy(alpha = 0.9f), // Strong color on text side
-                        0.7f to baseColor.copy(alpha = 0.3f), // Fading smoothly
-                        1.0f to Color.Transparent // Fully transparent on the right edge
-                    )
-                )
-        )
-
-        // 3. Foreground Content (Icons & Texts)
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -185,20 +200,20 @@ fun MoodAndGenresButton(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f)), // Translucent white circle
+                    .background(contentColor.copy(alpha = 0.15f)), // Translucent matching circle
                 contentAlignment = Alignment.Center
             ) {
                 if (genreData.icon != null) {
                     Icon(
                         imageVector = genreData.icon,
                         contentDescription = null,
-                        tint = Color.Black.copy(alpha = 0.7f),
+                        tint = contentColor.copy(alpha = 0.8f),
                         modifier = Modifier.size(28.dp)
                     )
                 } else {
                     Text(
                         text = genreData.textIcon ?: title.take(1),
-                        color = Color.Black.copy(alpha = 0.7f),
+                        color = contentColor.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
                         fontWeight = FontWeight.SemiBold
                     )
@@ -218,7 +233,7 @@ fun MoodAndGenresButton(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     ),
-                    color = Color.Black.copy(alpha = 0.9f),
+                    color = contentColor.copy(alpha = 0.95f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -226,7 +241,7 @@ fun MoodAndGenresButton(
                 Text(
                     text = genreData.subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Black.copy(alpha = 0.7f),
+                    color = contentColor.copy(alpha = 0.75f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -239,13 +254,14 @@ fun MoodAndGenresButton(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(Color.White.copy(alpha = 0.9f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = Color.Black.copy(alpha = 0.6f),
+                    // Arrow ka color dark cards par base color hoga, light cards par dark gray
+                    tint = if (isLightBackground) Color.Black.copy(alpha = 0.7f) else baseColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -255,7 +271,6 @@ fun MoodAndGenresButton(
 
 val MoodAndGenresButtonHeight = 110.dp
 
-// Helper class & function to map design exact details
 data class GenreVisuals(
     val subtitle: String,
     val textIcon: String? = null,
@@ -263,38 +278,37 @@ data class GenreVisuals(
     val bgImageRes: Int? = null
 )
 
+// Logic update: Ab directly compare karne ke bajaye "contains" check karega
 fun getGenreVisuals(title: String): GenreVisuals {
-    return when (title.lowercase()) {
-        "hindi" -> GenreVisuals(
+    val lowerTitle = title.lowercase()
+    return when {
+        lowerTitle.contains("hindi") -> GenreVisuals(
             subtitle = "Bollywood hits & more",
             textIcon = "अ",
-            // TODO: Niche diya gaya code tabhi chalega jab tum ek image res/drawable me add karoge
-            // bgImageRes = R.drawable.taj_mahal_bg
         )
-        "2010s" -> GenreVisuals(
+        lowerTitle.contains("2010") -> GenreVisuals(
             subtitle = "The best of the 2010s",
             textIcon = "2010s",
-            // bgImageRes = R.drawable.cassette_bg
         )
-        "family" -> GenreVisuals(
+        lowerTitle.contains("family") -> GenreVisuals(
             subtitle = "Songs for the whole family",
             icon = Icons.Rounded.People,
-            // bgImageRes = R.drawable.family_bg
         )
-        "romance" -> GenreVisuals(
+        lowerTitle.contains("romance") -> GenreVisuals(
             subtitle = "Feel the love",
             icon = Icons.Rounded.Favorite,
-            // bgImageRes = R.drawable.roses_bg
         )
-        "pop" -> GenreVisuals(
+        lowerTitle.contains("pop") -> GenreVisuals(
             subtitle = "Today's top hits",
             icon = Icons.Rounded.Mic,
-            // bgImageRes = R.drawable.concert_bg
         )
-        "hip-hop" -> GenreVisuals(
+        lowerTitle.contains("hip-hop") -> GenreVisuals(
             subtitle = "Beats that move you",
             icon = Icons.Rounded.LibraryMusic,
-            // bgImageRes = R.drawable.graffiti_bg
+        )
+        lowerTitle.contains("haryanvi") -> GenreVisuals(
+            subtitle = "Top Haryanvi bangers",
+            icon = Icons.Rounded.MusicNote,
         )
         else -> GenreVisuals(
             subtitle = "Explore top tracks",
