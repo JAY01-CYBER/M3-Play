@@ -313,21 +313,20 @@ fun HomeScreen(
                         
                         TimeGreetingCard(
                             onMixClick = { 
-                                // YouTube Music Time-based Mix Endpoints
-                                val endpoint = when (currentHour) {
-                                    in 4..11 -> WatchEndpoint(playlistId = "RDCLAK5uy_mVKCQKuK8r-0E97QYt9y2DXZm4Xm6X6J8") // Morning Mix (Upbeat)
-                                    in 12..16 -> WatchEndpoint(playlistId = "RDCLAK5uy_l4bFnb1uQ9gQh1P-rW6Yn8U9Cj9c2Q1_Y") // Afternoon Mix (Pop/Energy)
-                                    in 17..20 -> WatchEndpoint(playlistId = "RDCLAK5uy_n7Fq_XU2W-B6q8A9j3H0Z_Y3a3_x9_M8U") // Evening Mix (Chill/Acoustic)
-                                    else -> WatchEndpoint(playlistId = "RDCLAK5uy_kP3P_XU2W-B6q8A9j3H0Z_Y3a3_x9_M8U") // Night/Late Night Mix (Lofi/Sleep)
-                                }
+                                val picks = quickPicks ?: emptyList()
+                                
+                                if (picks.isNotEmpty()) {
+                                    // Time ke hisaab se vibe change karne ke liye alag position se seed song uthayenge
+                                    val seedSong = when (currentHour) {
+                                        in 4..11 -> picks.firstOrNull() // Morning
+                                        in 12..16 -> picks.getOrNull(picks.size / 3) ?: picks.random() // Afternoon
+                                        in 17..20 -> picks.getOrNull(picks.size / 2) ?: picks.random() // Evening
+                                        else -> picks.lastOrNull() ?: picks.random() // Night
+                                    }
 
-                                try {
-                                    // Play the native YouTube Time-Based Mix
-                                    playerConnection.playQueue(YouTubeQueue(endpoint))
-                                } catch (e: Exception) {
-                                    // Fallback if playlist fails: Play a radio from Quick Picks 
-                                    quickPicks?.firstOrNull()?.let { firstPick ->
-                                        playerConnection.playQueue(YouTubeQueue.radio(firstPick.toMediaMetadata()))
+                                    seedSong?.let { song ->
+                                        // Quick Picks ke gaane ka auto-radio chalu karenge. Ye 100% chalega.
+                                        playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                     }
                                 }
                             }
