@@ -77,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -316,16 +317,14 @@ fun HomeScreen(
                                 val picks = quickPicks ?: emptyList()
                                 
                                 if (picks.isNotEmpty()) {
-                                    // Time ke hisaab se vibe change karne ke liye alag position se seed song uthayenge
                                     val seedSong = when (currentHour) {
-                                        in 4..11 -> picks.firstOrNull() // Morning
-                                        in 12..16 -> picks.getOrNull(picks.size / 3) ?: picks.random() // Afternoon
-                                        in 17..20 -> picks.getOrNull(picks.size / 2) ?: picks.random() // Evening
-                                        else -> picks.lastOrNull() ?: picks.random() // Night
+                                        in 4..11 -> picks.firstOrNull() 
+                                        in 12..16 -> picks.getOrNull(picks.size / 3) ?: picks.random() 
+                                        in 17..20 -> picks.getOrNull(picks.size / 2) ?: picks.random() 
+                                        else -> picks.lastOrNull() ?: picks.random() 
                                     }
 
                                     seedSong?.let { song ->
-                                        // Quick Picks ke gaane ka auto-radio chalu karenge. Ye 100% chalega.
                                         playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
                                     }
                                 }
@@ -333,17 +332,12 @@ fun HomeScreen(
                         ) 
                     }
                     
-                    item(key = "actions_1", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
-                        }
-                    }
-
-                    item(key = "actions_2", contentType = "actions") {
+                    item(key = "quick_actions", contentType = "actions") {
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = { if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") } }, modifier = Modifier.weight(1f))
+                            ActionCard(title = "Liked", subtitle = "128 songs", icon = R.drawable.favorite, iconTint = Color(0xFF673AB7), onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
+                            ActionCard(title = "Downloads", subtitle = "42 songs", icon = R.drawable.download, iconTint = Color(0xFF1976D2), onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
+                            ActionCard(title = "History", subtitle = "Recent", icon = R.drawable.history, iconTint = Color(0xFF388E3C), onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
+                            ActionCard(title = if (isLoggedIn) "Account" else "Library", subtitle = "Profile", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, iconTint = Color(0xFFFF5722), onClick = { if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") } }, modifier = Modifier.weight(1f))
                         }
                     }
                     
@@ -425,7 +419,9 @@ fun HomeScreen(
 @Composable
 fun ActionCard(
     title: String,
+    subtitle: String,
     icon: Int,
+    iconTint: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -439,22 +435,24 @@ fun ActionCard(
         onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(48.dp),
-        shape = RoundedCornerShape(999.dp),
+            .height(95.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
         interactionSource = interactionSource
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        Column(
+            modifier = Modifier.fillMaxSize().padding(vertical = 12.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
+            Icon(painter = painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = subtitle, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
