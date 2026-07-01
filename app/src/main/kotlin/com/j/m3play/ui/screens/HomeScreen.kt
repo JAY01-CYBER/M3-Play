@@ -308,7 +308,13 @@ fun HomeScreen(
                     }
 
                     item(key = "greeting", contentType = "greeting") { 
-                        TimeGreetingCard(onSearchClick = { runCatching { navController.navigate("search/") } }) 
+                        // FIXED: Replaced onSearchClick with onMixClick
+                        TimeGreetingCard(
+                            onMixClick = { 
+                                // TODO: Add logic here to play the Time-Based Mix when button is clicked
+                                // e.g. playerConnection.playQueue(...) 
+                            }
+                        ) 
                     }
                     
                     item(key = "actions_1", contentType = "actions") {
