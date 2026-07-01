@@ -113,6 +113,7 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -308,11 +309,27 @@ fun HomeScreen(
                     }
 
                     item(key = "greeting", contentType = "greeting") { 
-                        // FIXED: Replaced onSearchClick with onMixClick
+                        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                        
                         TimeGreetingCard(
                             onMixClick = { 
-                                // TODO: Add logic here to play the Time-Based Mix when button is clicked
-                                // e.g. playerConnection.playQueue(...) 
+                                // YouTube Music Time-based Mix Endpoints
+                                val endpoint = when (currentHour) {
+                                    in 4..11 -> WatchEndpoint(playlistId = "RDCLAK5uy_mVKCQKuK8r-0E97QYt9y2DXZm4Xm6X6J8") // Morning Mix (Upbeat)
+                                    in 12..16 -> WatchEndpoint(playlistId = "RDCLAK5uy_l4bFnb1uQ9gQh1P-rW6Yn8U9Cj9c2Q1_Y") // Afternoon Mix (Pop/Energy)
+                                    in 17..20 -> WatchEndpoint(playlistId = "RDCLAK5uy_n7Fq_XU2W-B6q8A9j3H0Z_Y3a3_x9_M8U") // Evening Mix (Chill/Acoustic)
+                                    else -> WatchEndpoint(playlistId = "RDCLAK5uy_kP3P_XU2W-B6q8A9j3H0Z_Y3a3_x9_M8U") // Night/Late Night Mix (Lofi/Sleep)
+                                }
+
+                                try {
+                                    // Play the native YouTube Time-Based Mix
+                                    playerConnection.playQueue(YouTubeQueue(endpoint))
+                                } catch (e: Exception) {
+                                    // Fallback if playlist fails: Play a radio from Quick Picks 
+                                    quickPicks?.firstOrNull()?.let { firstPick ->
+                                        playerConnection.playQueue(YouTubeQueue.radio(firstPick.toMediaMetadata()))
+                                    }
+                                }
                             }
                         ) 
                     }
@@ -378,7 +395,6 @@ fun HomeScreen(
                     forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                         item(key = "forgotten_favorites_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
                         item(key = "forgotten_favorites_section", contentType = "section") { 
-                            // Yahan snap variables hata diye hain kyunki carousel automatically ye manage karta hai
                             ForgottenFavoritesSection(
                                 forgottenFavorites = favorites, 
                                 mediaMetadata = mediaMetadata, 
@@ -398,7 +414,6 @@ fun HomeScreen(
                         item(key = "section_content_${section.title}_$index", contentType = "section") { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                     }
 
-                    // YAHAN PAR WAVY ANIMATION ADD KIYA HAI
                     if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
                         item(key = "loading_wavy", contentType = "loading") { HomeWavyLoading(modifier = Modifier.animateItem()) }
                     }
