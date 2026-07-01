@@ -4,122 +4,93 @@
  *
  * Crafted for immersive music experience
  * Designed & maintained by JAY01-CYBER
- *
- * Signature: M3PLAY::SIGNATURE::TIME_GREETING::V1
+ * 
+ * Signature: M3PLAY::SIGNATURE::TIME_GREETING::V2 (Gradient & 6-States)
  */
 
 package com.j.m3play.ui.component
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.j.m3play.R
+import androidx.compose.ui.unit.sp
 import java.util.Calendar
+
+// Data class to hold 6 different states
+data class TimeGreetingData(
+    val title: String,
+    val subtitle: String,
+    val buttonText: String,
+    val gradientColors: List<Color>,
+    val textColor: Color
+)
 
 @Composable
 fun TimeGreetingCard(
-    onSearchClick: () -> Unit,
+    onMixClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptic = LocalHapticFeedback.current
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
 
-    val greetingRes = when (hour) {
-        in 5..11 -> R.string.greeting_morning
-        in 12..16 -> R.string.greeting_afternoon
-        in 17..20 -> R.string.greeting_evening
-        else -> R.string.greeting_night
+    // 6-State Time Logic matching your design requirements
+    val greetingState = when (hour) {
+        in 4..6 -> TimeGreetingData(
+            "Good Morning 🌅", "Start your day with music", "Morning Mix",
+            listOf(Color(0xFF8360C3), Color(0xFF2EBF91)), Color.White
+        )
+        in 7..11 -> TimeGreetingData(
+            "Good Morning ☀️", "Start your day with music", "Morning Mix",
+            listOf(Color(0xFFD4FC79), Color(0xFF96E6A1)), Color(0xFF1E1E1E)
+        )
+        in 12..15 -> TimeGreetingData(
+            "Good Afternoon ☀️", "Keep the energy going", "Afternoon Vibes",
+            listOf(Color(0xFF89F7FE), Color(0xFF66A6FF)), Color(0xFF1E1E1E)
+        )
+        in 16..18 -> TimeGreetingData(
+            "Good Evening 🌇", "Unwind with mellow tunes", "Evening Vibes",
+            listOf(Color(0xFFFF7E5F), Color(0xFFFEB47B)), Color.White
+        )
+        in 19..22 -> TimeGreetingData(
+            "Good Night 🌙", "Relax and listen", "Night Mix",
+            listOf(Color(0xFF141E30), Color(0xFF243B55)), Color.White
+        )
+        else -> TimeGreetingData( // 23 to 3 (Late Night)
+            "Still Awake? 🌚", "Let the music keep you company", "Late Night Mix",
+            listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)), Color.White
+        )
     }
 
-    val subtitleRes = when (hour) {
-        in 5..11 -> R.string.subtitle_morning
-        in 12..16 -> R.string.subtitle_afternoon
-        in 17..20 -> R.string.subtitle_evening
-        else -> R.string.subtitle_night
-    }
-
-    val weatherIcon = when (hour) {
-        in 5..11 -> "🌤️"
-        in 12..16 -> "☀️"
-        in 17..20 -> "🌙"
-        else -> "🌌"
-    }
-
-    val sparkleText = when (hour) {
-        in 17..23, in 0..4 -> "✦ ✦ ✦"
-        else -> "✨ ✨"
-    }
-
-    val isMorning = hour in 5..11
-    val isAfternoon = hour in 12..16
     val isNightLike = hour in 17..23 || hour in 0..4
+    val sparkleText = if (isNightLike) "✦  ✦" else "✨ ✨"
 
-    val transition = rememberInfiniteTransition(label = "time_card_v3")
-
-    val emojiOffsetY by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (isMorning || isAfternoon) -4f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "emojiOffsetY"
-    )
-
-    val emojiScale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isNightLike) 1.04f else 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "emojiScale"
-    )
+    // Preserving your custom animations
+    val transition = rememberInfiniteTransition(label = "time_card_v4")
 
     val glowAlpha by transition.animateFloat(
-        initialValue = if (isNightLike) 0.14f else 0.06f,
-        targetValue = if (isNightLike) 0.30f else 0.14f,
+        initialValue = if (isNightLike) 0.15f else 0.08f,
+        targetValue = if (isNightLike) 0.35f else 0.18f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500),
             repeatMode = RepeatMode.Reverse
@@ -127,39 +98,19 @@ fun TimeGreetingCard(
         label = "glowAlpha"
     )
 
-    val sparkleAlpha by transition.animateFloat(
-        initialValue = 0.20f,
-        targetValue = 0.75f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "sparkleAlpha"
-    )
-
-    val searchPulse by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.035f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "searchPulse"
-    )
-
     val streakOffsetX by transition.animateFloat(
         initialValue = -120f,
-        targetValue = 320f,
+        targetValue = 350f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2600),
+            animation = tween(2800),
             repeatMode = RepeatMode.Restart
         ),
         label = "streakOffsetX"
     )
 
     val starTwinkle by transition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.85f,
+        initialValue = 0.3f,
+        targetValue = 0.9f,
         animationSpec = infiniteRepeatable(
             animation = tween(1700),
             repeatMode = RepeatMode.Reverse
@@ -171,166 +122,119 @@ fun TimeGreetingCard(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(4200),
+            animation = tween(5000),
             repeatMode = RepeatMode.Reverse
         ),
         label = "gradientShift"
     )
 
-    var searchPressed by remember { mutableStateOf(false) }
-    val searchScale by animateFloatAsState(
-        targetValue = if (searchPressed) 0.92f else 1f,
-        animationSpec = spring(),
-        label = "searchPressScale"
-    )
-
-    val startColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.98f)
-    val midColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f)
-    val endColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
-
-    val animatedBrush = Brush.horizontalGradient(
-        colorStops = arrayOf(
-            0f to startColor,
-            (0.45f + (gradientShift * 0.15f)) to midColor,
-            1f to endColor
-        )
+    // Animated Background Brush
+    val animatedBrush = Brush.linearGradient(
+        colors = greetingState.gradientColors,
+        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+        end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, gradientShift * 500f)
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .clip(RoundedCornerShape(32.dp))
+            .height(160.dp) // Fixed height for that premium big card look
+            .clip(RoundedCornerShape(24.dp))
             .background(animatedBrush)
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(32.dp)
+                color = Color.White.copy(alpha = 0.15f), // Subtle glass border
+                shape = RoundedCornerShape(24.dp)
             )
-            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
-        if (isMorning || isAfternoon) {
+        // Animation Layer: Streaks for daytime
+        if (!isNightLike) {
             Box(
                 modifier = Modifier
-                    .offset(x = streakOffsetX.dp, y = (-8).dp)
-                    .size(width = 90.dp, height = 80.dp)
-                    .alpha(0.10f)
+                    .offset(x = streakOffsetX.dp, y = (-10).dp)
+                    .size(width = 100.dp, height = 180.dp)
+                    .alpha(0.12f)
                     .background(
                         brush = Brush.linearGradient(
                             listOf(
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                androidx.compose.ui.graphics.Color.Transparent
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.6f),
+                                Color.Transparent
                             )
-                        ),
-                        shape = RoundedCornerShape(40.dp)
+                        )
                     )
             )
         }
 
+        // Animation Layer: Corner Glow
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset(x = (-8).dp, y = 2.dp)
-                .size(50.dp)
+                .offset(x = (-12).dp, y = 12.dp)
+                .size(60.dp)
                 .alpha(glowAlpha)
                 .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+                    color = Color.White.copy(alpha = 0.25f),
                     shape = CircleShape
                 )
         )
 
+        // Animation Layer: Sparkles/Stars
         Text(
             text = sparkleText,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isNightLike) starTwinkle else sparkleAlpha),
+            color = greetingState.textColor.copy(alpha = if (isNightLike) starTwinkle else starTwinkle * 0.7f),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(end = 6.dp, top = 2.dp)
+                .padding(end = 16.dp, top = 16.dp)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        // Content Layer (Without Search Button)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(34.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isNightLike) {
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp)
-                                .alpha(glowAlpha)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                    shape = CircleShape
-                                )
-                        )
-                    }
-
-                    Text(
-                        text = weatherIcon,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier
-                            .offset(y = emojiOffsetY.dp)
-                            .scale(emojiScale)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column {
-                    Text(
-                        text = stringResource(id = greetingRes),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    val subtitleText = stringResource(id = subtitleRes)
-                    Text(
-                        text = "$subtitleText ${if (isMorning || isAfternoon) "☀️" else if (isNightLike) "🌙" else ""}".trim(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            Column {
+                Text(
+                    text = greetingState.title,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = greetingState.textColor
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = greetingState.subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = greetingState.textColor.copy(alpha = 0.85f)
+                )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Box(
-                modifier = Modifier
-                    .scale(searchPulse * searchScale)
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f),
-                        shape = CircleShape
-                    )
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        searchPressed = true
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onSearchClick()
-                        searchPressed = false
-                    },
-                contentAlignment = Alignment.Center
+            // The New "Mix" Button
+            Button(
+                onClick = onMixClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Black.copy(alpha = 0.25f) // Glassy semi-transparent dark button
+                ),
+                shape = RoundedCornerShape(50),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                modifier = Modifier.height(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(21.dp)
+                    imageVector = Icons.Filled.PlayArrow,
+                    contentDescription = "Play Mix",
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = greetingState.buttonText,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
         }
