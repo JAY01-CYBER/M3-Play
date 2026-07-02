@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.2   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.3   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -130,9 +130,6 @@ fun ArtistScreen(
 
     val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name ?: stringResource(R.string.unknown_artist)
-    
-    val primaryColor = Color(0xFFC04A4E) 
-    val lightSurface = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 
     LaunchedEffect(libraryArtist) {
         showLocal = libraryArtist?.artist?.isLocal == true
@@ -209,10 +206,10 @@ fun ArtistScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd).offset(x = (-4).dp, y = (-4).dp)
-                                .size(28.dp).clip(CircleShape).background(primaryColor).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                .size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(painterResource(R.drawable.done), contentDescription = "Verified", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(painterResource(R.drawable.done), contentDescription = "Verified", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                         }
                     }
 
@@ -221,8 +218,8 @@ fun ArtistScreen(
                     Column(modifier = Modifier.weight(0.55f)) {
                         Text(text = artistName, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Surface(shape = RoundedCornerShape(percent = 50), color = primaryColor.copy(alpha = 0.15f)) {
-                            Text(text = "ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = primaryColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        Surface(shape = RoundedCornerShape(percent = 50), color = MaterialTheme.colorScheme.primaryContainer) {
+                            Text(text = "ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(text = "Composer • Singer • Live Performer", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -236,7 +233,7 @@ fun ArtistScreen(
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp
                             )
                             if (!isExpanded && description.length > 55) {
-                                Text(text = stringResource(R.string.more), style = MaterialTheme.typography.labelSmall, color = primaryColor, fontWeight = FontWeight.Bold)
+                                Text(text = stringResource(R.string.more), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -250,32 +247,32 @@ fun ArtistScreen(
                 val albumCount = if (showLocal) libraryAlbums.size else artistPage?.sections?.flatMap { it.items }?.filterIsInstance<AlbumItem>()?.distinctBy { it.id }?.size ?: libraryAlbums.size
 
                 Surface(
-                    shape = RoundedCornerShape(24.dp), color = lightSurface, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                    shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
                     ) {
-                        StatItemCol(icon = R.drawable.library_music, value = "${songCount}+", label = "Songs", primaryColor = primaryColor)
+                        StatItemCol(icon = R.drawable.library_music, value = "${songCount}+", label = "Songs")
                         Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                        StatItemCol(icon = R.drawable.album, value = "${albumCount}+", label = "Albums", primaryColor = primaryColor)
+                        StatItemCol(icon = R.drawable.album, value = "${albumCount}+", label = "Albums")
                         Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                        StatItemCol(icon = R.drawable.calendar_today, value = "25+", label = "Years", primaryColor = primaryColor)
+                        StatItemCol(icon = R.drawable.calendar_today, value = "25+", label = "Years")
                     }
                 }
             }
 
-            // --- ACTION BUTTONS (Fixed spacing and text wrap) ---
+            // --- ACTION BUTTONS ---
             item(key = "action_buttons") {
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), // More width space
-                    horizontalArrangement = Arrangement.spacedBy(8.dp) // Less gap between buttons
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                     
-                    // Subscribe Button
+                    // Subscribe Button - Using your old code's dynamic theme colors
                     Button(
                         onClick = {
                             database.transaction {
@@ -284,9 +281,12 @@ fun ArtistScreen(
                                 else artistPage?.artist?.let { insert(ArtistEntity(id = it.id, name = it.title, channelId = it.channelId, thumbnailUrl = it.thumbnail).toggleLike()) }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor.copy(alpha = 0.15f), contentColor = primaryColor),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSubscribed) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = if (isSubscribed) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
                         shape = RoundedCornerShape(24.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
+                        contentPadding = PaddingValues(horizontal = 4.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
                         Icon(painterResource(if (isSubscribed) R.drawable.done else R.drawable.add), contentDescription = null, modifier = Modifier.size(16.dp))
@@ -294,16 +294,16 @@ fun ArtistScreen(
                         Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Shuffle Button
+                    // Shuffle Button - Primary App Theme Color
                     Button(
                         onClick = {
                             if (!showLocal) artistPage?.artist?.shuffleEndpoint?.let { playerConnection.playQueue(YouTubeQueue(it)) }
                             else if (librarySongs.isNotEmpty()) playerConnection.playQueue(ListQueue(title = artistName, items = librarySongs.shuffled().map { it.toMediaItem() }))
                         },
                         enabled = if (showLocal) librarySongs.isNotEmpty() else artistPage?.artist?.shuffleEndpoint != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(24.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
+                        contentPadding = PaddingValues(horizontal = 4.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
                         Icon(painterResource(R.drawable.shuffle), contentDescription = null, modifier = Modifier.size(16.dp))
@@ -317,9 +317,9 @@ fun ArtistScreen(
                         OutlinedButton(
                             onClick = { playerConnection.playQueue(YouTubeQueue(radioEndpoint)) },
                             shape = RoundedCornerShape(24.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
-                            contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
+                            contentPadding = PaddingValues(horizontal = 4.dp),
                             modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Icon(painterResource(R.drawable.radio), contentDescription = null, modifier = Modifier.size(16.dp))
@@ -331,12 +331,12 @@ fun ArtistScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // --- DYNAMIC LIST ITEMS (Added Backgrounds to remove transparency) ---
+            // --- DYNAMIC LIST ITEMS ---
             if (showLocal) {
                 if (librarySongs.isNotEmpty()) {
                     item {
                         NavigationTitle(
-                            title = "Top songs", onClick = { navController.navigate("artist/${viewModel.artistId}/songs") },
+                            title = stringResource(R.string.songs), onClick = { navController.navigate("artist/${viewModel.artistId}/songs") },
                             modifier = Modifier.fillMaxWidth().background(surfaceColor)
                         )
                     }
@@ -368,8 +368,8 @@ fun ArtistScreen(
                                 Text(text = section.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 if (section.moreEndpoint != null) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = "View all", style = MaterialTheme.typography.labelLarge, color = primaryColor)
-                                        Icon(painterResource(R.drawable.arrow_forward), contentDescription = null, tint = primaryColor, modifier = Modifier.size(16.dp).padding(start = 4.dp))
+                                        Text(text = stringResource(R.string.view_all), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                        Icon(painterResource(R.drawable.arrow_forward), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp).padding(start = 4.dp))
                                     }
                                 }
                             }
@@ -407,11 +407,10 @@ fun ArtistScreen(
                     }
                 }
             }
-            // Bottom spacer to ensure scrolling leaves enough room and stays solid color
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. FLOATING CIRCULAR APP BAR BUTTONS ---
+        // --- 3. FLOATING CIRCULAR APP BAR BUTTONS (With Original Actions) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -420,6 +419,7 @@ fun ArtistScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Back Button
             IconButton(
                 onClick = navController::navigateUp,
                 modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
@@ -427,18 +427,41 @@ fun ArtistScreen(
                 Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
             }
             
+            // Share/Link Buttons using Original logic
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                
+                // Copy Link Button
                 IconButton(
-                    onClick = { /* Share Logic */ },
+                    onClick = {
+                        viewModel.artistPage?.artist?.shareLink?.let { link ->
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Artist Link", link)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurface)
+                }
+                
+                // Share Intent Button
+                IconButton(
+                    onClick = {
+                        val shareIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                viewModel.artistPage?.artist?.shareLink
+                                    ?: "https://music.youtube.com/channel/${viewModel.artistId}"
+                            )
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, null))
+                    },
                     modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
                 ) {
                     Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface)
-                }
-                IconButton(
-                    onClick = { /* More Menu Logic */ },
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
-                ) {
-                    Icon(painterResource(R.drawable.more_vert), contentDescription = "More", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -459,14 +482,13 @@ private fun StatItemCol(
     icon: Int,
     value: String,
     label: String,
-    primaryColor: Color
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier.size(36.dp).clip(CircleShape).background(primaryColor.copy(alpha = 0.15f)),
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
+            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         }
         
         Spacer(modifier = Modifier.width(12.dp))
