@@ -478,7 +478,8 @@ fun ActionCard(
         ) {
             Icon(painter = painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.height(10.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // यहाँ FontWeight.SemiBold को हटाकर FontWeight.Bold कर दिया गया है
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
