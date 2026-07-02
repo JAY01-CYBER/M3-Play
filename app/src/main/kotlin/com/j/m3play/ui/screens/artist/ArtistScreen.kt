@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -18,9 +18,11 @@ import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -224,7 +226,7 @@ fun ArtistScreen(
                                 .clip(CircleShape)
                                 .border(6.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         )
-                        // Verified Badge (Red background, white check)
+                        // Verified Badge
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
@@ -236,7 +238,7 @@ fun ArtistScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.done), // Replace with small check mark icon if needed
+                                painter = painterResource(R.drawable.done),
                                 contentDescription = "Verified",
                                 tint = Color.White,
                                 modifier = Modifier.size(16.dp)
@@ -344,7 +346,7 @@ fun ArtistScreen(
                 ) {
                     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                     
-                    // Subscribe Button (Light primary container)
+                    // Subscribe Button 
                     Button(
                         onClick = {
                             database.transaction {
@@ -365,7 +367,7 @@ fun ArtistScreen(
                         Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), style = MaterialTheme.typography.labelLarge)
                     }
 
-                    // Shuffle Button (Solid primary color)
+                    // Shuffle Button
                     Button(
                         onClick = {
                             if (!showLocal) artistPage?.artist?.shuffleEndpoint?.let { playerConnection.playQueue(YouTubeQueue(it)) }
@@ -381,12 +383,13 @@ fun ArtistScreen(
                         Text(text = stringResource(R.string.shuffle), style = MaterialTheme.typography.labelLarge)
                     }
 
-                    // Radio Button (Outlined)
-                    if (!showLocal && artistPage?.artist?.radioEndpoint != null) {
+                    // Radio Button (Fixed for Smart Cast & BorderStroke)
+                    val radioEndpoint = artistPage?.artist?.radioEndpoint
+                    if (!showLocal && radioEndpoint != null) {
                         OutlinedButton(
-                            onClick = { playerConnection.playQueue(YouTubeQueue(artistPage.artist.radioEndpoint)) },
+                            onClick = { playerConnection.playQueue(YouTubeQueue(radioEndpoint)) },
                             shape = RoundedCornerShape(24.dp),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(brush = Brush.solidColor(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.weight(1f).height(48.dp)
                         ) {
@@ -424,7 +427,7 @@ fun ArtistScreen(
                 artistPage?.sections?.fastForEach { section ->
                     if (section.items.isNotEmpty()) {
                         item {
-                            // Custom Header for "Top songs" to match UI
+                            // Fixed: Missing clickable import added
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -434,7 +437,7 @@ fun ArtistScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = section.title, // Usually "Top songs"
+                                    text = section.title, 
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -447,7 +450,7 @@ fun ArtistScreen(
                                             color = primaryColor
                                         )
                                         Icon(
-                                            painter = painterResource(R.drawable.arrow_forward), // Replace with forward arrow icon
+                                            painter = painterResource(R.drawable.arrow_forward),
                                             contentDescription = null,
                                             tint = primaryColor,
                                             modifier = Modifier.size(16.dp).padding(start = 4.dp)
@@ -497,7 +500,6 @@ fun ArtistScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back Button
             IconButton(
                 onClick = navController::navigateUp,
                 modifier = Modifier
@@ -508,7 +510,6 @@ fun ArtistScreen(
                 Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
             }
             
-            // Share & More Buttons
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconButton(
                     onClick = { /* Share Logic */ },
@@ -531,7 +532,6 @@ fun ArtistScreen(
             }
         }
 
-        // --- FAB (Library/Language Toggle) ---
         HideOnScrollFAB(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
             lazyListState = lazyListState,
@@ -543,9 +543,6 @@ fun ArtistScreen(
     }
 }
 
-/**
- * Custom Column component for the unified Stats container
- */
 @Composable
 private fun StatItemCol(
     icon: Int,
@@ -554,7 +551,6 @@ private fun StatItemCol(
     primaryColor: Color
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Red Icon Circle
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -572,7 +568,6 @@ private fun StatItemCol(
         
         Spacer(modifier = Modifier.width(12.dp))
         
-        // Stacked Text
         Column {
             Text(
                 text = value,
