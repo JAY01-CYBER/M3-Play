@@ -146,6 +146,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
+import androidx.compose.runtime.collectAsState
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
