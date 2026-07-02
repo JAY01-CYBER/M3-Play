@@ -77,7 +77,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -333,11 +332,41 @@ fun HomeScreen(
                     }
                     
                     item(key = "quick_actions", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionCard(title = "Liked", subtitle = "128 songs", icon = R.drawable.favorite, iconTint = Color(0xFF673AB7), onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = "Downloads", subtitle = "42 songs", icon = R.drawable.download, iconTint = Color(0xFF1976D2), onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = "History", subtitle = "Recent", icon = R.drawable.history, iconTint = Color(0xFF388E3C), onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = if (isLoggedIn) "Account" else "Library", subtitle = "Profile", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, iconTint = Color(0xFFFF5722), onClick = { if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") } }, modifier = Modifier.weight(1f))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ActionCard(
+                                title = "Liked",
+                                icon = R.drawable.favorite,
+                                iconTint = Color(0xFF673AB7),
+                                onClick = { runCatching { navController.navigate("auto_playlist/liked") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = "Downloads",
+                                icon = R.drawable.download,
+                                iconTint = Color(0xFF1976D2),
+                                onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = "History",
+                                icon = R.drawable.history,
+                                iconTint = Color(0xFF388E3C),
+                                onClick = { runCatching { navController.navigate("history") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = if (isLoggedIn) "Account" else "Library",
+                                icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
+                                iconTint = Color(0xFFFF5722),
+                                onClick = {
+                                    if (isLoggedIn) runCatching { navController.navigate("account") }
+                                    else runCatching { navController.navigate("library") }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                     
@@ -419,7 +448,6 @@ fun HomeScreen(
 @Composable
 fun ActionCard(
     title: String,
-    subtitle: String,
     icon: Int,
     iconTint: Color,
     onClick: () -> Unit,
@@ -449,10 +477,8 @@ fun ActionCard(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(painter = painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(text = subtitle, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
