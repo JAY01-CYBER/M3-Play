@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.2   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -131,7 +131,6 @@ fun ArtistScreen(
     val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name ?: stringResource(R.string.unknown_artist)
     
-    // Theme colors based on the photo (warm red/pink hues)
     val primaryColor = Color(0xFFC04A4E) 
     val lightSurface = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 
@@ -175,25 +174,12 @@ fun ArtistScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.7f) // Slight transparency 
+                    .alpha(0.6f)
                     .drawWithContent {
                         drawContent()
-                        // Fade out to left
-                        drawRect(
-                            Brush.horizontalGradient(
-                                colors = listOf(surfaceColor, Color.Transparent),
-                                startX = 0f,
-                                endX = size.width * 0.6f
-                            )
-                        )
-                        // Fade out to bottom
-                        drawRect(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, surfaceColor),
-                                startY = size.height * 0.3f,
-                                endY = size.height
-                            )
-                        )
+                        drawRect(Brush.horizontalGradient(listOf(surfaceColor, Color.Transparent), startX = 0f, endX = size.width * 0.6f))
+                        // Ensure bottom fades completely to solid surface color
+                        drawRect(Brush.verticalGradient(listOf(Color.Transparent, surfaceColor, surfaceColor), startY = size.height * 0.3f, endY = size.height))
                     }
             )
         }
@@ -201,152 +187,95 @@ fun ArtistScreen(
         // --- 2. MAIN SCROLLABLE CONTENT ---
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(bottom = 100.dp), // Extra padding for mini-player
+            contentPadding = PaddingValues(bottom = 100.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             
             item { Spacer(modifier = Modifier.height(systemBarsTopPadding + 64.dp)) }
 
-            // --- HERO SECTION (Left Avatar + Right Text) ---
+            // --- HERO SECTION ---
             item(key = "hero_section") {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left side: Circular Profile Image with thick border
                     Box(modifier = Modifier.weight(0.45f).aspectRatio(1f)) {
                         AsyncImage(
                             model = thumbnail?.resize(600, 600),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                                .border(6.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                            modifier = Modifier.fillMaxSize().clip(CircleShape).border(6.dp, MaterialTheme.colorScheme.surface, CircleShape)
                         )
-                        // Verified Badge
                         Box(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .offset(x = (-4).dp, y = (-4).dp)
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(primaryColor)
-                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                .align(Alignment.BottomEnd).offset(x = (-4).dp, y = (-4).dp)
+                                .size(28.dp).clip(CircleShape).background(primaryColor).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.done),
-                                contentDescription = "Verified",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(painterResource(R.drawable.done), contentDescription = "Verified", tint = Color.White, modifier = Modifier.size(16.dp))
                         }
                     }
 
                     Spacer(modifier = Modifier.width(20.dp))
 
-                    // Right side: Name, Tags, Bio
                     Column(modifier = Modifier.weight(0.55f)) {
-                        Text(
-                            text = artistName,
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        
+                        Text(text = artistName, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(modifier = Modifier.height(6.dp))
-                        
-                        // ARTIST Pill badge
-                        Surface(
-                            shape = RoundedCornerShape(percent = 50),
-                            color = primaryColor.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = "ARTIST",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = primaryColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                        Surface(shape = RoundedCornerShape(percent = 50), color = primaryColor.copy(alpha = 0.15f)) {
+                            Text(text = "ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = primaryColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
-                        
                         Spacer(modifier = Modifier.height(6.dp))
-                        
-                        Text(
-                            text = "Composer • Singer • Live Performer",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
+                        Text(text = "Composer • Singer • Live Performer", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(12.dp))
                         
-                        // Bio Text
                         val description = artistPage?.description ?: "Official channel of $artistName."
                         var isExpanded by rememberSaveable { mutableStateOf(false) }
-                        Column(
-                            modifier = Modifier.combinedClickable(onClick = { isExpanded = !isExpanded }, onLongClick = {})
-                        ) {
+                        Column(modifier = Modifier.combinedClickable(onClick = { isExpanded = !isExpanded }, onLongClick = {})) {
                             Text(
                                 text = if (!isExpanded && description.length > 55) description.take(55).trimEnd() + "..." else description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp
                             )
                             if (!isExpanded && description.length > 55) {
-                                Text(
-                                    text = stringResource(R.string.more),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = primaryColor,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(text = stringResource(R.string.more), style = MaterialTheme.typography.labelSmall, color = primaryColor, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
-            // --- STATS ROW CONTAINER ---
+            // --- STATS ROW ---
             item(key = "stats_row") {
                 Spacer(modifier = Modifier.height(24.dp))
-                
                 val songCount = if (showLocal) librarySongs.size else artistPage?.sections?.flatMap { it.items }?.filterIsInstance<SongItem>()?.distinctBy { it.id }?.size ?: librarySongs.size
                 val albumCount = if (showLocal) libraryAlbums.size else artistPage?.sections?.flatMap { it.items }?.filterIsInstance<AlbumItem>()?.distinctBy { it.id }?.size ?: libraryAlbums.size
 
                 Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = lightSurface,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                    shape = RoundedCornerShape(24.dp), color = lightSurface, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
                     ) {
                         StatItemCol(icon = R.drawable.library_music, value = "${songCount}+", label = "Songs", primaryColor = primaryColor)
                         Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                         StatItemCol(icon = R.drawable.album, value = "${albumCount}+", label = "Albums", primaryColor = primaryColor)
                         Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                        StatItemCol(icon = R.drawable.calendar_today, value = "25+", label = "Years in Music", primaryColor = primaryColor)
+                        StatItemCol(icon = R.drawable.calendar_today, value = "25+", label = "Years", primaryColor = primaryColor)
                     }
                 }
             }
 
-            // --- ACTION BUTTONS ROW ---
+            // --- ACTION BUTTONS (Fixed spacing and text wrap) ---
             item(key = "action_buttons") {
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), // More width space
+                    horizontalArrangement = Arrangement.spacedBy(8.dp) // Less gap between buttons
                 ) {
                     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                     
-                    // Subscribe Button 
+                    // Subscribe Button
                     Button(
                         onClick = {
                             database.transaction {
@@ -355,16 +284,14 @@ fun ArtistScreen(
                                 else artistPage?.artist?.let { insert(ArtistEntity(id = it.id, name = it.title, channelId = it.channelId, thumbnailUrl = it.thumbnail).toggleLike()) }
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor.copy(alpha = 0.15f),
-                            contentColor = primaryColor
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor.copy(alpha = 0.15f), contentColor = primaryColor),
                         shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Icon(painterResource(if (isSubscribed) R.drawable.done else R.drawable.add), contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), style = MaterialTheme.typography.labelLarge)
+                        Icon(painterResource(if (isSubscribed) R.drawable.done else R.drawable.add), contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
                     // Shuffle Button
@@ -376,14 +303,15 @@ fun ArtistScreen(
                         enabled = if (showLocal) librarySongs.isNotEmpty() else artistPage?.artist?.shuffleEndpoint != null,
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                         shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
-                        Icon(painterResource(R.drawable.shuffle), contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = stringResource(R.string.shuffle), style = MaterialTheme.typography.labelLarge)
+                        Icon(painterResource(R.drawable.shuffle), contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = stringResource(R.string.shuffle), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Radio Button (Fixed for Smart Cast & BorderStroke)
+                    // Radio Button
                     val radioEndpoint = artistPage?.artist?.radioEndpoint
                     if (!showLocal && radioEndpoint != null) {
                         OutlinedButton(
@@ -391,24 +319,25 @@ fun ArtistScreen(
                             shape = RoundedCornerShape(24.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                            contentPadding = PaddingValues(horizontal = 4.dp), // Reduced padding
                             modifier = Modifier.weight(1f).height(48.dp)
                         ) {
-                            Icon(painterResource(R.drawable.radio), contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = stringResource(R.string.radio), style = MaterialTheme.typography.labelLarge)
+                            Icon(painterResource(R.drawable.radio), contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = stringResource(R.string.radio), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            // --- SONGS LIST SECTION ---
+            // --- DYNAMIC LIST ITEMS (Added Backgrounds to remove transparency) ---
             if (showLocal) {
                 if (librarySongs.isNotEmpty()) {
                     item {
                         NavigationTitle(
-                            title = "Top songs", 
-                            onClick = { navController.navigate("artist/${viewModel.artistId}/songs") }
+                            title = "Top songs", onClick = { navController.navigate("artist/${viewModel.artistId}/songs") },
+                            modifier = Modifier.fillMaxWidth().background(surfaceColor)
                         )
                     }
                     val filteredLibrarySongs = if (hideExplicit) librarySongs.filter { !it.song.explicit } else librarySongs
@@ -416,7 +345,7 @@ fun ArtistScreen(
                         SongListItem(
                             song = song, showInLibraryIcon = true, isActive = song.id == mediaMetadata?.id, isPlaying = isPlaying,
                             trailingContent = { IconButton(onClick = { menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) }}) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) } },
-                            modifier = Modifier.fillMaxWidth().combinedClickable(
+                            modifier = Modifier.fillMaxWidth().background(surfaceColor).combinedClickable(
                                 onClick = { if (song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(ListQueue(title = artistName, items = librarySongs.map { it.toMediaItem() }, startIndex = index)) },
                                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { SongMenu(originalSong = song, navController = navController, onDismiss = menuState::dismiss) } }
                             )
@@ -427,34 +356,20 @@ fun ArtistScreen(
                 artistPage?.sections?.fastForEach { section ->
                     if (section.items.isNotEmpty()) {
                         item {
-                            // Fixed: Missing clickable import added
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 12.dp)
-                                    .clickable { section.moreEndpoint?.let { navController.navigate("artist/${viewModel.artistId}/items?browseId=${it.browseId}&params=${it.params}") } },
+                                    .background(surfaceColor)
+                                    .clickable { section.moreEndpoint?.let { navController.navigate("artist/${viewModel.artistId}/items?browseId=${it.browseId}&params=${it.params}") } }
+                                    .padding(horizontal = 24.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = section.title, 
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Text(text = section.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 if (section.moreEndpoint != null) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = "View all",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = primaryColor
-                                        )
-                                        Icon(
-                                            painter = painterResource(R.drawable.arrow_forward),
-                                            contentDescription = null,
-                                            tint = primaryColor,
-                                            modifier = Modifier.size(16.dp).padding(start = 4.dp)
-                                        )
+                                        Text(text = "View all", style = MaterialTheme.typography.labelLarge, color = primaryColor)
+                                        Icon(painterResource(R.drawable.arrow_forward), contentDescription = null, tint = primaryColor, modifier = Modifier.size(16.dp).padding(start = 4.dp))
                                     }
                                 }
                             }
@@ -465,7 +380,7 @@ fun ArtistScreen(
                             YouTubeListItem(
                                 item = song as SongItem, isActive = mediaMetadata?.id == song.id, isPlaying = isPlaying,
                                 trailingContent = { IconButton(onClick = { menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) } },
-                                modifier = Modifier.combinedClickable(
+                                modifier = Modifier.fillMaxWidth().background(surfaceColor).combinedClickable(
                                     onClick = { if (song.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = song.id), song.toMediaMetadata())) },
                                     onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }
                                 )
@@ -473,7 +388,10 @@ fun ArtistScreen(
                         }
                     } else {
                         item {
-                            LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().background(surfaceColor)
+                            ) {
                                 items(items = section.items.distinctBy { it.id }) { item ->
                                     YouTubeGridItem(
                                         item = item, isActive = when (item) { is SongItem -> mediaMetadata?.id == item.id; is AlbumItem -> mediaMetadata?.album?.id == item.id; else -> false },
@@ -489,6 +407,8 @@ fun ArtistScreen(
                     }
                 }
             }
+            // Bottom spacer to ensure scrolling leaves enough room and stays solid color
+            item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
         // --- 3. FLOATING CIRCULAR APP BAR BUTTONS ---
@@ -502,10 +422,7 @@ fun ArtistScreen(
         ) {
             IconButton(
                 onClick = navController::navigateUp,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
             ) {
                 Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
             }
@@ -513,19 +430,13 @@ fun ArtistScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconButton(
                     onClick = { /* Share Logic */ },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
                 ) {
                     Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 IconButton(
                     onClick = { /* More Menu Logic */ },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
                 ) {
                     Icon(painterResource(R.drawable.more_vert), contentDescription = "More", tint = MaterialTheme.colorScheme.onSurface)
                 }
@@ -552,34 +463,17 @@ private fun StatItemCol(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(primaryColor.copy(alpha = 0.15f)),
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(primaryColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = primaryColor,
-                modifier = Modifier.size(18.dp)
-            )
+            Icon(painter = painterResource(icon), contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
         }
         
         Spacer(modifier = Modifier.width(12.dp))
         
         Column {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
