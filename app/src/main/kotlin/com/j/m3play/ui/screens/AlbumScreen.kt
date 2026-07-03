@@ -2,9 +2,9 @@
  * ╭────────────────────────────────────────────╮
  * │             M3Play UI System               │
  * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
+ * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V5     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,7 +15,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -39,7 +36,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,7 +61,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -88,13 +83,7 @@ import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
-import coil3.imageLoader
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.size.Size
-import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.j.m3play.LocalDatabase
@@ -122,7 +111,6 @@ import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.SelectionSongMenu
 import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
-import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.ItemWrapper
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.makeTimeString
@@ -156,47 +144,7 @@ fun AlbumScreen(
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
-    val systemBarsTopPadding = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
-
-    var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
-    val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val isDark = isSystemInDarkTheme() 
-
-    LaunchedEffect(albumWithSongs?.album?.thumbnailUrl) {
-        val thumbnailUrl = albumWithSongs?.album?.thumbnailUrl
-        if (thumbnailUrl != null) {
-            val request = ImageRequest.Builder(context)
-                .data(thumbnailUrl)
-                .size(Size(PlayerColorExtractor.Config.IMAGE_SIZE, PlayerColorExtractor.Config.IMAGE_SIZE))
-                .allowHardware(false)
-                .build()
-
-            val result = runCatching {
-                context.imageLoader.execute(request)
-            }.getOrNull()
-
-            if (result != null) {
-                val bitmap = result.image?.toBitmap()
-                if (bitmap != null) {
-                    val palette = withContext(Dispatchers.Default) {
-                        Palette.from(bitmap)
-                            .maximumColorCount(PlayerColorExtractor.Config.MAX_COLOR_COUNT)
-                            .resizeBitmapArea(PlayerColorExtractor.Config.BITMAP_AREA)
-                            .generate()
-                    }
-
-                    val extractedColors = PlayerColorExtractor.extractGradientColors(
-                        palette = palette,
-                        fallbackColor = fallbackColor
-                    )
-                    gradientColors = extractedColors
-                }
-            }
-        } else {
-            gradientColors = emptyList()
-        }
-    }
 
     val wrappedSongs = remember(albumWithSongs, hideExplicit) {
         val filteredSongs = if (hideExplicit) {
@@ -252,37 +200,41 @@ fun AlbumScreen(
         }
     }
 
-    // Colors extraction for Global UI
-    val dominantColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary
-    val glassAlpha = if (isDark) 0.15f else 0.1f 
-    val expressiveGlassColor = dominantColor.copy(alpha = glassAlpha)
-    val onExpressiveColor = MaterialTheme.colorScheme.onSurface
+    // 🔴 APP THEME COLORS (Material 3 Defaults)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val glassBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor), // Clean solid background
+            .background(surfaceColor), 
     ) {
         LazyColumn(
             state = lazyListState,
+            // LazyColumn inherently adds systemBarsTopPadding, so we won't add it manually again!
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             val localAlbumWithSongs = albumWithSongs
             val hasSongs = localAlbumWithSongs?.songs?.isNotEmpty() == true
+            
             if (hasSongs && localAlbumWithSongs != null) {
-                
                 item(key = "header") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = systemBarsTopPadding + AppBarHeight)
+                            // 🔴 GAP FIXED: Removed systemBarsTopPadding here, only keeping AppBarHeight + small spacing
+                            .padding(top = AppBarHeight + 16.dp)
                     ) {
                         
-                        // 🔴 NEW TWO-COLUMN HERO LAYOUT
+                        // TWO-COLUMN HERO LAYOUT
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Left: Album Art
@@ -290,9 +242,9 @@ fun AlbumScreen(
                                 modifier = Modifier
                                     .size(160.dp)
                                     .shadow(
-                                        elevation = 24.dp,
+                                        elevation = 16.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        spotColor = dominantColor.copy(alpha = 0.5f)
+                                        spotColor = primaryColor.copy(alpha = 0.3f)
                                     ),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
@@ -315,12 +267,12 @@ fun AlbumScreen(
                                 Surface(
                                     shape = RoundedCornerShape(50),
                                     color = Color.Transparent,
-                                    border = BorderStroke(1.dp, dominantColor.copy(alpha = 0.5f))
+                                    border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.5f))
                                 ) {
                                     Text(
                                         text = "ALBUM",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = dominantColor,
+                                        color = primaryColor,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
@@ -346,7 +298,7 @@ fun AlbumScreen(
                                             withStyle(
                                                 style = MaterialTheme.typography.bodyLarge.copy(
                                                     fontWeight = FontWeight.Medium,
-                                                    color = onExpressiveColor
+                                                    color = onSurfaceColor
                                                 ).toSpanStyle()
                                             ) {
                                                 localAlbumWithSongs.artists.fastForEachIndexed { index, artist ->
@@ -363,7 +315,7 @@ fun AlbumScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.CheckCircle, 
                                         contentDescription = "Verified",
-                                        tint = dominantColor,
+                                        tint = primaryColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -375,7 +327,7 @@ fun AlbumScreen(
                                     Text(
                                         text = "• $year",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = onExpressiveColor.copy(alpha = 0.6f)
+                                        color = onSurfaceVariantColor
                                     )
                                 }
                                 
@@ -386,8 +338,8 @@ fun AlbumScreen(
                                     MetadataChip(
                                         icon = R.drawable.music_note,
                                         text = pluralStringResource(R.plurals.n_song, wrappedSongs.size, wrappedSongs.size),
-                                        backgroundColor = expressiveGlassColor,
-                                        contentColor = onExpressiveColor
+                                        backgroundColor = surfaceVariantColor,
+                                        contentColor = onSurfaceVariantColor
                                     )
                                     
                                     val totalDuration = localAlbumWithSongs.songs.sumOf { it.song.duration }
@@ -395,17 +347,17 @@ fun AlbumScreen(
                                         MetadataChip(
                                             icon = R.drawable.timer,
                                             text = makeTimeString(totalDuration * 1000L),
-                                            backgroundColor = expressiveGlassColor,
-                                            contentColor = onExpressiveColor
+                                            backgroundColor = surfaceVariantColor,
+                                            contentColor = onSurfaceVariantColor
                                         )
                                     }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        // 🔴 NEW ACTION BUTTONS ROW (Play, Shuffle, Download, More)
+                        // ACTION BUTTONS ROW (Play, Shuffle, Download, More)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -413,16 +365,16 @@ fun AlbumScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Play Button (Primary Color Pill)
+                            // Play Button (Primary Theme Color)
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs))
                                 },
                                 shape = RoundedCornerShape(50),
-                                color = dominantColor, 
+                                color = primaryColor, 
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1.2f)
                                     .height(48.dp)
                             ) {
                                 Row(
@@ -433,7 +385,7 @@ fun AlbumScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.play),
                                         contentDescription = stringResource(R.string.play),
-                                        tint = MaterialTheme.colorScheme.surface, 
+                                        tint = onPrimaryColor, 
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -441,19 +393,19 @@ fun AlbumScreen(
                                         text = stringResource(R.string.play),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.surface
+                                        color = onPrimaryColor
                                     )
                                 }
                             }
 
-                            // Shuffle Button (Glass Pill)
+                            // Shuffle Button (Surface Variant Theme Color)
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs.copy(songs = localAlbumWithSongs.songs.shuffled())))
                                 },
                                 shape = RoundedCornerShape(50),
-                                color = expressiveGlassColor,
+                                color = surfaceVariantColor,
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
@@ -466,7 +418,7 @@ fun AlbumScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.shuffle),
                                         contentDescription = stringResource(R.string.shuffle),
-                                        tint = onExpressiveColor,
+                                        tint = onSurfaceVariantColor,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -474,7 +426,7 @@ fun AlbumScreen(
                                         text = stringResource(R.string.shuffle),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = onExpressiveColor
+                                        color = onSurfaceVariantColor
                                     )
                                 }
                             }
@@ -497,7 +449,7 @@ fun AlbumScreen(
                                     }
                                 },
                                 shape = CircleShape,
-                                color = expressiveGlassColor,
+                                color = surfaceVariantColor,
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -506,7 +458,7 @@ fun AlbumScreen(
                                             Icon(
                                                 painter = painterResource(R.drawable.offline),
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
+                                                tint = primaryColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -514,14 +466,14 @@ fun AlbumScreen(
                                             CircularProgressIndicator(
                                                 strokeWidth = 2.dp,
                                                 modifier = Modifier.size(24.dp),
-                                                color = onExpressiveColor
+                                                color = onSurfaceVariantColor
                                             )
                                         }
                                         else -> {
                                             Icon(
                                                 painter = painterResource(R.drawable.download),
                                                 contentDescription = null,
-                                                tint = onExpressiveColor,
+                                                tint = onSurfaceVariantColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -534,7 +486,7 @@ fun AlbumScreen(
                     }
                 }
 
-                // 🔴 Songs Header with "View All"
+                // Songs Header with "View All"
                 item(key = "songs_header") {
                     Row(
                         modifier = Modifier
@@ -552,7 +504,7 @@ fun AlbumScreen(
                         Text(
                             text = "View all",
                             style = MaterialTheme.typography.labelLarge,
-                            color = onExpressiveColor.copy(alpha = 0.7f),
+                            color = primaryColor,
                             modifier = Modifier.combinedClickable(onClick = { /* Handle view all if needed */ })
                         )
                     }
@@ -664,12 +616,13 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = systemBarsTopPadding + AppBarHeight)
+                                        // Match normal layout gap
+                                        .padding(top = AppBarHeight + 16.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                            .padding(horizontal = 16.dp)
                                     ) {
                                         Box(
                                             modifier = Modifier
@@ -698,7 +651,7 @@ fun AlbumScreen(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(24.dp))
 
                                     Row(
                                         modifier = Modifier
@@ -706,7 +659,7 @@ fun AlbumScreen(
                                             .padding(horizontal = 16.dp),
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
+                                        ButtonPlaceholder(modifier = Modifier.weight(1.2f).height(48.dp))
                                         ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
                                         Box(modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface))
                                     }
@@ -726,7 +679,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(top = AppBarHeight + 16.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -751,7 +704,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = systemBarsTopPadding + AppBarHeight)
+                                    .padding(top = AppBarHeight + 16.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -817,7 +770,7 @@ fun AlbumScreen(
             navigationIcon = {
                 Surface(
                     shape = CircleShape,
-                    color = if (transparentAppBar && !selection) expressiveGlassColor else Color.Transparent,
+                    color = if (transparentAppBar && !selection) glassBgColor else Color.Transparent,
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     IconButton(
@@ -873,10 +826,10 @@ fun AlbumScreen(
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // 🔴 FIX: Added onLongClick and used let for Smart Cast
+                        // Like Button
                         Surface(
                             shape = CircleShape,
-                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
                             IconButton(
@@ -891,33 +844,17 @@ fun AlbumScreen(
                                 Icon(
                                     painter = painterResource(if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border),
                                     contentDescription = null,
-                                    tint = if (isBookmarked) MaterialTheme.colorScheme.error else onExpressiveColor
+                                    tint = if (isBookmarked) MaterialTheme.colorScheme.error else onSurfaceColor
                                 )
                             }
                         }
                         
-                        // 🔴 FIX: Added onLongClick 
-                        Surface(
-                            shape = CircleShape,
-                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
-                            modifier = Modifier.padding(end = 4.dp)
-                        ) {
-                            IconButton(
-                                onClick = { navController.navigate("search") },
-                                onLongClick = {}
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Search,
-                                    contentDescription = "Search",
-                                    tint = onExpressiveColor
-                                )
-                            }
-                        }
+                        // 🔴 SEARCH BUTTON COMPLETELY REMOVED FROM HERE
 
-                        // 🔴 FIX: Added onLongClick and used let for Smart Cast
+                        // More Button
                         Surface(
                             shape = CircleShape,
-                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             IconButton(
@@ -937,7 +874,7 @@ fun AlbumScreen(
                                 Icon(
                                     painter = painterResource(R.drawable.more_vert),
                                     contentDescription = null,
-                                    tint = onExpressiveColor
+                                    tint = onSurfaceColor
                                 )
                             }
                         }
@@ -953,8 +890,8 @@ private fun MetadataChip(
     icon: Int,
     text: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    backgroundColor: Color,
+    contentColor: Color
 ) {
     Surface(
         modifier = modifier,
