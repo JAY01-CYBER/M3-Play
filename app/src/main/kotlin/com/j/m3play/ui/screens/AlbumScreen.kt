@@ -4,13 +4,14 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -38,8 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -252,11 +252,10 @@ fun AlbumScreen(
         }
     }
 
-    // Colors extraction for Top Bar & Global UI
+    // Colors extraction for Global UI
     val dominantColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary
     val glassAlpha = if (isDark) 0.15f else 0.1f 
     val expressiveGlassColor = dominantColor.copy(alpha = glassAlpha)
-    val expressivePlayColor = dominantColor.copy(alpha = if (isDark) 0.25f else 0.15f)
     val onExpressiveColor = MaterialTheme.colorScheme.onSurface
 
     Box(
@@ -264,8 +263,6 @@ fun AlbumScreen(
             .fillMaxSize()
             .background(surfaceColor), // Clean solid background
     ) {
-        // REMOVED THE BACKGROUND MESH GRADIENT BOX FROM HERE
-
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
@@ -273,23 +270,27 @@ fun AlbumScreen(
             val albumWithSongs = albumWithSongs
             val hasSongs = albumWithSongs?.songs?.isNotEmpty() == true
             if (hasSongs) {
-                // Hero Header
+                
                 item(key = "header") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = systemBarsTopPadding + AppBarHeight),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(top = systemBarsTopPadding + AppBarHeight)
                     ) {
-                        // Album Art - Clean look with standard shadow
-                        Box(
-                            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
+                        
+                        // 🔴 NEW TWO-COLUMN HERO LAYOUT
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Left: Album Art
                             Surface(
                                 modifier = Modifier
-                                    .size(220.dp) 
+                                    .size(160.dp)
                                     .shadow(
-                                        elevation = 32.dp,
+                                        elevation = 24.dp,
                                         shape = RoundedCornerShape(16.dp),
                                         spotColor = dominantColor.copy(alpha = 0.5f)
                                     ),
@@ -302,127 +303,127 @@ fun AlbumScreen(
                                     modifier = Modifier.fillMaxSize()
                                 )
                             }
-                        }
-
-                        // Album Title
-                        Text(
-                            text = albumWithSongs.album.title,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.Center,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(horizontal = 32.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Artist Name + Verified Badge
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                        ).toSpanStyle()
-                                    ) {
-                                        albumWithSongs.artists.fastForEachIndexed { index, artist ->
-                                            val link = LinkAnnotation.Clickable(artist.id) {
-                                                navController.navigate("artist/${artist.id}")
+                            
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+                            // Right: Metadata Column
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                // "ALBUM" Pill Tag
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = Color.Transparent,
+                                    border = BorderStroke(1.dp, dominantColor.copy(alpha = 0.5f))
+                                ) {
+                                    Text(
+                                        text = "ALBUM",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = dominantColor,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                // Album Title
+                                Text(
+                                    text = albumWithSongs.album.title,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                // Artist Name + Verified Badge
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            withStyle(
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = onExpressiveColor
+                                                ).toSpanStyle()
+                                            ) {
+                                                albumWithSongs.artists.fastForEachIndexed { index, artist ->
+                                                    val link = LinkAnnotation.Clickable(artist.id) { navController.navigate("artist/${artist.id}") }
+                                                    withLink(link) { append(artist.name) }
+                                                    if (index != albumWithSongs.artists.lastIndex) append(", ")
+                                                }
                                             }
-                                            withLink(link) {
-                                                append(artist.name)
-                                            }
-                                            if (index != albumWithSongs.artists.lastIndex) {
-                                                append(", ")
-                                            }
-                                        }
+                                        },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Rounded.CheckCircle, 
+                                        contentDescription = "Verified",
+                                        tint = dominantColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(4.dp))
+                                
+                                // Year
+                                albumWithSongs.album.year?.let { year ->
+                                    Text(
+                                        text = "• $year",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = onExpressiveColor.copy(alpha = 0.6f)
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                // Chips Row (Songs & Duration)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    MetadataChip(
+                                        icon = R.drawable.music_note,
+                                        text = pluralStringResource(R.plurals.n_song, wrappedSongs.size, wrappedSongs.size),
+                                        backgroundColor = expressiveGlassColor,
+                                        contentColor = onExpressiveColor
+                                    )
+                                    
+                                    val totalDuration = albumWithSongs.songs.sumOf { it.song.duration }
+                                    if (totalDuration > 0) {
+                                        MetadataChip(
+                                            icon = R.drawable.timer,
+                                            text = makeTimeString(totalDuration * 1000L),
+                                            backgroundColor = expressiveGlassColor,
+                                            contentColor = onExpressiveColor
+                                        )
                                     }
                                 }
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Rounded.CheckCircle, 
-                                contentDescription = "Verified",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Metadata Row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            albumWithSongs.album.year?.let { year ->
-                                MetadataChip(
-                                    icon = R.drawable.calendar_today,
-                                    text = year.toString(),
-                                    backgroundColor = expressiveGlassColor,
-                                    contentColor = onExpressiveColor
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                            }
-
-                            MetadataChip(
-                                icon = R.drawable.music_note,
-                                text = pluralStringResource(R.plurals.n_song, wrappedSongs.size, wrappedSongs.size),
-                                backgroundColor = expressiveGlassColor,
-                                contentColor = onExpressiveColor
-                            )
-
-                            val totalDuration = albumWithSongs.songs.sumOf { it.song.duration }
-                            if (totalDuration > 0) {
-                                Spacer(modifier = Modifier.width(12.dp))
-                                MetadataChip(
-                                    icon = R.drawable.timer,
-                                    text = makeTimeString(totalDuration * 1000L),
-                                    backgroundColor = expressiveGlassColor,
-                                    contentColor = onExpressiveColor
-                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // 🔴 EXPRESSIVE ACTION BUTTONS ROW
+                        // 🔴 NEW ACTION BUTTONS ROW (Play, Shuffle, Download, More)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Like Button
-                            ActionButtonCircular(
-                                icon = if (albumWithSongs.album.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                                backgroundColor = expressiveGlassColor,
-                                tint = if (albumWithSongs.album.bookmarkedAt != null) MaterialTheme.colorScheme.error else onExpressiveColor,
-                                onClick = {
-                                    database.query { update(albumWithSongs.album.toggleLike()) }
-                                }
-                            )
-
-                            // Play Button Pill
+                            // Play Button (Primary Color Pill)
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
                                 },
                                 shape = RoundedCornerShape(50),
-                                color = expressivePlayColor,
+                                color = dominantColor, // Solid dynamic color
                                 modifier = Modifier
-                                    .weight(1.5f)
-                                    .height(54.dp)
+                                    .weight(1f)
+                                    .height(48.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxSize(),
@@ -432,7 +433,7 @@ fun AlbumScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.play),
                                         contentDescription = stringResource(R.string.play),
-                                        tint = onExpressiveColor,
+                                        tint = MaterialTheme.colorScheme.surface, // Contrast color for text/icon
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -440,23 +441,45 @@ fun AlbumScreen(
                                         text = stringResource(R.string.play),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.surface
+                                    )
+                                }
+                            }
+
+                            // Shuffle Button (Glass Pill)
+                            Surface(
+                                onClick = {
+                                    playerConnection.service.getAutomix(playlistId)
+                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())))
+                                },
+                                shape = RoundedCornerShape(50),
+                                color = expressiveGlassColor,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.shuffle),
+                                        contentDescription = stringResource(R.string.shuffle),
+                                        tint = onExpressiveColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.shuffle),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
                                         color = onExpressiveColor
                                     )
                                 }
                             }
 
-                            // Shuffle Button
-                            ActionButtonCircular(
-                                icon = R.drawable.shuffle,
-                                backgroundColor = expressiveGlassColor,
-                                tint = onExpressiveColor,
-                                onClick = {
-                                    playerConnection.service.getAutomix(playlistId)
-                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())))
-                                }
-                            )
-
-                            // Download Button 
+                            // Download Circle
                             Surface(
                                 onClick = {
                                     when (downloadState) {
@@ -475,12 +498,9 @@ fun AlbumScreen(
                                 },
                                 shape = CircleShape,
                                 color = expressiveGlassColor,
-                                modifier = Modifier.size(54.dp)
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED -> {
                                             Icon(
@@ -508,72 +528,33 @@ fun AlbumScreen(
                                     }
                                 }
                             }
-                        }
 
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 🔴 EXPRESSIVE "About this album" Card
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            color = expressiveGlassColor,
-                            onClick = {
-                                menuState.show {
-                                    AlbumMenu(
-                                        originalAlbum = Album(albumWithSongs.album, albumWithSongs.artists),
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = dominantColor.copy(alpha = if (isDark) 0.25f else 0.2f), 
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Star,
-                                            contentDescription = null,
-                                            tint = onExpressiveColor,
-                                            modifier = Modifier.size(24.dp)
+                            // More Circle
+                            Surface(
+                                onClick = {
+                                    menuState.show {
+                                        AlbumMenu(
+                                            originalAlbum = Album(albumWithSongs.album, albumWithSongs.artists),
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
                                         )
                                     }
-                                }
-                                
-                                Spacer(modifier = Modifier.width(16.dp))
-                                
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "About this album",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = onExpressiveColor
-                                    )
-                                    Text(
-                                        text = "A powerful statement of truth, ambition and self-belief.", 
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = onExpressiveColor.copy(alpha = 0.7f),
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
+                                },
+                                shape = CircleShape,
+                                color = expressiveGlassColor,
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.more_vert),
+                                        contentDescription = null,
+                                        tint = onExpressiveColor,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
-                                
-                                Icon(
-                                    imageVector = Icons.Rounded.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = onExpressiveColor.copy(alpha = 0.5f)
-                                )
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
@@ -593,17 +574,12 @@ fun AlbumScreen(
                             fontWeight = FontWeight.Bold
                         )
                         
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = expressiveGlassColor,
-                            onClick = { /* Handle view all if needed */ }
-                        ) {
-                            Text(
-                                text = "View all",
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
+                        Text(
+                            text = "View all",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = onExpressiveColor.copy(alpha = 0.7f),
+                            modifier = Modifier.combinedClickable(onClick = { /* Handle view all if needed */ })
+                        )
                     }
                 }
 
@@ -713,79 +689,56 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = systemBarsTopPadding + AppBarHeight),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .padding(top = systemBarsTopPadding + AppBarHeight)
                                 ) {
-                                    Box(
+                                    // SHIMMER UPDATED FOR TWO-COLUMN LAYOUT
+                                    Row(
                                         modifier = Modifier
-                                            .padding(top = 8.dp, bottom = 20.dp)
-                                            .size(220.dp)
-                                            .shimmer()
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(MaterialTheme.colorScheme.onSurface)
-                                    )
-
-                                    TextPlaceholder(
-                                        height = 28.dp,
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.6f)
-                                            .padding(horizontal = 32.dp)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    TextPlaceholder(
-                                        height = 20.dp,
-                                        modifier = Modifier.fillMaxWidth(0.4f)
-                                    )
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(160.dp)
+                                                .shimmer()
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(MaterialTheme.colorScheme.onSurface)
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            TextPlaceholder(height = 20.dp, modifier = Modifier.fillMaxWidth(0.4f))
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            TextPlaceholder(height = 28.dp, modifier = Modifier.fillMaxWidth(0.9f))
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            TextPlaceholder(height = 20.dp, modifier = Modifier.fillMaxWidth(0.6f))
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                TextPlaceholder(height = 24.dp, modifier = Modifier.width(70.dp))
+                                                TextPlaceholder(height = 24.dp, modifier = Modifier.width(70.dp))
+                                            }
+                                        }
+                                    }
 
                                     Spacer(modifier = Modifier.height(16.dp))
 
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 48.dp),
-                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                            .padding(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        repeat(3) {
-                                            TextPlaceholder(
-                                                height = 32.dp,
-                                                modifier = Modifier.width(70.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(24.dp))
-
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 24.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-                                    ) {
+                                        ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
+                                        ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
                                         Box(
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .shimmer()
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.onSurface)
-                                        )
-                                        ButtonPlaceholder(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(48.dp)
-                                        )
-                                        ButtonPlaceholder(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(48.dp)
+                                            modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface)
                                         )
                                         Box(
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .shimmer()
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.onSurface)
+                                            modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface)
                                         )
                                     }
 
@@ -913,9 +866,7 @@ fun AlbumScreen(
                         }
                     ) {
                         Icon(
-                            painter = painterResource(
-                                if (selection) R.drawable.close else R.drawable.arrow_back
-                            ),
+                            painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
                             contentDescription = null
                         )
                     }
@@ -934,20 +885,14 @@ fun AlbumScreen(
                         },
                         onLongClick = {}
                     ) {
-                        Icon(
-                            painter = painterResource(
-                                if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all
-                            ),
-                            contentDescription = null
-                        )
+                        Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null)
                     }
 
                     IconButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
-                                    songSelection = wrappedSongs.filter { it.isSelected }
-                                        .map { it.item },
+                                    songSelection = wrappedSongs.filter { it.isSelected }.map { it.item },
                                     onDismiss = menuState::dismiss,
                                     clearAction = { selection = false }
                                 )
@@ -955,33 +900,67 @@ fun AlbumScreen(
                         },
                         onLongClick = {}
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.more_vert),
-                            contentDescription = null
-                        )
+                        Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        IconButton(
-                            onClick = {
-                                menuState.show {
-                                    AlbumMenu(
-                                        originalAlbum = Album(albumWithSongs!!.album, albumWithSongs!!.artists),
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
-                            onLongClick = {}
+                    // 🔴 NEW TOP BAR ICONS (Like, Search, More)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Like Button
+                        Surface(
+                            shape = CircleShape,
+                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                            modifier = Modifier.padding(end = 4.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.more_vert),
-                                contentDescription = null
-                            )
+                            IconButton(onClick = { if (albumWithSongs != null) database.query { update(albumWithSongs.album.toggleLike()) } }) {
+                                Icon(
+                                    painter = painterResource(if (albumWithSongs?.album?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border),
+                                    contentDescription = null,
+                                    tint = if (albumWithSongs?.album?.bookmarkedAt != null) MaterialTheme.colorScheme.error else onExpressiveColor
+                                )
+                            }
+                        }
+                        
+                        // Search Button
+                        Surface(
+                            shape = CircleShape,
+                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            IconButton(onClick = { navController.navigate("search") }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Search,
+                                    contentDescription = "Search",
+                                    tint = onExpressiveColor
+                                )
+                            }
+                        }
+
+                        // More Button
+                        Surface(
+                            shape = CircleShape,
+                            color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (albumWithSongs != null) {
+                                        menuState.show {
+                                            AlbumMenu(
+                                                originalAlbum = Album(albumWithSongs.album, albumWithSongs.artists),
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss,
+                                            )
+                                        }
+                                    }
+                                },
+                                onLongClick = {}
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.more_vert),
+                                    contentDescription = null,
+                                    tint = onExpressiveColor
+                                )
+                            }
                         }
                     }
                 }
@@ -1004,46 +983,21 @@ private fun MetadataChip(
         color = backgroundColor
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(14.dp),
                 tint = contentColor
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = contentColor,
                 maxLines = 1
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionButtonCircular(
-    icon: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    backgroundColor: Color,
-    tint: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = backgroundColor,
-        modifier = modifier.size(54.dp)
-    ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(24.dp)
             )
         }
     }
