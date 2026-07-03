@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.3   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.4   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -484,17 +485,24 @@ fun ArtistScreen(
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. TOP APP BAR (Solid App-Themed Buttons & Completely Opaque Pill) ---
+        // --- 3. TOP APP BAR (WITH ANIMATED BACKGROUND TO PREVENT OVERLAP) ---
+        // Determines background color based on scroll position
+        val topBarBgColor by animateColorAsState(
+            targetValue = if (transparentAppBar) Color.Transparent else surfaceColor.copy(alpha = 0.95f),
+            animationSpec = tween(300),
+            label = "topBarBgColor"
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = systemBarsTopPadding + 12.dp)
+                .background(topBarBgColor) // Adds background when scrolled down
+                .padding(top = systemBarsTopPadding + 12.dp, bottom = 12.dp) // Added bottom padding for background symmetry
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Completely solid surfaceVariant for perfectly matching app theme
                 IconButton(
                     onClick = navController::navigateUp,
                     modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
@@ -502,12 +510,12 @@ fun ArtistScreen(
                     Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
+                val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
                 AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
-                    // Completely solid color, removed any transparency (alpha)
                     Surface(
                         shape = CircleShape, 
                         color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp)
+                        modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -534,7 +542,6 @@ fun ArtistScreen(
             }
             
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Completely solid surfaceVariant for perfectly matching app theme
                 IconButton(
                     onClick = {
                         viewModel.artistPage?.artist?.shareLink?.let { link ->
@@ -565,7 +572,7 @@ fun ArtistScreen(
             }
         }
 
-        // --- 4. EXTENDED FAB FOR LIBRARY/ONLINE (Pill shape, Icon + Text, Material 3 Themed) ---
+        // --- 4. EXTENDED FAB FOR LIBRARY/ONLINE ---
         AnimatedVisibility(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
             enter = scaleIn(),
