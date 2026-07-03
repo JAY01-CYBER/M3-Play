@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V7     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V7.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -72,6 +72,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign // 🔴 FIX: Added missing TextAlign import
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
@@ -198,7 +199,6 @@ fun AlbumScreen(
         }
     }
 
-    // 🔴 APP THEME COLORS
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
@@ -224,7 +224,6 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // 🔴 GAP FIXED: Sirf AppBarHeight + chhota sa 8.dp margin. Extra SystemBarPadding hata di gayi hai.
                             .padding(top = AppBarHeight + 8.dp) 
                     ) {
                         
