@@ -4,8 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.0   │
- * │  Features: Sticky Headers, Marquee, Scale  │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.2   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -19,7 +18,6 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -47,9 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,7 +53,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -67,7 +62,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
@@ -83,7 +77,6 @@ import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.constants.AppBarHeight
 import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.HideExplicitKey
 import com.j.m3play.db.entities.ArtistEntity
@@ -94,7 +87,6 @@ import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.*
-import com.j.m3play.ui.component.shimmer.*
 import com.j.m3play.ui.menu.*
 import com.j.m3play.ui.theme.PlayerColorExtractor
 import com.j.m3play.ui.utils.backToMain
@@ -139,11 +131,6 @@ fun ArtistScreen(
     val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name ?: stringResource(R.string.unknown_artist)
 
-    // ADVANCED: Dynamic Theme based on Image Palette
-    val defaultPrimary = MaterialTheme.colorScheme.primary
-    val dynamicPrimary by animateColorAsState(targetValue = gradientColors.firstOrNull() ?: defaultPrimary, label = "dynamicPrimary")
-    val dynamicContainer = dynamicPrimary.copy(alpha = 0.15f)
-    
     LaunchedEffect(libraryArtist) {
         showLocal = libraryArtist?.artist?.isLocal == true
     }
@@ -224,17 +211,16 @@ fun ArtistScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd).offset(x = (-4).dp, y = (-4).dp)
-                                .size(28.dp).clip(CircleShape).background(dynamicPrimary).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                .size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(painterResource(R.drawable.done), contentDescription = "Verified", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(painterResource(R.drawable.done), contentDescription = "Verified", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                         }
                     }
 
                     Spacer(modifier = Modifier.width(20.dp))
 
                     Column(modifier = Modifier.weight(0.55f)) {
-                        // ADVANCED: Marquee text for long names
                         Text(
                             text = artistName, 
                             style = MaterialTheme.typography.headlineLarge, 
@@ -244,8 +230,8 @@ fun ArtistScreen(
                             modifier = Modifier.basicMarquee()
                         )
                         Spacer(modifier = Modifier.height(6.dp))
-                        Surface(shape = RoundedCornerShape(percent = 50), color = dynamicContainer) {
-                            Text(text = "ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = dynamicPrimary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        Surface(shape = RoundedCornerShape(percent = 50), color = MaterialTheme.colorScheme.primaryContainer) {
+                            Text(text = "ARTIST", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(text = "Composer • Singer • Live Performer", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -259,7 +245,7 @@ fun ArtistScreen(
                                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp
                             )
                             if (!isExpanded && description.length > 55) {
-                                Text(text = stringResource(R.string.more), style = MaterialTheme.typography.labelSmall, color = dynamicPrimary, fontWeight = FontWeight.Bold)
+                                Text(text = stringResource(R.string.more), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -279,11 +265,9 @@ fun ArtistScreen(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
                     ) {
-                        StatItemCol(icon = R.drawable.library_music, value = "${songCount}+", label = "Songs", primaryColor = dynamicPrimary)
+                        StatItemCol(icon = R.drawable.library_music, value = "${songCount}+", label = stringResource(R.string.songs))
                         Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                        StatItemCol(icon = R.drawable.album, value = "${albumCount}+", label = "Albums", primaryColor = dynamicPrimary)
-                        Divider(modifier = Modifier.height(32.dp).width(1.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                        StatItemCol(icon = R.drawable.calendar_today, value = "25+", label = "Years", primaryColor = dynamicPrimary)
+                        StatItemCol(icon = R.drawable.album, value = "${albumCount}+", label = stringResource(R.string.albums))
                     }
                 }
             }
@@ -298,7 +282,6 @@ fun ArtistScreen(
                 ) {
                     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                     
-                    // Subscribe Button (Dynamic Color)
                     Button(
                         onClick = {
                             database.transaction {
@@ -308,8 +291,8 @@ fun ArtistScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSubscribed) dynamicPrimary else dynamicContainer,
-                            contentColor = if (isSubscribed) Color.White else dynamicPrimary
+                            containerColor = if (isSubscribed) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = if (isSubscribed) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
                         ),
                         shape = RoundedCornerShape(24.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp),
@@ -320,14 +303,13 @@ fun ArtistScreen(
                         Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Shuffle Button (Dynamic Color)
                     Button(
                         onClick = {
                             if (!showLocal) artistPage?.artist?.shuffleEndpoint?.let { playerConnection.playQueue(YouTubeQueue(it)) }
                             else if (librarySongs.isNotEmpty()) playerConnection.playQueue(ListQueue(title = artistName, items = librarySongs.shuffled().map { it.toMediaItem() }))
                         },
                         enabled = if (showLocal) librarySongs.isNotEmpty() else artistPage?.artist?.shuffleEndpoint != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = dynamicPrimary, contentColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = RoundedCornerShape(24.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         modifier = Modifier.weight(1f).height(48.dp)
@@ -337,7 +319,6 @@ fun ArtistScreen(
                         Text(text = stringResource(R.string.shuffle), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Radio Button
                     val radioEndpoint = artistPage?.artist?.radioEndpoint
                     if (!showLocal && radioEndpoint != null) {
                         OutlinedButton(
@@ -360,7 +341,6 @@ fun ArtistScreen(
             // --- DYNAMIC LIST ITEMS ---
             if (showLocal) {
                 if (librarySongs.isNotEmpty()) {
-                    // ADVANCED: Sticky Header for Songs
                     stickyHeader {
                         NavigationTitle(
                             title = stringResource(R.string.songs), onClick = { navController.navigate("artist/${viewModel.artistId}/songs") },
@@ -369,7 +349,6 @@ fun ArtistScreen(
                     }
                     val filteredLibrarySongs = if (hideExplicit) librarySongs.filter { !it.song.explicit } else librarySongs
                     itemsIndexed(items = filteredLibrarySongs.take(5)) { index, song ->
-                        // ADVANCED: Click Bounce Animation
                         val interactionSource = remember { MutableInteractionSource() }
                         val isPressed by interactionSource.collectIsPressedAsState()
                         val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1f, label = "scale")
@@ -393,7 +372,6 @@ fun ArtistScreen(
             } else {
                 artistPage?.sections?.fastForEach { section ->
                     if (section.items.isNotEmpty()) {
-                        // ADVANCED: Sticky Header for Sections
                         stickyHeader {
                             Row(
                                 modifier = Modifier
@@ -413,8 +391,8 @@ fun ArtistScreen(
                                 )
                                 if (section.moreEndpoint != null) {
                                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-                                        Text(text = stringResource(R.string.view_all), style = MaterialTheme.typography.labelLarge, color = dynamicPrimary)
-                                        Icon(painterResource(R.drawable.arrow_forward), contentDescription = null, tint = dynamicPrimary, modifier = Modifier.size(16.dp).padding(start = 4.dp))
+                                        Text(text = stringResource(R.string.view_all), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                        Icon(painterResource(R.drawable.arrow_forward), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp).padding(start = 4.dp))
                                     }
                                 }
                             }
@@ -470,10 +448,43 @@ fun ArtistScreen(
                     }
                 }
             }
+
+            // --- COPYRIGHT WATERMARK (PILL SHAPED) ---
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(surfaceColor)
+                        .padding(top = 48.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(32.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                        ) {
+                            Text(text = "🧾", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "M3play 2016©\nJay chaudhary",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.SemiBold,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+            
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. TOP APP BAR WITH COLLAPSING MINI AVATAR ---
+        // --- 3. TOP APP BAR WITH PILL-SHAPED COLLAPSING AVATAR ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -490,28 +501,33 @@ fun ArtistScreen(
                     Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 
-                // ADVANCED: Mini Avatar and Marquee Name that fades in
                 val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
                 AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    Surface(
+                        shape = CircleShape, 
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
                         modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
                     ) {
-                        AsyncImage(
-                            model = thumbnail?.resize(100, 100),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(36.dp).clip(CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = artistName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            modifier = Modifier.widthIn(max = 140.dp).basicMarquee() // Auto scroll long names
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            AsyncImage(
+                                model = thumbnail?.resize(100, 100),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(28.dp).clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = artistName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                modifier = Modifier.widthIn(max = 130.dp).basicMarquee() 
+                            )
+                        }
                     }
                 }
             }
@@ -547,40 +563,16 @@ fun ArtistScreen(
             }
         }
 
-        // --- 4. PILL-SHAPED FAB ---
-        AnimatedVisibility(
+        // --- 4. ORIGINAL HIDE ON SCROLL FAB ---
+        HideOnScrollFAB(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
-            enter = scaleIn(),
-            exit = scaleOut(),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
-                .padding(bottom = 16.dp, end = 16.dp)
-        ) {
-            ExtendedFloatingActionButton(
-                text = { 
-                    Text(
-                        text = if (showLocal) "Online" else "Library",
-                        style = MaterialTheme.typography.labelLarge
-                    ) 
-                },
-                icon = { 
-                    Icon(
-                        painter = painterResource(if (showLocal) R.drawable.language else R.drawable.library_music), 
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    ) 
-                },
-                onClick = { 
-                    showLocal = !showLocal
-                    if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() 
-                },
-                shape = CircleShape,
-                containerColor = dynamicContainer,
-                contentColor = dynamicPrimary,
-                expanded = true
-            )
-        }
+            lazyListState = lazyListState,
+            icon = if (showLocal) R.drawable.language else R.drawable.library_music,
+            onClick = { 
+                showLocal = showLocal.not()
+                if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() 
+            }
+        )
 
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current).align(Alignment.BottomCenter))
     }
@@ -591,14 +583,13 @@ private fun StatItemCol(
     icon: Int,
     value: String,
     label: String,
-    primaryColor: Color
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier.size(36.dp).clip(CircleShape).background(primaryColor.copy(alpha = 0.15f)),
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
+            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
         }
         
         Spacer(modifier = Modifier.width(12.dp))
