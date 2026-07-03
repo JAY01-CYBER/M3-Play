@@ -35,6 +35,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -461,9 +465,9 @@ fun AlbumScreen(
                                 }
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            // Make sure R.drawable.verified icon exists in your project
+                            // Fixed: Using Compose built-in CheckCircle icon
                             Icon(
-                                painter = painterResource(R.drawable.verified), 
+                                imageVector = Icons.Rounded.CheckCircle, 
                                 contentDescription = "Verified",
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(16.dp)
@@ -671,9 +675,9 @@ fun AlbumScreen(
                                     modifier = Modifier.size(48.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        // Make sure R.drawable.sparkle icon exists
+                                        // Fixed: Using Compose built-in Star icon
                                         Icon(
-                                            painter = painterResource(R.drawable.sparkle),
+                                            imageVector = Icons.Rounded.Star,
                                             contentDescription = null,
                                             tint = onExpressiveColor,
                                             modifier = Modifier.size(24.dp)
@@ -699,9 +703,9 @@ fun AlbumScreen(
                                     )
                                 }
                                 
-                                // Make sure R.drawable.chevron_right icon exists
+                                // Fixed: Using Compose built-in KeyboardArrowRight icon
                                 Icon(
-                                    painter = painterResource(R.drawable.chevron_right),
+                                    imageVector = Icons.Rounded.KeyboardArrowRight,
                                     contentDescription = null,
                                     tint = onExpressiveColor.copy(alpha = 0.5f)
                                 )
