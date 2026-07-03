@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -14,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,10 +63,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -84,7 +82,6 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
-import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
@@ -164,6 +161,7 @@ fun AlbumScreen(
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val fallbackColor = MaterialTheme.colorScheme.surface.toArgb()
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val isDark = isSystemInDarkTheme() 
 
     LaunchedEffect(albumWithSongs?.album?.thumbnailUrl) {
         val thumbnailUrl = albumWithSongs?.album?.thumbnailUrl
@@ -242,17 +240,6 @@ fun AlbumScreen(
 
     val lazyListState = rememberLazyListState()
 
-    val gradientAlpha by remember {
-        derivedStateOf {
-            if (lazyListState.firstVisibleItemIndex == 0) {
-                val offset = lazyListState.firstVisibleItemScrollOffset
-                (1f - (offset / 600f)).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-        }
-    }
-
     val showTopBarTitle by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex > 0
@@ -265,118 +252,19 @@ fun AlbumScreen(
         }
     }
 
+    // Colors extraction for Top Bar & Global UI
+    val dominantColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary
+    val glassAlpha = if (isDark) 0.15f else 0.1f 
+    val expressiveGlassColor = dominantColor.copy(alpha = glassAlpha)
+    val expressivePlayColor = dominantColor.copy(alpha = if (isDark) 0.25f else 0.15f)
+    val onExpressiveColor = MaterialTheme.colorScheme.onSurface
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(surfaceColor),
+            .background(surfaceColor), // Clean solid background
     ) {
-        if (!disableBlur && gradientColors.isNotEmpty() && gradientAlpha > 0f) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxSize(0.55f)
-                    .align(Alignment.TopCenter)
-                    .zIndex(-1f)
-                    .drawBehind {
-                        val width = size.width
-                        val height = size.height
-
-                        if (gradientColors.size >= 3) {
-                            val c0 = gradientColors[0]
-                            val c1 = gradientColors[1]
-                            val c2 = gradientColors[2]
-                            val c3 = gradientColors.getOrElse(3) { c0 }
-                            val c4 = gradientColors.getOrElse(4) { c1 }
-                            
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c0.copy(alpha = gradientAlpha * 0.75f),
-                                        c0.copy(alpha = gradientAlpha * 0.4f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.15f),
-                                    radius = width * 0.8f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c1.copy(alpha = gradientAlpha * 0.55f),
-                                        c1.copy(alpha = gradientAlpha * 0.3f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.1f, height * 0.4f),
-                                    radius = width * 0.6f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c2.copy(alpha = gradientAlpha * 0.5f),
-                                        c2.copy(alpha = gradientAlpha * 0.25f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.9f, height * 0.35f),
-                                    radius = width * 0.55f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c3.copy(alpha = gradientAlpha * 0.35f),
-                                        c3.copy(alpha = gradientAlpha * 0.18f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.25f, height * 0.65f),
-                                    radius = width * 0.75f
-                                )
-                            )
-
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        c4.copy(alpha = gradientAlpha * 0.3f),
-                                        c4.copy(alpha = gradientAlpha * 0.15f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.55f, height * 0.85f),
-                                    radius = width * 0.9f
-                                )
-                            )
-                        } else if (gradientColors.isNotEmpty()) {
-                            drawRect(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.7f),
-                                        gradientColors[0].copy(alpha = gradientAlpha * 0.35f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(width * 0.5f, height * 0.25f),
-                                    radius = width * 0.85f
-                                )
-                            )
-                        }
-
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Transparent,
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.22f),
-                                    surfaceColor.copy(alpha = gradientAlpha * 0.55f),
-                                    surfaceColor
-                                ),
-                                startY = height * 0.4f,
-                                endY = height
-                            )
-                        )
-                    }
-            )
-        }
+        // REMOVED THE BACKGROUND MESH GRADIENT BOX FROM HERE
 
         LazyColumn(
             state = lazyListState,
@@ -387,33 +275,25 @@ fun AlbumScreen(
             if (hasSongs) {
                 // Hero Header
                 item(key = "header") {
-                    
-                    // 🔴 DYNAMIC M3 EXPRESSIVE COLORS
-                    val dominantColor = gradientColors.getOrNull(0) ?: MaterialTheme.colorScheme.primary
-                    val expressiveGlassColor = dominantColor.copy(alpha = 0.15f) 
-                    val expressivePlayColor = dominantColor.copy(alpha = 0.25f)
-                    val onExpressiveColor = MaterialTheme.colorScheme.onSurface
-
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = systemBarsTopPadding + AppBarHeight),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Album Art - Bada aur soft shadow ke sath
+                        // Album Art - Clean look with standard shadow
                         Box(
                             modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
                         ) {
                             Surface(
                                 modifier = Modifier
-                                    .size(260.dp)
+                                    .size(220.dp) 
                                     .shadow(
                                         elevation = 32.dp,
-                                        shape = RoundedCornerShape(20.dp),
-                                        spotColor = gradientColors.getOrNull(0)?.copy(alpha = 0.6f)
-                                            ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                        shape = RoundedCornerShape(16.dp),
+                                        spotColor = dominantColor.copy(alpha = 0.5f)
                                     ),
-                                shape = RoundedCornerShape(20.dp)
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 AsyncImage(
                                     model = albumWithSongs.album.thumbnailUrl,
@@ -465,7 +345,6 @@ fun AlbumScreen(
                                 }
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            // Fixed: Using Compose built-in CheckCircle icon
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle, 
                                 contentDescription = "Verified",
@@ -577,34 +456,19 @@ fun AlbumScreen(
                                 }
                             )
 
-                            // Download Button (Maintains the CircularProgressIndicator logic)
+                            // Download Button 
                             Surface(
                                 onClick = {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED, Download.STATE_DOWNLOADING -> {
                                             albumWithSongs.songs.forEach { song ->
-                                                DownloadService.sendRemoveDownload(
-                                                    context,
-                                                    ExoDownloadService::class.java,
-                                                    song.id,
-                                                    false,
-                                                )
+                                                DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.id, false)
                                             }
                                         }
                                         else -> {
                                             albumWithSongs.songs.forEach { song ->
-                                                val downloadRequest =
-                                                    DownloadRequest
-                                                        .Builder(song.id, song.id.toUri())
-                                                        .setCustomCacheKey(song.id)
-                                                        .setData(song.song.title.toByteArray())
-                                                        .build()
-                                                DownloadService.sendAddDownload(
-                                                    context,
-                                                    ExoDownloadService::class.java,
-                                                    downloadRequest,
-                                                    false,
-                                                )
+                                                val downloadRequest = DownloadRequest.Builder(song.id, song.id.toUri()).setCustomCacheKey(song.id).setData(song.song.title.toByteArray()).build()
+                                                DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                             }
                                         }
                                     }
@@ -671,11 +535,10 @@ fun AlbumScreen(
                             ) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = dominantColor.copy(alpha = 0.25f), 
+                                    color = dominantColor.copy(alpha = if (isDark) 0.25f else 0.2f), 
                                     modifier = Modifier.size(48.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        // Fixed: Using Compose built-in Star icon
                                         Icon(
                                             imageVector = Icons.Rounded.Star,
                                             contentDescription = null,
@@ -703,7 +566,6 @@ fun AlbumScreen(
                                     )
                                 }
                                 
-                                // Fixed: Using Compose built-in KeyboardArrowRight icon
                                 Icon(
                                     imageVector = Icons.Rounded.KeyboardArrowRight,
                                     contentDescription = null,
@@ -733,7 +595,7 @@ fun AlbumScreen(
                         
                         Surface(
                             shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            color = expressiveGlassColor,
                             onClick = { /* Handle view all if needed */ }
                         ) {
                             Text(
@@ -857,7 +719,7 @@ fun AlbumScreen(
                                     Box(
                                         modifier = Modifier
                                             .padding(top = 8.dp, bottom = 20.dp)
-                                            .size(240.dp)
+                                            .size(220.dp)
                                             .shimmer()
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(MaterialTheme.colorScheme.onSurface)
@@ -1031,26 +893,32 @@ fun AlbumScreen(
                 }
             },
             navigationIcon = {
-                IconButton(
-                    onClick = {
-                        if (selection) {
-                            selection = false
-                        } else {
-                            navController.navigateUp()
-                        }
-                    },
-                    onLongClick = {
-                        if (!selection) {
-                            navController.backToMain()
-                        }
-                    }
+                Surface(
+                    shape = CircleShape,
+                    color = if (transparentAppBar && !selection) expressiveGlassColor else Color.Transparent,
+                    modifier = Modifier.padding(start = 8.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(
-                            if (selection) R.drawable.close else R.drawable.arrow_back
-                        ),
-                        contentDescription = null
-                    )
+                    IconButton(
+                        onClick = {
+                            if (selection) {
+                                selection = false
+                            } else {
+                                navController.navigateUp()
+                            }
+                        },
+                        onLongClick = {
+                            if (!selection) {
+                                navController.backToMain()
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                if (selection) R.drawable.close else R.drawable.arrow_back
+                            ),
+                            contentDescription = null
+                        )
+                    }
                 }
             },
             actions = {
@@ -1091,6 +959,30 @@ fun AlbumScreen(
                             painter = painterResource(R.drawable.more_vert),
                             contentDescription = null
                         )
+                    }
+                } else {
+                    Surface(
+                        shape = CircleShape,
+                        color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        IconButton(
+                            onClick = {
+                                menuState.show {
+                                    AlbumMenu(
+                                        originalAlbum = Album(albumWithSongs!!.album, albumWithSongs!!.artists),
+                                        navController = navController,
+                                        onDismiss = menuState::dismiss,
+                                    )
+                                }
+                            },
+                            onLongClick = {}
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.more_vert),
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
             }
