@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.5   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.6   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -158,14 +158,12 @@ fun ArtistScreen(
         }
     }
 
-    // Top bar triggers slightly earlier for a seamless transition
     val transparentAppBar by remember {
         derivedStateOf {
             lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset < 120
         }
     }
     
-    // Smooth fade out for the Hero section text to avoid overlap
     val heroAlpha by remember {
         derivedStateOf {
             if (lazyListState.firstVisibleItemIndex == 0) {
@@ -190,7 +188,7 @@ fun ArtistScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.45f) // Reduced alpha slightly to make text punchy
+                    .alpha(0.45f)
                     .drawWithContent {
                         drawContent()
                         drawRect(Brush.horizontalGradient(listOf(surfaceColor, Color.Transparent), startX = 0f, endX = size.width * 0.6f))
@@ -214,7 +212,7 @@ fun ArtistScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
-                        .graphicsLayer { alpha = heroAlpha }, // Fades out beautifully on scroll up
+                        .graphicsLayer { alpha = heroAlpha },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(0.45f).aspectRatio(1f)) {
@@ -465,7 +463,7 @@ fun ArtistScreen(
                 }
             }
 
-            // --- COPYRIGHT WATERMARK (PILL SHAPED) ---
+            // --- COPYRIGHT WATERMARK ---
             item {
                 Column(
                     modifier = Modifier
@@ -500,8 +498,7 @@ fun ArtistScreen(
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. TOP APP BAR (SOLID BACKGROUND AND SMART BUTTONS) ---
-        // Top bar becomes 100% solid surface color when scrolled to prevent text bleed
+        // --- 3. TOP APP BAR (FIXED: PERMANENT BUTTON BACKGROUNDS) ---
         val topBarBgColor by animateColorAsState(
             targetValue = if (transparentAppBar) Color.Transparent else surfaceColor,
             animationSpec = tween(300),
@@ -509,17 +506,13 @@ fun ArtistScreen(
         )
         
         val topBarElevation by animateDpAsState(
-            targetValue = if (transparentAppBar) 0.dp else 6.dp, // Subtle shadow for depth
+            targetValue = if (transparentAppBar) 0.dp else 4.dp, 
             animationSpec = tween(300),
             label = "topBarElevation"
         )
 
-        // Buttons lose their background when the top bar becomes solid
-        val buttonBgColor by animateColorAsState(
-            targetValue = if (transparentAppBar) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f) else Color.Transparent,
-            animationSpec = tween(300),
-            label = "buttonBgColor"
-        )
+        // Permanent solid background for the circular buttons so they never lose shape
+        val buttonBgColor = MaterialTheme.colorScheme.surfaceVariant
 
         Surface(
             color = topBarBgColor,
@@ -539,14 +532,14 @@ fun ArtistScreen(
                         onClick = navController::navigateUp,
                         modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
                     ) {
-                        Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     
                     val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
                     AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
                         Surface(
                             shape = CircleShape, 
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
                         ) {
                             Row(
@@ -564,7 +557,7 @@ fun ArtistScreen(
                                     text = artistName,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     modifier = Modifier.widthIn(max = 130.dp).basicMarquee() 
                                 )
@@ -585,7 +578,7 @@ fun ArtistScreen(
                         },
                         modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
                     ) {
-                        Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     
                     IconButton(
@@ -599,7 +592,7 @@ fun ArtistScreen(
                         },
                         modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
                     ) {
-                        Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
