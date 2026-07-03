@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V5.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V6     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,6 +15,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width // 🔴 FIX: Added missing width import
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -59,8 +60,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment 
+import androidx.compose.ui.draw.blur 
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -146,6 +150,7 @@ fun AlbumScreen(
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val surfaceColor = MaterialTheme.colorScheme.surface
+    val isDark = isSystemInDarkTheme() 
 
     val wrappedSongs = remember(albumWithSongs, hideExplicit) {
         val filteredSongs = if (hideExplicit) {
@@ -213,11 +218,47 @@ fun AlbumScreen(
             .fillMaxSize()
             .background(surfaceColor), 
     ) {
+        val localAlbumWithSongs = albumWithSongs
+        
+        
+        if (!disableBlur && localAlbumWithSongs != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(450.dp) // Covers the top half nicely
+                    .align(Alignment.TopCenter)
+            ) {
+                AsyncImage(
+                    model = localAlbumWithSongs.album.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(radius = 80.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                        .padding(bottom = 20.dp) // Soften bottom edge
+                )
+                
+                // Vertical gradient to blend the blurred image smoothly into the app's background color
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    surfaceColor.copy(alpha = if (isDark) 0.3f else 0.5f),
+                                    surfaceColor.copy(alpha = 0.85f),
+                                    surfaceColor
+                                )
+                            )
+                        )
+                )
+            }
+        }
+
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
-            val localAlbumWithSongs = albumWithSongs
             val hasSongs = localAlbumWithSongs?.songs?.isNotEmpty() == true
             
             if (hasSongs && localAlbumWithSongs != null) {
@@ -225,7 +266,8 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = AppBarHeight + 16.dp)
+                        
+                            .padding(top = AppBarHeight + 12.dp) 
                     ) {
                         
                         Row(
@@ -238,9 +280,9 @@ fun AlbumScreen(
                                 modifier = Modifier
                                     .size(160.dp)
                                     .shadow(
-                                        elevation = 16.dp,
+                                        elevation = 20.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        spotColor = primaryColor.copy(alpha = 0.3f)
+                                        spotColor = primaryColor.copy(alpha = 0.5f)
                                     ),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
@@ -318,7 +360,7 @@ fun AlbumScreen(
                                     Text(
                                         text = "• $year",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = onSurfaceVariantColor
+                                        color = onSurfaceColor.copy(alpha = 0.7f) // Slightly dimmed
                                     )
                                 }
                                 
@@ -600,7 +642,7 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = AppBarHeight + 16.dp)
+                                        .padding(top = AppBarHeight + 12.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -662,7 +704,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 16.dp)
+                                    .padding(top = AppBarHeight + 12.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -687,7 +729,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 16.dp)
+                                    .padding(top = AppBarHeight + 12.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -743,7 +785,7 @@ fun AlbumScreen(
                     )
                 } else if (showTopBarTitle) {
                     Text(
-                        text = albumWithSongs?.album?.title.orEmpty(),
+                        text = localAlbumWithSongs?.album?.title.orEmpty(),
                         style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -754,7 +796,7 @@ fun AlbumScreen(
                 Surface(
                     shape = CircleShape,
                     color = if (transparentAppBar && !selection) glassBgColor else Color.Transparent,
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = 4.dp)
                 ) {
                     IconButton(
                         onClick = {
@@ -816,13 +858,13 @@ fun AlbumScreen(
                         ) {
                             IconButton(
                                 onClick = { 
-                                    albumWithSongs?.let { current -> 
+                                    localAlbumWithSongs?.let { current -> 
                                         database.query { update(current.album.toggleLike()) } 
                                     } 
                                 },
                                 onLongClick = {}
                             ) {
-                                val isBookmarked = albumWithSongs?.album?.bookmarkedAt != null
+                                val isBookmarked = localAlbumWithSongs?.album?.bookmarkedAt != null
                                 Icon(
                                     painter = painterResource(if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border),
                                     contentDescription = null,
@@ -838,7 +880,7 @@ fun AlbumScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    albumWithSongs?.let { current ->
+                                    localAlbumWithSongs?.let { current ->
                                         menuState.show {
                                             AlbumMenu(
                                                 originalAlbum = Album(current.album, current.artists),
