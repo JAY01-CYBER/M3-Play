@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V6     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V7     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,7 +15,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,11 +59,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment 
-import androidx.compose.ui.draw.blur 
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -76,7 +72,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
@@ -89,8 +84,6 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalDownloadUtil
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -150,7 +143,6 @@ fun AlbumScreen(
     val (disableBlur) = rememberPreference(DisableBlurKey, false)
 
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val isDark = isSystemInDarkTheme() 
 
     val wrappedSongs = remember(albumWithSongs, hideExplicit) {
         val filteredSongs = if (hideExplicit) {
@@ -206,6 +198,7 @@ fun AlbumScreen(
         }
     }
 
+    // 🔴 APP THEME COLORS
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
@@ -219,41 +212,6 @@ fun AlbumScreen(
             .background(surfaceColor), 
     ) {
         val localAlbumWithSongs = albumWithSongs
-        
-        
-        if (!disableBlur && localAlbumWithSongs != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(450.dp) // Covers the top half nicely
-                    .align(Alignment.TopCenter)
-            ) {
-                AsyncImage(
-                    model = localAlbumWithSongs.album.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(radius = 80.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                        .padding(bottom = 20.dp) // Soften bottom edge
-                )
-                
-                // Vertical gradient to blend the blurred image smoothly into the app's background color
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    surfaceColor.copy(alpha = if (isDark) 0.3f else 0.5f),
-                                    surfaceColor.copy(alpha = 0.85f),
-                                    surfaceColor
-                                )
-                            )
-                        )
-                )
-            }
-        }
 
         LazyColumn(
             state = lazyListState,
@@ -266,8 +224,8 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                        
-                            .padding(top = AppBarHeight + 12.dp) 
+                            // 🔴 GAP FIXED: Sirf AppBarHeight + chhota sa 8.dp margin. Extra SystemBarPadding hata di gayi hai.
+                            .padding(top = AppBarHeight + 8.dp) 
                     ) {
                         
                         Row(
@@ -280,9 +238,9 @@ fun AlbumScreen(
                                 modifier = Modifier
                                     .size(160.dp)
                                     .shadow(
-                                        elevation = 20.dp,
+                                        elevation = 16.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        spotColor = primaryColor.copy(alpha = 0.5f)
+                                        spotColor = primaryColor.copy(alpha = 0.3f)
                                     ),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
@@ -360,7 +318,7 @@ fun AlbumScreen(
                                     Text(
                                         text = "• $year",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = onSurfaceColor.copy(alpha = 0.7f) // Slightly dimmed
+                                        color = onSurfaceColor.copy(alpha = 0.7f)
                                     )
                                 }
                                 
@@ -642,7 +600,7 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = AppBarHeight + 12.dp)
+                                        .padding(top = AppBarHeight + 8.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -704,7 +662,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 12.dp)
+                                    .padding(top = AppBarHeight + 8.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -729,7 +687,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 12.dp)
+                                    .padding(top = AppBarHeight + 8.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
