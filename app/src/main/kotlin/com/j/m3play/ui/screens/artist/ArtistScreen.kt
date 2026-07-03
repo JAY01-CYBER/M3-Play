@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.3   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.4   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,6 +15,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -175,7 +178,6 @@ fun ArtistScreen(
                     .drawWithContent {
                         drawContent()
                         drawRect(Brush.horizontalGradient(listOf(surfaceColor, Color.Transparent), startX = 0f, endX = size.width * 0.6f))
-                        // Ensure bottom fades completely to solid surface color
                         drawRect(Brush.verticalGradient(listOf(Color.Transparent, surfaceColor, surfaceColor), startY = size.height * 0.3f, endY = size.height))
                     }
             )
@@ -184,7 +186,7 @@ fun ArtistScreen(
         // --- 2. MAIN SCROLLABLE CONTENT ---
         LazyColumn(
             state = lazyListState,
-            contentPadding = PaddingValues(bottom = 100.dp),
+            contentPadding = PaddingValues(bottom = 120.dp), // Extra padding for mini-player and new FAB
             modifier = Modifier.fillMaxSize()
         ) {
             
@@ -272,7 +274,7 @@ fun ArtistScreen(
                 ) {
                     val isSubscribed = libraryArtist?.artist?.bookmarkedAt != null
                     
-                    // Subscribe Button - Using your old code's dynamic theme colors
+                    // Subscribe Button
                     Button(
                         onClick = {
                             database.transaction {
@@ -294,7 +296,7 @@ fun ArtistScreen(
                         Text(text = stringResource(if (isSubscribed) R.string.subscribed else R.string.subscribe), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelMedium)
                     }
 
-                    // Shuffle Button - Primary App Theme Color
+                    // Shuffle Button
                     Button(
                         onClick = {
                             if (!showLocal) artistPage?.artist?.shuffleEndpoint?.let { playerConnection.playQueue(YouTubeQueue(it)) }
@@ -410,7 +412,7 @@ fun ArtistScreen(
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. FLOATING CIRCULAR APP BAR BUTTONS (With Original Actions) ---
+        // --- 3. FLOATING CIRCULAR APP BAR BUTTONS ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -419,7 +421,6 @@ fun ArtistScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back Button
             IconButton(
                 onClick = navController::navigateUp,
                 modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
@@ -427,10 +428,7 @@ fun ArtistScreen(
                 Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
             }
             
-            // Share/Link Buttons using Original logic
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                
-                // Copy Link Button
                 IconButton(
                     onClick = {
                         viewModel.artistPage?.artist?.shareLink?.let { link ->
@@ -445,17 +443,12 @@ fun ArtistScreen(
                     Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 
-                // Share Intent Button
                 IconButton(
                     onClick = {
                         val shareIntent = Intent().apply {
                             action = Intent.ACTION_SEND
                             type = "text/plain"
-                            putExtra(
-                                Intent.EXTRA_TEXT,
-                                viewModel.artistPage?.artist?.shareLink
-                                    ?: "https://music.youtube.com/channel/${viewModel.artistId}"
-                            )
+                            putExtra(Intent.EXTRA_TEXT, viewModel.artistPage?.artist?.shareLink ?: "https://music.youtube.com/channel/${viewModel.artistId}")
                         }
                         context.startActivity(Intent.createChooser(shareIntent, null))
                     },
@@ -466,12 +459,40 @@ fun ArtistScreen(
             }
         }
 
-        HideOnScrollFAB(
+        // --- 4. NEW PILL-SHAPED FAB WITH TEXT ---
+        AnimatedVisibility(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
-            lazyListState = lazyListState,
-            icon = if (showLocal) R.drawable.language else R.drawable.library_music,
-            onClick = { showLocal = showLocal.not(); if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() }
-        )
+            enter = scaleIn(),
+            exit = scaleOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+                .padding(bottom = 16.dp, end = 16.dp)
+        ) {
+            ExtendedFloatingActionButton(
+                text = { 
+                    Text(
+                        text = if (showLocal) "Online" else "Library",
+                        style = MaterialTheme.typography.labelLarge
+                    ) 
+                },
+                icon = { 
+                    Icon(
+                        painter = painterResource(if (showLocal) R.drawable.language else R.drawable.library_music), 
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    ) 
+                },
+                onClick = { 
+                    showLocal = !showLocal
+                    if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() 
+                },
+                shape = CircleShape, // Makes it a perfect pill shape
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                expanded = true // Ensures the text is always visible alongside the icon
+            )
+        }
 
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current).align(Alignment.BottomCenter))
     }
