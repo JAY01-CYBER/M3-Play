@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.4   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.5   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -19,6 +19,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -157,9 +158,20 @@ fun ArtistScreen(
         }
     }
 
+    // Top bar triggers slightly earlier for a seamless transition
     val transparentAppBar by remember {
         derivedStateOf {
-            lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset < 150
+            lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset < 120
+        }
+    }
+    
+    // Smooth fade out for the Hero section text to avoid overlap
+    val heroAlpha by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex == 0) {
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                (1f - (offset / 250f)).coerceIn(0f, 1f)
+            } else 0f
         }
     }
 
@@ -178,7 +190,7 @@ fun ArtistScreen(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.6f)
+                    .alpha(0.45f) // Reduced alpha slightly to make text punchy
                     .drawWithContent {
                         drawContent()
                         drawRect(Brush.horizontalGradient(listOf(surfaceColor, Color.Transparent), startX = 0f, endX = size.width * 0.6f))
@@ -199,7 +211,10 @@ fun ArtistScreen(
             // --- HERO SECTION ---
             item(key = "hero_section") {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .graphicsLayer { alpha = heroAlpha }, // Fades out beautifully on scroll up
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(0.45f).aspectRatio(1f)) {
@@ -485,89 +500,107 @@ fun ArtistScreen(
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. TOP APP BAR (WITH ANIMATED BACKGROUND TO PREVENT OVERLAP) ---
-        // Determines background color based on scroll position
+        // --- 3. TOP APP BAR (SOLID BACKGROUND AND SMART BUTTONS) ---
+        // Top bar becomes 100% solid surface color when scrolled to prevent text bleed
         val topBarBgColor by animateColorAsState(
-            targetValue = if (transparentAppBar) Color.Transparent else surfaceColor.copy(alpha = 0.95f),
+            targetValue = if (transparentAppBar) Color.Transparent else surfaceColor,
             animationSpec = tween(300),
             label = "topBarBgColor"
         )
+        
+        val topBarElevation by animateDpAsState(
+            targetValue = if (transparentAppBar) 0.dp else 6.dp, // Subtle shadow for depth
+            animationSpec = tween(300),
+            label = "topBarElevation"
+        )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(topBarBgColor) // Adds background when scrolled down
-                .padding(top = systemBarsTopPadding + 12.dp, bottom = 12.dp) // Added bottom padding for background symmetry
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Buttons lose their background when the top bar becomes solid
+        val buttonBgColor by animateColorAsState(
+            targetValue = if (transparentAppBar) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f) else Color.Transparent,
+            animationSpec = tween(300),
+            label = "buttonBgColor"
+        )
+
+        Surface(
+            color = topBarBgColor,
+            shadowElevation = topBarElevation,
+            modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = navController::navigateUp,
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                
-                val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
-                AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
-                    Surface(
-                        shape = CircleShape, 
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = systemBarsTopPadding + 12.dp, bottom = 12.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = navController::navigateUp,
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    
+                    val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
+                    AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
+                        Surface(
+                            shape = CircleShape, 
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                            modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
                         ) {
-                            AsyncImage(
-                                model = thumbnail?.resize(100, 100),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(28.dp).clip(CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = artistName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                modifier = Modifier.widthIn(max = 130.dp).basicMarquee() 
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                AsyncImage(
+                                    model = thumbnail?.resize(100, 100),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(28.dp).clip(CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = artistName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    modifier = Modifier.widthIn(max = 130.dp).basicMarquee() 
+                                )
+                            }
                         }
                     }
                 }
-            }
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconButton(
-                    onClick = {
-                        viewModel.artistPage?.artist?.shareLink?.let { link ->
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Artist Link", link)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
                 
-                IconButton(
-                    onClick = {
-                        val shareIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, viewModel.artistPage?.artist?.shareLink ?: "https://music.youtube.com/channel/${viewModel.artistId}")
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, null))
-                    },
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconButton(
+                        onClick = {
+                            viewModel.artistPage?.artist?.shareLink?.let { link ->
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Artist Link", link)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
+                    ) {
+                        Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+                    
+                    IconButton(
+                        onClick = {
+                            val shareIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, viewModel.artistPage?.artist?.shareLink ?: "https://music.youtube.com/channel/${viewModel.artistId}")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, null))
+                        },
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(buttonBgColor)
+                    ) {
+                        Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
