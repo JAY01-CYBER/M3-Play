@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -267,9 +267,9 @@ fun AlbumScreen(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
-            val albumWithSongs = albumWithSongs
-            val hasSongs = albumWithSongs?.songs?.isNotEmpty() == true
-            if (hasSongs) {
+            val localAlbumWithSongs = albumWithSongs
+            val hasSongs = localAlbumWithSongs?.songs?.isNotEmpty() == true
+            if (hasSongs && localAlbumWithSongs != null) {
                 
                 item(key = "header") {
                     Column(
@@ -297,7 +297,7 @@ fun AlbumScreen(
                                 shape = RoundedCornerShape(16.dp)
                             ) {
                                 AsyncImage(
-                                    model = albumWithSongs.album.thumbnailUrl,
+                                    model = localAlbumWithSongs.album.thumbnailUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -330,7 +330,7 @@ fun AlbumScreen(
                                 
                                 // Album Title
                                 Text(
-                                    text = albumWithSongs.album.title,
+                                    text = localAlbumWithSongs.album.title,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     maxLines = 2,
@@ -349,10 +349,10 @@ fun AlbumScreen(
                                                     color = onExpressiveColor
                                                 ).toSpanStyle()
                                             ) {
-                                                albumWithSongs.artists.fastForEachIndexed { index, artist ->
+                                                localAlbumWithSongs.artists.fastForEachIndexed { index, artist ->
                                                     val link = LinkAnnotation.Clickable(artist.id) { navController.navigate("artist/${artist.id}") }
                                                     withLink(link) { append(artist.name) }
-                                                    if (index != albumWithSongs.artists.lastIndex) append(", ")
+                                                    if (index != localAlbumWithSongs.artists.lastIndex) append(", ")
                                                 }
                                             }
                                         },
@@ -371,7 +371,7 @@ fun AlbumScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 
                                 // Year
-                                albumWithSongs.album.year?.let { year ->
+                                localAlbumWithSongs.album.year?.let { year ->
                                     Text(
                                         text = "• $year",
                                         style = MaterialTheme.typography.bodyMedium,
@@ -390,7 +390,7 @@ fun AlbumScreen(
                                         contentColor = onExpressiveColor
                                     )
                                     
-                                    val totalDuration = albumWithSongs.songs.sumOf { it.song.duration }
+                                    val totalDuration = localAlbumWithSongs.songs.sumOf { it.song.duration }
                                     if (totalDuration > 0) {
                                         MetadataChip(
                                             icon = R.drawable.timer,
@@ -417,10 +417,10 @@ fun AlbumScreen(
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
-                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs))
+                                    playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs))
                                 },
                                 shape = RoundedCornerShape(50),
-                                color = dominantColor, // Solid dynamic color
+                                color = dominantColor, 
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
@@ -433,7 +433,7 @@ fun AlbumScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.play),
                                         contentDescription = stringResource(R.string.play),
-                                        tint = MaterialTheme.colorScheme.surface, // Contrast color for text/icon
+                                        tint = MaterialTheme.colorScheme.surface, 
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -450,7 +450,7 @@ fun AlbumScreen(
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
-                                    playerConnection.playQueue(LocalAlbumRadio(albumWithSongs.copy(songs = albumWithSongs.songs.shuffled())))
+                                    playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs.copy(songs = localAlbumWithSongs.songs.shuffled())))
                                 },
                                 shape = RoundedCornerShape(50),
                                 color = expressiveGlassColor,
@@ -484,12 +484,12 @@ fun AlbumScreen(
                                 onClick = {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED, Download.STATE_DOWNLOADING -> {
-                                            albumWithSongs.songs.forEach { song ->
+                                            localAlbumWithSongs.songs.forEach { song ->
                                                 DownloadService.sendRemoveDownload(context, ExoDownloadService::class.java, song.id, false)
                                             }
                                         }
                                         else -> {
-                                            albumWithSongs.songs.forEach { song ->
+                                            localAlbumWithSongs.songs.forEach { song ->
                                                 val downloadRequest = DownloadRequest.Builder(song.id, song.id.toUri()).setCustomCacheKey(song.id).setData(song.song.title.toByteArray()).build()
                                                 DownloadService.sendAddDownload(context, ExoDownloadService::class.java, downloadRequest, false)
                                             }
@@ -526,31 +526,6 @@ fun AlbumScreen(
                                             )
                                         }
                                     }
-                                }
-                            }
-
-                            // More Circle
-                            Surface(
-                                onClick = {
-                                    menuState.show {
-                                        AlbumMenu(
-                                            originalAlbum = Album(albumWithSongs.album, albumWithSongs.artists),
-                                            navController = navController,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                                shape = CircleShape,
-                                color = expressiveGlassColor,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                        tint = onExpressiveColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
                                 }
                             }
                         }
@@ -624,7 +599,7 @@ fun AlbumScreen(
                                         } else {
                                             playerConnection.service.getAutomix(playlistId)
                                             playerConnection.playQueue(
-                                                LocalAlbumRadio(albumWithSongs, startIndex = index),
+                                                LocalAlbumRadio(localAlbumWithSongs, startIndex = index),
                                             )
                                         }
                                     } else {
@@ -691,7 +666,6 @@ fun AlbumScreen(
                                         .fillMaxWidth()
                                         .padding(top = systemBarsTopPadding + AppBarHeight)
                                 ) {
-                                    // SHIMMER UPDATED FOR TWO-COLUMN LAYOUT
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -734,12 +708,7 @@ fun AlbumScreen(
                                     ) {
                                         ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
                                         ButtonPlaceholder(modifier = Modifier.weight(1f).height(48.dp))
-                                        Box(
-                                            modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface)
-                                        )
-                                        Box(
-                                            modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface)
-                                        )
+                                        Box(modifier = Modifier.size(48.dp).shimmer().clip(CircleShape).background(MaterialTheme.colorScheme.onSurface))
                                     }
 
                                     Spacer(modifier = Modifier.height(24.dp))
@@ -903,30 +872,40 @@ fun AlbumScreen(
                         Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else {
-                    // 🔴 NEW TOP BAR ICONS (Like, Search, More)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Like Button
+                        // 🔴 FIX: Added onLongClick and used let for Smart Cast
                         Surface(
                             shape = CircleShape,
                             color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
-                            IconButton(onClick = { if (albumWithSongs != null) database.query { update(albumWithSongs.album.toggleLike()) } }) {
+                            IconButton(
+                                onClick = { 
+                                    albumWithSongs?.let { current -> 
+                                        database.query { update(current.album.toggleLike()) } 
+                                    } 
+                                },
+                                onLongClick = {}
+                            ) {
+                                val isBookmarked = albumWithSongs?.album?.bookmarkedAt != null
                                 Icon(
-                                    painter = painterResource(if (albumWithSongs?.album?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border),
+                                    painter = painterResource(if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border),
                                     contentDescription = null,
-                                    tint = if (albumWithSongs?.album?.bookmarkedAt != null) MaterialTheme.colorScheme.error else onExpressiveColor
+                                    tint = if (isBookmarked) MaterialTheme.colorScheme.error else onExpressiveColor
                                 )
                             }
                         }
                         
-                        // Search Button
+                        // 🔴 FIX: Added onLongClick 
                         Surface(
                             shape = CircleShape,
                             color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
-                            IconButton(onClick = { navController.navigate("search") }) {
+                            IconButton(
+                                onClick = { navController.navigate("search") },
+                                onLongClick = {}
+                            ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Search,
                                     contentDescription = "Search",
@@ -935,7 +914,7 @@ fun AlbumScreen(
                             }
                         }
 
-                        // More Button
+                        // 🔴 FIX: Added onLongClick and used let for Smart Cast
                         Surface(
                             shape = CircleShape,
                             color = if (transparentAppBar) expressiveGlassColor else Color.Transparent,
@@ -943,10 +922,10 @@ fun AlbumScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    if (albumWithSongs != null) {
+                                    albumWithSongs?.let { current ->
                                         menuState.show {
                                             AlbumMenu(
-                                                originalAlbum = Album(albumWithSongs.album, albumWithSongs.artists),
+                                                originalAlbum = Album(current.album, current.artists),
                                                 navController = navController,
                                                 onDismiss = menuState::dismiss,
                                             )
