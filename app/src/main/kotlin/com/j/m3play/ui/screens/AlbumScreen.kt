@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V5     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V5.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width // 🔴 FIX: Added missing width import
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -200,7 +201,6 @@ fun AlbumScreen(
         }
     }
 
-    // 🔴 APP THEME COLORS (Material 3 Defaults)
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
@@ -215,7 +215,6 @@ fun AlbumScreen(
     ) {
         LazyColumn(
             state = lazyListState,
-            // LazyColumn inherently adds systemBarsTopPadding, so we won't add it manually again!
             contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
         ) {
             val localAlbumWithSongs = albumWithSongs
@@ -226,18 +225,15 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            // 🔴 GAP FIXED: Removed systemBarsTopPadding here, only keeping AppBarHeight + small spacing
                             .padding(top = AppBarHeight + 16.dp)
                     ) {
                         
-                        // TWO-COLUMN HERO LAYOUT
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Left: Album Art
                             Surface(
                                 modifier = Modifier
                                     .size(160.dp)
@@ -258,12 +254,10 @@ fun AlbumScreen(
                             
                             Spacer(modifier = Modifier.width(16.dp))
                             
-                            // Right: Metadata Column
                             Column(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                // "ALBUM" Pill Tag
                                 Surface(
                                     shape = RoundedCornerShape(50),
                                     color = Color.Transparent,
@@ -280,7 +274,6 @@ fun AlbumScreen(
                                 
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
-                                // Album Title
                                 Text(
                                     text = localAlbumWithSongs.album.title,
                                     style = MaterialTheme.typography.titleLarge,
@@ -291,7 +284,6 @@ fun AlbumScreen(
                                 
                                 Spacer(modifier = Modifier.height(4.dp))
                                 
-                                // Artist Name + Verified Badge
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = buildAnnotatedString {
@@ -322,7 +314,6 @@ fun AlbumScreen(
                                 
                                 Spacer(modifier = Modifier.height(4.dp))
                                 
-                                // Year
                                 localAlbumWithSongs.album.year?.let { year ->
                                     Text(
                                         text = "• $year",
@@ -333,7 +324,6 @@ fun AlbumScreen(
                                 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 
-                                // Chips Row (Songs & Duration)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     MetadataChip(
                                         icon = R.drawable.music_note,
@@ -357,7 +347,6 @@ fun AlbumScreen(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // ACTION BUTTONS ROW (Play, Shuffle, Download, More)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -365,7 +354,6 @@ fun AlbumScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Play Button (Primary Theme Color)
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
@@ -398,7 +386,6 @@ fun AlbumScreen(
                                 }
                             }
 
-                            // Shuffle Button (Surface Variant Theme Color)
                             Surface(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
@@ -431,7 +418,6 @@ fun AlbumScreen(
                                 }
                             }
 
-                            // Download Circle
                             Surface(
                                 onClick = {
                                     when (downloadState) {
@@ -486,7 +472,6 @@ fun AlbumScreen(
                     }
                 }
 
-                // Songs Header with "View All"
                 item(key = "songs_header") {
                     Row(
                         modifier = Modifier
@@ -510,7 +495,6 @@ fun AlbumScreen(
                     }
                 }
 
-                // Songs List
                 itemsIndexed(
                     items = wrappedSongs,
                     key = { _, song -> song.item.id },
@@ -616,7 +600,6 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        // Match normal layout gap
                                         .padding(top = AppBarHeight + 16.dp)
                                 ) {
                                     Row(
@@ -826,7 +809,6 @@ fun AlbumScreen(
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Like Button
                         Surface(
                             shape = CircleShape,
                             color = if (transparentAppBar) glassBgColor else Color.Transparent,
@@ -849,9 +831,6 @@ fun AlbumScreen(
                             }
                         }
                         
-                        // 🔴 SEARCH BUTTON COMPLETELY REMOVED FROM HERE
-
-                        // More Button
                         Surface(
                             shape = CircleShape,
                             color = if (transparentAppBar) glassBgColor else Color.Transparent,
