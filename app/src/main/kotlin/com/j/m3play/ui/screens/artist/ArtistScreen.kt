@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.2   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4.3   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -484,7 +484,7 @@ fun ArtistScreen(
             item { Spacer(modifier = Modifier.height(100.dp).fillMaxWidth().background(surfaceColor)) }
         }
 
-        // --- 3. TOP APP BAR WITH PILL-SHAPED COLLAPSING AVATAR ---
+        // --- 3. TOP APP BAR (Solid App-Themed Buttons & Completely Opaque Pill) ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -494,19 +494,20 @@ fun ArtistScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Completely solid surfaceVariant for perfectly matching app theme
                 IconButton(
                     onClick = navController::navigateUp,
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
-                val topBarAlpha by animateFloatAsState(targetValue = if (transparentAppBar) 0f else 1f, tween(300), label = "alpha")
                 AnimatedVisibility(visible = !transparentAppBar, enter = scaleIn(), exit = scaleOut()) {
+                    // Completely solid color, removed any transparency (alpha)
                     Surface(
                         shape = CircleShape, 
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                        modifier = Modifier.padding(start = 12.dp).alpha(topBarAlpha)
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.padding(start = 12.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -523,7 +524,7 @@ fun ArtistScreen(
                                 text = artistName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 modifier = Modifier.widthIn(max = 130.dp).basicMarquee() 
                             )
@@ -533,6 +534,7 @@ fun ArtistScreen(
             }
             
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Completely solid surfaceVariant for perfectly matching app theme
                 IconButton(
                     onClick = {
                         viewModel.artistPage?.artist?.shareLink?.let { link ->
@@ -542,9 +544,9 @@ fun ArtistScreen(
                             Toast.makeText(context, R.string.link_copied, Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(painterResource(R.drawable.link), contentDescription = "Copy Link", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
                 IconButton(
@@ -556,23 +558,47 @@ fun ArtistScreen(
                         }
                         context.startActivity(Intent.createChooser(shareIntent, null))
                     },
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(painterResource(R.drawable.share), contentDescription = "Share", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
 
-        // --- 4. ORIGINAL HIDE ON SCROLL FAB ---
-        HideOnScrollFAB(
+        // --- 4. EXTENDED FAB FOR LIBRARY/ONLINE (Pill shape, Icon + Text, Material 3 Themed) ---
+        AnimatedVisibility(
             visible = librarySongs.isNotEmpty() && libraryArtist?.artist?.isLocal != true,
-            lazyListState = lazyListState,
-            icon = if (showLocal) R.drawable.language else R.drawable.library_music,
-            onClick = { 
-                showLocal = showLocal.not()
-                if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() 
-            }
-        )
+            enter = scaleIn(),
+            exit = scaleOut(),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current)
+                .padding(bottom = 16.dp, end = 16.dp)
+        ) {
+            ExtendedFloatingActionButton(
+                text = { 
+                    Text(
+                        text = if (showLocal) "Online" else "Library",
+                        style = MaterialTheme.typography.labelLarge
+                    ) 
+                },
+                icon = { 
+                    Icon(
+                        painter = painterResource(if (showLocal) R.drawable.language else R.drawable.library_music), 
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    ) 
+                },
+                onClick = { 
+                    showLocal = !showLocal
+                    if (!showLocal && artistPage == null) viewModel.fetchArtistsFromYTM() 
+                },
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                expanded = true
+            )
+        }
 
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.windowInsetsPadding(LocalPlayerAwareWindowInsets.current).align(Alignment.BottomCenter))
     }
