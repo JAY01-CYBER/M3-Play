@@ -4,13 +4,15 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V7.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V8     │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState 
+import androidx.compose.animation.core.tween 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -72,7 +74,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign // 🔴 FIX: Added missing TextAlign import
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
@@ -714,25 +716,26 @@ fun AlbumScreen(
             }
         }
 
-        val topAppBarColors = if (transparentAppBar) {
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-                navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                titleContentColor = MaterialTheme.colorScheme.onBackground,
-                actionIconContentColor = MaterialTheme.colorScheme.onBackground
-            )
-        } else {
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrolledContainerColor = MaterialTheme.colorScheme.surface
-            )
-        }
+        // 🔴 FIX: Added smooth animation for TopBar Background
+        val targetContainerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface
+        val animatedContainerColor by animateColorAsState(
+            targetValue = targetContainerColor,
+            animationSpec = tween(durationMillis = 300),
+            label = "AppBarColor"
+        )
+
+        val topAppBarColors = TopAppBarDefaults.topAppBarColors(
+            containerColor = animatedContainerColor,
+            scrolledContainerColor = animatedContainerColor,
+            navigationIconContentColor = onSurfaceColor,
+            titleContentColor = onSurfaceColor,
+            actionIconContentColor = onSurfaceColor
+        )
 
         TopAppBar(
             modifier = Modifier.align(Alignment.TopCenter),
             colors = topAppBarColors,
-            scrollBehavior = scrollBehavior,
+            // 🔴 FIX: Removed `scrollBehavior` completely to keep TopBar pinned permanently.
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
