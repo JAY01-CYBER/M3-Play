@@ -49,7 +49,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.j.m3play.R
 import com.j.m3play.ui.screens.OptionStats
 
@@ -59,8 +61,9 @@ fun <E> ChipsRow(
     currentValue: E,
     onValueUpdate: (E) -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = MaterialTheme.colorScheme.surface, 
     icons: Map<E, Int> = emptyMap(),
+    emojiIcons: Map<E, String> = emptyMap(), 
 ) {
     Row(
         modifier =
@@ -74,13 +77,22 @@ fun <E> ChipsRow(
         chips.forEach { (value, label) ->
             val isSelected = currentValue == value
             val iconRes = icons[value]
+            val emoji = emojiIcons[value]
 
             FilterChip(
                 selected = isSelected,
                 onClick = { onValueUpdate(value) },
-                label = { Text(label) },
+                label = { 
+                    Text(
+                        text = label,
+                        fontWeight = FontWeight.Medium 
+                    ) 
+                },
                 leadingIcon = {
-                    if (isSelected) {
+                    if (emoji != null) {
+                        
+                        Text(text = emoji, fontSize = 16.sp)
+                    } else if (isSelected) {
                         Icon(
                             painter = painterResource(R.drawable.done),
                             contentDescription = null,
@@ -94,10 +106,12 @@ fun <E> ChipsRow(
                         )
                     }
                 },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(50), 
                 border = null,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = containerColor,
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
             )
 
@@ -105,6 +119,7 @@ fun <E> ChipsRow(
         }
     }
 }
+
 
 @SuppressLint("UnusedContentLambdaTargetStateParameter")
 @Composable
