@@ -211,7 +211,7 @@ fun YTPremiumDiscoverCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                     )
-                    
+                     
                     val subtitle = when(item) {
                         is SongItem -> item.artists.joinToString(", ") { it.name }
                         is PlaylistItem -> item.author?.name ?: "Auto Playlist"
@@ -304,7 +304,7 @@ fun YTMSquareGridItem(
 }
 
 // ==========================================
-// EXACT YTM COMMUNITY PLAYLIST CARD
+// EXACT YTM COMMUNITY PLAYLIST CARD (REDESIGNED GLOSSY)
 // ==========================================
 
 @Composable
@@ -320,128 +320,257 @@ fun CommunityPlaylistCard(
     val haptic = LocalHapticFeedback.current
     
     Card(
-        modifier = modifier.width(340.dp),
+        modifier = modifier.width(360.dp), 
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         onClick = onClick,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
-                ) {
-                    Column {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
+        Column(modifier = Modifier.padding(20.dp)) {
+            
+            // 1. Header Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "From the community",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Trending tracks picked by the community",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = Color.Transparent,
+                    modifier = Modifier.clickable { /* Handle See All */ }
+                ) {
                     Text(
-                        text = item.playlist.author?.name ?: "Community",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
+                        text = "See all >", 
+                        style = MaterialTheme.typography.labelMedium, 
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
-            
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 2. Hero Card (Playlist Details)
+            val firstSongImage = item.songs.firstOrNull()?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w400-h400")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF6D4C41), // Custom brown/dark gradient
+                                Color(0xFF3E2723)
+                            )
+                        )
+                    )
+                    .padding(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = firstSongImage,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.favorite),
+                                contentDescription = null, 
+                                tint = Color(0xFFFF5252),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Most loved", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text(
+                            text = item.playlist.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = item.playlist.author?.name ?: "Community",
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = item.playlist.songCountText ?: "${item.songs.size} tracks", 
+                            color = Color.White.copy(alpha = 0.5f), 
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    
+                    // Play Playlist Button
+                    IconButton(
+                        onClick = { 
+                            item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } 
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.White.copy(alpha = 0.9f), CircleShape)
+                    ) {
+                        Icon(painterResource(R.drawable.play), contentDescription = "Play", tint = Color.Black)
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            item.songs.take(4).forEach { song ->
+
+            // 3. Track List
+            item.songs.take(4).forEachIndexed { index, song ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSongClick(song) }
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = "${index + 1}", 
+                        style = MaterialTheme.typography.bodyMedium, 
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), 
+                        modifier = Modifier.width(24.dp)
+                    )
+                    
                     AsyncImage(
                         model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
                     )
+                    
                     Spacer(modifier = Modifier.width(12.dp))
+                    
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
+                            text = song.title, 
+                            style = MaterialTheme.typography.bodyMedium, 
+                            fontWeight = FontWeight.SemiBold, 
+                            color = MaterialTheme.colorScheme.onBackground, 
+                            maxLines = 1, 
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = song.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            maxLines = 1,
+                            text = song.artists.joinToString(", ") { it.name }, 
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), 
+                            maxLines = 1, 
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    
                     IconButton(
                         onClick = { 
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onMenuClick(song) 
-                        }, 
+                        },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
+                        Icon(painterResource(R.drawable.more_vert), contentDescription = "More", tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // 4. Bottom Actions
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.onBackground, CircleShape)
+                // Play All Button
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .height(40.dp)
+                        .clickable { item.playlist.playEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } }
                 ) {
-                    Icon(painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.background)
+                    Row(
+                        horizontalArrangement = Arrangement.Center, 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painterResource(R.drawable.play), contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Play all", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
                 }
                 
-                IconButton(
-                    onClick = { item.playlist.radioEndpoint?.let { playerConnection?.playQueue(YouTubeQueue(it)) } },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Share Button
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .clickable { /* Handle Share */ }
                 ) {
-                    Icon(painterResource(R.drawable.radio), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                    Row(
+                        horizontalArrangement = Arrangement.Center, 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Share", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
                 
-                IconButton(
-                    onClick = { 
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSaveClick() 
-                    },
-                    modifier = Modifier.size(48.dp).border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Save Button
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onSaveClick()
+                        }
                 ) {
-                    Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground)
+                    Row(
+                        horizontalArrangement = Arrangement.Center, 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painterResource(R.drawable.bookmark_filled), contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Save", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
         }
