@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V8.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V9     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -17,10 +17,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource 
-import androidx.compose.foundation.interaction.collectIsPressedAsState 
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,7 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape 
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer 
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -232,7 +233,7 @@ fun AlbumScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = AppBarHeight + 8.dp) 
+                            .padding(top = AppBarHeight + 12.dp) 
                     ) {
                         
                         Row(
@@ -393,7 +394,7 @@ fun AlbumScreen(
                                 }
                             }
 
-                            
+                        
                             BubbleButton(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
@@ -606,7 +607,7 @@ fun AlbumScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = AppBarHeight + 8.dp)
+                                        .padding(top = AppBarHeight + 12.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -668,7 +669,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 8.dp)
+                                    .padding(top = AppBarHeight + 12.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -693,7 +694,7 @@ fun AlbumScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = AppBarHeight + 8.dp)
+                                    .padding(top = AppBarHeight + 12.dp)
                                     .padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
@@ -747,7 +748,6 @@ fun AlbumScreen(
                         style = MaterialTheme.typography.titleLarge
                     )
                 } else if (showTopBarTitle) {
-                    
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
@@ -765,18 +765,25 @@ fun AlbumScreen(
                 }
             },
             navigationIcon = {
-                
                 BubbleButton(
                     onClick = {
-                        if (selection) selection = false else navController.navigateUp()
+                        if (selection) {
+                            selection = false
+                        } else {
+                            navController.navigateUp()
+                        }
                     },
-                    color = if (transparentAppBar && !selection) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(start = 8.dp).size(42.dp)
+                    onLongClick = {
+                        if (!selection) {
+                            navController.backToMain()
+                        }
+                    },
+                    color = if (transparentAppBar && !selection) glassBgColor else Color.Transparent,
+                    modifier = Modifier.padding(start = 4.dp).size(42.dp)
                 ) {
                     Icon(
                         painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
-                        contentDescription = null,
-                        tint = onSurfaceColor
+                        contentDescription = null
                     )
                 }
             },
@@ -791,7 +798,7 @@ fun AlbumScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = Color.Transparent,
                         modifier = Modifier.padding(end = 4.dp).size(42.dp)
                     ) {
                         Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null)
@@ -807,21 +814,20 @@ fun AlbumScreen(
                                 )
                             }
                         },
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = Color.Transparent,
                         modifier = Modifier.padding(end = 8.dp).size(42.dp)
                     ) {
                         Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        
                         BubbleButton(
                             onClick = { 
                                 localAlbumWithSongs?.let { current -> 
                                     database.query { update(current.album.toggleLike()) } 
                                 } 
                             },
-                            color = if (transparentAppBar) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
                             modifier = Modifier.padding(end = 4.dp).size(42.dp)
                         ) {
                             val isBookmarked = localAlbumWithSongs?.album?.bookmarkedAt != null
@@ -831,7 +837,6 @@ fun AlbumScreen(
                                 tint = if (isBookmarked) MaterialTheme.colorScheme.error else onSurfaceColor
                             )
                         }
-                        
                         
                         BubbleButton(
                             onClick = {
@@ -845,7 +850,7 @@ fun AlbumScreen(
                                     }
                                 }
                             },
-                            color = if (transparentAppBar) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
                             modifier = Modifier.padding(end = 8.dp).size(42.dp)
                         ) {
                             Icon(
@@ -896,9 +901,11 @@ private fun MetadataChip(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BubbleButton(
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     shape: Shape = CircleShape,
     color: Color = MaterialTheme.colorScheme.surfaceVariant,
@@ -907,21 +914,29 @@ private fun BubbleButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
+    
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "bubble_anim"
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
+        label = "bounce"
     )
     
-    Surface(
-        onClick = onClick,
-        shape = shape,
-        color = color,
-        interactionSource = interactionSource,
-        modifier = modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(shape)
+            .background(color)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            content()
-        }
+        content()
     }
 }
