@@ -263,7 +263,8 @@ fun HistoryScreen(
                                                     onDismiss = menuState::dismiss
                                                 )
                                             }
-                                        }
+                                        },
+                                        onLongClick = {}
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
@@ -349,7 +350,8 @@ fun HistoryScreen(
                                                     )
                                                 }
                                             }
-                                        }
+                                        },
+                                        onLongClick = {}
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.more_vert),
@@ -516,7 +518,8 @@ fun HistoryScreen(
                         } else {
                             allWrappedItems.forEach { it.isSelected = true }
                         }
-                    }
+                    },
+                    onLongClick = {}
                 ) {
                     Icon(
                         painter = painterResource(
@@ -537,7 +540,8 @@ fun HistoryScreen(
                                 currentItems = emptyList()
                             )
                         }
-                    }
+                    },
+                    onLongClick = {}
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
@@ -547,6 +551,7 @@ fun HistoryScreen(
             } else if (!isSearching) {
                 IconButton(
                     onClick = { isSearching = true },
+                    onLongClick = {},
                     modifier = Modifier
                         .padding(end = 8.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -559,6 +564,7 @@ fun HistoryScreen(
                 
                 IconButton(
                     onClick = { /* Add your More action here if needed */ },
+                    onLongClick = {},
                     modifier = Modifier
                         .padding(end = 12.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
