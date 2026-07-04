@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -15,20 +15,23 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -44,7 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -54,8 +57,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.innertube.models.WatchEndpoint
@@ -103,20 +108,20 @@ fun HistoryScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    var selection by remember {
-        mutableStateOf(false)
-    }
+    var selection by remember { mutableStateOf(false) }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
     val focusRequester = remember { FocusRequester() }
+    
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
         }
     }
+    
     if (isSearching) {
         BackHandler {
             isSearching = false
@@ -159,10 +164,7 @@ fun HistoryScreen(
                 songs.filter { event ->
                     event.song.song.title.contains(query.text, ignoreCase = true) ||
                             event.song.artists.any {
-                                it.name.contains(
-                                    query.text,
-                                    ignoreCase = true
-                                )
+                                it.name.contains(query.text, ignoreCase = true)
                             }
                 }
             }.filterValues { it.isNotEmpty() }
@@ -202,9 +204,7 @@ fun HistoryScreen(
             contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 .asPaddingValues(),
             modifier = Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
+                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
             item {
@@ -221,7 +221,8 @@ fun HistoryScreen(
                         if (it == HistorySource.REMOTE){
                             viewModel.fetchRemoteHistory()
                         }
-                    }
+                    },
+                    modifier = Modifier.padding(vertical = 12.dp)
                 )
             }
 
@@ -233,6 +234,7 @@ fun HistoryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.background)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
 
@@ -240,52 +242,60 @@ fun HistoryScreen(
                         items = section.songs,
                         key = { "${section.title}_${it.id}_${section.songs.indexOf(it)}" }
                     ) { song ->
-                        YouTubeListItem(
-                            item = song,
-                            isActive = song.id == mediaMetadata?.id,
-                            isPlaying = isPlaying,
-                            trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            YouTubeSongMenu(
-                                                song = song,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null
-                                    )
-                                }
-                            },
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = {
-                                        if (song.id == mediaMetadata?.id) {
-                                            playerConnection.player.togglePlayPause()
-                                        } else {
-                                            playerConnection.playQueue(
-                                                YouTubeQueue.radio(song.toMediaMetadata())
-                                            )
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        ) {
+                            YouTubeListItem(
+                                item = song,
+                                isActive = song.id == mediaMetadata?.id,
+                                isPlaying = isPlaying,
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            menuState.show {
+                                                YouTubeSongMenu(
+                                                    song = song,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
                                         }
-                                    },
-                                    onLongClick = {
-                                        menuState.show {
-                                            YouTubeSongMenu(
-                                                song = song,
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss
-                                            )
-                                        }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                )
-                                .animateItem()
-                        )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (song.id == mediaMetadata?.id) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    YouTubeQueue.radio(song.toMediaMetadata())
+                                                )
+                                            }
+                                        },
+                                        onLongClick = {
+                                            menuState.show {
+                                                YouTubeSongMenu(
+                                                    song = song,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss
+                                                )
+                                            }
+                                        }
+                                    )
+                            )
+                        }
                     }
                 }
             } else {
@@ -295,7 +305,8 @@ fun HistoryScreen(
                             title = dateAgoToString(dateAgo),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
 
@@ -306,65 +317,78 @@ fun HistoryScreen(
                         key = { index, wrappedItem -> "${dateAgo}_${wrappedItem.item.event.id}_$index" }
                     ) { index, wrappedItem ->
                         val event = wrappedItem.item
-                        SongListItem(
-                            song = event.song,
-                            isActive = event.song.id == mediaMetadata?.id,
-                            isPlaying = isPlaying,
-                            showInLibraryIcon = true,
-                            isSelected = wrappedItem.isSelected && selection,
-
-                            trailingContent = {
-                                IconButton(
-                                    onClick = {
-                                        if (!selection) {
-                                            menuState.show {
-                                                SongMenu(
-                                                    originalSong = event.song,
-                                                    event = event.event,
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null
-                                    )
-                                }
-                            },
+                        
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = {
-                                        if (!selection) {
-                                            if (event.song.id == mediaMetadata?.id) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.playQueue(
-                                                    ListQueue(
-                                                        title = dateAgoToString(dateAgo),
-                                                        items = currentDateWrappedItems.map { it.item.song.toMediaItem() },
-                                                        startIndex = index
-                                                    )
-                                                )
-                                            }
-                                        } else {
-                                            wrappedItem.isSelected = !wrappedItem.isSelected
-                                        }
-                                    },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        if (!selection) {
-                                            selection = true
-                                            allWrappedItems.forEach { it.isSelected = false }
-                                            wrappedItem.isSelected = true
-                                        }
-                                    }
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(
+                                    if (wrappedItem.isSelected && selection) 
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) 
+                                    else 
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                                 )
-                                .animateItem()
-                        )
+                        ) {
+                            SongListItem(
+                                song = event.song,
+                                isActive = event.song.id == mediaMetadata?.id,
+                                isPlaying = isPlaying,
+                                showInLibraryIcon = true,
+                                isSelected = wrappedItem.isSelected && selection,
+                                trailingContent = {
+                                    IconButton(
+                                        onClick = {
+                                            if (!selection) {
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = event.song,
+                                                        event = event.event,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(R.drawable.more_vert),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (!selection) {
+                                                if (event.song.id == mediaMetadata?.id) {
+                                                    playerConnection.player.togglePlayPause()
+                                                } else {
+                                                    playerConnection.playQueue(
+                                                        ListQueue(
+                                                            title = dateAgoToString(dateAgo),
+                                                            items = currentDateWrappedItems.map { it.item.song.toMediaItem() },
+                                                            startIndex = index
+                                                        )
+                                                    )
+                                                }
+                                            } else {
+                                                wrappedItem.isSelected = !wrappedItem.isSelected
+                                            }
+                                        },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            if (!selection) {
+                                                selection = true
+                                                allWrappedItems.forEach { it.isSelected = false }
+                                                wrappedItem.isSelected = true
+                                            }
+                                        }
+                                    )
+                            )
+                        }
                     }
                 }
             }
@@ -434,7 +458,17 @@ fun HistoryScreen(
                         .focusRequester(focusRequester)
                 )
             } else {
-                Text(stringResource(R.string.history))
+                Column {
+                    Text(
+                        text = stringResource(R.string.history),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "Your recently played songs",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         navigationIcon = {
@@ -459,7 +493,10 @@ fun HistoryScreen(
                     if (!isSearching && !selection) {
                         navController.backToMain()
                     }
-                }
+                },
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 4.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
             ) {
                 Icon(
                     painter = painterResource(
@@ -509,10 +546,25 @@ fun HistoryScreen(
                 }
             } else if (!isSearching) {
                 IconButton(
-                    onClick = { isSearching = true }
+                    onClick = { isSearching = true },
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.search),
+                        contentDescription = null
+                    )
+                }
+                
+                IconButton(
+                    onClick = { /* Add your More action here if needed */ },
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert),
                         contentDescription = null
                     )
                 }
