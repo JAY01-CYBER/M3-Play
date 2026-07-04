@@ -95,6 +95,7 @@ import com.j.m3play.db.entities.Song
 import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.innertube.pages.HomePage
 import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
@@ -304,8 +305,8 @@ fun HomeScreen(
                 ) {
                     if (showHomeCategoryChips) {
                         item(key = "chips", contentType = "chips") {
-                            // Server se aane wale category naam ke hisaab se automatic emoji map karna
-                            val dynamicEmojis = homePage?.chips.orEmpty().associate { chip ->
+                            // Kotlin Compiler Type Error Fix added here 
+                            val dynamicEmojis: Map<HomePage.Chip?, String> = homePage?.chips.orEmpty().associate { chip ->
                                 val emoji = when (chip.title.lowercase()) {
                                     "relax" -> "🌿"
                                     "workout" -> "🏋️"
@@ -317,16 +318,16 @@ fun HomeScreen(
                                     "party" -> "🎉"
                                     "commute" -> "🚗"
                                     "sad" -> "🌧️"
-                                    else -> "🎵" // Agar koi naya/unknown category aaye toh default emoji
+                                    else -> "🎵" 
                                 }
-                                chip to emoji 
+                                (chip as HomePage.Chip?) to emoji 
                             }
 
                             ChipsRow(
                                 chips = homePage?.chips.orEmpty().map { it to it.title },
                                 currentValue = selectedChip,
                                 onValueUpdate = { viewModel.toggleChip(it) },
-                                emojiIcons = dynamicEmojis // Naya emoji map yahan pass kar diya
+                                emojiIcons = dynamicEmojis 
                             )
                         }
                     }
@@ -501,7 +502,6 @@ fun ActionCard(
         ) {
             Icon(painter = painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.height(10.dp))
-            // यहाँ FontWeight.SemiBold को हटाकर FontWeight.Bold कर दिया गया है
             Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
