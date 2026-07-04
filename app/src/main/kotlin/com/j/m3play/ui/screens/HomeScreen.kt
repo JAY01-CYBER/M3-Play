@@ -39,11 +39,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,28 +90,22 @@ import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.constants.InnerTubeCookieKey
 import com.j.m3play.constants.ShowHomeCategoryChipsKey
 import com.j.m3play.db.entities.Song
-import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.pages.HomePage
 import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.models.toMediaMetadata
-import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.ExpressivePullToRefreshBox
-import com.j.m3play.ui.component.LocalBottomSheetPageState
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.component.TimeGreetingCard
 import com.j.m3play.ui.menu.SongMenu
-import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
-import com.j.m3play.ui.utils.SnapLayoutInfoProvider
+import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.utils.rememberPreference
-import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
-import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
@@ -305,7 +297,6 @@ fun HomeScreen(
                 ) {
                     if (showHomeCategoryChips) {
                         item(key = "chips", contentType = "chips") {
-                            // Kotlin Compiler Type Error Fix added here 
                             val dynamicEmojis: Map<HomePage.Chip?, String> = homePage?.chips.orEmpty().associate { chip ->
                                 val emoji = when (chip.title.lowercase()) {
                                     "relax" -> "🌿"
@@ -393,19 +384,6 @@ fun HomeScreen(
                             )
                         }
                     }
-                    
-                    communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                        item(key = "community_title", contentType = "title") { 
-                            NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) 
-                        }
-                        item(key = "community_row", contentType = "row") {
-                            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
-                                items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
-                                    CommunityPlaylistCard(item = item, onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") }, onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }, onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } })
-                                }
-                            }
-                        }
-                    }
 
                     quickPicks?.takeIf { it.isNotEmpty() }?.let { picks ->
                         item(key = "quick_picks_title", contentType = "title") { 
@@ -435,6 +413,27 @@ fun HomeScreen(
                         item(key = "keep_listening_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.keep_listening), modifier = Modifier.animateItem()) }
                         item(key = "keep_listening_section", contentType = "section") { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                     }
+
+                    // --- MOVED COMMUNITY PLAYLISTS HERE ---
+                    communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                        item(key = "community_title", contentType = "title") { 
+                            NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) 
+                        }
+                        item(key = "community_row", contentType = "row") {
+                            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
+                                items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
+                                    CommunityPlaylistCard(
+                                        item = item, 
+                                        onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") }, 
+                                        onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, 
+                                        onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }, 
+                                        onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // ----------------------------------------
 
                     AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
