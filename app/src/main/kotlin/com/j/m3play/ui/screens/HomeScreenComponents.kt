@@ -37,7 +37,6 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 
-// Exact Imports to avoid class ambiguity 
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -693,10 +692,10 @@ fun KeepListeningSection(
             items = keepListening,
             key = { item -> 
                 when (item) { 
-                    is Song -> "song_${item.id}"
-                    is Album -> "album_${item.id}"
-                    is Artist -> "artist_${item.id}"
-                    is Playlist -> "playlist_${item.id}"
+                    is com.j.m3play.db.entities.Song -> "song_${item.id}"
+                    is com.j.m3play.db.entities.Album -> "album_${item.id}"
+                    is com.j.m3play.db.entities.Artist -> "artist_${item.id}"
+                    is com.j.m3play.db.entities.Playlist -> "playlist_${item.id}"
                     else -> "local_${item.id}"
                 } 
             }
@@ -907,7 +906,7 @@ private fun LocalGridItem(
     modifier: Modifier = Modifier
 ) {
     when (item) {
-        is Song -> SongGridItem(
+        is com.j.m3play.db.entities.Song -> SongGridItem(
             song = item,
             modifier = modifier.fillMaxWidth().combinedClickable(
                 onClick = { if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())) },
@@ -916,7 +915,7 @@ private fun LocalGridItem(
             isActive = item.id == mediaMetadata?.id,
             isPlaying = isPlaying
         )
-        is Album -> AlbumGridItem(
+        is com.j.m3play.db.entities.Album -> AlbumGridItem(
             album = item,
             isActive = item.id == mediaMetadata?.album?.id,
             isPlaying = isPlaying,
@@ -926,14 +925,14 @@ private fun LocalGridItem(
                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(originalAlbum = item, navController = navController, onDismiss = menuState::dismiss) } }
             )
         )
-        is Artist -> ArtistGridItem(
+        is com.j.m3play.db.entities.Artist -> ArtistGridItem(
             artist = item,
             modifier = modifier.fillMaxWidth().combinedClickable(
                 onClick = { navController.navigate("artist/${item.id}") },
                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(originalArtist = item, coroutineScope = scope, onDismiss = menuState::dismiss) } }
             )
         )
-        is Playlist -> {}
+        is com.j.m3play.db.entities.Playlist -> {}
         else -> {}
     }
 }
@@ -971,17 +970,17 @@ fun SimilarRecommendationsTitle(
         title = recommendation.title.title,
         thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
             {
-                val shape = if (recommendation.title is com.j.m3play.models.Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
+                val shape = if (recommendation.title is com.j.m3play.db.entities.Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                 AsyncImage(model = thumbnailUrl, contentDescription = null, modifier = Modifier.size(ListThumbnailSize).clip(shape))
             }
         },
         onClick = {
             val itemTitle = recommendation.title
             when (itemTitle) {
-                is com.j.m3play.models.Song -> navController.navigate("album/${itemTitle.album!!.id}")
-                is com.j.m3play.models.Album -> navController.navigate("album/${itemTitle.id}")
-                is com.j.m3play.models.Artist -> navController.navigate("artist/${itemTitle.id}")
-                is com.j.m3play.models.Playlist -> {}
+                is com.j.m3play.db.entities.Song -> navController.navigate("album/${itemTitle.album!!.id}")
+                is com.j.m3play.db.entities.Album -> navController.navigate("album/${itemTitle.id}")
+                is com.j.m3play.db.entities.Artist -> navController.navigate("artist/${itemTitle.id}")
+                is com.j.m3play.db.entities.Playlist -> {}
                 else -> {}
             }
         },
