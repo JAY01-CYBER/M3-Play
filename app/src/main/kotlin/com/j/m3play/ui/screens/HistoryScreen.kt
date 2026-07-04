@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -14,8 +14,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,7 +30,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,8 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -208,22 +209,28 @@ fun HistoryScreen(
             )
         ) {
             item {
-                ChipsRow(
-                    chips = if (isLoggedIn) listOf(
-                        HistorySource.LOCAL to stringResource(R.string.local_history),
-                        HistorySource.REMOTE to stringResource(R.string.remote_history),
-                    ) else {
-                        listOf(HistorySource.LOCAL to stringResource(R.string.local_history))
-                    },
-                    currentValue = historySource,
-                    onValueUpdate = {
-                        viewModel.historySource.value = it
-                        if (it == HistorySource.REMOTE){
-                            viewModel.fetchRemoteHistory()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    ChipsRow(
+                        chips = if (isLoggedIn) listOf(
+                            HistorySource.LOCAL to stringResource(R.string.local_history),
+                            HistorySource.REMOTE to stringResource(R.string.remote_history),
+                        ) else {
+                            listOf(HistorySource.LOCAL to stringResource(R.string.local_history))
+                        },
+                        currentValue = historySource,
+                        onValueUpdate = {
+                            viewModel.historySource.value = it
+                            if (it == HistorySource.REMOTE){
+                                viewModel.fetchRemoteHistory()
+                            }
                         }
-                    },
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
+                    )
+                }
             }
 
             if (historySource == HistorySource.REMOTE && isLoggedIn) {
@@ -234,7 +241,6 @@ fun HistoryScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.background)
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
 
@@ -242,61 +248,53 @@ fun HistoryScreen(
                         items = section.songs,
                         key = { "${section.title}_${it.id}_${section.songs.indexOf(it)}" }
                     ) { song ->
-                        Box(
+                        YouTubeListItem(
+                            item = song,
+                            isActive = song.id == mediaMetadata?.id,
+                            isPlaying = isPlaying,
+                            trailingContent = {
+                                IconButton(
+                                    onClick = {
+                                        menuState.show {
+                                            YouTubeSongMenu(
+                                                song = song,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss
+                                            )
+                                        }
+                                    },
+                                    onLongClick = {}
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.more_vert),
+                                        contentDescription = null
+                                    )
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                        ) {
-                            YouTubeListItem(
-                                item = song,
-                                isActive = song.id == mediaMetadata?.id,
-                                isPlaying = isPlaying,
-                                trailingContent = {
-                                    IconButton(
-                                        onClick = {
-                                            menuState.show {
-                                                YouTubeSongMenu(
-                                                    song = song,
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
-                                        },
-                                        onLongClick = {}
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.more_vert),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (song.id == mediaMetadata?.id) {
-                                                playerConnection.player.togglePlayPause()
-                                            } else {
-                                                playerConnection.playQueue(
-                                                    YouTubeQueue.radio(song.toMediaMetadata())
-                                                )
-                                            }
-                                        },
-                                        onLongClick = {
-                                            menuState.show {
-                                                YouTubeSongMenu(
-                                                    song = song,
-                                                    navController = navController,
-                                                    onDismiss = menuState::dismiss
-                                                )
-                                            }
+                                .combinedClickable(
+                                    onClick = {
+                                        if (song.id == mediaMetadata?.id) {
+                                            playerConnection.player.togglePlayPause()
+                                        } else {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue.radio(song.toMediaMetadata())
+                                            )
                                         }
-                                    )
-                            )
-                        }
+                                    },
+                                    onLongClick = {
+                                        menuState.show {
+                                            YouTubeSongMenu(
+                                                song = song,
+                                                navController = navController,
+                                                onDismiss = menuState::dismiss
+                                            )
+                                        }
+                                    }
+                                )
+                                .animateItem()
+                        )
                     }
                 }
             } else {
@@ -306,8 +304,7 @@ fun HistoryScreen(
                             title = dateAgoToString(dateAgo),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.background)
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .background(MaterialTheme.colorScheme.surface)
                         )
                     }
 
@@ -319,78 +316,65 @@ fun HistoryScreen(
                     ) { index, wrappedItem ->
                         val event = wrappedItem.item
                         
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(
-                                    if (wrappedItem.isSelected && selection) 
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f) 
-                                    else 
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                )
-                        ) {
-                            SongListItem(
-                                song = event.song,
-                                isActive = event.song.id == mediaMetadata?.id,
-                                isPlaying = isPlaying,
-                                showInLibraryIcon = true,
-                                isSelected = wrappedItem.isSelected && selection,
-                                trailingContent = {
-                                    IconButton(
-                                        onClick = {
-                                            if (!selection) {
-                                                menuState.show {
-                                                    SongMenu(
-                                                        originalSong = event.song,
-                                                        event = event.event,
-                                                        navController = navController,
-                                                        onDismiss = menuState::dismiss
-                                                    )
-                                                }
-                                            }
-                                        },
-                                        onLongClick = {}
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.more_vert),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (!selection) {
-                                                if (event.song.id == mediaMetadata?.id) {
-                                                    playerConnection.player.togglePlayPause()
-                                                } else {
-                                                    playerConnection.playQueue(
-                                                        ListQueue(
-                                                            title = dateAgoToString(dateAgo),
-                                                            items = currentDateWrappedItems.map { it.item.song.toMediaItem() },
-                                                            startIndex = index
-                                                        )
-                                                    )
-                                                }
-                                            } else {
-                                                wrappedItem.isSelected = !wrappedItem.isSelected
-                                            }
-                                        },
-                                        onLongClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            if (!selection) {
-                                                selection = true
-                                                allWrappedItems.forEach { it.isSelected = false }
-                                                wrappedItem.isSelected = true
+                        SongListItem(
+                            song = event.song,
+                            isActive = event.song.id == mediaMetadata?.id,
+                            isPlaying = isPlaying,
+                            showInLibraryIcon = true,
+                            isSelected = wrappedItem.isSelected && selection,
+                            trailingContent = {
+                                IconButton(
+                                    onClick = {
+                                        if (!selection) {
+                                            menuState.show {
+                                                SongMenu(
+                                                    originalSong = event.song,
+                                                    event = event.event,
+                                                    navController = navController,
+                                                    onDismiss = menuState::dismiss
+                                                )
                                             }
                                         }
+                                    },
+                                    onLongClick = {}
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.more_vert),
+                                        contentDescription = null
                                     )
-                            )
-                        }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = {
+                                        if (!selection) {
+                                            if (event.song.id == mediaMetadata?.id) {
+                                                playerConnection.player.togglePlayPause()
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    ListQueue(
+                                                        title = dateAgoToString(dateAgo),
+                                                        items = currentDateWrappedItems.map { it.item.song.toMediaItem() },
+                                                        startIndex = index
+                                                    )
+                                                )
+                                            }
+                                        } else {
+                                            wrappedItem.isSelected = !wrappedItem.isSelected
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (!selection) {
+                                            selection = true
+                                            allWrappedItems.forEach { it.isSelected = false }
+                                            wrappedItem.isSelected = true
+                                        }
+                                    }
+                                )
+                                .animateItem()
+                        )
                     }
                 }
             }
@@ -460,16 +444,25 @@ fun HistoryScreen(
                         .focusRequester(focusRequester)
                 )
             } else {
-                Column {
-                    Text(
-                        text = stringResource(R.string.history),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = "Your recently played songs",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.history),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "Your recently played songs",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         },
