@@ -4,19 +4,23 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V8     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V8.1   │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateColorAsState 
-import androidx.compose.animation.core.tween 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState 
+import androidx.compose.animation.core.spring 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource 
+import androidx.compose.foundation.interaction.collectIsPressedAsState 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +68,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape 
+import androidx.compose.ui.graphics.graphicsLayer 
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -355,7 +361,8 @@ fun AlbumScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
+                        
+                            BubbleButton(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs))
@@ -367,7 +374,6 @@ fun AlbumScreen(
                                     .height(48.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxSize(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -387,7 +393,8 @@ fun AlbumScreen(
                                 }
                             }
 
-                            Surface(
+                            
+                            BubbleButton(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
                                     playerConnection.playQueue(LocalAlbumRadio(localAlbumWithSongs.copy(songs = localAlbumWithSongs.songs.shuffled())))
@@ -399,7 +406,6 @@ fun AlbumScreen(
                                     .height(48.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxSize(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -419,7 +425,8 @@ fun AlbumScreen(
                                 }
                             }
 
-                            Surface(
+                            
+                            BubbleButton(
                                 onClick = {
                                     when (downloadState) {
                                         Download.STATE_COMPLETED, Download.STATE_DOWNLOADING -> {
@@ -439,31 +446,29 @@ fun AlbumScreen(
                                 color = surfaceVariantColor,
                                 modifier = Modifier.size(48.dp)
                             ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                    when (downloadState) {
-                                        Download.STATE_COMPLETED -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.offline),
-                                                contentDescription = null,
-                                                tint = primaryColor,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                        Download.STATE_DOWNLOADING -> {
-                                            CircularProgressIndicator(
-                                                strokeWidth = 2.dp,
-                                                modifier = Modifier.size(24.dp),
-                                                color = onSurfaceVariantColor
-                                            )
-                                        }
-                                        else -> {
-                                            Icon(
-                                                painter = painterResource(R.drawable.download),
-                                                contentDescription = null,
-                                                tint = onSurfaceVariantColor,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                when (downloadState) {
+                                    Download.STATE_COMPLETED -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.offline),
+                                            contentDescription = null,
+                                            tint = primaryColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    Download.STATE_DOWNLOADING -> {
+                                        CircularProgressIndicator(
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(24.dp),
+                                            color = onSurfaceVariantColor
+                                        )
+                                    }
+                                    else -> {
+                                        Icon(
+                                            painter = painterResource(R.drawable.download),
+                                            contentDescription = null,
+                                            tint = onSurfaceVariantColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
                             }
@@ -716,7 +721,6 @@ fun AlbumScreen(
             }
         }
 
-        // 🔴 FIX: Added smooth animation for TopBar Background
         val targetContainerColor = if (transparentAppBar) Color.Transparent else MaterialTheme.colorScheme.surface
         val animatedContainerColor by animateColorAsState(
             targetValue = targetContainerColor,
@@ -735,7 +739,6 @@ fun AlbumScreen(
         TopAppBar(
             modifier = Modifier.align(Alignment.TopCenter),
             colors = topAppBarColors,
-            // 🔴 FIX: Removed `scrollBehavior` completely to keep TopBar pinned permanently.
             title = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
@@ -744,45 +747,43 @@ fun AlbumScreen(
                         style = MaterialTheme.typography.titleLarge
                     )
                 } else if (showTopBarTitle) {
-                    Text(
-                        text = localAlbumWithSongs?.album?.title.orEmpty(),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+                    ) {
+                        Text(
+                            text = localAlbumWithSongs?.album?.title.orEmpty(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = onSurfaceColor,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             },
             navigationIcon = {
-                Surface(
-                    shape = CircleShape,
-                    color = if (transparentAppBar && !selection) glassBgColor else Color.Transparent,
-                    modifier = Modifier.padding(start = 4.dp)
+                
+                BubbleButton(
+                    onClick = {
+                        if (selection) selection = false else navController.navigateUp()
+                    },
+                    color = if (transparentAppBar && !selection) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(start = 8.dp).size(42.dp)
                 ) {
-                    IconButton(
-                        onClick = {
-                            if (selection) {
-                                selection = false
-                            } else {
-                                navController.navigateUp()
-                            }
-                        },
-                        onLongClick = {
-                            if (!selection) {
-                                navController.backToMain()
-                            }
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
-                            contentDescription = null
-                        )
-                    }
+                    Icon(
+                        painter = painterResource(if (selection) R.drawable.close else R.drawable.arrow_back),
+                        contentDescription = null,
+                        tint = onSurfaceColor
+                    )
                 }
             },
             actions = {
                 if (selection) {
                     val count = wrappedSongs.count { it.isSelected }
-                    IconButton(
+                    BubbleButton(
                         onClick = {
                             if (count == wrappedSongs.size) {
                                 wrappedSongs.forEach { it.isSelected = false }
@@ -790,12 +791,13 @@ fun AlbumScreen(
                                 wrappedSongs.forEach { it.isSelected = true }
                             }
                         },
-                        onLongClick = {}
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.padding(end = 4.dp).size(42.dp)
                     ) {
                         Icon(painter = painterResource(if (count == wrappedSongs.size) R.drawable.deselect else R.drawable.select_all), contentDescription = null)
                     }
 
-                    IconButton(
+                    BubbleButton(
                         onClick = {
                             menuState.show {
                                 SelectionSongMenu(
@@ -805,59 +807,52 @@ fun AlbumScreen(
                                 )
                             }
                         },
-                        onLongClick = {}
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.padding(end = 8.dp).size(42.dp)
                     ) {
                         Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
-                            modifier = Modifier.padding(end = 4.dp)
+                        
+                        BubbleButton(
+                            onClick = { 
+                                localAlbumWithSongs?.let { current -> 
+                                    database.query { update(current.album.toggleLike()) } 
+                                } 
+                            },
+                            color = if (transparentAppBar) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(end = 4.dp).size(42.dp)
                         ) {
-                            IconButton(
-                                onClick = { 
-                                    localAlbumWithSongs?.let { current -> 
-                                        database.query { update(current.album.toggleLike()) } 
-                                    } 
-                                },
-                                onLongClick = {}
-                            ) {
-                                val isBookmarked = localAlbumWithSongs?.album?.bookmarkedAt != null
-                                Icon(
-                                    painter = painterResource(if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border),
-                                    contentDescription = null,
-                                    tint = if (isBookmarked) MaterialTheme.colorScheme.error else onSurfaceColor
-                                )
-                            }
+                            val isBookmarked = localAlbumWithSongs?.album?.bookmarkedAt != null
+                            Icon(
+                                painter = painterResource(if (isBookmarked) R.drawable.favorite else R.drawable.favorite_border),
+                                contentDescription = null,
+                                tint = if (isBookmarked) MaterialTheme.colorScheme.error else onSurfaceColor
+                            )
                         }
                         
-                        Surface(
-                            shape = CircleShape,
-                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    localAlbumWithSongs?.let { current ->
-                                        menuState.show {
-                                            AlbumMenu(
-                                                originalAlbum = Album(current.album, current.artists),
-                                                navController = navController,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
+                        
+                        BubbleButton(
+                            onClick = {
+                                localAlbumWithSongs?.let { current ->
+                                    menuState.show {
+                                        AlbumMenu(
+                                            originalAlbum = Album(current.album, current.artists),
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
                                     }
-                                },
-                                onLongClick = {}
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.more_vert),
-                                    contentDescription = null,
-                                    tint = onSurfaceColor
-                                )
-                            }
+                                }
+                            },
+                            color = if (transparentAppBar) glassBgColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(end = 8.dp).size(42.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.more_vert),
+                                contentDescription = null,
+                                tint = onSurfaceColor
+                            )
                         }
                     }
                 }
@@ -896,6 +891,37 @@ private fun MetadataChip(
                 color = contentColor,
                 maxLines = 1
             )
+        }
+    }
+}
+
+
+@Composable
+private fun BubbleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    shape: Shape = CircleShape,
+    color: Color = MaterialTheme.colorScheme.surfaceVariant,
+    content: @Composable () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.90f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "bubble_anim"
+    )
+    
+    Surface(
+        onClick = onClick,
+        shape = shape,
+        color = color,
+        interactionSource = interactionSource,
+        modifier = modifier.graphicsLayer(scaleX = scale, scaleY = scale)
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            content()
         }
     }
 }
