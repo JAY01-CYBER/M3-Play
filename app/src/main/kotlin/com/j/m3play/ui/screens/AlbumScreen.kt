@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for Native M3 Theme Experience    │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V9     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V9.1   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -70,7 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer 
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -362,7 +362,6 @@ fun AlbumScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                        
                             BubbleButton(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
@@ -394,7 +393,6 @@ fun AlbumScreen(
                                 }
                             }
 
-                        
                             BubbleButton(
                                 onClick = {
                                     playerConnection.service.getAutomix(playlistId)
@@ -426,7 +424,6 @@ fun AlbumScreen(
                                 }
                             }
 
-                            
                             BubbleButton(
                                 onClick = {
                                     when (downloadState) {
@@ -765,6 +762,7 @@ fun AlbumScreen(
                 }
             },
             navigationIcon = {
+            
                 BubbleButton(
                     onClick = {
                         if (selection) {
@@ -778,7 +776,7 @@ fun AlbumScreen(
                             navController.backToMain()
                         }
                     },
-                    color = if (transparentAppBar && !selection) glassBgColor else Color.Transparent,
+                    color = if (selection) Color.Transparent else if (transparentAppBar) glassBgColor else surfaceVariantColor,
                     modifier = Modifier.padding(start = 4.dp).size(42.dp)
                 ) {
                     Icon(
@@ -821,13 +819,14 @@ fun AlbumScreen(
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                    
                         BubbleButton(
                             onClick = { 
                                 localAlbumWithSongs?.let { current -> 
                                     database.query { update(current.album.toggleLike()) } 
                                 } 
                             },
-                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
+                            color = if (transparentAppBar) glassBgColor else surfaceVariantColor,
                             modifier = Modifier.padding(end = 4.dp).size(42.dp)
                         ) {
                             val isBookmarked = localAlbumWithSongs?.album?.bookmarkedAt != null
@@ -837,6 +836,7 @@ fun AlbumScreen(
                                 tint = if (isBookmarked) MaterialTheme.colorScheme.error else onSurfaceColor
                             )
                         }
+                        
                         
                         BubbleButton(
                             onClick = {
@@ -850,7 +850,7 @@ fun AlbumScreen(
                                     }
                                 }
                             },
-                            color = if (transparentAppBar) glassBgColor else Color.Transparent,
+                            color = if (transparentAppBar) glassBgColor else surfaceVariantColor,
                             modifier = Modifier.padding(end = 8.dp).size(42.dp)
                         ) {
                             Icon(
@@ -914,7 +914,7 @@ private fun BubbleButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
-    
+    // Scale Down to 0.92f instantly and bounce back like a stiff spring!
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
