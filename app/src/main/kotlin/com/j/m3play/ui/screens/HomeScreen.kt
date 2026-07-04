@@ -304,7 +304,30 @@ fun HomeScreen(
                 ) {
                     if (showHomeCategoryChips) {
                         item(key = "chips", contentType = "chips") {
-                            ChipsRow(chips = homePage?.chips.orEmpty().map { it to it.title }, currentValue = selectedChip, onValueUpdate = { viewModel.toggleChip(it) })
+                            // Server se aane wale category naam ke hisaab se automatic emoji map karna
+                            val dynamicEmojis = homePage?.chips.orEmpty().associate { chip ->
+                                val emoji = when (chip.title.lowercase()) {
+                                    "relax" -> "🌿"
+                                    "workout" -> "🏋️"
+                                    "feel good" -> "☀️"
+                                    "energize" -> "⚡"
+                                    "romance" -> "❤️"
+                                    "focus" -> "🎯"
+                                    "sleep" -> "🌙"
+                                    "party" -> "🎉"
+                                    "commute" -> "🚗"
+                                    "sad" -> "🌧️"
+                                    else -> "🎵" // Agar koi naya/unknown category aaye toh default emoji
+                                }
+                                chip to emoji 
+                            }
+
+                            ChipsRow(
+                                chips = homePage?.chips.orEmpty().map { it to it.title },
+                                currentValue = selectedChip,
+                                onValueUpdate = { viewModel.toggleChip(it) },
+                                emojiIcons = dynamicEmojis // Naya emoji map yahan pass kar diya
+                            )
                         }
                     }
 
