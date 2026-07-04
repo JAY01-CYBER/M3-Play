@@ -36,20 +36,36 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+
+// Exact Imports to avoid class ambiguity 
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.*
-import com.j.m3play.db.entities.*
-import com.j.m3play.extensions.*
-import com.j.m3play.innertube.models.*
+import com.j.m3play.db.entities.Album
+import com.j.m3play.db.entities.Artist
+import com.j.m3play.db.entities.LocalItem
+import com.j.m3play.db.entities.Playlist
+import com.j.m3play.db.entities.Song
+import com.j.m3play.extensions.toMediaItem
+import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.innertube.models.AlbumItem
+import com.j.m3play.innertube.models.ArtistItem
+import com.j.m3play.innertube.models.PlaylistItem
+import com.j.m3play.innertube.models.SongItem
+import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.pages.HomePage
-import com.j.m3play.models.*
+import com.j.m3play.models.MediaMetadata
+import com.j.m3play.models.SimilarRecommendation
+import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.PlayerConnection
-import com.j.m3play.playback.queues.*
+import com.j.m3play.playback.queues.ListQueue
+import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.*
 import com.j.m3play.ui.menu.*
-import com.j.m3play.viewmodels.*
+import com.j.m3play.viewmodels.CommunityPlaylistItem
+import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -226,7 +242,6 @@ fun CommunityPlaylistCard(
     val playerConnection = LocalPlayerConnection.current
     val haptic = LocalHapticFeedback.current
     
-    // Bubble Animation State
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -238,12 +253,12 @@ fun CommunityPlaylistCard(
     Card(
         modifier = modifier
             .width(300.dp)
-            .graphicsLayer { scaleX = scale; scaleY = scale }, // Bubble Effect Apply Kiya
+            .graphicsLayer { scaleX = scale; scaleY = scale }, 
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
         shape = RoundedCornerShape(24.dp),
-        interactionSource = interactionSource, // Touch Trace
+        interactionSource = interactionSource, 
         onClick = { 
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick() 
@@ -251,9 +266,6 @@ fun CommunityPlaylistCard(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             
-            // Note: Double aane wala title yahan se permanently hata diya gaya hai.
-            
-            // 1. Hero Card (Playlist Details)
             val firstSongImage = item.songs.firstOrNull()?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w400-h400")
             Box(
                 modifier = Modifier
@@ -262,7 +274,7 @@ fun CommunityPlaylistCard(
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF6D4C41), // Custom brown/dark gradient
+                                Color(0xFF6D4C41),
                                 Color(0xFF3E2723)
                             )
                         )
@@ -319,7 +331,6 @@ fun CommunityPlaylistCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Track List
             item.songs.take(4).forEachIndexed { index, song ->
                 Row(
                     modifier = Modifier
@@ -378,7 +389,6 @@ fun CommunityPlaylistCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Bottom Actions
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -681,7 +691,15 @@ fun KeepListeningSection(
     ) {
         items(
             items = keepListening,
-            key = { item -> when (item) { is Song -> "song_${item.id}"; is Album -> "album_${item.id}"; is Artist -> "artist_${item.id}"; is Playlist -> "playlist_${item.id}" } }
+            key = { item -> 
+                when (item) { 
+                    is Song -> "song_${item.id}"
+                    is Album -> "album_${item.id}"
+                    is Artist -> "artist_${item.id}"
+                    is Playlist -> "playlist_${item.id}"
+                    else -> "local_${item.id}"
+                } 
+            }
         ) { item ->
             LocalGridItem(item = item, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
         }
@@ -856,6 +874,7 @@ private fun YouTubeGridItemWrapper(
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is ArtistItem -> navController.navigate("artist/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                    else -> {}
                 }
             },
             onLongClick = {
@@ -866,6 +885,7 @@ private fun YouTubeGridItemWrapper(
                         is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                         is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                         is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                        else -> {}
                     }
                 }
             }
@@ -914,6 +934,7 @@ private fun LocalGridItem(
             )
         )
         is Playlist -> {}
+        else -> {}
     }
 }
 
@@ -950,16 +971,18 @@ fun SimilarRecommendationsTitle(
         title = recommendation.title.title,
         thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
             {
-                val shape = if (recommendation.title is Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
+                val shape = if (recommendation.title is com.j.m3play.models.Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                 AsyncImage(model = thumbnailUrl, contentDescription = null, modifier = Modifier.size(ListThumbnailSize).clip(shape))
             }
         },
         onClick = {
-            when (recommendation.title) {
-                is Song -> navController.navigate("album/${recommendation.title.album!!.id}")
-                is Album -> navController.navigate("album/${recommendation.title.id}")
-                is Artist -> navController.navigate("artist/${recommendation.title.id}")
-                is Playlist -> {}
+            val itemTitle = recommendation.title
+            when (itemTitle) {
+                is com.j.m3play.models.Song -> navController.navigate("album/${itemTitle.album!!.id}")
+                is com.j.m3play.models.Album -> navController.navigate("album/${itemTitle.id}")
+                is com.j.m3play.models.Artist -> navController.navigate("artist/${itemTitle.id}")
+                is com.j.m3play.models.Playlist -> {}
+                else -> {}
             }
         },
         modifier = modifier
@@ -1080,6 +1103,7 @@ fun MetroSpeedDialSection(
                 if (rawType == "LOCAL_PLAYLIST") navController.navigate("local_playlist/${item.id}")
                 else navController.navigate("online_playlist/${item.id}")
             }
+            else -> {}
         }
     }
 
@@ -1105,6 +1129,7 @@ fun MetroSpeedDialSection(
                     coroutineScope = coroutineScope,
                     onDismiss = menuState::dismiss
                 )
+                else -> {}
             }
         }
     }
@@ -1363,6 +1388,7 @@ fun HomePageSectionContent(
                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                 is ArtistItem -> navController.navigate("artist/${item.id}")
                                 is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                else -> {}
                             }
                         },
                         onMenuClick = {
@@ -1373,6 +1399,7 @@ fun HomePageSectionContent(
                                     is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                                     is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                                     is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                                    else -> {}
                                 }
                             }
                         }
