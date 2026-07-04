@@ -10,85 +10,27 @@
 
 package com.j.m3play.ui.screens
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Spring
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.pager.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.material3.carousel.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.hapticfeedback.*
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -97,46 +39,17 @@ import coil3.request.ImageRequest
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.constants.GridThumbnailHeight
-import com.j.m3play.constants.ListItemHeight
-import com.j.m3play.constants.ListThumbnailSize
-import com.j.m3play.constants.ThumbnailCornerRadius
-import com.j.m3play.db.entities.Album
-import com.j.m3play.db.entities.Artist
-import com.j.m3play.db.entities.LocalItem
-import com.j.m3play.db.entities.Playlist
-import com.j.m3play.db.entities.Song
-import com.j.m3play.extensions.toMediaItem
-import com.j.m3play.extensions.togglePlayPause
-import com.j.m3play.innertube.models.AlbumItem
-import com.j.m3play.innertube.models.ArtistItem
-import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.SongItem
-import com.j.m3play.innertube.models.WatchEndpoint
-import com.j.m3play.innertube.models.YTItem
+import com.j.m3play.constants.*
+import com.j.m3play.db.entities.*
+import com.j.m3play.extensions.*
+import com.j.m3play.innertube.models.*
 import com.j.m3play.innertube.pages.HomePage
-import com.j.m3play.models.MediaMetadata
-import com.j.m3play.models.SimilarRecommendation
-import com.j.m3play.models.toMediaMetadata
+import com.j.m3play.models.*
 import com.j.m3play.playback.PlayerConnection
-import com.j.m3play.playback.queues.ListQueue
-import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.AlbumGridItem
-import com.j.m3play.ui.component.ArtistGridItem
-import com.j.m3play.ui.component.MenuState
-import com.j.m3play.ui.component.NavigationTitle
-import com.j.m3play.ui.component.SongGridItem
-import com.j.m3play.ui.component.YouTubeGridItem
-import com.j.m3play.ui.component.YouTubeListItem
-import com.j.m3play.ui.menu.AlbumMenu
-import com.j.m3play.ui.menu.ArtistMenu
-import com.j.m3play.ui.menu.SongMenu
-import com.j.m3play.ui.menu.YouTubeAlbumMenu
-import com.j.m3play.ui.menu.YouTubeArtistMenu
-import com.j.m3play.ui.menu.YouTubePlaylistMenu
-import com.j.m3play.ui.menu.YouTubeSongMenu
-import com.j.m3play.viewmodels.CommunityPlaylistItem
-import com.j.m3play.viewmodels.HomeViewModel
+import com.j.m3play.playback.queues.*
+import com.j.m3play.ui.component.*
+import com.j.m3play.ui.menu.*
+import com.j.m3play.viewmodels.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -298,7 +211,7 @@ fun YTMSquareGridItem(
 }
 
 // ==========================================
-// EXACT YTM COMMUNITY PLAYLIST CARD
+// EXACT YTM COMMUNITY PLAYLIST CARD (BUBBLE ANIMATION)
 // ==========================================
 
 @Composable
@@ -313,54 +226,34 @@ fun CommunityPlaylistCard(
     val playerConnection = LocalPlayerConnection.current
     val haptic = LocalHapticFeedback.current
     
+    // Bubble Animation State
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "bubble_scale"
+    )
+    
     Card(
-        modifier = modifier.width(300.dp), // Exactly 300.dp
+        modifier = modifier
+            .width(300.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }, // Bubble Effect Apply Kiya
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
         shape = RoundedCornerShape(24.dp),
-        onClick = onClick,
+        interactionSource = interactionSource, // Touch Trace
+        onClick = { 
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick() 
+        },
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             
-            // 1. Header Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "From the community",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Trending tracks picked by the community",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    color = Color.Transparent,
-                    modifier = Modifier.clickable { /* Handle See All */ }
-                ) {
-                    Text(
-                        text = "See all >", 
-                        style = MaterialTheme.typography.labelMedium, 
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 2. Hero Card (Playlist Details)
+            // Note: Double aane wala title yahan se permanently hata diya gaya hai.
+            
+            // 1. Hero Card (Playlist Details)
             val firstSongImage = item.songs.firstOrNull()?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w400-h400")
             Box(
                 modifier = Modifier
@@ -426,7 +319,7 @@ fun CommunityPlaylistCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Track List
+            // 2. Track List
             item.songs.take(4).forEachIndexed { index, song ->
                 Row(
                     modifier = Modifier
@@ -485,7 +378,7 @@ fun CommunityPlaylistCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Bottom Actions (Old Circular Buttons)
+            // 3. Bottom Actions
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -747,7 +640,7 @@ fun SpeedDialSection(
                     modifier = Modifier.width(tileSize).aspectRatio(1f).combinedClickable(onClick = { if (distinctSpeedDial.isNotEmpty()) playSpeedDialQueue(Random.nextInt(distinctSpeedDial.size)) }, onLongClick = {})
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painter = painterResource(R.drawable.casino), contentDescription = stringResource(R.string.speed_dial_random), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
+                        Icon(painterResource(R.drawable.casino), contentDescription = stringResource(R.string.speed_dial_random), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -795,7 +688,6 @@ fun KeepListeningSection(
     }
 }
 
-// YAHAN PAR FORGOTTEN FAVORITES M3 CAROUSEL ME UPGRADE KIYA HAI
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ForgottenFavoritesSection(
@@ -923,7 +815,6 @@ fun SimilarRecommendationsSection(
     }
 }
 
-// YAHAN PAR NAYA WAVY PROGRESS ANIMATION BANAYA HAI
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeWavyLoading(modifier: Modifier = Modifier) {
@@ -1146,7 +1037,6 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// METRO SPEED DIAL SECTION 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MetroSpeedDialSection(
@@ -1434,7 +1324,6 @@ fun MetroSpeedDialSection(
     }
 }
 
-//  GLOSSY: EXACT YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
