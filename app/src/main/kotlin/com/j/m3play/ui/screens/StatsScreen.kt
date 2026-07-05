@@ -4,12 +4,13 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.0   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.1   │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -68,6 +69,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -846,7 +850,8 @@ fun PremiumSongRow(
             )
         }
         IconButton(
-            onClick = { /* Menus are handled in combinedClickable */ }
+            onClick = { /* Menus are handled in combinedClickable */ },
+            onLongClick = { /* Menus are handled in combinedClickable */ }
         ) {
             Icon(
                 imageVector = Icons.Rounded.MoreVert,
