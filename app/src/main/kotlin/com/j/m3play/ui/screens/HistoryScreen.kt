@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V5     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -236,7 +236,7 @@ fun HistoryScreen(
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .background(
-                                        if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.surface 
+                                        if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.primaryContainer 
                                         else Color.Transparent
                                     )
                                     .clickable { viewModel.historySource.value = HistorySource.LOCAL }
@@ -246,7 +246,7 @@ fun HistoryScreen(
                                 Text(
                                     text = stringResource(R.string.local_history),
                                     fontWeight = if (historySource == HistorySource.LOCAL) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.onSurface 
+                                    color = if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.onPrimaryContainer 
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -257,7 +257,7 @@ fun HistoryScreen(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .background(
-                                            if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.surface 
+                                            if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.primaryContainer 
                                             else Color.Transparent
                                         )
                                         .clickable {
@@ -270,7 +270,7 @@ fun HistoryScreen(
                                     Text(
                                         text = stringResource(R.string.remote_history),
                                         fontWeight = if (historySource == HistorySource.REMOTE) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.onSurface 
+                                        color = if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.onPrimaryContainer 
                                                 else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -427,13 +427,12 @@ fun HistoryScreen(
             }
         }
 
-        // New Pill-Shaped Extended FAB with Text and Icon
+        // Pill-Shaped Extended FAB with Text and Icon (Lifted higher)
         androidx.compose.animation.AnimatedVisibility(
             visible = isFabVisible,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = 72.dp), // Adding extra padding for mini-player
+                .padding(end = 16.dp, bottom = 100.dp), // Lifted to 100.dp to avoid mini-player overlap
             enter = androidx.compose.animation.scaleIn(),
             exit = androidx.compose.animation.scaleOut()
         ) {
@@ -472,7 +471,6 @@ fun HistoryScreen(
         }
     }
 
-    // Changed to CenterAlignedTopAppBar
     CenterAlignedTopAppBar(
         title = {
             if (selection) {
@@ -607,7 +605,6 @@ fun HistoryScreen(
                         contentDescription = null
                     )
                 }
-                // (3 dot menu se hataya gaya jaisa aapne bola)
             }
         }
     )
