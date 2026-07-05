@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.1   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.2   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -175,18 +175,17 @@ fun StatsScreen(
 
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     
-    // Premium Dark Gradient Background Colors
-    val bgTop = Color(0xFF0D1220)
-    val bgMiddle = Color(0xFF14192B)
-    val bgBottom = Color(0xFF090C15)
-    val neonPurple = Color(0xFF6C3DF8)
-    val neonBlue = Color(0xFF3D7AF8)
+    // Using Material Theme Colors for perfect blend
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(bgTop, bgMiddle, bgBottom)))
+            .background(MaterialTheme.colorScheme.background) // Base theme background
     ) {
+        // Subtle thematic glow instead of hardcoded dark gradients
         if (!disableBlur) {
             Box(
                 modifier = Modifier
@@ -199,11 +198,11 @@ fun StatsScreen(
                         val height = this.size.height
 
                         val brush1 = Brush.radialGradient(
-                            colors = listOf(neonPurple.copy(alpha = 0.15f), Color.Transparent),
+                            colors = listOf(primaryColor.copy(alpha = 0.15f), Color.Transparent),
                             center = Offset(width * 0.1f, height * 0.2f), radius = width * 0.8f
                         )
                         val brush2 = Brush.radialGradient(
-                            colors = listOf(neonBlue.copy(alpha = 0.1f), Color.Transparent),
+                            colors = listOf(secondaryColor.copy(alpha = 0.1f), Color.Transparent),
                             center = Offset(width * 0.9f, height * 0.4f), radius = width * 0.9f
                         )
 
@@ -262,7 +261,11 @@ fun StatsScreen(
             // Highlights Section
             if (mostPlayedArtists.isNotEmpty() || mostPlayedSongsStats.isNotEmpty()) {
                 item {
-                    SectionHeader(title = "Your Highlights", icon = Icons.Rounded.AutoAwesome, iconTint = neonPurple)
+                    SectionHeader(
+                        title = "Your Highlights", 
+                        icon = Icons.Rounded.AutoAwesome, 
+                        iconTint = MaterialTheme.colorScheme.primary
+                    )
                     
                     Column(
                         modifier = Modifier
@@ -278,7 +281,8 @@ fun StatsScreen(
                                 subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
                                 imageUrl = topArtist.artist.thumbnailUrl,
                                 trailingIcon = Icons.Rounded.Star,
-                                trailingBg = Color(0xFF23283A),
+                                trailingBg = MaterialTheme.colorScheme.surfaceVariant,
+                                trailingIconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 onClick = { navController.navigate("artist/${topArtist.id}") }
                             )
                         }
@@ -291,7 +295,8 @@ fun StatsScreen(
                                 subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
                                 imageUrl = topSong.thumbnailUrl,
                                 trailingIcon = Icons.Rounded.PlayArrow,
-                                trailingBg = neonPurple,
+                                trailingBg = MaterialTheme.colorScheme.primary,
+                                trailingIconTint = MaterialTheme.colorScheme.onPrimary,
                                 onClick = {
                                     if (topSong.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
                                     else {
@@ -328,34 +333,34 @@ fun StatsScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 3 Overview Pills (Songs, Artists, Albums)
+                    // 3 Overview Pills (Songs, Artists, Albums) - FIXED LAYOUT
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp) // Slightly reduced spacing to fit everything
                     ) {
                         OverviewStatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Rounded.MusicNote,
-                            iconBg = neonPurple.copy(alpha = 0.2f),
-                            iconTint = neonPurple,
+                            iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            iconTint = MaterialTheme.colorScheme.primary,
                             count = mostPlayedSongsStats.size.toString(),
                             label = "Songs"
                         )
                         OverviewStatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Rounded.Headphones,
-                            iconBg = Color(0xFF20B2AA).copy(alpha = 0.2f),
-                            iconTint = Color(0xFF20B2AA),
+                            iconBg = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                            iconTint = MaterialTheme.colorScheme.secondary,
                             count = mostPlayedArtists.size.toString(),
                             label = "Artists"
                         )
                         OverviewStatPill(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Rounded.Album,
-                            iconBg = Color(0xFFFF9800).copy(alpha = 0.2f),
-                            iconTint = Color(0xFFFF9800),
+                            iconBg = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
+                            iconTint = MaterialTheme.colorScheme.tertiary,
                             count = mostPlayedAlbums.size.toString(),
                             label = "Albums"
                         )
@@ -500,7 +505,7 @@ fun StatsScreen(
             }
         }
 
-        // Shuffle Extended FAB (Pill Shape with Text)
+        // Shuffle Extended FAB
         if (mostPlayedSongs.isNotEmpty()) {
             val isFabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }
             
@@ -523,15 +528,15 @@ fun StatsScreen(
                         )
                     },
                     shape = RoundedCornerShape(50),
-                    containerColor = neonPurple,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     expanded = isFabExpanded,
                     modifier = Modifier.shadow(8.dp, RoundedCornerShape(50)) 
                 )
             }
         }
 
-        // Clean Modern TopAppBar
+        // Top App Bar
         CenterAlignedTopAppBar(
             title = {
                 Text(
@@ -549,7 +554,11 @@ fun StatsScreen(
                         .clickable { navController.navigateUp() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(painterResource(R.drawable.arrow_back), contentDescription = null, tint = Color.White)
+                    Icon(
+                        painterResource(R.drawable.arrow_back), 
+                        contentDescription = null, 
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             },
             actions = {
@@ -558,27 +567,32 @@ fun StatsScreen(
                         .padding(end = 16.dp)
                         .size(40.dp) 
                         .clip(CircleShape)
-                        .background(Color(0xFF23283A))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .clickable { navController.navigate("year_in_music") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(painterResource(R.drawable.calendar_today), contentDescription = null, tint = neonPurple, modifier = Modifier.size(20.dp))
+                    Icon(
+                        painterResource(R.drawable.calendar_today), 
+                        contentDescription = null, 
+                        tint = MaterialTheme.colorScheme.primary, 
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             },
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = Color.Transparent, 
-                scrolledContainerColor = bgTop.copy(alpha = 0.9f)
+                scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
             )
         )
     }
 }
 
 // ------------------------------------------------------------------------
-// Custom Ultra-Premium Components
+// Custom Ultra-Premium Components (Theme Friendly)
 // ------------------------------------------------------------------------
 
 @Composable
-fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, iconTint: Color = Color.White) {
+fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, iconTint: Color = MaterialTheme.colorScheme.onSurface) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -599,7 +613,7 @@ fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.Image
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -612,6 +626,7 @@ fun PremiumHighlightCard(
     imageUrl: String?,
     trailingIcon: androidx.compose.ui.graphics.vector.ImageVector,
     trailingBg: Color,
+    trailingIconTint: Color,
     onClick: () -> Unit
 ) {
     Card(
@@ -619,8 +634,8 @@ fun PremiumHighlightCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
         Row(
             modifier = Modifier
@@ -634,21 +649,21 @@ fun PremiumHighlightCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(68.dp)
-                    .clip(RoundedCornerShape(14.dp)) // Apple-like squircle
+                    .clip(RoundedCornerShape(14.dp))
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF6C3DF8),
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = mainText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -656,7 +671,7 @@ fun PremiumHighlightCard(
                 Text(
                     text = subText,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -669,7 +684,7 @@ fun PremiumHighlightCard(
                 Icon(
                     imageVector = trailingIcon,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = trailingIconTint,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -688,8 +703,8 @@ fun ArtistPieChart(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
         Row(
             modifier = Modifier
@@ -702,9 +717,8 @@ fun ArtistPieChart(
                 modifier = Modifier.size(130.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Pie Chart with Gaps
                 var startAngle = -90f
-                val gapDegrees = 3f // Dark gap between slices
+                val gapDegrees = 3f 
 
                 artists.forEach { artist ->
                     val time = artist.timeListened?.toLong() ?: 0L
@@ -728,12 +742,11 @@ fun ArtistPieChart(
                 Text(
                     text = "Total Time\nListened",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFF6C3DF8),
+                    color = MaterialTheme.colorScheme.primary,
                     lineHeight = 16.sp
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 
-                // Huge text for Time
                 val timeString = makeTimeString(totalTime)
                 val parts = timeString.split(" ")
                 
@@ -742,14 +755,14 @@ fun ArtistPieChart(
                         text = "${parts[0]} ${parts[1]}",
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     if (parts.size >= 3) {
                         Text(
                             text = parts[2],
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 } else {
@@ -757,7 +770,7 @@ fun ArtistPieChart(
                         text = timeString,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -765,6 +778,7 @@ fun ArtistPieChart(
     }
 }
 
+// Fixed Layout for Pills to stop text wrapping
 @Composable
 fun OverviewStatPill(
     modifier: Modifier = Modifier,
@@ -777,33 +791,37 @@ fun OverviewStatPill(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
         Row(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .background(iconBg, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) { // Weight 1f is the magic fix for wrapping!
                 Text(
                     text = count,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -835,7 +853,7 @@ fun PremiumSongRow(
                 text = "$index. ${song.title}",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -846,7 +864,7 @@ fun PremiumSongRow(
                     makeTimeString(song.timeListened),
                 ),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(
@@ -856,19 +874,17 @@ fun PremiumSongRow(
             Icon(
                 imageVector = Icons.Rounded.MoreVert,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.6f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-// Slice path with gaps
 fun PieSliceShape(startAngle: Float, sweepAngle: Float, gap: Float): GenericShape {
     return GenericShape { size, _ ->
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.width / 2
         
-        // Adjust for gap
         val actualStart = startAngle + (gap / 2f)
         val actualSweep = (sweepAngle - gap).coerceAtLeast(0.1f)
         
