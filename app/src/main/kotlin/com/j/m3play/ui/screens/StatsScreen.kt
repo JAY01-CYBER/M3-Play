@@ -4,13 +4,12 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.3   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3.0   │
  * ╰────────────────────────────────────────────╯
  */
 
 package com.j.m3play.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -25,9 +24,11 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -36,6 +37,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -59,9 +68,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -71,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -92,11 +99,9 @@ import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChoiceChipsRow
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.ItemThumbnail
-import com.j.m3play.ui.component.ListItem
 import com.j.m3play.ui.component.LocalAlbumsGrid
 import com.j.m3play.ui.component.LocalArtistsGrid
 import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.NavigationTitle
 import com.j.m3play.ui.menu.AlbumMenu
 import com.j.m3play.ui.menu.ArtistMenu
 import com.j.m3play.ui.menu.SongMenu
@@ -141,17 +146,10 @@ fun StatsScreen(
             .mapIndexed { index, date ->
                 val endDate = date.plusWeeks(1).minusDays(1).coerceAtMost(currentDate)
                 val formatter = DateTimeFormatter.ofPattern("dd MMM")
-                val startDateFormatted = formatter.format(date)
-                val endDateFormatted = formatter.format(endDate)
-                val startMonth = date.month
-                val endMonth = endDate.month
-                val startYear = date.year
-                val endYear = endDate.year
-
-                val text = when {
-                    startYear != currentDate.year -> "$startDateFormatted, $startYear - $endDateFormatted, $endYear"
-                    startMonth != endMonth -> "$startDateFormatted - $endDateFormatted"
-                    else -> "${date.dayOfMonth} - $endDateFormatted"
+                val text = if (date.month != endDate.month) {
+                    "${formatter.format(date)} - ${formatter.format(endDate)}"
+                } else {
+                    "${date.dayOfMonth} - ${formatter.format(endDate)}"
                 }
                 Pair(index, text)
             }.toList()
@@ -161,10 +159,7 @@ fun StatsScreen(
         generateSequence(currentDate.plusMonths(1).withDayOfMonth(1).minusDays(1)) { it.minusMonths(1) }
             .takeWhile { it.isAfter(firstEvent?.event?.timestamp?.withDayOfMonth(1)) }
             .mapIndexed { index, date ->
-                val formatter = DateTimeFormatter.ofPattern("MMM")
-                val formattedDate = formatter.format(date)
-                val text = if (date.year != currentDate.year) "$formattedDate ${date.year}" else formattedDate
-                Pair(index, text)
+                Pair(index, DateTimeFormatter.ofPattern("MMM").format(date))
             }.toList()
     } else emptyList()
 
@@ -176,19 +171,23 @@ fun StatsScreen(
 
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     
-    val color1 = MaterialTheme.colorScheme.primary
-    val color2 = MaterialTheme.colorScheme.secondary
-    val color3 = MaterialTheme.colorScheme.tertiary
-    val color4 = MaterialTheme.colorScheme.primaryContainer
-    val color5 = MaterialTheme.colorScheme.secondaryContainer
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    // Premium Dark Gradient Background Colors
+    val bgTop = Color(0xFF0D1220)
+    val bgMiddle = Color(0xFF14192B)
+    val bgBottom = Color(0xFF090C15)
+    val neonPurple = Color(0xFF6C3DF8)
+    val neonBlue = Color(0xFF3D7AF8)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(bgTop, bgMiddle, bgBottom)))
+    ) {
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.85f)
+                    .fillMaxSize(0.6f)
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawWithCache {
@@ -196,22 +195,17 @@ fun StatsScreen(
                         val height = this.size.height
 
                         val brush1 = Brush.radialGradient(
-                            colors = listOf(color1.copy(alpha = 0.45f), color1.copy(alpha = 0.2f), Color.Transparent),
-                            center = Offset(width * 0.2f, height * 0.1f), radius = width * 0.7f
+                            colors = listOf(neonPurple.copy(alpha = 0.15f), Color.Transparent),
+                            center = Offset(width * 0.1f, height * 0.2f), radius = width * 0.8f
                         )
                         val brush2 = Brush.radialGradient(
-                            colors = listOf(color2.copy(alpha = 0.4f), color2.copy(alpha = 0.15f), Color.Transparent),
-                            center = Offset(width * 0.8f, height * 0.25f), radius = width * 0.75f
-                        )
-                        val overlayBrush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, surfaceColor.copy(alpha = 0.6f), surfaceColor),
-                            startY = height * 0.3f, endY = height
+                            colors = listOf(neonBlue.copy(alpha = 0.1f), Color.Transparent),
+                            center = Offset(width * 0.9f, height * 0.4f), radius = width * 0.9f
                         )
 
                         onDrawBehind {
                             drawRect(brush = brush1)
                             drawRect(brush = brush2)
-                            drawRect(brush = overlayBrush)
                         }
                     }
             )
@@ -226,6 +220,7 @@ fun StatsScreen(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
+            // Options Chips
             item {
                 ChoiceChipsRow(
                     chips = when (selectedOption) {
@@ -257,20 +252,68 @@ fun StatsScreen(
                     currentValue = indexChips,
                     onValueUpdate = { viewModel.indexChips.value = it },
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            item {
-                StatsHighlightsSection(
-                    topArtist = mostPlayedArtists.firstOrNull(),
-                    topSong = mostPlayedSongsStats.firstOrNull(),
-                    topSongEntity = mostPlayedSongs.firstOrNull(),
-                    navController = navController,
-                )
+            // Highlights Section
+            if (mostPlayedArtists.isNotEmpty() || mostPlayedSongsStats.isNotEmpty()) {
+                item {
+                    SectionHeader(title = "Your Highlights", icon = Icons.Rounded.AutoAwesome, iconTint = neonPurple)
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val topArtist = mostPlayedArtists.firstOrNull()
+                        if (topArtist != null) {
+                            PremiumHighlightCard(
+                                label = "Top Artist",
+                                mainText = topArtist.artist.name,
+                                subText = "${topArtist.songCount} songs played • ${makeTimeString(topArtist.timeListened?.toLong())}",
+                                imageUrl = topArtist.artist.thumbnailUrl,
+                                trailingIcon = Icons.Rounded.Star,
+                                trailingBg = Color(0xFF23283A),
+                                onClick = { navController.navigate("artist/${topArtist.id}") }
+                            )
+                        }
+
+                        val topSong = mostPlayedSongsStats.firstOrNull()
+                        if (topSong != null) {
+                            PremiumHighlightCard(
+                                label = "Top Song",
+                                mainText = topSong.title,
+                                subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
+                                imageUrl = topSong.thumbnailUrl,
+                                trailingIcon = Icons.Rounded.PlayArrow,
+                                trailingBg = neonPurple,
+                                onClick = {
+                                    if (topSong.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                    else {
+                                        mostPlayedSongs.firstOrNull()?.let { entity ->
+                                            playerConnection.playQueue(
+                                                YouTubeQueue(
+                                                    endpoint = WatchEndpoint(topSong.id),
+                                                    preloadItem = entity.toMediaMetadata(),
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
             }
 
-            item(key = "artistPieChart") {
+            // Listening Overview Section
+            item(key = "listeningOverview") {
                 if (mostPlayedArtists.isNotEmpty()) {
-                    Spacer(modifier = Modifier.size(24.dp))
+                    SectionHeader(title = "Listening Overview")
+                    
+                    // Pie Chart and Total Time
                     ArtistPieChart(
                         artists = mostPlayedArtists.take(5), 
                         modifier = Modifier
@@ -278,119 +321,144 @@ fun StatsScreen(
                             .padding(horizontal = 16.dp)
                             .animateItem()
                     )
-                    Spacer(modifier = Modifier.size(24.dp))
-                }
-            }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            item(key = "mostPlayedSongsHeader") {
-                NavigationTitle(
-                    title = "${mostPlayedSongsStats.size} ${stringResource(id = R.string.songs)}",
-                    modifier = Modifier.animateItem(),
-                )
-            }
-
-            itemsIndexed(
-                items = mostPlayedSongsStats,
-                key = { _, song -> song.id },
-            ) { index, song ->
-                ListItem(
-                    title = "${index + 1}. ${song.title}",
-                    subtitle = joinByBullet(
-                        pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
-                        makeTimeString(song.timeListened),
-                    ),
-                    thumbnailContent = {
-                        ItemThumbnail(
-                            thumbnailUrl = song.thumbnailUrl,
-                            isActive = song.id == mediaMetadata?.id,
-                            isPlaying = isPlaying,
-                            shape = RoundedCornerShape(8.dp), 
-                            modifier = Modifier.size(56.dp)
+                    // 3 Overview Pills (Songs, Artists, Albums)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OverviewStatPill(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Rounded.MusicNote,
+                            iconBg = neonPurple.copy(alpha = 0.2f),
+                            iconTint = neonPurple,
+                            count = mostPlayedSongsStats.size.toString(),
+                            label = "Songs"
                         )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = {
-                                if (song.id == mediaMetadata?.id) {
-                                    playerConnection.player.togglePlayPause()
-                                } else {
-                                    playerConnection.playQueue(
-                                        YouTubeQueue(
-                                            endpoint = WatchEndpoint(song.id),
-                                            preloadItem = mostPlayedSongs[index].toMediaMetadata(),
-                                        ),
-                                    )
-                                }
-                            },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                menuState.show {
-                                    SongMenu(
-                                        originalSong = mostPlayedSongs[index],
-                                        navController = navController,
-                                        onDismiss = menuState::dismiss,
-                                    )
-                                }
-                            },
+                        OverviewStatPill(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Rounded.Headphones,
+                            iconBg = Color(0xFF20B2AA).copy(alpha = 0.2f),
+                            iconTint = Color(0xFF20B2AA),
+                            count = mostPlayedArtists.size.toString(),
+                            label = "Artists"
                         )
-                        .animateItem()
-                )
-            }
-
-            item(key = "mostPlayedArtists") {
-                NavigationTitle(
-                    title = "${mostPlayedArtists.size} ${stringResource(id = R.string.artists)}",
-                    modifier = Modifier.animateItem(),
-                )
-            }
-
-            itemsIndexed(
-                items = mostPlayedArtists.chunked(2),
-                key = { _, rowArtists -> rowArtists.first().id },
-            ) { _, rowArtists ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    rowArtists.forEach { artist ->
-                        LocalArtistsGrid(
-                            title = artist.artist.name,
-                            subtitle = joinByBullet(
-                                pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
-                                makeTimeString(artist.timeListened?.toLong()),
-                            ),
-                            thumbnailUrl = artist.artist.thumbnailUrl,
-                            modifier = Modifier
-                                .weight(1f)
-                                .combinedClickable(
-                                    onClick = { navController.navigate("artist/${artist.id}") },
-                                    onLongClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menuState.show {
-                                            ArtistMenu(
-                                                originalArtist = artist,
-                                                coroutineScope = coroutineScope,
-                                                onDismiss = menuState::dismiss,
-                                            )
-                                        }
-                                    },
-                                )
-                                .animateItem(),
+                        OverviewStatPill(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Rounded.Album,
+                            iconBg = Color(0xFFFF9800).copy(alpha = 0.2f),
+                            iconTint = Color(0xFFFF9800),
+                            count = mostPlayedAlbums.size.toString(),
+                            label = "Albums"
                         )
                     }
-                    repeat(2 - rowArtists.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
 
-            item(key = "mostPlayedAlbums") {
-                NavigationTitle(
-                    title = "${mostPlayedAlbums.size} ${stringResource(id = R.string.albums)}",
-                    modifier = Modifier.animateItem(),
-                )
-                if (mostPlayedAlbums.isNotEmpty()) {
+            // Top Songs
+            if (mostPlayedSongsStats.isNotEmpty()) {
+                item(key = "mostPlayedSongsHeader") {
+                    SectionHeader(title = "Top Songs")
+                }
+
+                itemsIndexed(
+                    items = mostPlayedSongsStats,
+                    key = { _, song -> song.id },
+                ) { index, song ->
+                    PremiumSongRow(
+                        index = index + 1,
+                        song = song,
+                        isActive = song.id == mediaMetadata?.id,
+                        isPlaying = isPlaying,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+                                    if (song.id == mediaMetadata?.id) {
+                                        playerConnection.player.togglePlayPause()
+                                    } else {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                endpoint = WatchEndpoint(song.id),
+                                                preloadItem = mostPlayedSongs[index].toMediaMetadata(),
+                                            ),
+                                        )
+                                    }
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = mostPlayedSongs[index],
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss,
+                                        )
+                                    }
+                                }
+                            )
+                            .animateItem()
+                    )
+                }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+
+            // Top Artists Grid
+            if (mostPlayedArtists.isNotEmpty()) {
+                item(key = "mostPlayedArtists") {
+                    SectionHeader(title = "Top Artists")
+                }
+
+                itemsIndexed(
+                    items = mostPlayedArtists.chunked(2),
+                    key = { _, rowArtists -> rowArtists.first().id },
+                ) { _, rowArtists ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowArtists.forEach { artist ->
+                            LocalArtistsGrid(
+                                title = artist.artist.name,
+                                subtitle = joinByBullet(
+                                    pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
+                                    makeTimeString(artist.timeListened?.toLong()),
+                                ),
+                                thumbnailUrl = artist.artist.thumbnailUrl,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .combinedClickable(
+                                        onClick = { navController.navigate("artist/${artist.id}") },
+                                        onLongClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            menuState.show {
+                                                ArtistMenu(
+                                                    originalArtist = artist,
+                                                    coroutineScope = coroutineScope,
+                                                    onDismiss = menuState::dismiss,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    .animateItem(),
+                            )
+                        }
+                        repeat(2 - rowArtists.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    }
+                }
+                item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
+
+            // Top Albums
+            if (mostPlayedAlbums.isNotEmpty()) {
+                item(key = "mostPlayedAlbums") {
+                    SectionHeader(title = "Top Albums")
                     LazyRow {
                         itemsIndexed(
                             items = mostPlayedAlbums,
@@ -451,15 +519,15 @@ fun StatsScreen(
                         )
                     },
                     shape = RoundedCornerShape(50),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = neonPurple,
+                    contentColor = Color.White,
                     expanded = isFabExpanded,
-                    modifier = Modifier.shadow(8.dp, RoundedCornerShape(50)) // Added premium shadow
+                    modifier = Modifier.shadow(8.dp, RoundedCornerShape(50)) 
                 )
             }
         }
 
-        // Top App Bar - Fixed Icon Sizing
+        // Clean Modern TopAppBar
         CenterAlignedTopAppBar(
             title = {
                 Text(
@@ -472,45 +540,138 @@ fun StatsScreen(
                 Box(
                     modifier = Modifier
                         .padding(start = 16.dp)
-                        .size(40.dp) // Fixed proportional size
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f), 
-                            shape = CircleShape
-                        ),
+                        .size(40.dp) 
+                        .clip(CircleShape)
+                        .clickable { navController.navigateUp() },
                     contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
-                    }
+                    Icon(painterResource(R.drawable.arrow_back), contentDescription = null, tint = Color.White)
                 }
             },
             actions = {
                 Box(
                     modifier = Modifier
                         .padding(end = 16.dp)
-                        .size(40.dp) // Fixed proportional size
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f), 
-                            shape = CircleShape
-                        ),
+                        .size(40.dp) 
+                        .clip(CircleShape)
+                        .background(Color(0xFF23283A))
+                        .clickable { navController.navigate("year_in_music") },
                     contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = { navController.navigate("year_in_music") }, onLongClick = { }) {
-                        Icon(painterResource(R.drawable.calendar_today), contentDescription = stringResource(R.string.year_in_music))
-                    }
+                    Icon(painterResource(R.drawable.calendar_today), contentDescription = null, tint = neonPurple, modifier = Modifier.size(20.dp))
                 }
             },
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = Color.Transparent, 
-                scrolledContainerColor = Color.Transparent
+                scrolledContainerColor = bgTop.copy(alpha = 0.9f)
             )
         )
     }
 }
 
 // ------------------------------------------------------------------------
-// Custom Redesigned Components
+// Custom Ultra-Premium Components
 // ------------------------------------------------------------------------
+
+@Composable
+fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector? = null, iconTint: Color = Color.White) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 6.dp)
+            )
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun PremiumHighlightCard(
+    label: String,
+    mainText: String,
+    subText: String,
+    imageUrl: String?,
+    trailingIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    trailingBg: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(68.dp)
+                    .clip(RoundedCornerShape(14.dp)) // Apple-like squircle
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF6C3DF8),
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = mainText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(color = trailingBg, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = trailingIcon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun ArtistPieChart(
@@ -519,219 +680,207 @@ fun ArtistPieChart(
 ) {
     val totalTime = artists.sumOf { it.timeListened?.toLong() ?: 0L }
     if (totalTime == 0L) return
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val secondaryColor = MaterialTheme.colorScheme.secondary
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) // Very faint background track
 
-    Row(
+    Card(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
     ) {
-        Box(
-            modifier = Modifier.size(160.dp),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                // Background Track
-                drawArc(
-                    color = trackColor,
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    style = Stroke(width = 6.dp.toPx()) // Slightly thicker
-                )
-                // Foreground Glowing Ring
-                drawArc(
-                    brush = Brush.sweepGradient(listOf(primaryColor, secondaryColor, primaryColor)),
-                    startAngle = -90f,
-                    sweepAngle = 260f,
-                    useCenter = false,
-                    style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
-                )
-            }
-
             Box(
-                modifier = Modifier
-                    .size(136.dp) // Adjusted slightly to give breathing room from the ring
-                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = primaryColor) // Inner shadow effect
-                    .clip(CircleShape),
+                modifier = Modifier.size(130.dp),
                 contentAlignment = Alignment.Center
             ) {
+                // Pie Chart with Gaps
                 var startAngle = -90f
+                val gapDegrees = 3f // Dark gap between slices
+
                 artists.forEach { artist ->
                     val time = artist.timeListened?.toLong() ?: 0L
                     val sweepAngle = (time.toFloat() / totalTime) * 360f
 
-                    if (sweepAngle > 1f) {
+                    if (sweepAngle > gapDegrees) {
                         AsyncImage(
                             model = artist.artist.thumbnailUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(PieSliceShape(startAngle, sweepAngle))
+                                .clip(PieSliceShape(startAngle, sweepAngle, gapDegrees))
                         )
-                        startAngle += sweepAngle
                     }
+                    startAngle += sweepAngle
+                }
+            }
+
+            Column {
+                Text(
+                    text = "Total Time\nListened",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF6C3DF8),
+                    lineHeight = 16.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                // Huge text for Time
+                val timeString = makeTimeString(totalTime)
+                val parts = timeString.split(" ")
+                
+                if (parts.size >= 2) {
+                    Text(
+                        text = "${parts[0]} ${parts[1]}",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
+                    if (parts.size >= 3) {
+                        Text(
+                            text = parts[2],
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    Text(
+                        text = timeString,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
                 }
             }
         }
+    }
+}
 
-        Column {
+@Composable
+fun OverviewStatPill(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconBg: Color,
+    iconTint: Color,
+    count: String,
+    label: String
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF171B2B)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(iconBg, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = count,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PremiumSongRow(
+    index: Int,
+    song: SongWithStats,
+    isActive: Boolean,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ItemThumbnail(
+            thumbnailUrl = song.thumbnailUrl,
+            isActive = isActive,
+            isPlaying = isPlaying,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.size(56.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Total Time Listened",
-                style = MaterialTheme.typography.labelMedium,
+                text = "$index. ${song.title}",
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary // Touched up for visual hierarchy
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            val timeString = makeTimeString(totalTime)
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = timeString,
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
+                text = joinByBullet(
+                    pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
+                    makeTimeString(song.timeListened),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        }
+        IconButton(
+            onClick = { /* Menus are handled in combinedClickable */ }
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.MoreVert,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.6f)
             )
         }
     }
 }
 
-fun PieSliceShape(startAngle: Float, sweepAngle: Float): GenericShape {
+// Slice path with gaps
+fun PieSliceShape(startAngle: Float, sweepAngle: Float, gap: Float): GenericShape {
     return GenericShape { size, _ ->
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.width / 2
+        
+        // Adjust for gap
+        val actualStart = startAngle + (gap / 2f)
+        val actualSweep = (sweepAngle - gap).coerceAtLeast(0.1f)
+        
         moveTo(center.x, center.y)
-        val startRad = Math.toRadians(startAngle.toDouble())
+        val startRad = Math.toRadians(actualStart.toDouble())
         lineTo(
             (center.x + radius * cos(startRad)).toFloat(),
             (center.y + radius * sin(startRad)).toFloat()
         )
         arcTo(
             rect = androidx.compose.ui.geometry.Rect(center = center, radius = radius),
-            startAngleDegrees = startAngle,
-            sweepAngleDegrees = sweepAngle,
+            startAngleDegrees = actualStart,
+            sweepAngleDegrees = actualSweep,
             forceMoveTo = false
         )
         lineTo(center.x, center.y)
         close()
-    }
-}
-
-@Composable
-fun StatsHighlightsSection(
-    topArtist: Artist?,
-    topSong: SongWithStats?,
-    topSongEntity: Song?,
-    navController: NavController
-) {
-    if (topArtist == null && topSong == null) return
-
-    // Premium Gradient Background for Card
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        ),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)), // Subtle elevation
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent), // Set to transparent to use gradient box
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-    ) {
-        Box(
-            modifier = Modifier
-                .background(gradientBrush)
-                .fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp), // Increased padding slightly for premium feel
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Text(
-                    text = "Your Music Highlights",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-
-                if (topArtist != null) {
-                    StatsHighlightItemRow(
-                        label = "Top Artist",
-                        mainText = topArtist.artist.name,
-                        subText = "${topArtist.songCount} songs • ${makeTimeString(topArtist.timeListened?.toLong())}",
-                        imageUrl = topArtist.artist.thumbnailUrl,
-                        onClick = { navController.navigate("artist/${topArtist.id}") }
-                    )
-                }
-
-                if (topSong != null && topSongEntity != null) {
-                    StatsHighlightItemRow(
-                        label = "Top Song",
-                        mainText = topSong.title,
-                        subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
-                        imageUrl = topSong.thumbnailUrl,
-                        onClick = { /* Handle click */ }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun StatsHighlightItemRow(
-    label: String,
-    mainText: String,
-    subText: String,
-    imageUrl: String?,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(72.dp)
-                .shadow(elevation = 2.dp, shape = CircleShape) // Small shadow on images
-                .clip(CircleShape)
-        )
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = mainText,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 
