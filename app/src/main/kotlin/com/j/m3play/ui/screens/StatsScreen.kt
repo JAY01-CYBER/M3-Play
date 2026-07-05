@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.2   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -13,6 +13,7 @@ package com.j.m3play.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,15 +38,18 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,7 +89,6 @@ import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.ChoiceChipsRow
-import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.ItemThumbnail
 import com.j.m3play.ui.component.ListItem
@@ -103,7 +106,6 @@ import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.StatsViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -425,35 +427,77 @@ fun StatsScreen(
             }
         }
 
+        // Shuffle Extended FAB (Pill Shape with Text)
         if (mostPlayedSongs.isNotEmpty()) {
-            HideOnScrollFAB(
-                visible = true,
-                lazyListState = lazyListState,
-                icon = R.drawable.shuffle,
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = context.getString(R.string.most_played_songs),
-                            items = mostPlayedSongs.map { it.toMediaMetadata().toMediaItem() }.shuffled()
+            val isFabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                ExtendedFloatingActionButton(
+                    text = { Text("Shuffle") },
+                    icon = { Icon(painterResource(R.drawable.shuffle), contentDescription = null) },
+                    onClick = {
+                        playerConnection.playQueue(
+                            ListQueue(
+                                title = context.getString(R.string.most_played_songs),
+                                items = mostPlayedSongs.map { it.toMediaMetadata().toMediaItem() }.shuffled()
+                            )
                         )
-                    )
-                }
-            )
+                    },
+                    shape = RoundedCornerShape(50), // Pill Shape
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    expanded = isFabExpanded
+                )
+            }
         }
 
-        TopAppBar(
-            title = { Text(stringResource(R.string.stats)) },
+        // Top App Bar Restyled
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = stringResource(R.string.stats),
+                    fontWeight = FontWeight.Bold, // Bold Font
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
             navigationIcon = {
-                IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
-                    Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                Box(
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant, // Opaque Background
+                            shape = CircleShape
+                        )
+                ) {
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    }
                 }
             },
             actions = {
-                IconButton(onClick = { navController.navigate("year_in_music") }, onLongClick = { }) {
-                    Icon(painterResource(R.drawable.calendar_today), contentDescription = stringResource(R.string.year_in_music))
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant, // Opaque Background
+                            shape = CircleShape
+                        )
+                ) {
+                    IconButton(onClick = { navController.navigate("year_in_music") }, onLongClick = { }) {
+                        Icon(painterResource(R.drawable.calendar_today), contentDescription = stringResource(R.string.year_in_music))
+                    }
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent)
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = Color.Transparent, 
+                scrolledContainerColor = Color.Transparent
+            )
         )
     }
 }
