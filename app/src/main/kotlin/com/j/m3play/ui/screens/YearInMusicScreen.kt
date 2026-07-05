@@ -222,7 +222,7 @@ fun YearInMusicScreen(
                         TopPickItem(
                             label = "Top Song",
                             title = song.title,
-                            subtitle = song.artists.joinToString(", ") { it.name },
+                            subtitle = "${song.songCountListened} times",
                             imageUrl = song.thumbnailUrl,
                             labelColor = NeonPink
                         )
@@ -240,7 +240,7 @@ fun YearInMusicScreen(
                         TopPickItem(
                             label = "Top Album",
                             title = album.album.title,
-                            subtitle = album.artists.joinToString(", ") { it.name },
+                            subtitle = album.artists.take(2).joinToString(" • ") { it.name },
                             imageUrl = album.thumbnailUrl,
                             labelColor = Color(0xFFFFBE0B)
                         )
@@ -260,7 +260,7 @@ fun YearInMusicScreen(
                         ExploreCard(
                             title = "Top Songs",
                             subtitle = "Your most played tracks",
-                            iconRes = R.drawable.ic_music, // Use your correct resource here
+                            iconRes = R.drawable.ic_music, 
                             imageUrl = topSongsStats.getOrNull(1)?.thumbnailUrl ?: topSongsStats.firstOrNull()?.thumbnailUrl,
                             accentColor = NeonPink
                         )
@@ -269,7 +269,7 @@ fun YearInMusicScreen(
                         ExploreCard(
                             title = "Top Artists",
                             subtitle = "The artists you loved most",
-                            iconRes = R.drawable.artist, // Use your correct resource here
+                            iconRes = R.drawable.artist, 
                             imageUrl = topArtists.getOrNull(1)?.artist?.thumbnailUrl ?: topArtists.firstOrNull()?.artist?.thumbnailUrl,
                             accentColor = ElectricPurple
                         )
@@ -278,7 +278,7 @@ fun YearInMusicScreen(
                         ExploreCard(
                             title = "Top Albums",
                             subtitle = "Your favorite albums",
-                            iconRes = R.drawable.album, // Use your correct resource here
+                            iconRes = R.drawable.album, 
                             imageUrl = topAlbums.getOrNull(1)?.thumbnailUrl ?: topAlbums.firstOrNull()?.thumbnailUrl,
                             accentColor = Color(0xFFFF6B35)
                         )
@@ -668,7 +668,7 @@ private fun TopPickItem(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(R.drawable.skip_next), // Using skip next as right arrow for now
+                painter = painterResource(R.drawable.skip_next), 
                 contentDescription = null,
                 tint = SoftWhite,
                 modifier = Modifier.size(16.dp)
@@ -749,7 +749,7 @@ private fun ExploreCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.arrow_forward), // Replace with your right arrow
+                        painter = painterResource(R.drawable.arrow_forward), 
                         contentDescription = null,
                         tint = SoftWhite,
                         modifier = Modifier.size(14.dp)
@@ -778,7 +778,10 @@ private fun PremiumBottomNavBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { }) {
+            IconButton(
+                onClick = { },
+                onLongClick = { } // ADDED ONLONGCLICK
+            ) {
                 Icon(
                     painter = painterResource(R.drawable.skip_previous),
                     contentDescription = null,
