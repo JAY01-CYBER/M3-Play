@@ -3,6 +3,7 @@
  * │             M3Play UI System               │
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
+ * │                                            │
  * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
@@ -12,20 +13,29 @@ package com.j.m3play.ui.screens
 import android.content.Intent
 import android.view.View
 import android.view.ViewTreeObserver
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,9 +48,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -59,6 +67,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -66,6 +75,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -73,6 +83,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -104,29 +115,51 @@ import com.j.m3play.constants.DisableBlurKey
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.SongWithStats
+import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.models.toMediaMetadata
+import com.j.m3play.playback.queues.YouTubeQueue
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.menu.ArtistMenu
+import com.j.m3play.ui.menu.SongMenu
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.ComposeToImage
+import com.j.m3play.utils.joinByBullet
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.viewmodels.YearInMusicViewModel
 import kotlin.coroutines.resume
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.random.Random
 
-// --- Premium Colors for MD3 Redesign ---
 private val NeonPink = Color(0xFFFF006E)
 private val DeepMaroon = Color(0xFF2D161F) // For total listening time card
 private val MutedBlue = Color(0xFF161B2D) // For songs played card
 private val ElectricPurple = Color(0xFF8338EC)
+private val VibrantBlue = Color(0xFF3A86FF)
+private val NeonGreen = Color(0xFF06D6A0)
+private val SunsetOrange = Color(0xFFFF6B35)
+private val GoldenYellow = Color(0xFFFFBE0B)
 private val DeepBlack = Color(0xFF0A0A0F)
-private val SurfaceDark = Color(0xFF151515) // For list items
+private val RichBlack = Color(0xFF121218)
 private val SoftWhite = Color(0xFFFAFAFA)
-private val GlassWhite = Color(0x1AFFFFFF) // Reduced opacity for sleeker glass
-private val TextGray = Color(0xFFA0A0A0)
+private val GlassWhite = Color(0x33FFFFFF)
 
-@OptIn(ExperimentalMaterial3Api::class)
+private data class Particle(
+    val x: Float,
+    val y: Float,
+    val size: Float,
+    val color: Color,
+    val velocity: Offset,
+    val rotation: Float,
+    val rotationSpeed: Float,
+    val alpha: Float = 1f
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun YearInMusicScreen(
     navController: NavController,
@@ -137,10 +170,13 @@ fun YearInMusicScreen(
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isPlaying.collectAsState()
-    
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
     val availableYears by viewModel.availableYears.collectAsState()
     val selectedYear by viewModel.selectedYear.collectAsState()
     val topSongsStats by viewModel.topSongsStats.collectAsState()
+    val topSongs by viewModel.topSongs.collectAsState()
     val topArtists by viewModel.topArtists.collectAsState()
     val topAlbums by viewModel.topAlbums.collectAsState()
     val totalListeningTime by viewModel.totalListeningTime.collectAsState()
@@ -150,11 +186,12 @@ fun YearInMusicScreen(
     var isShareCaptureMode by remember { mutableStateOf(false) }
     var shareBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var isYearPickerOpen by remember { mutableStateOf(false) }
+    var recapCurrentPage by remember { mutableIntStateOf(0) }
+    var recapLastPage by remember { mutableIntStateOf(0) }
 
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     val shareBackgroundArgb = DeepBlack.toArgb()
     val view = LocalView.current
-    val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -164,130 +201,119 @@ fun YearInMusicScreen(
                 shareBounds = coordinates.boundsInRoot()
             }
     ) {
-        // Master Scrolling Dashboard
-        LazyColumn(
+        if (!disableBlur) {
+            PremiumAnimatedBackground(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(-1f)
+            )
+        }
+
+        if (!isShareCaptureMode && !disableBlur) {
+            FloatingParticles(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(0f)
+            )
+        }
+
+        YearInMusicStoryPager(
+            year = selectedYear,
+            totalListeningTime = totalListeningTime,
+            totalSongsPlayed = totalSongsPlayed,
+            topSongsStats = topSongsStats,
+            topSongs = topSongs,
+            topArtists = topArtists,
+            topAlbums = topAlbums,
+            isPlaying = isPlaying,
+            mediaMetadataId = mediaMetadata?.id,
+            navController = navController,
+            menuState = menuState,
+            haptic = haptic,
+            playerConnection = playerConnection,
+            coroutineScope = coroutineScope,
+            isShareCaptureMode = isShareCaptureMode,
+            onPagerStateChanged = { current, last ->
+                recapCurrentPage = current
+                recapLastPage = last
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(
                     LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
-                ),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 100.dp) // padding for bottom bar
-        ) {
-            // Hero Section (Top Artist Image as Background)
-            item {
-                DashboardHeroSection(
-                    year = selectedYear,
-                    topArtist = topArtists.firstOrNull(),
-                    isShareCaptureMode = isShareCaptureMode
                 )
-            }
+        )
 
-            // Stat Cards Row
-            item {
-                Row(
+        // Share button logic retained exactly
+        if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty() || topAlbums.isNotEmpty()) {
+            if (!isShareCaptureMode && recapCurrentPage == recapLastPage) {
+                PremiumShareButton(
+                    isGenerating = isGeneratingImage,
+                    onClick = {
+                        if (!isGeneratingImage) {
+                            isGeneratingImage = true
+                            coroutineScope.launch {
+                                try {
+                                    isShareCaptureMode = true
+                                    awaitNextPreDraw(view)
+                                    awaitNextPreDraw(view)
+
+                                    val raw = ComposeToImage.captureViewBitmap(
+                                        view = view,
+                                        backgroundColor = shareBackgroundArgb,
+                                    )
+                                    val bounds = shareBounds
+                                    val cropped = if (bounds != null) {
+                                        ComposeToImage.cropBitmap(
+                                            source = raw,
+                                            left = bounds.left.toInt(),
+                                            top = bounds.top.toInt(),
+                                            width = bounds.width.toInt(),
+                                            height = bounds.height.toInt(),
+                                        )
+                                    } else {
+                                        raw
+                                    }
+                                    val fitted = ComposeToImage.fitBitmap(
+                                        source = cropped,
+                                        targetWidth = 1080,
+                                        targetHeight = 1920,
+                                        backgroundColor = shareBackgroundArgb,
+                                    )
+
+                                    val uri = ComposeToImage.saveBitmapAsFile(
+                                        context,
+                                        fitted,
+                                        "M3Play_YearInMusic_$selectedYear"
+                                    )
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            shareIntent,
+                                            context.getString(R.string.share_summary)
+                                        )
+                                    )
+                                } finally {
+                                    isShareCaptureMode = false
+                                    isGeneratingImage = false
+                                }
+                            }
+                        }
+                    },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        iconRes = R.drawable.timer,
-                        title = stringResource(R.string.total_listening_time),
-                        value = makeTimeString(totalListeningTime).split(" ").firstOrNull() ?: "0",
-                        unit = "hours",
-                        cardColor = DeepMaroon,
-                        iconColor = NeonPink
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        iconRes = R.drawable.music_note,
-                        title = stringResource(R.string.songs) + " Played",
-                        value = totalSongsPlayed.toString(),
-                        unit = "songs",
-                        cardColor = MutedBlue,
-                        iconColor = Color(0xFF3A86FF)
-                    )
-                }
-            }
-
-            // Top Picks List
-            item {
-                SectionHeader(title = "Your Top Picks", actionText = "View all >")
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    topSongsStats.firstOrNull()?.let { song ->
-                        TopPickItem(
-                            label = "Top Song",
-                            title = song.title,
-                            subtitle = "${song.songCountListened} times",
-                            imageUrl = song.thumbnailUrl,
-                            labelColor = NeonPink
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .windowInsetsPadding(
+                            LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
                         )
-                    }
-                    topArtists.firstOrNull()?.let { artist ->
-                        TopPickItem(
-                            label = "Top Artist",
-                            title = artist.artist.name,
-                            subtitle = "${artist.songCount} times",
-                            imageUrl = artist.artist.thumbnailUrl,
-                            labelColor = ElectricPurple
-                        )
-                    }
-                    topAlbums.firstOrNull()?.let { album ->
-                        TopPickItem(
-                            label = "Top Album",
-                            title = album.album.title,
-                            subtitle = album.artists.take(2).joinToString(" • ") { it.name },
-                            imageUrl = album.thumbnailUrl,
-                            labelColor = Color(0xFFFFBE0B)
-                        )
-                    }
-                }
-            }
-
-            // Explore Cards Row
-            item {
-                SectionHeader(title = "Explore Your $selectedYear", subtitle = "Dive deeper into your music story.")
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        ExploreCard(
-                            title = "Top Songs",
-                            subtitle = "Your most played tracks",
-                            iconRes = R.drawable.ic_music, 
-                            imageUrl = topSongsStats.getOrNull(1)?.thumbnailUrl ?: topSongsStats.firstOrNull()?.thumbnailUrl,
-                            accentColor = NeonPink
-                        )
-                    }
-                    item {
-                        ExploreCard(
-                            title = "Top Artists",
-                            subtitle = "The artists you loved most",
-                            iconRes = R.drawable.artist, 
-                            imageUrl = topArtists.getOrNull(1)?.artist?.thumbnailUrl ?: topArtists.firstOrNull()?.artist?.thumbnailUrl,
-                            accentColor = ElectricPurple
-                        )
-                    }
-                    item {
-                        ExploreCard(
-                            title = "Top Albums",
-                            subtitle = "Your favorite albums",
-                            iconRes = R.drawable.album, 
-                            imageUrl = topAlbums.getOrNull(1)?.thumbnailUrl ?: topAlbums.firstOrNull()?.thumbnailUrl,
-                            accentColor = Color(0xFFFF6B35)
-                        )
-                    }
-                }
+                )
             }
         }
 
-        // Top App Bar Overlay
         if (!isShareCaptureMode) {
             Box(
                 modifier = Modifier
@@ -296,82 +322,45 @@ fun YearInMusicScreen(
                         LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
                     )
             ) {
-                Column {
-                    TopAppBar(
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // M3 Adaptive Logo Integration
-                                AdaptiveAppIcon(modifier = Modifier.size(28.dp))
-                                
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.year_in_music),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = SoftWhite
-                                    )
-                                    Text(
-                                        text = "Your $selectedYear Music Journey",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextGray
-                                    )
-                                }
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = navController::navigateUp,
-                                onLongClick = navController::backToMain
-                            ) {
-                                Icon(
-                                    painterResource(R.drawable.arrow_back),
-                                    contentDescription = null,
-                                    tint = SoftWhite
-                                )
-                            }
-                        },
-                        actions = {
-                            PremiumYearChip(
-                                year = selectedYear,
-                                onClick = { isYearPickerOpen = true }
+                TopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            AdaptiveAppIcon(modifier = Modifier.size(24.dp))
+                            Text(
+                                text = stringResource(R.string.year_in_music),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = SoftWhite
                             )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.Transparent
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = navController::navigateUp,
+                            onLongClick = navController::backToMain
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.arrow_back),
+                                contentDescription = null,
+                                tint = SoftWhite
+                            )
+                        }
+                    },
+                    actions = {
+                        PremiumYearChip(
+                            year = selectedYear,
+                            onClick = { isYearPickerOpen = true }
                         )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
                     )
-                    // Instagram-style story progress (static for dashboard look)
-                    PremiumStoryProgressIndicator(totalPages = 4, currentPage = 0)
-                }
+                )
             }
-        }
-
-        // Bottom Navigation Bar Overlay
-        if (!isShareCaptureMode) {
-            PremiumBottomNavBar(
-                year = selectedYear,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(
-                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom)
-                    )
-                    .padding(16.dp)
-            )
-        }
-
-        // Share FAB overlay
-        if (topSongsStats.isNotEmpty() && !isShareCaptureMode) {
-            PremiumShareButton(
-                isGenerating = isGeneratingImage,
-                onClick = { /* Share Logic stays the same */ },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 90.dp, end = 16.dp) // Raised above BottomNavBar
-            )
         }
 
         if (!isShareCaptureMode && isYearPickerOpen) {
@@ -388,23 +377,18 @@ fun YearInMusicScreen(
     }
 }
 
-// ==========================================
-// NEW UI COMPONENTS BASED ON SCREENSHOT
-// ==========================================
-
+// ─── NEW COMPONENT: ADAPTIVE APP ICON ────────────────────────────────────────────
 @Composable
 private fun AdaptiveAppIcon(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier.clip(CircleShape)
     ) {
-        // Background Layer
         Image(
             painter = painterResource(R.drawable.ic_launcher_background),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-        // Foreground Layer
         Image(
             painter = painterResource(R.drawable.ic_launcher_foreground),
             contentDescription = null,
@@ -414,29 +398,747 @@ private fun AdaptiveAppIcon(modifier: Modifier = Modifier) {
     }
 }
 
+private suspend fun awaitNextPreDraw(view: View) {
+    suspendCancellableCoroutine { cont ->
+        val vto = view.viewTreeObserver
+        val listener = object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (vto.isAlive) vto.removeOnPreDrawListener(this)
+                cont.resume(Unit)
+                return true
+            }
+        }
+        vto.addOnPreDrawListener(listener)
+        cont.invokeOnCancellation {
+            if (vto.isAlive) vto.removeOnPreDrawListener(listener)
+        }
+        view.invalidate()
+    }
+}
+
 @Composable
-private fun DashboardHeroSection(
-    year: Int,
-    topArtist: Artist?,
-    isShareCaptureMode: Boolean
+private fun PremiumAnimatedBackground(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "bgTransition")
+
+    val phase1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase1"
+    )
+
+    val phase2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase2"
+    )
+
+    val phase3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "phase3"
+    )
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    DeepBlack,
+                    Color(0xFF1A0A2E),
+                    Color(0xFF0F0515),
+                    DeepBlack
+                )
+            )
+        )
+
+        val center1 = Offset(
+            x = w * (0.2f + 0.3f * sin(phase1 * 2 * PI.toFloat())),
+            y = h * (0.15f + 0.15f * cos(phase1 * 2 * PI.toFloat()))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    NeonPink.copy(alpha = 0.5f),
+                    ElectricPurple.copy(alpha = 0.25f),
+                    Color.Transparent
+                ),
+                center = center1,
+                radius = w * 0.8f
+            )
+        )
+
+        val center2 = Offset(
+            x = w * (0.8f - 0.25f * cos(phase2 * 2 * PI.toFloat())),
+            y = h * (0.4f + 0.2f * sin(phase2 * 2 * PI.toFloat()))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    VibrantBlue.copy(alpha = 0.45f),
+                    ElectricPurple.copy(alpha = 0.2f),
+                    Color.Transparent
+                ),
+                center = center2,
+                radius = w * 0.9f
+            )
+        )
+
+        val center3 = Offset(
+            x = w * (0.5f + 0.2f * sin(phase3 * 2 * PI.toFloat())),
+            y = h * (0.75f + 0.1f * cos(phase3 * 2 * PI.toFloat()))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    NeonGreen.copy(alpha = 0.3f),
+                    VibrantBlue.copy(alpha = 0.12f),
+                    Color.Transparent
+                ),
+                center = center3,
+                radius = w * 0.65f
+            )
+        )
+
+        val center4 = Offset(
+            x = w * (0.9f - 0.15f * sin(phase1 * 2 * PI.toFloat())),
+            y = h * (0.85f - 0.1f * cos(phase2 * 2 * PI.toFloat()))
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    SunsetOrange.copy(alpha = 0.25f),
+                    Color.Transparent
+                ),
+                center = center4,
+                radius = w * 0.4f
+            )
+        )
+    }
+}
+
+@Composable
+private fun FloatingParticles(
+    modifier: Modifier = Modifier,
+    particleCount: Int = 25
 ) {
-    val imageModel = rememberShareSafeImageRequest(topArtist?.artist?.thumbnailUrl)
-    
+    val particles = remember {
+        List(particleCount) {
+            Particle(
+                x = Random.nextFloat(),
+                y = Random.nextFloat(),
+                size = Random.nextFloat() * 4f + 1f,
+                color = listOf(NeonPink, ElectricPurple, VibrantBlue, NeonGreen, GoldenYellow).random(),
+                velocity = Offset(
+                    (Random.nextFloat() - 0.5f) * 0.001f,
+                    (Random.nextFloat() - 0.5f) * 0.001f
+                ),
+                rotation = Random.nextFloat() * 360f,
+                rotationSpeed = (Random.nextFloat() - 0.5f) * 0.5f,
+                alpha = Random.nextFloat() * 0.4f + 0.2f
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "particles")
+    val time by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(100000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "particleTime"
+    )
+
+    Canvas(modifier = modifier) {
+        particles.forEach { particle ->
+            val x = ((particle.x + particle.velocity.x * time + 1f) % 1f) * size.width
+            val y = ((particle.y + particle.velocity.y * time + 1f) % 1f) * size.height
+            val rotation = particle.rotation + particle.rotationSpeed * time
+
+            rotate(rotation, pivot = Offset(x, y)) {
+                drawCircle(
+                    color = particle.color.copy(alpha = particle.alpha),
+                    radius = particle.size,
+                    center = Offset(x, y)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumYearChip(
+    year: Int,
+    onClick: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "chipGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(400.dp)
+            .padding(end = 8.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        NeonPink.copy(alpha = glowAlpha * 0.5f),
+                        ElectricPurple.copy(alpha = glowAlpha * 0.5f)
+                    )
+                )
+            )
+            .border(
+                width = 1.5.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        NeonPink.copy(alpha = glowAlpha),
+                        ElectricPurple.copy(alpha = glowAlpha)
+                    )
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Hero Background Image
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = year.toString(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = SoftWhite
+            )
+            Icon(
+                painter = painterResource(R.drawable.calendar_today),
+                contentDescription = null,
+                tint = SoftWhite.copy(alpha = 0.9f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PremiumShareButton(
+    isGenerating: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shareBtn")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shareRotation"
+    )
+
+    Box(
+        modifier = modifier
+            .size(64.dp)
+            .drawBehind {
+                rotate(rotation) {
+                    drawCircle(
+                        brush = Brush.sweepGradient(
+                            colors = listOf(
+                                NeonPink,
+                                ElectricPurple,
+                                VibrantBlue,
+                                NeonGreen,
+                                GoldenYellow,
+                                NeonPink
+                            )
+                        ),
+                        radius = size.minDimension / 2 + 4.dp.toPx(),
+                        style = Stroke(width = 3.dp.toPx())
+                    )
+                }
+            }
+    ) {
+        FloatingActionButton(
+            onClick = onClick,
+            modifier = Modifier.fillMaxSize(),
+            shape = CircleShape,
+            containerColor = RichBlack,
+            contentColor = SoftWhite
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp,
+                    color = NeonPink
+                )
+            } else {
+                Icon(
+                    painter = painterResource(R.drawable.share),
+                    contentDescription = stringResource(R.string.share_summary),
+                    tint = SoftWhite
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumYearPickerDialog(
+    availableYears: List<Int>,
+    selectedYear: Int,
+    onSelectYear: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = RichBlack,
+        titleContentColor = SoftWhite,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(NeonPink, CircleShape)
+                )
+                Text(
+                    text = stringResource(R.string.year_in_music),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(availableYears) { year ->
+                    val isSelected = year == selectedYear
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (isSelected) {
+                                    Brush.linearGradient(
+                                        colors = listOf(NeonPink, ElectricPurple)
+                                    )
+                                } else {
+                                    Brush.linearGradient(
+                                        colors = listOf(GlassWhite, GlassWhite.copy(alpha = 0.1f))
+                                    )
+                                }
+                            )
+                            .border(
+                                width = if (isSelected) 0.dp else 1.dp,
+                                color = if (isSelected) Color.Transparent else GlassWhite,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clickable { onSelectYear(year) }
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = year.toString(),
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = SoftWhite,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.dismiss),
+                    color = NeonPink
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun PremiumStoryProgressIndicator(
+    totalPages: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(totalPages) { index ->
+            val progress by animateFloatAsState(
+                targetValue = when {
+                    index < currentPage -> 1f
+                    index == currentPage -> 1f
+                    else -> 0f
+                },
+                animationSpec = tween(300),
+                label = "progress"
+            )
+            val alpha by animateFloatAsState(
+                targetValue = when {
+                    index < currentPage -> 0.6f
+                    index == currentPage -> 1f
+                    else -> 0.2f
+                },
+                animationSpec = tween(300),
+                label = "alpha"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(SoftWhite.copy(alpha = 0.15f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(NeonPink, ElectricPurple)
+                            )
+                        )
+                        .alpha(alpha)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumStoryNavBar(
+    canGoBack: Boolean,
+    canGoNext: Boolean,
+    pageLabel: String,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(RichBlack.copy(alpha = 0.85f))
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(GlassWhite, GlassWhite.copy(alpha = 0.1f))
+                ),
+                shape = RoundedCornerShape(28.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                onLongClick = {},
+                enabled = canGoBack
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.skip_previous),
+                    contentDescription = null,
+                    tint = if (canGoBack) SoftWhite else SoftWhite.copy(alpha = 0.3f)
+                )
+            }
+
+            Text(
+                text = pageLabel,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = SoftWhite.copy(alpha = 0.9f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(
+                        if (canGoNext) {
+                            Brush.linearGradient(colors = listOf(NeonPink, ElectricPurple))
+                        } else {
+                            Brush.linearGradient(colors = listOf(GlassWhite, GlassWhite))
+                        }
+                    )
+                    .clickable(enabled = canGoNext, onClick = onNext)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.next),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SoftWhite
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.skip_next),
+                        contentDescription = null,
+                        tint = SoftWhite,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun YearInMusicStoryPager(
+    year: Int,
+    totalListeningTime: Long,
+    totalSongsPlayed: Long,
+    topSongsStats: List<SongWithStats>,
+    topSongs: List<com.j.m3play.db.entities.Song>,
+    topArtists: List<Artist>,
+    topAlbums: List<Album>,
+    isPlaying: Boolean,
+    mediaMetadataId: String?,
+    navController: NavController,
+    menuState: com.j.m3play.ui.component.MenuState,
+    haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    playerConnection: com.j.m3play.playback.PlayerConnection,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    isShareCaptureMode: Boolean,
+    onPagerStateChanged: (currentPage: Int, lastPage: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val pages = remember(topSongsStats, topArtists, topAlbums) {
+        buildList {
+            add(YearInMusicStoryPage.Hero)
+            if (topSongsStats.isNotEmpty()) add(YearInMusicStoryPage.TopSong)
+            if (topArtists.isNotEmpty()) add(YearInMusicStoryPage.TopArtist)
+            if (topAlbums.isNotEmpty()) add(YearInMusicStoryPage.TopAlbum)
+            add(YearInMusicStoryPage.Summary)
+        }
+    }
+
+    var currentPage by remember { mutableIntStateOf(0) }
+    val lastPage = pages.lastIndex.coerceAtLeast(0)
+
+    LaunchedEffect(lastPage) {
+        currentPage = currentPage.coerceIn(0, lastPage)
+    }
+
+    LaunchedEffect(isShareCaptureMode, lastPage) {
+        if (isShareCaptureMode) currentPage = lastPage
+    }
+
+    LaunchedEffect(currentPage, lastPage) {
+        onPagerStateChanged(currentPage, lastPage)
+    }
+
+    fun navigateTo(page: Int) {
+        currentPage = page.coerceIn(0, lastPage)
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = currentPage,
+            transitionSpec = {
+                val direction = if (targetState > initialState) 1 else -1
+                slideInHorizontally(
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    initialOffsetX = { it * direction }
+                ) + fadeIn(animationSpec = tween(200)) togetherWith
+                    slideOutHorizontally(
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        targetOffsetX = { -it * direction }
+                    ) + fadeOut(animationSpec = tween(150))
+            },
+            label = "yearInMusicPage"
+        ) { pageIndex ->
+            when (pages.getOrNull(pageIndex)) {
+                YearInMusicStoryPage.Hero -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(enabled = !isShareCaptureMode && currentPage < lastPage) {
+                                navigateTo(currentPage + 1)
+                            }
+                    ) {
+                        // Hero section redesigned like the new screenshot!
+                        PremiumHeroStoryCard(
+                            year = year,
+                            totalListeningTime = totalListeningTime,
+                            totalSongsPlayed = totalSongsPlayed,
+                            topArtist = topArtists.firstOrNull()
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.TopSong -> {
+                    val topSong = topSongsStats.firstOrNull()
+                    val topSongEntity = topSongs.firstOrNull()
+                    if (topSong != null) {
+                        PremiumTopSongStoryCard(
+                            song = topSong,
+                            onClick = {
+                                if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1)
+                            },
+                            onLongClick = {
+                                if (!isShareCaptureMode && topSongEntity != null) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        SongMenu(
+                                            originalSong = topSongEntity,
+                                            navController = navController,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.TopArtist -> {
+                    val topArtist = topArtists.firstOrNull()
+                    if (topArtist != null) {
+                        PremiumTopArtistStoryCard(
+                            artist = topArtist,
+                            onClick = { if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1) },
+                            onLongClick = {
+                                if (!isShareCaptureMode) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        ArtistMenu(
+                                            originalArtist = topArtist,
+                                            coroutineScope = coroutineScope,
+                                            onDismiss = menuState::dismiss
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.TopAlbum -> {
+                    val topAlbum = topAlbums.firstOrNull()
+                    if (topAlbum != null) {
+                        PremiumTopAlbumStoryCard(
+                            album = topAlbum,
+                            onClick = { if (!isShareCaptureMode && currentPage < lastPage) navigateTo(currentPage + 1) }
+                        )
+                    }
+                }
+
+                YearInMusicStoryPage.Summary -> {
+                    PremiumSummaryStoryCard(
+                        year = year,
+                        totalListeningTime = totalListeningTime,
+                        totalSongsPlayed = totalSongsPlayed,
+                        topSong = topSongsStats.firstOrNull(),
+                        topArtist = topArtists.firstOrNull(),
+                        topAlbum = topAlbums.firstOrNull()
+                    )
+                }
+
+                null -> Unit
+            }
+        }
+
+        if (!isShareCaptureMode) {
+            PremiumStoryProgressIndicator(
+                totalPages = pages.size,
+                currentPage = currentPage,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                    )
+                    .padding(top = 56.dp)
+            )
+
+            PremiumStoryNavBar(
+                canGoBack = currentPage > 0,
+                canGoNext = currentPage < lastPage,
+                pageLabel = when (pages.getOrNull(currentPage)) {
+                    YearInMusicStoryPage.Hero -> stringResource(R.string.year_in_music)
+                    YearInMusicStoryPage.TopSong -> stringResource(R.string.top_songs)
+                    YearInMusicStoryPage.TopArtist -> stringResource(R.string.top_artists)
+                    YearInMusicStoryPage.TopAlbum -> stringResource(R.string.albums)
+                    YearInMusicStoryPage.Summary -> stringResource(R.string.share_summary)
+                    null -> ""
+                },
+                onBack = { navigateTo(currentPage - 1) },
+                onNext = { navigateTo(currentPage + 1) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(
+                        LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
+        }
+    }
+}
+
+// ─── REDESIGNED COMPONENTS BASED ON NEW UI STYLE ──────────────────────────────
+
+@Composable
+private fun PremiumHeroStoryCard(
+    year: Int,
+    totalListeningTime: Long,
+    totalSongsPlayed: Long,
+    topArtist: Artist?
+) {
+    val imageModel = rememberShareSafeImageRequest(topArtist?.artist?.thumbnailUrl)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent)
+    ) {
+        // Hero background image from new UI
         AsyncImage(
             model = imageModel,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .alpha(0.7f)
+                .alpha(0.5f)
+                .blur(16.dp)
         )
-        // Gradient Overlay to blend into background
+        
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -444,20 +1146,18 @@ private fun DashboardHeroSection(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            DeepBlack.copy(alpha = 0.6f),
+                            DeepBlack.copy(alpha = 0.8f),
                             DeepBlack
-                        ),
-                        startY = 100f
+                        )
                     )
                 )
         )
 
-        // Text & Play Button
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(horizontal = 24.dp, vertical = 24.dp)
-                .padding(top = 100.dp) // Space for TopAppBar
+                .fillMaxSize()
+                .padding(32.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "YOUR $year",
@@ -468,54 +1168,58 @@ private fun DashboardHeroSection(
             )
             Text(
                 text = "Music\nSnapshot",
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Black,
                 color = SoftWhite,
-                lineHeight = 44.sp
+                lineHeight = 56.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Relive your year in sound.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = TextGray
+                style = MaterialTheme.typography.titleMedium,
+                color = SoftWhite.copy(alpha = 0.7f)
             )
-        }
 
-        // Replay FAB
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(GlassWhite)
-                    .border(1.dp, SoftWhite.copy(alpha = 0.2f), CircleShape)
-                    .clickable { /* Play Top Songs */ },
-                contentAlignment = Alignment.Center
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Stat Cards integrated into the Hero Page
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.play),
-                    contentDescription = "Replay",
-                    tint = SoftWhite,
-                    modifier = Modifier.size(28.dp)
+                StatCardHero(
+                    modifier = Modifier.weight(1f),
+                    iconRes = R.drawable.timer,
+                    title = stringResource(R.string.total_listening_time),
+                    value = makeTimeString(totalListeningTime).split(" ").firstOrNull() ?: "0",
+                    unit = "hours",
+                    cardColor = DeepMaroon,
+                    iconColor = NeonPink
+                )
+                StatCardHero(
+                    modifier = Modifier.weight(1f),
+                    iconRes = R.drawable.music_note,
+                    title = stringResource(R.string.songs) + "\nPlayed",
+                    value = totalSongsPlayed.toString(),
+                    unit = "tracks",
+                    cardColor = MutedBlue,
+                    iconColor = VibrantBlue
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             Text(
-                text = "Replay Year",
-                style = MaterialTheme.typography.labelSmall,
-                color = SoftWhite
+                text = "Tap to explore →",
+                style = MaterialTheme.typography.bodyMedium,
+                color = SoftWhite.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 @Composable
-private fun StatCard(
+private fun StatCardHero(
     modifier: Modifier = Modifier,
     iconRes: Int,
     title: String,
@@ -527,7 +1231,7 @@ private fun StatCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(cardColor)
+            .background(cardColor.copy(alpha = 0.8f))
             .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
@@ -569,267 +1273,6 @@ private fun StatCard(
 }
 
 @Composable
-private fun SectionHeader(title: String, subtitle: String? = null, actionText: String? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = SoftWhite
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
-                )
-            }
-        }
-        if (actionText != null) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, ElectricPurple.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                    .clickable { }
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = actionText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = ElectricPurple,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TopPickItem(
-    label: String,
-    title: String,
-    subtitle: String,
-    imageUrl: Any?,
-    labelColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark)
-            .border(1.dp, GlassWhite, RoundedCornerShape(16.dp))
-            .clickable { }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = rememberShareSafeImageRequest(imageUrl),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(12.dp))
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = labelColor,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = SoftWhite,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextGray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .border(1.dp, GlassWhite, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.skip_next), 
-                contentDescription = null,
-                tint = SoftWhite,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExploreCard(
-    title: String,
-    subtitle: String,
-    iconRes: Int,
-    imageUrl: Any?,
-    accentColor: Color
-) {
-    Box(
-        modifier = Modifier
-            .size(160.dp, 200.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { }
-    ) {
-        AsyncImage(
-            model = rememberShareSafeImageRequest(imageUrl),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.4f),
-                            DeepBlack.copy(alpha = 0.9f)
-                        )
-                    )
-                )
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    tint = SoftWhite,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = SoftWhite
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextGray
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .border(1.dp, GlassWhite, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.arrow_forward), 
-                        contentDescription = null,
-                        tint = SoftWhite,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PremiumBottomNavBar(
-    year: Int,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(32.dp))
-            .background(SurfaceDark.copy(alpha = 0.9f))
-            .border(1.dp, GlassWhite, RoundedCornerShape(32.dp))
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = { },
-                onLongClick = { } // ADDED ONLONGCLICK
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.skip_previous),
-                    contentDescription = null,
-                    tint = SoftWhite
-                )
-            }
-            
-            Text(
-                text = "Your $year in Music",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = SoftWhite
-            )
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Brush.linearGradient(listOf(NeonPink, ElectricPurple)))
-                    .clickable { }
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Next",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = SoftWhite
-                    )
-                    Icon(
-                        painter = painterResource(R.drawable.skip_next),
-                        contentDescription = null,
-                        tint = SoftWhite,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ==========================================
-// RETAINED UTILITY COMPOSABLES
-// ==========================================
-
-@Composable
 private fun rememberShareSafeImageRequest(data: Any?): Any? {
     val context = LocalContext.current
     return remember(data, context) {
@@ -842,129 +1285,623 @@ private fun rememberShareSafeImageRequest(data: Any?): Any? {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PremiumStoryProgressIndicator(
-    totalPages: Int,
-    currentPage: Int,
-    modifier: Modifier = Modifier
+private fun PremiumTopSongStoryCard(
+    song: SongWithStats,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    val imageModel = rememberShareSafeImageRequest(song.thumbnailUrl)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
-        repeat(totalPages) { index ->
+        AsyncImage(
+            model = imageModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(20.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            DeepBlack.copy(alpha = 0.4f),
+                            DeepBlack.copy(alpha = 0.7f),
+                            DeepBlack.copy(alpha = 0.95f)
+                        )
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(modifier = Modifier.weight(0.3f))
+
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (index == currentPage) NeonPink else SoftWhite.copy(alpha = 0.2f)
+                        brush = Brush.linearGradient(
+                            colors = listOf(NeonPink, ElectricPurple)
+                        )
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "#1 " + stringResource(R.string.top_songs),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SoftWhite
+                )
+            }
+
+            AsyncImage(
+                model = imageModel,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(240.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .border(
+                        width = 1.dp,
+                        color = GlassWhite,
+                        shape = RoundedCornerShape(20.dp)
                     )
             )
+
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = SoftWhite,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatChip(
+                    icon = R.drawable.play,
+                    value = pluralStringResource(R.plurals.n_time, song.songCountListened, song.songCountListened),
+                    color = NeonPink
+                )
+                StatChip(
+                    icon = R.drawable.timer,
+                    value = makeTimeString(song.timeListened),
+                    color = VibrantBlue
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(0.5f))
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PremiumTopArtistStoryCard(
+    artist: Artist,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val imageModel = rememberShareSafeImageRequest(artist.artist.thumbnailUrl)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+    ) {
+        AsyncImage(
+            model = imageModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(20.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            ElectricPurple.copy(alpha = 0.5f),
+                            DeepBlack.copy(alpha = 0.85f),
+                            DeepBlack.copy(alpha = 0.95f)
+                        )
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(ElectricPurple, VibrantBlue)
+                        )
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "#1 " + stringResource(R.string.top_artists),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SoftWhite
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .border(2.dp, GlassWhite, CircleShape)
+            ) {
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = artist.artist.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = SoftWhite,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatChip(
+                    icon = R.drawable.play,
+                    value = pluralStringResource(R.plurals.n_time, artist.songCount, artist.songCount),
+                    color = ElectricPurple
+                )
+                StatChip(
+                    icon = R.drawable.timer,
+                    value = makeTimeString(artist.timeListened?.toLong()),
+                    color = NeonGreen
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun PremiumYearChip(
-    year: Int,
+private fun PremiumTopAlbumStoryCard(
+    album: Album,
     onClick: () -> Unit
+) {
+    val artistNames = album.artists.take(2).joinToString(" • ") { it.name }
+    val imageModel = rememberShareSafeImageRequest(album.thumbnailUrl)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onClick)
+    ) {
+        AsyncImage(
+            model = imageModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(20.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            DeepBlack.copy(alpha = 0.3f),
+                            DeepBlack.copy(alpha = 0.8f),
+                            DeepBlack.copy(alpha = 0.95f)
+                        )
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Spacer(modifier = Modifier.weight(0.2f))
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(SunsetOrange, GoldenYellow)
+                        )
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "#1 " + stringResource(R.string.albums),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepBlack
+                )
+            }
+
+            AsyncImage(
+                model = imageModel,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(240.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(
+                        width = 1.dp,
+                        color = GlassWhite,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+            )
+
+            Text(
+                text = album.album.title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = SoftWhite,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (artistNames.isNotBlank()) {
+                Text(
+                    text = artistNames,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = SoftWhite.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                album.songCountListened?.let {
+                    StatChip(
+                        icon = R.drawable.play,
+                        value = pluralStringResource(R.plurals.n_time, it, it),
+                        color = SunsetOrange
+                    )
+                }
+                StatChip(
+                    icon = R.drawable.timer,
+                    value = makeTimeString(album.timeListened),
+                    color = GoldenYellow
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(0.5f))
+        }
+    }
+}
+
+@Composable
+private fun PremiumSummaryStoryCard(
+    year: Int,
+    totalListeningTime: Long,
+    totalSongsPlayed: Long,
+    topSong: SongWithStats?,
+    topArtist: Artist?,
+    topAlbum: Album?
 ) {
     Box(
         modifier = Modifier
-            .padding(end = 8.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Brush.linearGradient(listOf(NeonPink.copy(alpha = 0.2f), ElectricPurple.copy(alpha = 0.2f))))
-            .border(1.5.dp, NeonPink.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        ElectricPurple.copy(alpha = 0.3f),
+                        NeonPink.copy(alpha = 0.2f),
+                        DeepBlack
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // M3 Adaptive Logo used here for final Summary
+                    AdaptiveAppIcon(modifier = Modifier.size(44.dp))
+                    Column {
+                        Text(
+                            text = "M3Play",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SoftWhite
+                        )
+                        Text(
+                            text = joinByBullet(stringResource(R.string.year_in_music), year.toString()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SoftWhite.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                Text(
+                    text = stringResource(R.string.share_summary),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Black,
+                    color = SoftWhite
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(DeepMaroon.copy(alpha = 0.9f))
+                            .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
+                            .padding(16.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = stringResource(R.string.total_listening_time),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SoftWhite.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = makeTimeString(totalListeningTime),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = SoftWhite
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MutedBlue.copy(alpha = 0.9f))
+                            .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
+                            .padding(16.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = stringResource(R.string.songs),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SoftWhite.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = totalSongsPlayed.toString(),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = SoftWhite
+                            )
+                            Text(
+                                text = stringResource(R.string.played),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SoftWhite.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val hasAnyHighlight = topSong != null || topArtist != null || topAlbum != null
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(RichBlack.copy(alpha = 0.8f))
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(GlassWhite, GlassWhite.copy(alpha = 0.1f))
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(20.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.year_in_music),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SoftWhite
+                        )
+
+                        if (!hasAnyHighlight) {
+                            Text(
+                                text = stringResource(R.string.no_listening_data),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = SoftWhite.copy(alpha = 0.6f)
+                            )
+                        } else {
+                            topSong?.let {
+                                SummaryHighlightRow(
+                                    icon = R.drawable.ic_music,
+                                    label = stringResource(R.string.top_songs),
+                                    value = it.title,
+                                    accentColor = NeonPink
+                                )
+                            }
+                            topArtist?.let {
+                                SummaryHighlightRow(
+                                    icon = R.drawable.artist,
+                                    label = stringResource(R.string.top_artists),
+                                    value = it.artist.name,
+                                    accentColor = ElectricPurple
+                                )
+                            }
+                            topAlbum?.let {
+                                SummaryHighlightRow(
+                                    icon = R.drawable.album,
+                                    label = stringResource(R.string.albums),
+                                    value = it.album.title,
+                                    accentColor = SunsetOrange
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = joinByBullet("M3Play", year.toString()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SoftWhite.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = stringResource(R.string.share_summary),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SoftWhite.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatChip(
+    icon: Int,
+    value: String,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.2f))
+            .border(
+                width = 1.dp,
+                color = color.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = year.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = SoftWhite
-            )
             Icon(
-                painter = painterResource(R.drawable.calendar_today),
+                painter = painterResource(icon),
                 contentDescription = null,
-                tint = SoftWhite,
+                tint = color,
                 modifier = Modifier.size(16.dp)
             )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = SoftWhite
+            )
         }
     }
 }
 
 @Composable
-private fun PremiumShareButton(
-    isGenerating: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun SummaryHighlightRow(
+    icon: Int,
+    label: String,
+    value: String,
+    accentColor: Color
 ) {
-    Box(
-        modifier = modifier.size(56.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        FloatingActionButton(
-            onClick = onClick,
-            modifier = Modifier.fillMaxSize(),
-            shape = CircleShape,
-            containerColor = DeepBlack,
-            contentColor = SoftWhite
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accentColor.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
         ) {
-            if (isGenerating) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp, color = NeonPink)
-            } else {
-                Icon(painter = painterResource(R.drawable.share), contentDescription = null, tint = SoftWhite)
-            }
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = SoftWhite.copy(alpha = 0.6f)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = SoftWhite,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
 
-@Composable
-private fun PremiumYearPickerDialog(
-    availableYears: List<Int>,
-    selectedYear: Int,
-    onSelectYear: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = DeepBlack,
-        titleContentColor = SoftWhite,
-        title = { Text(text = "Select Year", fontWeight = FontWeight.Bold) },
-        text = {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(availableYears) { year ->
-                    val isSelected = year == selectedYear
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) Brush.linearGradient(listOf(NeonPink, ElectricPurple)) else Brush.linearGradient(listOf(GlassWhite, GlassWhite)))
-                            .clickable { onSelectYear(year) }
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = year.toString(),
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = SoftWhite,
-                            fontSize = 16.sp
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "Dismiss", color = NeonPink)
-            }
-        }
-    )
+private enum class YearInMusicStoryPage {
+    Hero,
+    TopSong,
+    TopArtist,
+    TopAlbum,
+    Summary
 }
+
