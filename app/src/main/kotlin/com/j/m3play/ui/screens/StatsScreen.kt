@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.2   │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2.3   │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -439,7 +440,7 @@ fun StatsScreen(
                 contentAlignment = Alignment.BottomEnd
             ) {
                 ExtendedFloatingActionButton(
-                    text = { Text("Shuffle") },
+                    text = { Text("Shuffle", fontWeight = FontWeight.SemiBold) },
                     icon = { Icon(painterResource(R.drawable.shuffle), contentDescription = null) },
                     onClick = {
                         playerConnection.playQueue(
@@ -449,31 +450,34 @@ fun StatsScreen(
                             )
                         )
                     },
-                    shape = RoundedCornerShape(50), // Pill Shape
+                    shape = RoundedCornerShape(50),
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    expanded = isFabExpanded
+                    expanded = isFabExpanded,
+                    modifier = Modifier.shadow(8.dp, RoundedCornerShape(50)) // Added premium shadow
                 )
             }
         }
 
-        // Top App Bar Restyled
+        // Top App Bar - Fixed Icon Sizing
         CenterAlignedTopAppBar(
             title = {
                 Text(
                     text = stringResource(R.string.stats),
-                    fontWeight = FontWeight.Bold, // Bold Font
+                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             navigationIcon = {
                 Box(
                     modifier = Modifier
-                        .padding(start = 12.dp)
+                        .padding(start = 16.dp)
+                        .size(40.dp) // Fixed proportional size
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant, // Opaque Background
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f), 
                             shape = CircleShape
-                        )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
@@ -483,11 +487,13 @@ fun StatsScreen(
             actions = {
                 Box(
                     modifier = Modifier
-                        .padding(end = 12.dp)
+                        .padding(end = 16.dp)
+                        .size(40.dp) // Fixed proportional size
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant, // Opaque Background
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f), 
                             shape = CircleShape
-                        )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     IconButton(onClick = { navController.navigate("year_in_music") }, onLongClick = { }) {
                         Icon(painterResource(R.drawable.calendar_today), contentDescription = stringResource(R.string.year_in_music))
@@ -515,6 +521,7 @@ fun ArtistPieChart(
     if (totalTime == 0L) return
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f) // Very faint background track
 
     Row(
         modifier = modifier,
@@ -526,18 +533,28 @@ fun ArtistPieChart(
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
+                // Background Track
+                drawArc(
+                    color = trackColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(width = 6.dp.toPx()) // Slightly thicker
+                )
+                // Foreground Glowing Ring
                 drawArc(
                     brush = Brush.sweepGradient(listOf(primaryColor, secondaryColor, primaryColor)),
                     startAngle = -90f,
                     sweepAngle = 260f,
                     useCenter = false,
-                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(140.dp)
+                    .size(136.dp) // Adjusted slightly to give breathing room from the ring
+                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = primaryColor) // Inner shadow effect
                     .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -564,8 +581,9 @@ fun ArtistPieChart(
         Column {
             Text(
                 text = "Total Time Listened",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary // Touched up for visual hierarchy
             )
             val timeString = makeTimeString(totalTime)
             Text(
@@ -608,47 +626,63 @@ fun StatsHighlightsSection(
 ) {
     if (topArtist == null && topSong == null) return
 
+    // Premium Gradient Background for Card
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(24.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)), // Subtle elevation
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent), // Set to transparent to use gradient box
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     ) {
-        Column(
+        Box(
             modifier = Modifier
+                .background(gradientBrush)
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Text(
-                text = "Your Music Highlights",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-
-            if (topArtist != null) {
-                StatsHighlightItemRow(
-                    label = "Top Artist",
-                    mainText = topArtist.artist.name,
-                    subText = "${topArtist.songCount} songs • ${makeTimeString(topArtist.timeListened?.toLong())}",
-                    imageUrl = topArtist.artist.thumbnailUrl,
-                    onClick = { navController.navigate("artist/${topArtist.id}") }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp), // Increased padding slightly for premium feel
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                Text(
+                    text = "Your Music Highlights",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(bottom = 2.dp)
                 )
-            }
 
-            if (topSong != null && topSongEntity != null) {
-                StatsHighlightItemRow(
-                    label = "Top Song",
-                    mainText = topSong.title,
-                    subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
-                    imageUrl = topSong.thumbnailUrl,
-                    onClick = { /* Handle click */ }
-                )
+                if (topArtist != null) {
+                    StatsHighlightItemRow(
+                        label = "Top Artist",
+                        mainText = topArtist.artist.name,
+                        subText = "${topArtist.songCount} songs • ${makeTimeString(topArtist.timeListened?.toLong())}",
+                        imageUrl = topArtist.artist.thumbnailUrl,
+                        onClick = { navController.navigate("artist/${topArtist.id}") }
+                    )
+                }
+
+                if (topSong != null && topSongEntity != null) {
+                    StatsHighlightItemRow(
+                        label = "Top Song",
+                        mainText = topSong.title,
+                        subText = "${topSong.songCountListened} plays • ${makeTimeString(topSong.timeListened)}",
+                        imageUrl = topSong.thumbnailUrl,
+                        onClick = { /* Handle click */ }
+                    )
+                }
             }
         }
     }
@@ -675,13 +709,15 @@ fun StatsHighlightItemRow(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(72.dp)
+                .shadow(elevation = 2.dp, shape = CircleShape) // Small shadow on images
                 .clip(CircleShape)
         )
         Column {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
             )
             Text(
                 text = mainText,
