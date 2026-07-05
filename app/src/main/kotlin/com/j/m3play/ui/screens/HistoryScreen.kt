@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V5     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V6     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -205,6 +205,10 @@ fun HistoryScreen(
     } else {
         allWrappedItems.isNotEmpty()
     }
+
+    // Dynamic padding logic: Calculates exact bottom boundary based on Mini-player & Nav Bar
+    val playerInsets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val dynamicBottomPadding = playerInsets.calculateBottomPadding() + 16.dp
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -427,12 +431,12 @@ fun HistoryScreen(
             }
         }
 
-        // Pill-Shaped Extended FAB with Text and Icon (Lifted higher)
+        // FAB completely dynamic now based on WindowInsets
         androidx.compose.animation.AnimatedVisibility(
             visible = isFabVisible,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 100.dp), // Lifted to 100.dp to avoid mini-player overlap
+                .padding(end = 16.dp, bottom = dynamicBottomPadding),
             enter = androidx.compose.animation.scaleIn(),
             exit = androidx.compose.animation.scaleOut()
         ) {
