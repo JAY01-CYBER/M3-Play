@@ -100,8 +100,10 @@ import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.joinByBullet
 import com.j.m3play.utils.makeTimeString
 import com.j.m3play.utils.rememberPreference
+import com.j.m3play.viewmodels.StatsViewModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -171,7 +173,6 @@ fun StatsScreen(
 
     val (disableBlur) = rememberPreference(DisableBlurKey, true)
     
-    // Enhanced Premium Colors for Background
     val color1 = MaterialTheme.colorScheme.primary
     val color2 = MaterialTheme.colorScheme.secondary
     val color3 = MaterialTheme.colorScheme.tertiary
@@ -180,12 +181,11 @@ fun StatsScreen(
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Modern Background
         if (!disableBlur) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxSize(0.85f) // Extended slightly for immersive feel
+                    .fillMaxSize(0.85f)
                     .align(Alignment.TopCenter)
                     .zIndex(-1f)
                     .drawWithCache {
@@ -223,7 +223,6 @@ fun StatsScreen(
                 LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
-            // Segmented Chips Options (Top)
             item {
                 ChoiceChipsRow(
                     chips = when (selectedOption) {
@@ -257,7 +256,6 @@ fun StatsScreen(
                 )
             }
 
-            // HighLights Section - Unified into a single Premium Card
             item {
                 StatsHighlightsSection(
                     topArtist = mostPlayedArtists.firstOrNull(),
@@ -267,7 +265,6 @@ fun StatsScreen(
                 )
             }
 
-            // Artist Pie Chart with Neon Arc
             item(key = "artistPieChart") {
                 if (mostPlayedArtists.isNotEmpty()) {
                     Spacer(modifier = Modifier.size(24.dp))
@@ -399,7 +396,7 @@ fun StatsScreen(
                             LocalAlbumsGrid(
                                 title = "${index + 1}. ${album.album.title}",
                                 subtitle = joinByBullet(
-                                    pluralStringResource(R.plurals.n_time, album.songCountListened!!, album.songCountListened),
+                                    pluralStringResource(R.plurals.n_time, album.songCountListened ?: 0, album.songCountListened ?: 0),
                                     makeTimeString(album.timeListened?.toLong()),
                                 ),
                                 thumbnailUrl = album.album.thumbnailUrl,
@@ -428,7 +425,6 @@ fun StatsScreen(
             }
         }
 
-        // Shuffle FAB
         if (mostPlayedSongs.isNotEmpty()) {
             HideOnScrollFAB(
                 visible = true,
@@ -445,7 +441,6 @@ fun StatsScreen(
             )
         }
 
-        // Top App Bar
         TopAppBar(
             title = { Text(stringResource(R.string.stats)) },
             navigationIcon = {
@@ -482,23 +477,20 @@ fun ArtistPieChart(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Neon Progress Ring + Pie Chart
         Box(
             modifier = Modifier.size(160.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Neon Arc Indicator
             Canvas(modifier = Modifier.fillMaxSize()) {
                 drawArc(
                     brush = Brush.sweepGradient(listOf(primaryColor, secondaryColor, primaryColor)),
                     startAngle = -90f,
-                    sweepAngle = 260f, // Partial wrap for aesthetic look
+                    sweepAngle = 260f,
                     useCenter = false,
                     style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 )
             }
 
-            // Inner Pie (Scaled down slightly to fit inside the ring)
             Box(
                 modifier = Modifier
                     .size(140.dp)
@@ -525,14 +517,12 @@ fun ArtistPieChart(
             }
         }
 
-        // Big Typography for Stats
         Column {
             Text(
                 text = "Total Time Listened",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
-            // Splitting hours/mins for typographic hierarchy
             val timeString = makeTimeString(totalTime)
             Text(
                 text = timeString,
@@ -574,14 +564,13 @@ fun StatsHighlightsSection(
 ) {
     if (topArtist == null && topSong == null) return
 
-    // Unified Premium Card
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f) // Glassmorphism base
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     ) {
