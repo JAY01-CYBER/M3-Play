@@ -203,7 +203,7 @@ data class SearchSummaryPage(
                     ?.text
                     ?.runs
                     ?.splitBySeparator()
-                    ?: return null
+                    ?: emptyList()
             val thirdLine =
                 renderer.flexColumns
                     .getOrNull(2)
@@ -213,41 +213,37 @@ data class SearchSummaryPage(
                     ?.splitBySeparator()
                     ?: emptyList()
             val listRun = (secondaryLine + thirdLine).clean()
+
+            //  ROBUST ID EXTRACTION
+            val videoId = renderer.playlistItemData?.videoId
+                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.navigationEndpoint?.watchEndpoint?.videoId
+
             return when {
-                renderer.isSong -> {
+                videoId != null -> {
+                    val title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null
+                    
+                    val parsedArtists = listRun.getOrNull(0)?.oddElements()?.map {
+                        Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
+                    }.orEmpty()
+                    
+                    val finalArtists = if (parsedArtists.isNotEmpty()) parsedArtists else {
+                        val rawText = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.joinToString("") { it.text } ?: "Unknown"
+                        listOf(Artist(name = rawText, id = null))
+                    }
+
                     SongItem(
-                        id = renderer.playlistItemData?.videoId ?: return null,
-                        title =
-                            renderer.flexColumns
-                                .firstOrNull()
-                                ?.musicResponsiveListItemFlexColumnRenderer
-                                ?.text
-                                ?.runs
-                                ?.firstOrNull()
-                                ?.text ?: return null,
-                        artists = listRun.getOrNull(0)?.oddElements()?.map {
-                            Artist(
-                                name = it.text,
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId
-                            )
-                        } ?: return null,
+                        id = videoId,
+                        title = title,
+                        artists = finalArtists,
                         album = listRun.getOrNull(1)?.firstOrNull()?.takeIf { it.navigationEndpoint?.browseEndpoint != null }?.let {
-                            Album(
-                                name = it.text,
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId!!
-                            )
+                            Album(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId!!)
                         },
-                        duration =
-                            secondaryLine
-                                .lastOrNull()
-                                ?.firstOrNull()
-                                ?.text
-                                ?.parseTime(),
-                        thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
-                        explicit =
-                            renderer.badges?.find {
-                                it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
-                            } != null,
+                        duration = secondaryLine.lastOrNull()?.firstOrNull()?.text?.parseTime(),
+                        thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() 
+                            ?: renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url ?: return null,
+                        explicit = renderer.badges?.find { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } != null,
                     )
                 }
 
