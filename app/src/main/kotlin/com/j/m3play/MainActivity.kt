@@ -97,6 +97,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState // FIXED IMPORT
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -121,6 +122,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -146,7 +148,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.window.core.layout.WindowSizeClass
-import androidx.compose.runtime.collectAsState
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
@@ -1173,28 +1174,38 @@ class MainActivity : ComponentActivity() {
                                         }
                                         val shouldShowBlurBackground = remember(navBackStackEntry) { shouldUseFloatingTopBar }
                                         val surfaceColor = MaterialTheme.colorScheme.surface
-                                        val currentScrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior
-
+                                        
                                         Box(
-                                            modifier = Modifier.offset {
-                                                IntOffset(x = 0, y = currentScrollBehavior.state.heightOffset.toInt())
-                                            }
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
                                             if (shouldShowBlurBackground) {
+                                                val gradientColors = if (pureBlack) {
+                                                    listOf(
+                                                        Color.Black,
+                                                        Color.Black.copy(alpha = 0.98f),
+                                                        Color.Black.copy(alpha = 0.90f),
+                                                        Color.Black.copy(alpha = 0.70f),
+                                                        Color.Black.copy(alpha = 0.40f),
+                                                        Color.Black.copy(alpha = 0.10f),
+                                                        Color.Transparent
+                                                    )
+                                                } else {
+                                                    listOf(
+                                                        surfaceColor,
+                                                        surfaceColor.copy(alpha = 0.98f),
+                                                        surfaceColor.copy(alpha = 0.90f),
+                                                        surfaceColor.copy(alpha = 0.70f),
+                                                        surfaceColor.copy(alpha = 0.40f),
+                                                        surfaceColor.copy(alpha = 0.10f),
+                                                        Color.Transparent
+                                                    )
+                                                }
+
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) { WindowInsets.systemBars.getTop(LocalDensity.current).toDp() })
-                                                        .background(
-                                                            Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    surfaceColor.copy(alpha = 0.95f),
-                                                                    surfaceColor.copy(alpha = 0.85f),
-                                                                    surfaceColor.copy(alpha = 0.6f),
-                                                                    Color.Transparent
-                                                                )
-                                                            )
-                                                        )
+                                                        .height(AppBarHeight + with(LocalDensity.current) { WindowInsets.systemBars.getTop(LocalDensity.current).toDp() } + 48.dp)
+                                                        .background(Brush.verticalGradient(colors = gradientColors))
                                                 )
                                             }
 
