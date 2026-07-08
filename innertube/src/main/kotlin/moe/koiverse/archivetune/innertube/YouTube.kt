@@ -5,67 +5,67 @@
  * Signature: M3PLAY::DATA::CORE::V1
  */
 
-package com.j.m3play.innertube
+package moe.koiverse.archivetune.innertube
 
-import com.j.m3play.innertube.models.AccountInfo
-import com.j.m3play.innertube.models.YTItem
-import com.j.m3play.innertube.models.AlbumItem
-import com.j.m3play.innertube.models.Artist
-import com.j.m3play.innertube.models.ArtistItem
-import com.j.m3play.innertube.models.BrowseEndpoint
-import com.j.m3play.innertube.models.GridRenderer
-import com.j.m3play.innertube.models.MediaInfo
-import com.j.m3play.innertube.models.MusicResponsiveListItemRenderer
-import com.j.m3play.innertube.models.MusicTwoRowItemRenderer
-import com.j.m3play.innertube.models.MusicCarouselShelfRenderer
-import com.j.m3play.innertube.models.MusicShelfRenderer
-import com.j.m3play.innertube.models.PlaylistItem
-import com.j.m3play.innertube.models.SearchSuggestions
-import com.j.m3play.innertube.models.Run
-import com.j.m3play.innertube.models.Runs
-import com.j.m3play.innertube.models.SongItem
-import com.j.m3play.innertube.models.WatchEndpoint
-import com.j.m3play.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
-import com.j.m3play.innertube.models.YouTubeClient
-import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB
-import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import com.j.m3play.innertube.models.YouTubeLocale
-import com.j.m3play.innertube.models.getContinuation
-import com.j.m3play.innertube.models.getItems
-import com.j.m3play.innertube.models.oddElements
-import com.j.m3play.innertube.models.response.AccountMenuResponse
-import com.j.m3play.innertube.models.response.BrowseResponse
-import com.j.m3play.innertube.models.response.CreatePlaylistResponse
-import com.j.m3play.innertube.models.response.GetQueueResponse
-import com.j.m3play.innertube.models.response.GetSearchSuggestionsResponse
-import com.j.m3play.innertube.models.response.GetTranscriptResponse
-import com.j.m3play.innertube.models.response.NextResponse
-import com.j.m3play.innertube.models.response.PlayerResponse
-import com.j.m3play.innertube.models.response.SearchResponse
-import com.j.m3play.innertube.pages.AlbumPage
-import com.j.m3play.innertube.pages.ArtistItemsContinuationPage
-import com.j.m3play.innertube.pages.ArtistItemsPage
-import com.j.m3play.innertube.pages.ArtistPage
-import com.j.m3play.innertube.pages.ChartsPage
-import com.j.m3play.innertube.pages.BrowseResult
-import com.j.m3play.innertube.pages.ExplorePage
-import com.j.m3play.innertube.pages.HistoryPage
-import com.j.m3play.innertube.pages.HomePage
-import com.j.m3play.innertube.pages.LibraryContinuationPage
-import com.j.m3play.innertube.pages.LibraryPage
-import com.j.m3play.innertube.pages.MoodAndGenres
-import com.j.m3play.innertube.pages.NewReleaseAlbumPage
-import com.j.m3play.innertube.pages.NextPage
-import com.j.m3play.innertube.pages.NextResult
-import com.j.m3play.innertube.pages.PlaylistContinuationPage
-import com.j.m3play.innertube.pages.PlaylistPage
-import com.j.m3play.innertube.pages.RelatedPage
-import com.j.m3play.innertube.pages.SearchPage
-import com.j.m3play.innertube.pages.SearchResult
-import com.j.m3play.innertube.pages.SearchSuggestionPage
-import com.j.m3play.innertube.pages.SearchSummary
-import com.j.m3play.innertube.pages.SearchSummaryPage
-import com.j.m3play.innertube.utils.PoTokenGenerator
+import moe.koiverse.archivetune.innertube.models.AccountInfo
+import moe.koiverse.archivetune.innertube.models.YTItem
+import moe.koiverse.archivetune.innertube.models.AlbumItem
+import moe.koiverse.archivetune.innertube.models.Artist
+import moe.koiverse.archivetune.innertube.models.ArtistItem
+import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
+import moe.koiverse.archivetune.innertube.models.GridRenderer
+import moe.koiverse.archivetune.innertube.models.MediaInfo
+import moe.koiverse.archivetune.innertube.models.MusicResponsiveListItemRenderer
+import moe.koiverse.archivetune.innertube.models.MusicTwoRowItemRenderer
+import moe.koiverse.archivetune.innertube.models.MusicCarouselShelfRenderer
+import moe.koiverse.archivetune.innertube.models.MusicShelfRenderer
+import moe.koiverse.archivetune.innertube.models.PlaylistItem
+import moe.koiverse.archivetune.innertube.models.SearchSuggestions
+import moe.koiverse.archivetune.innertube.models.Run
+import moe.koiverse.archivetune.innertube.models.Runs
+import moe.koiverse.archivetune.innertube.models.SongItem
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint
+import moe.koiverse.archivetune.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import moe.koiverse.archivetune.innertube.models.YouTubeClient
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
+import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import moe.koiverse.archivetune.innertube.models.YouTubeLocale
+import moe.koiverse.archivetune.innertube.models.getContinuation
+import moe.koiverse.archivetune.innertube.models.getItems
+import moe.koiverse.archivetune.innertube.models.oddElements
+import moe.koiverse.archivetune.innertube.models.response.AccountMenuResponse
+import moe.koiverse.archivetune.innertube.models.response.BrowseResponse
+import moe.koiverse.archivetune.innertube.models.response.CreatePlaylistResponse
+import moe.koiverse.archivetune.innertube.models.response.GetQueueResponse
+import moe.koiverse.archivetune.innertube.models.response.GetSearchSuggestionsResponse
+import moe.koiverse.archivetune.innertube.models.response.GetTranscriptResponse
+import moe.koiverse.archivetune.innertube.models.response.NextResponse
+import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
+import moe.koiverse.archivetune.innertube.models.response.SearchResponse
+import moe.koiverse.archivetune.innertube.pages.AlbumPage
+import moe.koiverse.archivetune.innertube.pages.ArtistItemsContinuationPage
+import moe.koiverse.archivetune.innertube.pages.ArtistItemsPage
+import moe.koiverse.archivetune.innertube.pages.ArtistPage
+import moe.koiverse.archivetune.innertube.pages.ChartsPage
+import moe.koiverse.archivetune.innertube.pages.BrowseResult
+import moe.koiverse.archivetune.innertube.pages.ExplorePage
+import moe.koiverse.archivetune.innertube.pages.HistoryPage
+import moe.koiverse.archivetune.innertube.pages.HomePage
+import moe.koiverse.archivetune.innertube.pages.LibraryContinuationPage
+import moe.koiverse.archivetune.innertube.pages.LibraryPage
+import moe.koiverse.archivetune.innertube.pages.MoodAndGenres
+import moe.koiverse.archivetune.innertube.pages.NewReleaseAlbumPage
+import moe.koiverse.archivetune.innertube.pages.NextPage
+import moe.koiverse.archivetune.innertube.pages.NextResult
+import moe.koiverse.archivetune.innertube.pages.PlaylistContinuationPage
+import moe.koiverse.archivetune.innertube.pages.PlaylistPage
+import moe.koiverse.archivetune.innertube.pages.RelatedPage
+import moe.koiverse.archivetune.innertube.pages.SearchPage
+import moe.koiverse.archivetune.innertube.pages.SearchResult
+import moe.koiverse.archivetune.innertube.pages.SearchSuggestionPage
+import moe.koiverse.archivetune.innertube.pages.SearchSummary
+import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
+import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 
@@ -198,7 +198,7 @@ object YouTube {
                         .ifEmpty { return@mapNotNull null }
                 )
             } else {
-                // 🔥 THE MAGIC FIX: Extracting shelf from inside itemSectionRenderer!
+                // 🔥 THE MAGIC FIX: Extracting shelf from inside itemSectionRenderer if nested!
                 val shelf = content.musicShelfRenderer 
                     ?: content.itemSectionRenderer?.contents?.firstOrNull()?.musicShelfRenderer
                     
@@ -1007,4 +1007,4 @@ object YouTube {
         if (subscribe)
             innerTube.subscribeChannel(WEB_REMIX, channelId)
         else
-            Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+            innerNormally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
