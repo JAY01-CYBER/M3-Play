@@ -179,127 +179,35 @@ object YouTube {
         )
     }
 
-    // --- SUPER BULLETPROOF PARSER ---
-    // Yeh kisi bhi strict condition ki wajah se crash nahi hoga.
-    private fun robustParseItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
-        try {
-            // 1. Existing robust parsers try karega
-            try { SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer)?.let { return it } } catch (e: Exception) {}
-            try { SearchPage.toYTItem(renderer)?.let { return it } } catch (e: Exception) {}
-            
-            // 2. Agar dono fail ho gaye, toh data jabardasti safely extract karega
-            val titleRuns = renderer.flexColumns?.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
-            val title = titleRuns?.joinToString("") { it.text } ?: "Unknown Title"
-            
-            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() 
-                ?: renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url 
-                ?: ""
-                
-            val secRuns = renderer.flexColumns?.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
-            val secText = secRuns?.joinToString("") { it.text } ?: "Unknown"
-            
-            val explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
-
-            // Video ID extraction
-            val videoId = renderer.playlistItemData?.videoId 
-                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
-                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
-                ?: renderer.menu?.menuRenderer?.items?.firstNotNullOfOrNull { it.menuNavigationItemRenderer?.navigationEndpoint?.watchEndpoint?.videoId }
-                
-            if (videoId != null) {
-                return SongItem(id = videoId, title = title, artists = listOf(Artist(name = secText, id = null)), thumbnail = thumbnail, explicit = explicit)
-            }
-            
-            // Browse ID extraction (Artists, Albums, Playlists ke liye)
-            val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId
-                ?: renderer.menu?.menuRenderer?.items?.firstNotNullOfOrNull { it.menuNavigationItemRenderer?.navigationEndpoint?.browseEndpoint?.browseId }
-                
-            if (browseId != null) {
-                if (browseId.startsWith("UC")) {
-                    return ArtistItem(id = browseId, title = title, thumbnail = thumbnail, shuffleEndpoint = null, radioEndpoint = null)
-                } else if (browseId.startsWith("MPRE") || browseId.startsWith("FEmusic")) {
-                    val pId = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId ?: ""
-                    return AlbumItem(browseId = browseId, playlistId = pId, title = title, artists = listOf(Artist(secText, null)), year = null, thumbnail = thumbnail, explicit = explicit)
-                } else {
-                    return PlaylistItem(id = browseId.removePrefix("VL"), title = title, author = Artist(secText, null), songCountText = null, thumbnail = thumbnail, playEndpoint = null, shuffleEndpoint = null, radioEndpoint = null, isEditable = false)
-                }
-            }
-            
-            // Aakhiri koshish Playlist ID ke liye
-            val playlistId = renderer.navigationEndpoint?.watchPlaylistEndpoint?.playlistId
-                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId
-            if (playlistId != null) {
-                return PlaylistItem(id = playlistId, title = title, author = Artist(secText, null), songCountText = null, thumbnail = thumbnail, playEndpoint = null, shuffleEndpoint = null, radioEndpoint = null, isEditable = false)
-            }
-
-            return null
-        } catch (e: Exception) {
-            return null
-        }
-    }
-
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
-        
-        val parsedSummaries = mutableListOf<SearchSummary>()
-        
-        response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.forEach { content ->
-            
-            try {
-                // 1. TOP RESULT CARD
-                if (content.musicCardShelfRenderer != null) {
-                    val shelf = content.musicCardShelfRenderer
-                    val topItem = SearchSummaryPage.fromMusicCardShelfRenderer(shelf)
-                    
-                    val moreItems = shelf.contents
-                        ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                        ?.mapNotNull { robustParseItem(it) }
-                        .orEmpty()
-                        
-                    val allCardItems = (listOfNotNull(topItem) + moreItems).distinctBy { it.id }
-                    if (allCardItems.isNotEmpty()) {
-                        parsedSummaries.add(SearchSummary(
-                            title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                            items = allCardItems
-                        ))
-                    }
-                } 
-                // 2. NORMAL VERTICAL LIST SHELVES (Songs, Artists)
-                else if (content.musicShelfRenderer != null) {
-                    val shelf = content.musicShelfRenderer
-                    val title = shelf.title?.runs?.firstOrNull()?.text ?: "Other"
-                    
-                    val items = shelf.contents?.getItems()
-                        ?.mapNotNull { robustParseItem(it) }
-                        ?.distinctBy { it.id }
-                        .orEmpty()
-                        
-                    if (items.isNotEmpty()) {
-                        parsedSummaries.add(SearchSummary(title = title, items = items))
-                    }
-                } 
-                // 3. CAROUSEL SHELVES (Albums/Artists sideways scroll list)
-                else if (content.musicCarouselShelfRenderer != null) {
-                    val shelf = content.musicCarouselShelfRenderer
-                    val title = shelf.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: "Other"
-                    
-                    val items = shelf.contents
-                        ?.mapNotNull { it.musicTwoRowItemRenderer }
-                        ?.mapNotNull { RelatedPage.fromMusicTwoRowItemRenderer(it) }
-                        ?.distinctBy { it.id }
-                        .orEmpty()
-                        
-                    if (items.isNotEmpty()) {
-                        parsedSummaries.add(SearchSummary(title = title, items = items))
-                    }
-                }
-            } catch (e: Exception) {
-                // Ignore parsing errors for individual shelves and continue
-            }
-        }
-        
-        SearchSummaryPage(summaries = parsedSummaries)
+        SearchSummaryPage(
+            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
+                if (it.musicCardShelfRenderer != null)
+                    SearchSummary(
+                        title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
+                            .plus(
+                                it.musicCardShelfRenderer.contents
+                                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                                    .orEmpty()
+                            )
+                            .distinctBy { it.id }
+                            .ifEmpty { null } ?: return@mapNotNull null
+                    )
+                else
+                    SearchSummary(
+                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer?.contents?.getItems()
+                            ?.mapNotNull {
+                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                            }
+                            ?.distinctBy { it.id }
+                            ?.ifEmpty { null } ?: return@mapNotNull null
+                    )
+            }!!
+        )
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
