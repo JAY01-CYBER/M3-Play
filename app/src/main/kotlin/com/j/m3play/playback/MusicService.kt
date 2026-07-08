@@ -1534,7 +1534,7 @@ class MusicService :
         }
     }
 
-    fun playQueue(
+            fun playQueue(
         queue: Queue,
         playWhenReady: Boolean = true,
     ) {
@@ -2745,7 +2745,7 @@ class MusicService :
                                             message = event.message,
                                             recoverable = true,
                                         )
-                                }
+                                    }
                                 ioScope.launch(SilentHandler) { stopTogetherInternal() }
                             }
 
@@ -3503,6 +3503,9 @@ class MusicService :
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
+    // 👇 DISCORD RPC FIX: Naya gaana aate hi timer reset kar do 👇
+    lastPresenceUpdateTime = 0L
+
     clearStreamRefreshGuards(
         mediaItem?.mediaId
             ?.trim()
@@ -3787,7 +3790,7 @@ class MusicService :
 }
 
 
-    override fun onEvents(player: Player, events: Player.Events) {
+        override fun onEvents(player: Player, events: Player.Events) {
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             if (crossfadeAudio?.isCrossfading() != true) {
                 currentMediaMetadata.value = player.currentMetadata
@@ -5024,4 +5027,6 @@ class MusicService :
     }
 }
 
+    
+    
     
