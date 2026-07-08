@@ -28,19 +28,37 @@ object SearchPage {
     fun toYTItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         val secondaryLine = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.splitBySeparator() ?: emptyList()
         
+        
+        val videoId = renderer.playlistItemData?.videoId
+            ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+            ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+            ?: renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.navigationEndpoint?.watchEndpoint?.videoId
+
         return when {
-            renderer.isSong -> {
+            // Agar videoId mil gaya, toh usko jabardasti SongItem bana do (isSong pe depend mat raho)
+            videoId != null -> {
+                val title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null
+                
+                // Artist Fallback logic
+                val parsedArtists = secondaryLine.firstOrNull()?.oddElements()?.map {
+                    Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
+                }.orEmpty()
+                
+                val finalArtists = if (parsedArtists.isNotEmpty()) parsedArtists else {
+                    val rawText = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.joinToString("") { it.text } ?: "Unknown Artist"
+                    listOf(Artist(name = rawText, id = null))
+                }
+
                 SongItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
-                    title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null,
-                    artists = secondaryLine.firstOrNull()?.oddElements()?.map {
-                        Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)
-                    }.orEmpty(),
+                    id = videoId,
+                    title = title,
+                    artists = finalArtists,
                     album = secondaryLine.getOrNull(1)?.firstOrNull()?.let {
                         Album(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId ?: "")
                     },
                     duration = secondaryLine.lastOrNull()?.firstOrNull()?.text?.parseTime(),
-                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() 
+                        ?: renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url ?: return null,
                     explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true,
                     endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint
                 )
