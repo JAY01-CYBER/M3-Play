@@ -39,6 +39,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -467,7 +470,10 @@ fun PremiumTopResultCard(
                         contentColor = MaterialTheme.colorScheme.surface
                     )
                 ) {
-                    Icon(painter = painterResource(R.drawable.play_arrow), contentDescription = "Play")
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow, 
+                        contentDescription = "Play"
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Play")
                 }
@@ -476,7 +482,10 @@ fun PremiumTopResultCard(
                     onClick = { /* Handle Save/Library logic */ },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(painter = painterResource(R.drawable.add), contentDescription = "Save")
+                    Icon(
+                        imageVector = Icons.Rounded.Add, 
+                        contentDescription = "Save"
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Save")
                 }
