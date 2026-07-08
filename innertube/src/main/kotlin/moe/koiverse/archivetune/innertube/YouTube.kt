@@ -179,76 +179,59 @@ object YouTube {
         )
     }
 
-    // --- BULLETPROOF ROBUST PARSER ---
-    // Ye function check karega ki agar purana parser (isSong, isAlbum) Videos ko null kar deta hai,
-    // toh ye manual ID check karke unhe forcibly SongItem/AlbumItem bana dega!
+    // --- SUPER BULLETPROOF PARSER ---
+    // Yeh kisi bhi strict condition ki wajah se crash nahi hoga.
     private fun robustParseItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         try {
-            // Pehle existing strict parsers try karo
-            SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer)?.let { return it }
-            SearchPage.toYTItem(renderer)?.let { return it }
+            // 1. Existing robust parsers try karega
+            try { SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer)?.let { return it } } catch (e: Exception) {}
+            try { SearchPage.toYTItem(renderer)?.let { return it } } catch (e: Exception) {}
             
-            // Agar wo fail ho gaye (jaise Video hone par), toh manual ID extraction use karo
+            // 2. Agar dono fail ho gaye, toh data jabardasti safely extract karega
+            val titleRuns = renderer.flexColumns?.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
+            val title = titleRuns?.joinToString("") { it.text } ?: "Unknown Title"
+            
+            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() 
+                ?: renderer.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url 
+                ?: ""
+                
+            val secRuns = renderer.flexColumns?.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
+            val secText = secRuns?.joinToString("") { it.text } ?: "Unknown"
+            
+            val explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
+
+            // Video ID extraction
             val videoId = renderer.playlistItemData?.videoId 
                 ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                 ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
-            
-            val title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null
-            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null
-            
-            val secondaryRuns = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
-            val secondaryText = secondaryRuns?.mapNotNull { it.text }?.joinToString("") ?: "Unknown"
-
-            // 1. Agar koi video ID mil gaya, use SongItem maan lo (taaki play ho sake)
+                ?: renderer.menu?.menuRenderer?.items?.firstNotNullOfOrNull { it.menuNavigationItemRenderer?.navigationEndpoint?.watchEndpoint?.videoId }
+                
             if (videoId != null) {
-                return SongItem(
-                    id = videoId,
-                    title = title,
-                    artists = listOf(Artist(name = secondaryText, id = null)),
-                    thumbnail = thumbnail,
-                    explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
-                )
+                return SongItem(id = videoId, title = title, artists = listOf(Artist(name = secText, id = null)), thumbnail = thumbnail, explicit = explicit)
             }
             
+            // Browse ID extraction (Artists, Albums, Playlists ke liye)
             val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId
+                ?: renderer.menu?.menuRenderer?.items?.firstNotNullOfOrNull { it.menuNavigationItemRenderer?.navigationEndpoint?.browseEndpoint?.browseId }
+                
             if (browseId != null) {
-                // 2. Artists
                 if (browseId.startsWith("UC")) {
-                    return ArtistItem(
-                        id = browseId,
-                        title = title,
-                        thumbnail = thumbnail,
-                        shuffleEndpoint = null,
-                        radioEndpoint = null
-                    )
-                } 
-                // 3. Albums
-                else if (browseId.startsWith("MPRE")) {
-                    return AlbumItem(
-                        browseId = browseId,
-                        playlistId = renderer.navigationEndpoint?.watchPlaylistEndpoint?.playlistId ?: "",
-                        title = title,
-                        artists = listOf(Artist(name = secondaryText, id = null)),
-                        year = null,
-                        thumbnail = thumbnail,
-                        explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
-                    )
-                } 
-                // 4. Playlists
-                else {
-                    return PlaylistItem(
-                        id = browseId.removePrefix("VL"),
-                        title = title,
-                        author = Artist(name = secondaryText, id = null),
-                        songCountText = null,
-                        thumbnail = thumbnail,
-                        playEndpoint = null,
-                        shuffleEndpoint = null,
-                        radioEndpoint = null,
-                        isEditable = false
-                    )
+                    return ArtistItem(id = browseId, title = title, thumbnail = thumbnail, shuffleEndpoint = null, radioEndpoint = null)
+                } else if (browseId.startsWith("MPRE") || browseId.startsWith("FEmusic")) {
+                    val pId = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId ?: ""
+                    return AlbumItem(browseId = browseId, playlistId = pId, title = title, artists = listOf(Artist(secText, null)), year = null, thumbnail = thumbnail, explicit = explicit)
+                } else {
+                    return PlaylistItem(id = browseId.removePrefix("VL"), title = title, author = Artist(secText, null), songCountText = null, thumbnail = thumbnail, playEndpoint = null, shuffleEndpoint = null, radioEndpoint = null, isEditable = false)
                 }
             }
+            
+            // Aakhiri koshish Playlist ID ke liye
+            val playlistId = renderer.navigationEndpoint?.watchPlaylistEndpoint?.playlistId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId
+            if (playlistId != null) {
+                return PlaylistItem(id = playlistId, title = title, author = Artist(secText, null), songCountText = null, thumbnail = thumbnail, playEndpoint = null, shuffleEndpoint = null, radioEndpoint = null, isEditable = false)
+            }
+
             return null
         } catch (e: Exception) {
             return null
@@ -258,48 +241,63 @@ object YouTube {
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         
-        val parsedSummaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
+        val parsedSummaries = mutableListOf<SearchSummary>()
+        
+        response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
+            ?.tabRenderer?.content?.sectionListRenderer?.contents?.forEach { content ->
             
             try {
+                // 1. TOP RESULT CARD
                 if (content.musicCardShelfRenderer != null) {
                     val shelf = content.musicCardShelfRenderer
                     val topItem = SearchSummaryPage.fromMusicCardShelfRenderer(shelf)
                     
                     val moreItems = shelf.contents
                         ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                        ?.mapNotNull { robustParseItem(it) } // <--- Naya Bulletproof Parser laga diya!
+                        ?.mapNotNull { robustParseItem(it) }
                         .orEmpty()
                         
                     val allCardItems = (listOfNotNull(topItem) + moreItems).distinctBy { it.id }
-                    if (allCardItems.isEmpty()) return@mapNotNull null
-                    
-                    SearchSummary(
-                        title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                        items = allCardItems
-                    )
-                } else if (content.musicShelfRenderer != null) {
+                    if (allCardItems.isNotEmpty()) {
+                        parsedSummaries.add(SearchSummary(
+                            title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                            items = allCardItems
+                        ))
+                    }
+                } 
+                // 2. NORMAL VERTICAL LIST SHELVES (Songs, Artists)
+                else if (content.musicShelfRenderer != null) {
                     val shelf = content.musicShelfRenderer
                     val title = shelf.title?.runs?.firstOrNull()?.text ?: "Other"
                     
                     val items = shelf.contents?.getItems()
-                        ?.mapNotNull { robustParseItem(it) } // <--- Naya Bulletproof Parser yahan bhi laga diya!
+                        ?.mapNotNull { robustParseItem(it) }
                         ?.distinctBy { it.id }
                         .orEmpty()
                         
-                    if (items.isEmpty()) return@mapNotNull null
+                    if (items.isNotEmpty()) {
+                        parsedSummaries.add(SearchSummary(title = title, items = items))
+                    }
+                } 
+                // 3. CAROUSEL SHELVES (Albums/Artists sideways scroll list)
+                else if (content.musicCarouselShelfRenderer != null) {
+                    val shelf = content.musicCarouselShelfRenderer
+                    val title = shelf.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text ?: "Other"
                     
-                    SearchSummary(
-                        title = title,
-                        items = items
-                    )
-                } else {
-                    null
+                    val items = shelf.contents
+                        ?.mapNotNull { it.musicTwoRowItemRenderer }
+                        ?.mapNotNull { RelatedPage.fromMusicTwoRowItemRenderer(it) }
+                        ?.distinctBy { it.id }
+                        .orEmpty()
+                        
+                    if (items.isNotEmpty()) {
+                        parsedSummaries.add(SearchSummary(title = title, items = items))
+                    }
                 }
             } catch (e: Exception) {
-                null 
+                // Ignore parsing errors for individual shelves and continue
             }
-        }.orEmpty()
+        }
         
         SearchSummaryPage(summaries = parsedSummaries)
     }
