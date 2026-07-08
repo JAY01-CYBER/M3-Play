@@ -179,39 +179,73 @@ object YouTube {
         )
     }
 
+    // --- BULLETPROOF SEARCH SUMMARY PARSER ---
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
-        SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
+        
+        val parsedSummaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
+            ?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
+            
+            try {
+                // 1. TOP RESULT CARD
                 if (content.musicCardShelfRenderer != null) {
+                    val shelf = content.musicCardShelfRenderer
+                    val topItem = SearchSummaryPage.fromMusicCardShelfRenderer(shelf)
+                    
+                    val moreItems = shelf.contents
+                        ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                        ?.mapNotNull { renderer ->
+                            try {
+                                // Try original strict parser first, fallback to robust SearchPage parser
+                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer) 
+                                    ?: SearchPage.toYTItem(renderer)
+                            } catch (e: Exception) { null }
+                        }
+                        .orEmpty()
+                        
+                    val allCardItems = (listOfNotNull(topItem) + moreItems).distinctBy { it.id }
+                    
+                    if (allCardItems.isEmpty()) return@mapNotNull null
+                    
                     SearchSummary(
-                        title = content.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(content.musicCardShelfRenderer))
-                            .plus(
-                                content.musicCardShelfRenderer.contents
-                                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    // Robust parser SearchPage.toYTItem use kiya gaya hai
-                                    ?.mapNotNull { SearchPage.toYTItem(it) }
-                                    .orEmpty()
-                            )
-                            .distinctBy { it.id }
-                            .ifEmpty { null } ?: return@mapNotNull null
+                        title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                        items = allCardItems
                     )
-                } else if (content.musicShelfRenderer != null) {
+                } 
+                // 2. NORMAL SECTIONS (Songs, Albums, Artists etc.)
+                else if (content.musicShelfRenderer != null) {
+                    val shelf = content.musicShelfRenderer
+                    val title = shelf.title?.runs?.firstOrNull()?.text ?: "Other"
+                    
+                    // .getItems() restore kar diya gaya hai (crucial for normal sections)
+                    val items = shelf.contents?.getItems()
+                        ?.mapNotNull { renderer ->
+                            try {
+                                // Try original strict parser first, fallback to robust SearchPage parser
+                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer) 
+                                    ?: SearchPage.toYTItem(renderer)
+                            } catch (e: Exception) { null }
+                        }
+                        ?.distinctBy { it.id }
+                        .orEmpty()
+                        
+                    if (items.isEmpty()) return@mapNotNull null
+                    
                     SearchSummary(
-                        title = content.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = content.musicShelfRenderer.contents
-                            ?.getItems()
-                            // Robust parser SearchPage.toYTItem use kiya gaya hai
-                            ?.mapNotNull { SearchPage.toYTItem(it) }
-                            ?.distinctBy { it.id }
-                            ?.ifEmpty { null } ?: return@mapNotNull null
+                        title = title,
+                        items = items
                     )
-                } else {
+                } 
+                else {
                     null
                 }
-            }.orEmpty()
-        )
+            } catch (e: Exception) {
+                // Agar ek section poori tarah crash ho jaye, toh use chhod do, par baaki load hone do
+                null 
+            }
+        }.orEmpty()
+        
+        SearchSummaryPage(summaries = parsedSummaries)
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
