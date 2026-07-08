@@ -195,8 +195,7 @@ data class SearchSummaryPage(
             }
         }
 
-        
-        // Ab yahan koi listRun/secondaryLine ka strict jhanjhat nahi hai.
+        // THE MAGIC FIX: Ab 'All' tab wahi smart parser use karega jo 'Songs' aur 'Videos' tab me chal raha hai!
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): YTItem? = SearchPage.toYTItem(renderer)
     }
 }
