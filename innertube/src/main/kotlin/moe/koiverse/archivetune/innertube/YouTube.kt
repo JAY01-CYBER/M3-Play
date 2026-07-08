@@ -190,7 +190,8 @@ object YouTube {
                             .plus(
                                 content.musicCardShelfRenderer.contents
                                     ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                                    // Robust parser SearchPage.toYTItem use kiya gaya hai
+                                    ?.mapNotNull { SearchPage.toYTItem(it) }
                                     .orEmpty()
                             )
                             .distinctBy { it.id }
@@ -200,8 +201,9 @@ object YouTube {
                     SearchSummary(
                         title = content.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
                         items = content.musicShelfRenderer.contents
-                            ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                            ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                            ?.getItems()
+                            // Robust parser SearchPage.toYTItem use kiya gaya hai
+                            ?.mapNotNull { SearchPage.toYTItem(it) }
                             ?.distinctBy { it.id }
                             ?.ifEmpty { null } ?: return@mapNotNull null
                     )
@@ -866,7 +868,6 @@ object YouTube {
 
     private fun convertToChartItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         return try {
-            // Extracted chart ID safe fallback
             val chartVideoId = renderer.playlistItemData?.videoId 
                 ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                 ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
