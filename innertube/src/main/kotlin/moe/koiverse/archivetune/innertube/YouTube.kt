@@ -179,7 +179,82 @@ object YouTube {
         )
     }
 
-    // --- BULLETPROOF SEARCH SUMMARY PARSER ---
+    // --- BULLETPROOF ROBUST PARSER ---
+    // Ye function check karega ki agar purana parser (isSong, isAlbum) Videos ko null kar deta hai,
+    // toh ye manual ID check karke unhe forcibly SongItem/AlbumItem bana dega!
+    private fun robustParseItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
+        try {
+            // Pehle existing strict parsers try karo
+            SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer)?.let { return it }
+            SearchPage.toYTItem(renderer)?.let { return it }
+            
+            // Agar wo fail ho gaye (jaise Video hone par), toh manual ID extraction use karo
+            val videoId = renderer.playlistItemData?.videoId 
+                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+            
+            val title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null
+            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null
+            
+            val secondaryRuns = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs
+            val secondaryText = secondaryRuns?.mapNotNull { it.text }?.joinToString("") ?: "Unknown"
+
+            // 1. Agar koi video ID mil gaya, use SongItem maan lo (taaki play ho sake)
+            if (videoId != null) {
+                return SongItem(
+                    id = videoId,
+                    title = title,
+                    artists = listOf(Artist(name = secondaryText, id = null)),
+                    thumbnail = thumbnail,
+                    explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
+                )
+            }
+            
+            val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId
+            if (browseId != null) {
+                // 2. Artists
+                if (browseId.startsWith("UC")) {
+                    return ArtistItem(
+                        id = browseId,
+                        title = title,
+                        thumbnail = thumbnail,
+                        shuffleEndpoint = null,
+                        radioEndpoint = null
+                    )
+                } 
+                // 3. Albums
+                else if (browseId.startsWith("MPRE")) {
+                    return AlbumItem(
+                        browseId = browseId,
+                        playlistId = renderer.navigationEndpoint?.watchPlaylistEndpoint?.playlistId ?: "",
+                        title = title,
+                        artists = listOf(Artist(name = secondaryText, id = null)),
+                        year = null,
+                        thumbnail = thumbnail,
+                        explicit = renderer.badges?.any { it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE" } == true
+                    )
+                } 
+                // 4. Playlists
+                else {
+                    return PlaylistItem(
+                        id = browseId.removePrefix("VL"),
+                        title = title,
+                        author = Artist(name = secondaryText, id = null),
+                        songCountText = null,
+                        thumbnail = thumbnail,
+                        playEndpoint = null,
+                        shuffleEndpoint = null,
+                        radioEndpoint = null,
+                        isEditable = false
+                    )
+                }
+            }
+            return null
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         
@@ -187,45 +262,28 @@ object YouTube {
             ?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
             
             try {
-                // 1. TOP RESULT CARD
                 if (content.musicCardShelfRenderer != null) {
                     val shelf = content.musicCardShelfRenderer
                     val topItem = SearchSummaryPage.fromMusicCardShelfRenderer(shelf)
                     
                     val moreItems = shelf.contents
                         ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                        ?.mapNotNull { renderer ->
-                            try {
-                                // Try original strict parser first, fallback to robust SearchPage parser
-                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer) 
-                                    ?: SearchPage.toYTItem(renderer)
-                            } catch (e: Exception) { null }
-                        }
+                        ?.mapNotNull { robustParseItem(it) } // <--- Naya Bulletproof Parser laga diya!
                         .orEmpty()
                         
                     val allCardItems = (listOfNotNull(topItem) + moreItems).distinctBy { it.id }
-                    
                     if (allCardItems.isEmpty()) return@mapNotNull null
                     
                     SearchSummary(
                         title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
                         items = allCardItems
                     )
-                } 
-                // 2. NORMAL SECTIONS (Songs, Albums, Artists etc.)
-                else if (content.musicShelfRenderer != null) {
+                } else if (content.musicShelfRenderer != null) {
                     val shelf = content.musicShelfRenderer
                     val title = shelf.title?.runs?.firstOrNull()?.text ?: "Other"
                     
-                    // .getItems() restore kar diya gaya hai (crucial for normal sections)
                     val items = shelf.contents?.getItems()
-                        ?.mapNotNull { renderer ->
-                            try {
-                                // Try original strict parser first, fallback to robust SearchPage parser
-                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(renderer) 
-                                    ?: SearchPage.toYTItem(renderer)
-                            } catch (e: Exception) { null }
-                        }
+                        ?.mapNotNull { robustParseItem(it) } // <--- Naya Bulletproof Parser yahan bhi laga diya!
                         ?.distinctBy { it.id }
                         .orEmpty()
                         
@@ -235,12 +293,10 @@ object YouTube {
                         title = title,
                         items = items
                     )
-                } 
-                else {
+                } else {
                     null
                 }
             } catch (e: Exception) {
-                // Agar ek section poori tarah crash ho jaye, toh use chhod do, par baaki load hone do
                 null 
             }
         }.orEmpty()
