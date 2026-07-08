@@ -5,67 +5,67 @@
  * Signature: M3PLAY::DATA::CORE::V1
  */
 
-package moe.koiverse.archivetune.innertube
+package com.j.m3play.innertube
 
-import moe.koiverse.archivetune.innertube.models.AccountInfo
-import moe.koiverse.archivetune.innertube.models.YTItem
-import moe.koiverse.archivetune.innertube.models.AlbumItem
-import moe.koiverse.archivetune.innertube.models.Artist
-import moe.koiverse.archivetune.innertube.models.ArtistItem
-import moe.koiverse.archivetune.innertube.models.BrowseEndpoint
-import moe.koiverse.archivetune.innertube.models.GridRenderer
-import moe.koiverse.archivetune.innertube.models.MediaInfo
-import moe.koiverse.archivetune.innertube.models.MusicResponsiveListItemRenderer
-import moe.koiverse.archivetune.innertube.models.MusicTwoRowItemRenderer
-import moe.koiverse.archivetune.innertube.models.MusicCarouselShelfRenderer
-import moe.koiverse.archivetune.innertube.models.MusicShelfRenderer
-import moe.koiverse.archivetune.innertube.models.PlaylistItem
-import moe.koiverse.archivetune.innertube.models.SearchSuggestions
-import moe.koiverse.archivetune.innertube.models.Run
-import moe.koiverse.archivetune.innertube.models.Runs
-import moe.koiverse.archivetune.innertube.models.SongItem
-import moe.koiverse.archivetune.innertube.models.WatchEndpoint
-import moe.koiverse.archivetune.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
-import moe.koiverse.archivetune.innertube.models.YouTubeClient
-import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB
-import moe.koiverse.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
-import moe.koiverse.archivetune.innertube.models.YouTubeLocale
-import moe.koiverse.archivetune.innertube.models.getContinuation
-import moe.koiverse.archivetune.innertube.models.getItems
-import moe.koiverse.archivetune.innertube.models.oddElements
-import moe.koiverse.archivetune.innertube.models.response.AccountMenuResponse
-import moe.koiverse.archivetune.innertube.models.response.BrowseResponse
-import moe.koiverse.archivetune.innertube.models.response.CreatePlaylistResponse
-import moe.koiverse.archivetune.innertube.models.response.GetQueueResponse
-import moe.koiverse.archivetune.innertube.models.response.GetSearchSuggestionsResponse
-import moe.koiverse.archivetune.innertube.models.response.GetTranscriptResponse
-import moe.koiverse.archivetune.innertube.models.response.NextResponse
-import moe.koiverse.archivetune.innertube.models.response.PlayerResponse
-import moe.koiverse.archivetune.innertube.models.response.SearchResponse
-import moe.koiverse.archivetune.innertube.pages.AlbumPage
-import moe.koiverse.archivetune.innertube.pages.ArtistItemsContinuationPage
-import moe.koiverse.archivetune.innertube.pages.ArtistItemsPage
-import moe.koiverse.archivetune.innertube.pages.ArtistPage
-import moe.koiverse.archivetune.innertube.pages.ChartsPage
-import moe.koiverse.archivetune.innertube.pages.BrowseResult
-import moe.koiverse.archivetune.innertube.pages.ExplorePage
-import moe.koiverse.archivetune.innertube.pages.HistoryPage
-import moe.koiverse.archivetune.innertube.pages.HomePage
-import moe.koiverse.archivetune.innertube.pages.LibraryContinuationPage
-import moe.koiverse.archivetune.innertube.pages.LibraryPage
-import moe.koiverse.archivetune.innertube.pages.MoodAndGenres
-import moe.koiverse.archivetune.innertube.pages.NewReleaseAlbumPage
-import moe.koiverse.archivetune.innertube.pages.NextPage
-import moe.koiverse.archivetune.innertube.pages.NextResult
-import moe.koiverse.archivetune.innertube.pages.PlaylistContinuationPage
-import moe.koiverse.archivetune.innertube.pages.PlaylistPage
-import moe.koiverse.archivetune.innertube.pages.RelatedPage
-import moe.koiverse.archivetune.innertube.pages.SearchPage
-import moe.koiverse.archivetune.innertube.pages.SearchResult
-import moe.koiverse.archivetune.innertube.pages.SearchSuggestionPage
-import moe.koiverse.archivetune.innertube.pages.SearchSummary
-import moe.koiverse.archivetune.innertube.pages.SearchSummaryPage
-import moe.koiverse.archivetune.innertube.utils.PoTokenGenerator
+import com.j.m3play.innertube.models.AccountInfo
+import com.j.m3play.innertube.models.YTItem
+import com.j.m3play.innertube.models.AlbumItem
+import com.j.m3play.innertube.models.Artist
+import com.j.m3play.innertube.models.ArtistItem
+import com.j.m3play.innertube.models.BrowseEndpoint
+import com.j.m3play.innertube.models.GridRenderer
+import com.j.m3play.innertube.models.MediaInfo
+import com.j.m3play.innertube.models.MusicResponsiveListItemRenderer
+import com.j.m3play.innertube.models.MusicTwoRowItemRenderer
+import com.j.m3play.innertube.models.MusicCarouselShelfRenderer
+import com.j.m3play.innertube.models.MusicShelfRenderer
+import com.j.m3play.innertube.models.PlaylistItem
+import com.j.m3play.innertube.models.SearchSuggestions
+import com.j.m3play.innertube.models.Run
+import com.j.m3play.innertube.models.Runs
+import com.j.m3play.innertube.models.SongItem
+import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import com.j.m3play.innertube.models.YouTubeClient
+import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB
+import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB_REMIX
+import com.j.m3play.innertube.models.YouTubeLocale
+import com.j.m3play.innertube.models.getContinuation
+import com.j.m3play.innertube.models.getItems
+import com.j.m3play.innertube.models.oddElements
+import com.j.m3play.innertube.models.response.AccountMenuResponse
+import com.j.m3play.innertube.models.response.BrowseResponse
+import com.j.m3play.innertube.models.response.CreatePlaylistResponse
+import com.j.m3play.innertube.models.response.GetQueueResponse
+import com.j.m3play.innertube.models.response.GetSearchSuggestionsResponse
+import com.j.m3play.innertube.models.response.GetTranscriptResponse
+import com.j.m3play.innertube.models.response.NextResponse
+import com.j.m3play.innertube.models.response.PlayerResponse
+import com.j.m3play.innertube.models.response.SearchResponse
+import com.j.m3play.innertube.pages.AlbumPage
+import com.j.m3play.innertube.pages.ArtistItemsContinuationPage
+import com.j.m3play.innertube.pages.ArtistItemsPage
+import com.j.m3play.innertube.pages.ArtistPage
+import com.j.m3play.innertube.pages.ChartsPage
+import com.j.m3play.innertube.pages.BrowseResult
+import com.j.m3play.innertube.pages.ExplorePage
+import com.j.m3play.innertube.pages.HistoryPage
+import com.j.m3play.innertube.pages.HomePage
+import com.j.m3play.innertube.pages.LibraryContinuationPage
+import com.j.m3play.innertube.pages.LibraryPage
+import com.j.m3play.innertube.pages.MoodAndGenres
+import com.j.m3play.innertube.pages.NewReleaseAlbumPage
+import com.j.m3play.innertube.pages.NextPage
+import com.j.m3play.innertube.pages.NextResult
+import com.j.m3play.innertube.pages.PlaylistContinuationPage
+import com.j.m3play.innertube.pages.PlaylistPage
+import com.j.m3play.innertube.pages.RelatedPage
+import com.j.m3play.innertube.pages.SearchPage
+import com.j.m3play.innertube.pages.SearchResult
+import com.j.m3play.innertube.pages.SearchSuggestionPage
+import com.j.m3play.innertube.pages.SearchSummary
+import com.j.m3play.innertube.pages.SearchSummaryPage
+import com.j.m3play.innertube.utils.PoTokenGenerator
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
 
@@ -79,6 +79,10 @@ import java.net.Proxy
 import java.util.Locale
 import kotlin.random.Random
 
+/**
+ * Parse useful data with [InnerTube] sending requests.
+ * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
+ */
 object YouTube {
     private val innerTube = InnerTube()
 
@@ -181,57 +185,46 @@ object YouTube {
 
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
-        val parsedSummaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
-            
-            if (content.musicCardShelfRenderer != null) {
-                SearchSummary(
-                    title = content.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                    items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(content.musicCardShelfRenderer))
-                        .plus(
-                            content.musicCardShelfRenderer.contents
-                                ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
-                                .orEmpty()
-                        )
-                        .distinctBy { it.id }
-                        .ifEmpty { return@mapNotNull null }
-                )
-            } else {
-                // 🔥 THE MAGIC FIX: Extracting shelf from inside itemSectionRenderer if nested!
-                val shelf = content.musicShelfRenderer 
-                    ?: content.itemSectionRenderer?.contents?.firstOrNull()?.musicShelfRenderer
-                    
-                if (shelf != null) {
+        SearchSummaryPage(
+            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
+                if (it.musicCardShelfRenderer != null)
                     SearchSummary(
-                        title = shelf.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = shelf.contents?.getItems()
-                            ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
-                            ?.distinctBy { it.id }
-                            ?.ifEmpty { return@mapNotNull null } ?: return@mapNotNull null
+                        title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
+                            .plus(
+                                it.musicCardShelfRenderer.contents
+                                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
+                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                                    .orEmpty()
+                            )
+                            .distinctBy { it.id }
+                            .ifEmpty { null } ?: return@mapNotNull null
                     )
-                } else null
-            }
-        } ?: emptyList()
-        
-        SearchSummaryPage(summaries = parsedSummaries)
+                else
+                    SearchSummary(
+                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer?.contents?.getItems()
+                            ?.mapNotNull {
+                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                            }
+                            ?.distinctBy { it.id }
+                            ?.ifEmpty { null } ?: return@mapNotNull null
+                    )
+            }!!
+        )
     }
 
     suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
         val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
-        
-        // 🔥 THE MAGIC FIX: Safe extraction for filtered searches too!
-        val contents = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-            ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
-            
-        val shelf = contents?.musicShelfRenderer 
-            ?: contents?.itemSectionRenderer?.contents?.firstOrNull()?.musicShelfRenderer
-
         SearchResult(
-            items = shelf?.contents?.getItems()?.mapNotNull {
-                SearchPage.toYTItem(it)
-            }.orEmpty(),
-            continuation = shelf?.continuations?.getContinuation()
+            items = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
+                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
+                ?.musicShelfRenderer?.contents?.getItems()?.mapNotNull {
+                    SearchPage.toYTItem(it)
+                }.orEmpty(),
+            continuation = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
+                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
+                ?.musicShelfRenderer?.continuations?.getContinuation()
         )
     }
 
@@ -287,7 +280,7 @@ object YouTube {
                 artists = albumArtists,
                 year = albumYear,
                 thumbnail = albumThumbnail,
-                explicit = false,
+                explicit = false, // TODO: Extract explicit badge for albums from YouTube response
             ),
             songs = if (withSongs) albumSongs(playlistId, AlbumItem(
                 browseId = browseId,
@@ -319,7 +312,7 @@ object YouTube {
             .contents.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation()
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
-        val maxRequests = 50
+        val maxRequests = 50 // Prevent excessive API calls
         
         var consecutiveEmptyResponses = 0
         while (continuation != null && requestCount < maxRequests) {
@@ -785,6 +778,14 @@ object YouTube {
             }
         }.toMutableList()
 
+        /*
+         * We need to fetch the artist page when accessing the library because it allows to have
+         * a proper playEndpoint, which is needed to correctly report the playing indicator in
+         * the home page.
+         *
+         * Despite this, we need to use the old thumbnail because it's the proper format for a
+         * square picture, which is what we need.
+         */
         items.forEachIndexed { index, item ->
             if (item is ArtistItem) {
                 artist(item.id).getOrNull()?.artist?.let { fetchedArtist ->
@@ -875,12 +876,8 @@ object YouTube {
 
     private fun convertToChartItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         return try {
-            val chartVideoId = renderer.playlistItemData?.videoId 
-                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
-                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
-
             when {
-                renderer.flexColumns.size >= 3 && chartVideoId != null -> {
+                renderer.flexColumns.size >= 3 && renderer.playlistItemData?.videoId != null -> {
                     val firstColumn = renderer.flexColumns.getOrNull(0)
                         ?.musicResponsiveListItemFlexColumnRenderer
                         ?.text ?: return null
@@ -906,7 +903,7 @@ object YouTube {
                         ?.text
 
                     SongItem(
-                        id = chartVideoId,
+                        id = renderer.playlistItemData.videoId,
                         title = title,
                         artists = artists,
                         thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
@@ -1007,4 +1004,221 @@ object YouTube {
         if (subscribe)
             innerTube.subscribeChannel(WEB_REMIX, channelId)
         else
-            innerNormally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+            innerTube.unsubscribeChannel(WEB_REMIX, channelId)
+    }
+
+    suspend fun getChannelId(browseId: String): String {
+        artist(browseId).onSuccess {
+            return it.artist.channelId ?: ""
+        }
+        return ""
+    }
+
+    suspend fun addToPlaylist(playlistId: String, videoId: String) = runCatching {
+        innerTube.addToPlaylist(WEB_REMIX, playlistId, videoId)
+    }
+
+    suspend fun addPlaylistToPlaylist(playlistId: String, addPlaylistId: String) = runCatching {
+        innerTube.addPlaylistToPlaylist(WEB_REMIX, playlistId, addPlaylistId)
+    }
+
+    suspend fun removeFromPlaylist(playlistId: String, videoId: String, setVideoId: String) = runCatching {
+        innerTube.removeFromPlaylist(WEB_REMIX, playlistId, videoId, setVideoId)
+    }
+
+    suspend fun moveSongPlaylist(playlistId: String, setVideoId: String, successorSetVideoId: String?) = runCatching {
+        innerTube.moveSongPlaylist(WEB_REMIX, playlistId, setVideoId, successorSetVideoId)
+    }
+
+    suspend fun createPlaylist(title: String) = runCatching {
+        innerTube.createPlaylist(WEB_REMIX, title).body<CreatePlaylistResponse>().playlistId
+    }
+
+    suspend fun renamePlaylist(playlistId: String, name: String) = runCatching {
+        innerTube.renamePlaylist(WEB_REMIX, playlistId, name)
+    }
+
+    suspend fun deletePlaylist(playlistId: String) = runCatching {
+        innerTube.deletePlaylist(WEB_REMIX, playlistId)
+    }
+
+    suspend fun player(videoId: String, playlistId: String? = null, client: YouTubeClient, signatureTimestamp: Int? = null, poToken: String? = null): Result<PlayerResponse> = runCatching {
+        val resolvedPoToken = resolvePlayerPoToken(client, videoId, poToken)
+        innerTube.player(client, videoId, playlistId, signatureTimestamp, resolvedPoToken).body<PlayerResponse>()
+    }
+
+    suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
+        val cpn = (1..16).map {
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(
+                0,
+                64
+            )]
+        }.joinToString("")
+
+        val playbackUrl = playbackTracking.replace(
+            "https://s.youtube.com",
+            "https://music.youtube.com",
+        )
+
+        innerTube.registerPlayback(
+            url = playbackUrl,
+            playlistId = playlistId,
+            cpn = cpn,
+            poToken = resolveGvsPoToken()
+        )
+    }
+
+    suspend fun next(endpoint: WatchEndpoint, continuation: String? = null): Result<NextResult> = runCatching {
+        val response = innerTube.next(
+            WEB_REMIX,
+            endpoint.videoId,
+            endpoint.playlistId,
+            endpoint.playlistSetVideoId,
+            endpoint.index,
+            endpoint.params,
+            continuation).body<NextResponse>()
+        val playlistPanelRenderer = response.continuationContents?.playlistPanelContinuation
+            ?: response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer
+                ?.watchNextTabbedResultsRenderer?.tabs?.get(0)?.tabRenderer?.content?.musicQueueRenderer
+                ?.content?.playlistPanelRenderer!!
+        val title = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer
+            ?.watchNextTabbedResultsRenderer?.tabs?.get(0)?.tabRenderer?.content?.musicQueueRenderer
+            ?.header?.musicQueueHeaderRenderer?.subtitle?.runs?.firstOrNull()?.text
+        val items = playlistPanelRenderer.contents.mapNotNull { content ->
+            content.playlistPanelVideoRenderer
+                ?.let(NextPage::fromPlaylistPanelVideoRenderer)
+                ?.let { it to content.playlistPanelVideoRenderer.selected }
+        }
+        val songs = items.map { it.first }
+        val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
+
+        // load automix items
+        playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
+            return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
+                result.copy(
+                    title = title,
+                    items = songs + result.items,
+                    lyricsEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint,
+                    relatedEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint,
+                    currentIndex = currentIndex,
+                    endpoint = watchPlaylistEndpoint
+                )
+            }
+        }
+        NextResult(
+            title = title,
+            items = songs,
+            currentIndex = currentIndex,
+            lyricsEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint,
+            relatedEndpoint = response.contents.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint,
+            continuation = playlistPanelRenderer.continuations?.getContinuation(),
+            endpoint = endpoint
+        )
+    }
+
+    suspend fun lyrics(endpoint: BrowseEndpoint): Result<String?> = runCatching {
+        val response = innerTube.browse(WEB_REMIX, endpoint.browseId, endpoint.params).body<BrowseResponse>()
+        response.contents?.sectionListRenderer?.contents?.firstOrNull()?.musicDescriptionShelfRenderer?.description?.runs?.firstOrNull()?.text
+    }
+
+    suspend fun related(endpoint: BrowseEndpoint): Result<RelatedPage> = runCatching {
+        val response = innerTube.browse(WEB_REMIX, endpoint.browseId).body<BrowseResponse>()
+        val songs = mutableListOf<SongItem>()
+        val albums = mutableListOf<AlbumItem>()
+        val artists = mutableListOf<ArtistItem>()
+        val playlists = mutableListOf<PlaylistItem>()
+        response.contents?.sectionListRenderer?.contents?.forEach { sectionContent ->
+            sectionContent.musicCarouselShelfRenderer?.contents?.forEach { content ->
+                when (val item = content.musicResponsiveListItemRenderer?.let(RelatedPage.Companion::fromMusicResponsiveListItemRenderer)
+                    ?: content.musicTwoRowItemRenderer?.let(RelatedPage.Companion::fromMusicTwoRowItemRenderer)) {
+                    is SongItem -> if (content.musicResponsiveListItemRenderer?.overlay
+                            ?.musicItemThumbnailOverlayRenderer?.content
+                            ?.musicPlayButtonRenderer?.playNavigationEndpoint
+                            ?.watchEndpoint?.watchEndpointMusicSupportedConfigs
+                            ?.watchEndpointMusicConfig?.musicVideoType == MUSIC_VIDEO_TYPE_ATV
+                    ) songs.add(item)
+
+                    is AlbumItem -> albums.add(item)
+                    is ArtistItem -> artists.add(item)
+                    is PlaylistItem -> playlists.add(item)
+                    null -> {}
+                }
+            }
+        }
+        RelatedPage(songs, albums, artists, playlists)
+    }
+
+    suspend fun queue(videoIds: List<String>? = null, playlistId: String? = null): Result<List<SongItem>> = runCatching {
+        if (videoIds != null) {
+            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
+        }
+        innerTube.getQueue(WEB_REMIX, videoIds, playlistId).body<GetQueueResponse>().queueDatas
+            .mapNotNull {
+                it.content.playlistPanelVideoRenderer?.let { renderer ->
+                    NextPage.fromPlaylistPanelVideoRenderer(renderer)
+                }
+            }
+    }
+
+    suspend fun transcript(videoId: String): Result<String> = runCatching {
+        val response = innerTube.getTranscript(WEB, videoId).body<GetTranscriptResponse>()
+        response.actions?.firstOrNull()?.updateEngagementPanelAction?.content?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups?.joinToString(separator = "\n") { group ->
+            val time = group.transcriptCueGroupRenderer.cues[0].transcriptCueRenderer.startOffsetMs
+            val text = group.transcriptCueGroupRenderer.cues[0].transcriptCueRenderer.cue.simpleText
+                .trim('♪')
+                .trim(' ')
+            "[%02d:%02d.%03d]$text".format(time / 60000, (time / 1000) % 60, time % 1000)
+        }!!
+    }
+
+    suspend fun visitorData(): Result<String> = runCatching {
+        Json.parseToJsonElement(innerTube.getSwJsData().bodyAsText().substring(5))
+            .jsonArray[0]
+            .jsonArray[2]
+            .jsonArray.first {
+                (it as? JsonPrimitive)?.contentOrNull?.let { candidate ->
+                    VISITOR_DATA_REGEX.containsMatchIn(candidate)
+                } ?: false
+            }
+            .jsonPrimitive.content
+    }
+
+    suspend fun accountInfo(): Result<AccountInfo> = runCatching {
+        val response = innerTube.accountMenu(WEB_REMIX).body<AccountMenuResponse>()
+        val accountInfo = response.actions.firstOrNull()
+            ?.openPopupAction?.popup?.multiPageMenuRenderer
+            ?.header?.activeAccountHeaderRenderer
+            ?.toAccountInfo()
+        accountInfo ?: throw IllegalStateException("Failed to get account info - user may not be logged in")
+    }
+
+    suspend fun getMediaInfo(videoId: String): Result<MediaInfo> = runCatching {
+        return innerTube.getMediaInfo(videoId)
+    }
+
+    @JvmInline
+    value class SearchFilter(val value: String) {
+        companion object {
+            val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
+            val FILTER_VIDEO = SearchFilter("EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_ALBUM = SearchFilter("EgWKAQIYAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_ARTIST = SearchFilter("EgWKAQIgAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_FEATURED_PLAYLIST = SearchFilter("EgeKAQQoADgBagwQDhAKEAMQBRAJEAQ%3D")
+            val FILTER_COMMUNITY_PLAYLIST = SearchFilter("EgeKAQQoAEABagoQAxAEEAoQCRAF")
+        }
+    }
+
+    @JvmInline
+    value class LibraryFilter(val value: String) {
+        companion object {
+            val FILTER_RECENT_ACTIVITY = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCaEFCb0FZQg%3D%3D")
+            val FILTER_RECENTLY_PLAYED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCUkFCb0FZQg%3D%3D")
+            val FILTER_PLAYLISTS_ALPHABETICAL = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpa2VkX3BsYXlsaXN0cxoQZ2dNR0tnUUlBUkFBb0FZQg%3D%3D")
+            val FILTER_PLAYLISTS_RECENTLY_SAVED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpa2VkX3BsYXlsaXN0cxoQZ2dNR0tnUUlBQkFCb0FZQg%3D%3D")
+        }
+    }
+
+    const val MAX_GET_QUEUE_SIZE = 1000
+
+    private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
+}
