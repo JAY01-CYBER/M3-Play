@@ -8,7 +8,7 @@
 package com.j.m3play.innertube
 
 import com.j.m3play.innertube.models.AccountInfo
-import com.j.m3play.innertube.models.YTItem
+import com.j.m3play.innertube.models.Album
 import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.Artist
 import com.j.m3play.innertube.models.ArtistItem
@@ -26,6 +26,7 @@ import com.j.m3play.innertube.models.Runs
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.models.YouTubeClient
 import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB
 import com.j.m3play.innertube.models.YouTubeClient.Companion.WEB_REMIX
@@ -70,7 +71,6 @@ import com.j.m3play.innertube.utils.PoTokenGenerator
 import com.j.m3play.innertube.utils.parseTime
 import io.ktor.client.call.body
 import io.ktor.client.statement.bodyAsText
-
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -181,9 +181,6 @@ object YouTube {
         )
     }
 
-    // --------------------------------------------------------------------------------
-    // NEW BULLETPROOF PARSER FOR "ALL" SEARCH SUMMARY TABS (Vertical & Horizontal)
-    // --------------------------------------------------------------------------------
     private fun safeParseYTItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         val videoId = renderer.playlistItemData?.videoId 
             ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
@@ -193,7 +190,7 @@ object YouTube {
         val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId
         
         val titleObj = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text
-        val title = titleObj?.runs?.firstOrNull()?.text ?: titleObj?.simpleText ?: "Unknown"
+        val title = titleObj?.runs?.firstOrNull()?.text ?: "Unknown"
         val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: ""
         
         val secondaryLine = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.splitBySeparator() ?: emptyList()
@@ -255,7 +252,6 @@ object YouTube {
         SearchSummaryPage(
             summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
                 
-                // 1. Top Result (Music Card)
                 if (content.musicCardShelfRenderer != null) {
                     val shelf = content.musicCardShelfRenderer
                     val items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(shelf))
@@ -273,7 +269,6 @@ object YouTube {
                         )
                     } else null
                 } 
-                // 2. Vertical Lists (Songs, Videos, etc.)
                 else if (content.musicShelfRenderer != null) {
                     val shelf = content.musicShelfRenderer
                     val parsedItems = shelf.contents?.getItems()?.mapNotNull {
@@ -287,7 +282,6 @@ object YouTube {
                         )
                     } else null
                 }
-                // 3. FIX: Horizontal Carousels (Albums, Artists, Playlists sometimes returned here in All tab!)
                 else if (content.musicCarouselShelfRenderer != null) {
                     val shelf = content.musicCarouselShelfRenderer
                     val parsedItems = shelf.contents.mapNotNull { carouselContent ->
@@ -1129,79 +1123,32 @@ object YouTube {
         innerTube.deletePlaylist(WEB_REMIX, playlistId)
     }
 
-    private suspend fun returnYouTubeDislike(videoId: String) = withRetry {
-        httpClient.get("https://returnyoutubedislikeapi.com/Votes?videoId=$videoId") {
-            contentType(ContentType.Application.Json)
+    suspend fun getMediaInfo(videoId: String): Result<MediaInfo> = runCatching {
+        return innerTube.getMediaInfo(videoId)
+    }
+
+    @JvmInline
+    value class SearchFilter(val value: String) {
+        companion object {
+            val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
+            val FILTER_VIDEO = SearchFilter("EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_ALBUM = SearchFilter("EgWKAQIYAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_ARTIST = SearchFilter("EgWKAQIgAWoKEAkQChAFEAMQBA%3D%3D")
+            val FILTER_FEATURED_PLAYLIST = SearchFilter("EgeKAQQoADgBagwQDhAKEAMQBRAJEAQ%3D")
+            val FILTER_COMMUNITY_PLAYLIST = SearchFilter("EgeKAQQoAEABagoQAxAEEAoQCRAF")
         }
     }
 
-    suspend fun getMediaInfo(videoId: String): Result<MediaInfo> =
-        runCatching {
-            val response = next(client = YouTubeClient.WEB, videoId, null, null, null, null, null).body<NextResponse>()
-
-            val baseForInfo =
-                response.contents.twoColumnWatchNextResults
-                    ?.results
-                    ?.results
-                    ?.content
-                    ?.find {
-                        it?.videoSecondaryInfoRenderer != null
-                    }?.videoSecondaryInfoRenderer
-
-            val baseForTitle =
-                response.contents.twoColumnWatchNextResults
-                    ?.results
-                    ?.results
-                    ?.content
-                    ?.find {
-                        it?.videoPrimaryInfoRenderer != null
-                    }?.videoPrimaryInfoRenderer
-
-            val returnYouTubeDislikeResponse =
-                returnYouTubeDislike(videoId).body<ReturnYouTubeDislikeResponse>()
-
-            return@runCatching MediaInfo(
-                videoId = videoId,
-                title = baseForTitle
-                    ?.title
-                    ?.runs
-                    ?.firstOrNull()
-                    ?.text,
-                author = baseForInfo
-                    ?.owner
-                    ?.videoOwnerRenderer
-                    ?.title
-                    ?.runs
-                    ?.firstOrNull()
-                    ?.text,
-                authorId =
-                    baseForInfo
-                        ?.owner
-                        ?.videoOwnerRenderer
-                        ?.navigationEndpoint
-                        ?.browseEndpoint
-                        ?.browseId,
-                authorThumbnail =
-                    baseForInfo
-                        ?.owner
-                        ?.videoOwnerRenderer
-                        ?.thumbnail
-                        ?.thumbnails
-                        ?.find {
-                            it.height == 48
-                        }?.url
-                        ?.replace("s48", "s960"),
-                description = baseForInfo?.attributedDescription?.content,
-                subscribers =
-                    baseForInfo
-                        ?.owner
-                        ?.videoOwnerRenderer
-                        ?.subscriberCountText
-                        ?.simpleText?.split(" ")?.firstOrNull(),
-                uploadDate = baseForTitle?.dateText?.simpleText,
-                viewCount = returnYouTubeDislikeResponse.viewCount,
-                like = returnYouTubeDislikeResponse.likes,
-                dislike = returnYouTubeDislikeResponse.dislikes,
-            )
+    @JvmInline
+    value class LibraryFilter(val value: String) {
+        companion object {
+            val FILTER_RECENT_ACTIVITY = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCaEFCb0FZQg%3D%3D")
+            val FILTER_RECENTLY_PLAYED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCUkFCb0FZQg%3D%3D")
+            val FILTER_PLAYLISTS_ALPHABETICAL = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpa2VkX3BsYXlsaXN0cxoQZ2dNR0tnUUlBUkFBb0FZQg%3D%3D")
+            val FILTER_PLAYLISTS_RECENTLY_SAVED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpa2VkX3BsYXlsaXN0cxoQZ2dNR0tnUUlBQkFCb0FZQg%3D%3D")
         }
+    }
+
+    const val MAX_GET_QUEUE_SIZE = 1000
+    private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
