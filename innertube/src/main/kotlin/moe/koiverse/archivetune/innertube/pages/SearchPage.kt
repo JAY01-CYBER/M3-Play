@@ -28,10 +28,17 @@ object SearchPage {
     fun toYTItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         val secondaryLine = renderer.flexColumns.getOrNull(1)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.splitBySeparator() ?: emptyList()
         
+        //  MAGIC FIX: Video ID ko check karne se pehle hi nikal lo
+        val videoId = renderer.playlistItemData?.videoId 
+            ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+            ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+            ?: renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.navigationEndpoint?.watchEndpoint?.videoId
+        
         return when {
-            renderer.isSong -> {
+            //  THE BYPASS: Agar "isSong" nahi hai, par videoId mil gaya, toh usko list me aane do!
+            renderer.isSong || videoId != null -> {
                 SongItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
+                    id = videoId ?: return null,
                     title = renderer.flexColumns.firstOrNull()?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.text ?: return null,
                     artists = secondaryLine.firstOrNull()?.oddElements()?.map {
                         Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId)

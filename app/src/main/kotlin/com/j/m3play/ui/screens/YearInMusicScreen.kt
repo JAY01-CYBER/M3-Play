@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -136,6 +136,8 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 private val NeonPink = Color(0xFFFF006E)
+private val DeepMaroon = Color(0xFF2D161F) // For total listening time card
+private val MutedBlue = Color(0xFF161B2D) // For songs played card
 private val ElectricPurple = Color(0xFF8338EC)
 private val VibrantBlue = Color(0xFF3A86FF)
 private val NeonGreen = Color(0xFF06D6A0)
@@ -242,6 +244,7 @@ fun YearInMusicScreen(
                 )
         )
 
+        // Share button logic retained exactly
         if (topSongsStats.isNotEmpty() || topArtists.isNotEmpty() || topAlbums.isNotEmpty()) {
             if (!isShareCaptureMode && recapCurrentPage == recapLastPage) {
                 PremiumShareButton(
@@ -325,7 +328,7 @@ fun YearInMusicScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            PulsingDot()
+                            AdaptiveAppIcon(modifier = Modifier.size(24.dp))
                             Text(
                                 text = stringResource(R.string.year_in_music),
                                 style = MaterialTheme.typography.titleLarge,
@@ -371,6 +374,27 @@ fun YearInMusicScreen(
                 onDismiss = { isYearPickerOpen = false }
             )
         }
+    }
+}
+
+// ─── NEW COMPONENT: ADAPTIVE APP ICON ────────────────────────────────────────────
+@Composable
+private fun AdaptiveAppIcon(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.clip(CircleShape)
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_background),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        Image(
+            painter = painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Inside
+        )
     }
 }
 
@@ -555,37 +579,6 @@ private fun FloatingParticles(
             }
         }
     }
-}
-
-@Composable
-private fun PulsingDot() {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulsingDot")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dotScale"
-    )
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dotAlpha"
-    )
-
-    Box(
-        modifier = Modifier
-            .size(10.dp)
-            .scale(scale)
-            .alpha(alpha)
-            .background(NeonPink, CircleShape)
-    )
 }
 
 @Composable
@@ -1001,10 +994,12 @@ private fun YearInMusicStoryPager(
                                 navigateTo(currentPage + 1)
                             }
                     ) {
+                        // Hero section redesigned like the new screenshot!
                         PremiumHeroStoryCard(
                             year = year,
                             totalListeningTime = totalListeningTime,
-                            totalSongsPlayed = totalSongsPlayed
+                            totalSongsPlayed = totalSongsPlayed,
+                            topArtist = topArtists.firstOrNull()
                         )
                     }
                 }
@@ -1117,48 +1112,46 @@ private fun YearInMusicStoryPager(
     }
 }
 
+// ─── REDESIGNED COMPONENTS BASED ON NEW UI STYLE ──────────────────────────────
+
 @Composable
 private fun PremiumHeroStoryCard(
     year: Int,
     totalListeningTime: Long,
-    totalSongsPlayed: Long
+    totalSongsPlayed: Long,
+    topArtist: Artist?
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "heroGlow")
-    val glowPhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "glowPhase"
-    )
+    val imageModel = rememberShareSafeImageRequest(topArtist?.artist?.thumbnailUrl)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Transparent)
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-
-            val center = Offset(
-                x = w * (0.3f + 0.4f * sin(glowPhase * 2 * PI.toFloat())),
-                y = h * (0.3f + 0.2f * cos(glowPhase * 2 * PI.toFloat()))
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        NeonPink.copy(alpha = 0.4f),
-                        ElectricPurple.copy(alpha = 0.2f),
-                        Color.Transparent
-                    ),
-                    center = center,
-                    radius = w * 0.8f
+        // Hero background image from new UI
+        AsyncImage(
+            model = imageModel,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(0.5f)
+                .blur(16.dp)
+        )
+        
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            DeepBlack.copy(alpha = 0.8f),
+                            DeepBlack
+                        )
+                    )
                 )
-            )
-        }
+        )
 
         Column(
             modifier = Modifier
@@ -1167,117 +1160,114 @@ private fun PremiumHeroStoryCard(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = stringResource(R.string.your_year_in_music, year),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = SoftWhite.copy(alpha = 0.8f)
+                text = "YOUR $year",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = NeonPink,
+                letterSpacing = 1.sp
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Text(
-                text = year.toString(),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 96.sp),
+                text = "Music\nSnapshot",
+                style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Black,
-                color = SoftWhite
+                color = SoftWhite,
+                lineHeight = 56.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Relive your year in sound.",
+                style = MaterialTheme.typography.titleMedium,
+                color = SoftWhite.copy(alpha = 0.7f)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(GlassWhite)
-                    .padding(20.dp)
+            // Stat Cards integrated into the Hero Page
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(NeonPink, ElectricPurple)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.timer),
-                                contentDescription = null,
-                                tint = SoftWhite,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = stringResource(R.string.total_listening_time),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = SoftWhite.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = makeTimeString(totalListeningTime),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = SoftWhite
-                            )
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(VibrantBlue, NeonGreen)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.music_note),
-                                contentDescription = null,
-                                tint = SoftWhite,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = stringResource(R.string.songs),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = SoftWhite.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = pluralStringResource(
-                                    R.plurals.n_song,
-                                    totalSongsPlayed.toInt(),
-                                    totalSongsPlayed.toInt()
-                                ) + " " + stringResource(R.string.played),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = SoftWhite
-                            )
-                        }
-                    }
-                }
+                StatCardHero(
+                    modifier = Modifier.weight(1f),
+                    iconRes = R.drawable.timer,
+                    title = stringResource(R.string.total_listening_time),
+                    value = makeTimeString(totalListeningTime).split(" ").firstOrNull() ?: "0",
+                    unit = "hours",
+                    cardColor = DeepMaroon,
+                    iconColor = NeonPink
+                )
+                StatCardHero(
+                    modifier = Modifier.weight(1f),
+                    iconRes = R.drawable.music_note,
+                    title = stringResource(R.string.songs) + "\nPlayed",
+                    value = totalSongsPlayed.toString(),
+                    unit = "tracks",
+                    cardColor = MutedBlue,
+                    iconColor = VibrantBlue
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Tap to continue →",
+                text = "Tap to explore →",
                 style = MaterialTheme.typography.bodyMedium,
                 color = SoftWhite.copy(alpha = 0.5f)
             )
+        }
+    }
+}
+
+@Composable
+private fun StatCardHero(
+    modifier: Modifier = Modifier,
+    iconRes: Int,
+    title: String,
+    value: String,
+    unit: String,
+    cardColor: Color,
+    iconColor: Color
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardColor.copy(alpha = 0.8f))
+            .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(iconColor.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SoftWhite.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SoftWhite
+                )
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = SoftWhite.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }
@@ -1315,7 +1305,7 @@ private fun PremiumTopSongStoryCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(8.dp)
+                .blur(20.dp)
         )
 
         Box(
@@ -1324,8 +1314,8 @@ private fun PremiumTopSongStoryCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            DeepBlack.copy(alpha = 0.3f),
-                            DeepBlack.copy(alpha = 0.6f),
+                            DeepBlack.copy(alpha = 0.4f),
+                            DeepBlack.copy(alpha = 0.7f),
                             DeepBlack.copy(alpha = 0.95f)
                         )
                     )
@@ -1363,14 +1353,12 @@ private fun PremiumTopSongStoryCard(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(240.dp)
+                    .clip(RoundedCornerShape(20.dp))
                     .border(
-                        width = 2.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(NeonPink, ElectricPurple)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                        width = 1.dp,
+                        color = GlassWhite,
+                        shape = RoundedCornerShape(20.dp)
                     )
             )
 
@@ -1423,7 +1411,7 @@ private fun PremiumTopArtistStoryCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(12.dp)
+                .blur(20.dp)
         )
 
         Box(
@@ -1432,7 +1420,7 @@ private fun PremiumTopArtistStoryCard(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            ElectricPurple.copy(alpha = 0.4f),
+                            ElectricPurple.copy(alpha = 0.5f),
                             DeepBlack.copy(alpha = 0.85f),
                             DeepBlack.copy(alpha = 0.95f)
                         )
@@ -1469,23 +1457,8 @@ private fun PremiumTopArtistStoryCard(
 
             Box(
                 modifier = Modifier
-                    .size(180.dp)
-                    .drawBehind {
-                        rotate(0f) {
-                            drawCircle(
-                                brush = Brush.sweepGradient(
-                                    colors = listOf(
-                                        ElectricPurple,
-                                        VibrantBlue,
-                                        NeonGreen,
-                                        ElectricPurple
-                                    )
-                                ),
-                                radius = size.minDimension / 2 + 6.dp.toPx(),
-                                style = Stroke(width = 4.dp.toPx())
-                            )
-                        }
-                    }
+                    .size(200.dp)
+                    .border(2.dp, GlassWhite, CircleShape)
             ) {
                 AsyncImage(
                     model = imageModel,
@@ -1548,7 +1521,7 @@ private fun PremiumTopAlbumStoryCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(10.dp)
+                .blur(20.dp)
         )
 
         Box(
@@ -1557,8 +1530,8 @@ private fun PremiumTopAlbumStoryCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            DeepBlack.copy(alpha = 0.2f),
-                            DeepBlack.copy(alpha = 0.7f),
+                            DeepBlack.copy(alpha = 0.3f),
+                            DeepBlack.copy(alpha = 0.8f),
                             DeepBlack.copy(alpha = 0.95f)
                         )
                     )
@@ -1596,13 +1569,11 @@ private fun PremiumTopAlbumStoryCard(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(220.dp)
+                    .size(240.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .border(
-                        width = 2.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(SunsetOrange, GoldenYellow)
-                        ),
+                        width = 1.dp,
+                        color = GlassWhite,
                         shape = RoundedCornerShape(12.dp)
                     )
             )
@@ -1681,19 +1652,8 @@ private fun PremiumSummaryStoryCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(GlassWhite),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.app_icon_small),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    // M3 Adaptive Logo used here for final Summary
+                    AdaptiveAppIcon(modifier = Modifier.size(44.dp))
                     Column {
                         Text(
                             text = "M3Play",
@@ -1724,7 +1684,8 @@ private fun PremiumSummaryStoryCard(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(GlassWhite)
+                            .background(DeepMaroon.copy(alpha = 0.9f))
+                            .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
                             .padding(16.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1745,7 +1706,8 @@ private fun PremiumSummaryStoryCard(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(GlassWhite)
+                            .background(MutedBlue.copy(alpha = 0.9f))
+                            .border(1.dp, GlassWhite, RoundedCornerShape(20.dp))
                             .padding(16.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1942,3 +1904,4 @@ private enum class YearInMusicStoryPage {
     TopAlbum,
     Summary
 }
+

@@ -10,102 +10,37 @@
 
 package com.j.m3play.ui.screens
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.material3.surfaceColorAtElevation
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.pager.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.material3.carousel.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.hapticfeedback.*
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import coil3.request.crossfade
+
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
-import com.j.m3play.constants.GridThumbnailHeight
-import com.j.m3play.constants.ListItemHeight
-import com.j.m3play.constants.ListThumbnailSize
-import com.j.m3play.constants.ThumbnailCornerRadius
+import com.j.m3play.constants.*
 import com.j.m3play.db.entities.Album
 import com.j.m3play.db.entities.Artist
 import com.j.m3play.db.entities.LocalItem
@@ -126,21 +61,8 @@ import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.PlayerConnection
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.AlbumGridItem
-import com.j.m3play.ui.component.ArtistGridItem
-import com.j.m3play.ui.component.MenuState
-import com.j.m3play.ui.component.NavigationTitle
-import com.j.m3play.ui.component.SongGridItem
-import com.j.m3play.ui.component.SongListItem
-import com.j.m3play.ui.component.YouTubeGridItem
-import com.j.m3play.ui.component.YouTubeListItem
-import com.j.m3play.ui.menu.AlbumMenu
-import com.j.m3play.ui.menu.ArtistMenu
-import com.j.m3play.ui.menu.SongMenu
-import com.j.m3play.ui.menu.YouTubeAlbumMenu
-import com.j.m3play.ui.menu.YouTubeArtistMenu
-import com.j.m3play.ui.menu.YouTubePlaylistMenu
-import com.j.m3play.ui.menu.YouTubeSongMenu
+import com.j.m3play.ui.component.*
+import com.j.m3play.ui.menu.*
 import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -211,7 +133,7 @@ fun YTPremiumDiscoverCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                     )
-                    
+                     
                     val subtitle = when(item) {
                         is SongItem -> item.artists.joinToString(", ") { it.name }
                         is PlaylistItem -> item.author?.name ?: "Auto Playlist"
@@ -304,7 +226,7 @@ fun YTMSquareGridItem(
 }
 
 // ==========================================
-// EXACT YTM COMMUNITY PLAYLIST CARD
+// EXACT YTM COMMUNITY PLAYLIST CARD (BUBBLE ANIMATION)
 // ==========================================
 
 @Composable
@@ -319,103 +241,153 @@ fun CommunityPlaylistCard(
     val playerConnection = LocalPlayerConnection.current
     val haptic = LocalHapticFeedback.current
     
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "bubble_scale"
+    )
+    
     Card(
-        modifier = modifier.width(340.dp),
+        modifier = modifier
+            .width(300.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }, 
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        interactionSource = interactionSource, 
+        onClick = { 
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick() 
+        },
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp))
-                ) {
-                    Column {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(0)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(1)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
+        Column(modifier = Modifier.padding(20.dp)) {
+            
+            val firstSongImage = item.songs.firstOrNull()?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w400-h400")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF6D4C41),
+                                Color(0xFF3E2723)
+                            )
+                        )
+                    )
+                    .padding(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = firstSongImage,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(72.dp) 
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    
+                    Spacer(modifier = Modifier.width(10.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.favorite),
+                                contentDescription = null, 
+                                tint = Color(0xFFFF5252),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Most loved", color = Color.White, style = MaterialTheme.typography.labelSmall)
                         }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(model = item.songs.getOrNull(2)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                            AsyncImage(model = item.songs.getOrNull(3)?.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"), contentScale = ContentScale.Crop, modifier = Modifier.weight(1f).fillMaxSize(), contentDescription=null)
-                        }
+                        Text(
+                            text = item.playlist.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = item.playlist.author?.name ?: "Community",
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = item.playlist.songCountText ?: "${item.songs.size} tracks", 
+                            color = Color.White.copy(alpha = 0.5f), 
+                            style = MaterialTheme.typography.labelSmall
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = item.playlist.author?.name ?: "Community",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = item.playlist.songCountText ?: "${item.songs.size} songs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            item.songs.take(4).forEach { song ->
+
+            item.songs.take(4).forEachIndexed { index, song ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSongClick(song) }
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = "${index + 1}", 
+                        style = MaterialTheme.typography.bodyMedium, 
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), 
+                        modifier = Modifier.width(20.dp)
+                    )
+                    
                     AsyncImage(
                         model = song.thumbnail?.replace(Regex("w\\d+-h\\d+"), "w120-h120"),
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(40.dp) 
+                            .clip(RoundedCornerShape(8.dp))
                     )
+                    
                     Spacer(modifier = Modifier.width(12.dp))
+                    
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
+                            text = song.title, 
+                            style = MaterialTheme.typography.bodyMedium, 
+                            fontWeight = FontWeight.SemiBold, 
+                            color = MaterialTheme.colorScheme.onBackground, 
+                            maxLines = 1, 
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = song.artists.joinToString(", ") { it.name },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            maxLines = 1,
+                            text = song.artists.joinToString(", ") { it.name }, 
+                            style = MaterialTheme.typography.bodySmall, 
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), 
+                            maxLines = 1, 
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    
                     IconButton(
                         onClick = { 
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onMenuClick(song) 
-                        }, 
+                        },
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha=0.7f))
+                        Icon(painterResource(R.drawable.more_vert), contentDescription = "More", tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -677,7 +649,7 @@ fun SpeedDialSection(
                     modifier = Modifier.width(tileSize).aspectRatio(1f).combinedClickable(onClick = { if (distinctSpeedDial.isNotEmpty()) playSpeedDialQueue(Random.nextInt(distinctSpeedDial.size)) }, onLongClick = {})
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(painter = painterResource(R.drawable.casino), contentDescription = stringResource(R.string.speed_dial_random), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
+                        Icon(painterResource(R.drawable.casino), contentDescription = stringResource(R.string.speed_dial_random), tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -718,14 +690,21 @@ fun KeepListeningSection(
     ) {
         items(
             items = keepListening,
-            key = { item -> when (item) { is Song -> "song_${item.id}"; is Album -> "album_${item.id}"; is Artist -> "artist_${item.id}"; is Playlist -> "playlist_${item.id}" } }
+            key = { item -> 
+                when (item) { 
+                    is com.j.m3play.db.entities.Song -> "song_${item.id}"
+                    is com.j.m3play.db.entities.Album -> "album_${item.id}"
+                    is com.j.m3play.db.entities.Artist -> "artist_${item.id}"
+                    is com.j.m3play.db.entities.Playlist -> "playlist_${item.id}"
+                    else -> "local_${item.id}"
+                } 
+            }
         ) { item ->
             LocalGridItem(item = item, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
         }
     }
 }
 
-// YAHAN PAR FORGOTTEN FAVORITES M3 CAROUSEL ME UPGRADE KIYA HAI
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ForgottenFavoritesSection(
@@ -853,7 +832,6 @@ fun SimilarRecommendationsSection(
     }
 }
 
-// YAHAN PAR NAYA WAVY PROGRESS ANIMATION BANAYA HAI
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeWavyLoading(modifier: Modifier = Modifier) {
@@ -895,6 +873,7 @@ private fun YouTubeGridItemWrapper(
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is ArtistItem -> navController.navigate("artist/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                    else -> {}
                 }
             },
             onLongClick = {
@@ -905,6 +884,7 @@ private fun YouTubeGridItemWrapper(
                         is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                         is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                         is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                        else -> {}
                     }
                 }
             }
@@ -926,7 +906,7 @@ private fun LocalGridItem(
     modifier: Modifier = Modifier
 ) {
     when (item) {
-        is Song -> SongGridItem(
+        is com.j.m3play.db.entities.Song -> SongGridItem(
             song = item,
             modifier = modifier.fillMaxWidth().combinedClickable(
                 onClick = { if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause() else playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())) },
@@ -935,7 +915,7 @@ private fun LocalGridItem(
             isActive = item.id == mediaMetadata?.id,
             isPlaying = isPlaying
         )
-        is Album -> AlbumGridItem(
+        is com.j.m3play.db.entities.Album -> AlbumGridItem(
             album = item,
             isActive = item.id == mediaMetadata?.album?.id,
             isPlaying = isPlaying,
@@ -945,14 +925,15 @@ private fun LocalGridItem(
                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { AlbumMenu(originalAlbum = item, navController = navController, onDismiss = menuState::dismiss) } }
             )
         )
-        is Artist -> ArtistGridItem(
+        is com.j.m3play.db.entities.Artist -> ArtistGridItem(
             artist = item,
             modifier = modifier.fillMaxWidth().combinedClickable(
                 onClick = { navController.navigate("artist/${item.id}") },
                 onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { ArtistMenu(originalArtist = item, coroutineScope = scope, onDismiss = menuState::dismiss) } }
             )
         )
-        is Playlist -> {}
+        is com.j.m3play.db.entities.Playlist -> {}
+        else -> {}
     }
 }
 
@@ -989,16 +970,18 @@ fun SimilarRecommendationsTitle(
         title = recommendation.title.title,
         thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
             {
-                val shape = if (recommendation.title is Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
+                val shape = if (recommendation.title is com.j.m3play.db.entities.Artist) CircleShape else RoundedCornerShape(ThumbnailCornerRadius)
                 AsyncImage(model = thumbnailUrl, contentDescription = null, modifier = Modifier.size(ListThumbnailSize).clip(shape))
             }
         },
         onClick = {
-            when (recommendation.title) {
-                is Song -> navController.navigate("album/${recommendation.title.album!!.id}")
-                is Album -> navController.navigate("album/${recommendation.title.id}")
-                is Artist -> navController.navigate("artist/${recommendation.title.id}")
-                is Playlist -> {}
+            val itemTitle = recommendation.title
+            when (itemTitle) {
+                is com.j.m3play.db.entities.Song -> navController.navigate("album/${itemTitle.album!!.id}")
+                is com.j.m3play.db.entities.Album -> navController.navigate("album/${itemTitle.id}")
+                is com.j.m3play.db.entities.Artist -> navController.navigate("artist/${itemTitle.id}")
+                is com.j.m3play.db.entities.Playlist -> {}
+                else -> {}
             }
         },
         modifier = modifier
@@ -1076,7 +1059,6 @@ fun LazyListScope.SimilarRecommendationsContainer(
     }
 }
 
-// METRO SPEED DIAL SECTION 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MetroSpeedDialSection(
@@ -1120,6 +1102,7 @@ fun MetroSpeedDialSection(
                 if (rawType == "LOCAL_PLAYLIST") navController.navigate("local_playlist/${item.id}")
                 else navController.navigate("online_playlist/${item.id}")
             }
+            else -> {}
         }
     }
 
@@ -1145,6 +1128,7 @@ fun MetroSpeedDialSection(
                     coroutineScope = coroutineScope,
                     onDismiss = menuState::dismiss
                 )
+                else -> {}
             }
         }
     }
@@ -1364,7 +1348,6 @@ fun MetroSpeedDialSection(
     }
 }
 
-//  GLOSSY: EXACT YTM LAYOUT ENGINE 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomePageSectionContent(
@@ -1404,6 +1387,7 @@ fun HomePageSectionContent(
                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                 is ArtistItem -> navController.navigate("artist/${item.id}")
                                 is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                else -> {}
                             }
                         },
                         onMenuClick = {
@@ -1414,6 +1398,7 @@ fun HomePageSectionContent(
                                     is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                                     is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                                     is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                                    else -> {}
                                 }
                             }
                         }

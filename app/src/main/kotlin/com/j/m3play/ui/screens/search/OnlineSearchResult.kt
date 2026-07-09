@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -35,12 +37,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,13 +67,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ALBUM
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_ARTIST
 import com.j.m3play.innertube.YouTube.SearchFilter.Companion.FILTER_COMMUNITY_PLAYLIST
@@ -190,6 +204,7 @@ fun OnlineSearchResult(
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
+            // "ALL" tab logic (No filter selected)
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
                     if (index > 0) {
@@ -202,6 +217,7 @@ fun OnlineSearchResult(
                         }
                     }
 
+                    // Section Title Row
                     item {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -224,11 +240,58 @@ fun OnlineSearchResult(
                         }
                     }
 
-                    items(
-                        items = summary.items,
-                        key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
-                        itemContent = ytItemContent,
-                    )
+                    // Premium Top Result Card Logic
+                    if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
+                        val topItem = summary.items.first()
+                        
+                        item(key = "top_result_card_${topItem.id}") {
+                            PremiumTopResultCard(
+                                item = topItem,
+                                pureBlack = pureBlack,
+                                onPlayClick = {
+                                    if (topItem is SongItem) {
+                                        if (topItem.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                        else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = topItem.id), topItem.toMediaMetadata()))
+                                    }
+                                },
+                                onMenuClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        when (topItem) {
+                                            is SongItem -> YouTubeSongMenu(song = topItem, navController = navController, onDismiss = menuState::dismiss)
+                                            is AlbumItem -> YouTubeAlbumMenu(albumItem = topItem, navController = navController, onDismiss = menuState::dismiss)
+                                            is ArtistItem -> YouTubeArtistMenu(artist = topItem, onDismiss = menuState::dismiss)
+                                            is PlaylistItem -> YouTubePlaylistMenu(playlist = topItem, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        // Agar "MORE FROM YOUTUBE" items hain, toh unhe niche dikhayein
+                        if (summary.items.size > 1) {
+                            item {
+                                Text(
+                                    text = "MORE FROM YOUTUBE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
+                                )
+                            }
+                            items(
+                                items = summary.items.drop(1),
+                                key = { "more_from_yt_${it.id}" },
+                                itemContent = ytItemContent
+                            )
+                        }
+                    } else {
+                        // Normal Items for other sections (Songs, Artists, etc.)
+                        items(
+                            items = summary.items,
+                            key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
+                            itemContent = ytItemContent,
+                        )
+                    }
 
                     item { Spacer(Modifier.height(4.dp)) }
                 }
@@ -237,6 +300,7 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
+                // Specific Filter (Songs, Videos, etc.) selected
                 items(
                     items = itemsPage?.items.orEmpty().distinctBy { it.id },
                     key = { "filtered_${it.id}" },
@@ -257,7 +321,6 @@ fun OnlineSearchResult(
             }
         }
 
-        
         Surface(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
@@ -295,7 +358,6 @@ fun OnlineSearchResult(
             )
         }
 
-        
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -329,6 +391,104 @@ fun OnlineSearchResult(
                     maxLines = 1,
                     style = MaterialTheme.typography.bodyLarge
                 )
+            }
+        }
+    }
+}
+
+// --- Premium Top Result Card Composable ---
+@Composable
+fun PremiumTopResultCard(
+    item: YTItem,
+    pureBlack: Boolean,
+    onPlayClick: () -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val subtitleText = when (item) {
+        is SongItem -> "Song • ${item.artists.joinToString { it.name }}"
+        is ArtistItem -> "Artist"
+        is AlbumItem -> "Album • ${item.artists?.joinToString { it.name } ?: ""}"
+        is PlaylistItem -> "Playlist • ${item.author?.name ?: ""}"
+        else -> ""
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (pureBlack) Color(0xFF121212) else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = item.thumbnail,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitleText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.more_vert),
+                        contentDescription = "Menu",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(
+                    onClick = onPlayClick,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow, 
+                        contentDescription = "Play"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Play")
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                OutlinedButton(
+                    onClick = { /* Handle Save/Library logic */ },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add, 
+                        contentDescription = "Save"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Save")
+                }
             }
         }
     }

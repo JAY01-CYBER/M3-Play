@@ -97,7 +97,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.collectAsState // FIXED IMPORT
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -896,9 +896,6 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(navBackStackEntry) {
                         val route = navBackStackEntry?.destination?.route
-                        // ----------------------------------------------------
-                        // FIXED: Hide default TopBar if we are on SearchScreen
-                        // ----------------------------------------------------
                         shouldShowTopBar =
                             !active && route in topLevelScreens && route != "settings" && route != Screens.Search.route
                     }
@@ -1177,82 +1174,52 @@ class MainActivity : ComponentActivity() {
                                         }
                                         val shouldShowBlurBackground = remember(navBackStackEntry) { shouldUseFloatingTopBar }
                                         val surfaceColor = MaterialTheme.colorScheme.surface
-                                        val currentScrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior
-
+                                        
                                         Box(
-                                            modifier = Modifier.offset {
-                                                IntOffset(x = 0, y = currentScrollBehavior.state.heightOffset.toInt())
-                                            }
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
                                             if (shouldShowBlurBackground) {
+                                                val gradientColors = if (pureBlack) {
+                                                    listOf(
+                                                        Color.Black,
+                                                        Color.Black.copy(alpha = 0.98f),
+                                                        Color.Black.copy(alpha = 0.90f),
+                                                        Color.Black.copy(alpha = 0.70f),
+                                                        Color.Black.copy(alpha = 0.40f),
+                                                        Color.Black.copy(alpha = 0.10f),
+                                                        Color.Transparent
+                                                    )
+                                                } else {
+                                                    listOf(
+                                                        surfaceColor,
+                                                        surfaceColor.copy(alpha = 0.98f),
+                                                        surfaceColor.copy(alpha = 0.90f),
+                                                        surfaceColor.copy(alpha = 0.70f),
+                                                        surfaceColor.copy(alpha = 0.40f),
+                                                        surfaceColor.copy(alpha = 0.10f),
+                                                        Color.Transparent
+                                                    )
+                                                }
+
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .height(AppBarHeight + with(LocalDensity.current) { WindowInsets.systemBars.getTop(LocalDensity.current).toDp() })
-                                                        .background(
-                                                            Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    surfaceColor.copy(alpha = 0.95f),
-                                                                    surfaceColor.copy(alpha = 0.85f),
-                                                                    surfaceColor.copy(alpha = 0.6f),
-                                                                    Color.Transparent
-                                                                )
-                                                            )
-                                                        )
+                                                        .height(AppBarHeight + with(LocalDensity.current) { WindowInsets.systemBars.getTop(LocalDensity.current).toDp() } + 48.dp)
+                                                        .background(Brush.verticalGradient(colors = gradientColors))
                                                 )
                                             }
 
-                                            TopAppBar(
-                                                windowInsets = WindowInsets.safeDrawing.only((if(useRail) { WindowInsetsSides.Right } else WindowInsetsSides.Horizontal) + WindowInsetsSides.Top),
-                                                title = {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.ic_app_logo),
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(28.dp).padding(end = 3.dp)
-                                                        )
-                                                        Text(
-                                                            text = stringResource(R.string.app_name),
-                                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                },
-                                                actions = {
-                                                    IconButton(onClick = { navController.navigate("history") }) {
-                                                        Icon(painter = painterResource(R.drawable.history), contentDescription = stringResource(R.string.history))
-                                                    }
-                                                    IconButton(onClick = { navController.navigate("stats") }) {
-                                                        Icon(painter = painterResource(R.drawable.stats), contentDescription = stringResource(R.string.stats))
-                                                    }
-                                                    IconButton(onClick = { navController.navigate("new_release") }) {
-                                                        Icon(painter = painterResource(R.drawable.new_release), contentDescription = stringResource(R.string.new_release_albums))
-                                                    }
-                                                    IconButton(onClick = { showAccountDialog = true }) {
-                                                        if (accountImageUrl != null) {
-                                                            AsyncImage(model = accountImageUrl, contentDescription = stringResource(R.string.account), modifier = Modifier.size(24.dp).clip(CircleShape))
-                                                        } else {
-                                                            Icon(painter = painterResource(R.drawable.account), contentDescription = stringResource(R.string.account), modifier = Modifier.size(24.dp))
-                                                        }
-                                                    }
-                                                },
-                                                scrollBehavior = if (shouldUseFloatingTopBar) searchBarScrollBehavior else topAppBarScrollBehavior,
-                                                colors = TopAppBarDefaults.topAppBarColors(
-                                                    containerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                                    scrolledContainerColor = if (shouldUseFloatingTopBar) Color.Transparent else if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface,
-                                                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                                                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                            com.j.m3play.ui.component.HomeTopBar(
+                                                accountImageUrl = accountImageUrl,
+                                                onHistoryClick = { navController.navigate("history") },
+                                                onStatsClick = { navController.navigate("stats") },
+                                                onNewReleaseClick = { navController.navigate("new_release") },
+                                                onProfileClick = { showAccountDialog = true },
+                                                useRail = useRail
                                             )
                                         }
                                     }
                                     
-
-                                    // ----------------------------------------------------
-                                    // FIXED: TopSearch visibility updated
-                                    // ----------------------------------------------------
                                     AnimatedVisibility(
                                         visible = active,
                                         enter = fadeIn(animationSpec = tween(durationMillis = 300)),
@@ -1345,7 +1312,6 @@ class MainActivity : ComponentActivity() {
                                 },
                                 bottomBar = {
                                     Box {
-                                        // 1. EXISTING MINI PLAYER
                                         BottomSheetPlayer(
                                             state = playerBottomSheetState,
                                             navController = navController,
@@ -1354,7 +1320,6 @@ class MainActivity : ComponentActivity() {
 
                                         if(useRail) return@Box
 
-                                        // 2. NAVIGATION PILL BAR
                                         val navSlideDistance = bottomInset + floatingBarsBottomPadding + navVisibleHeight
 
                                         Box(
@@ -1372,7 +1337,6 @@ class MainActivity : ComponentActivity() {
                                                 },
                                         ) {
                                             FloatingNavigationToolbar(
-                                                // HIDDEN 'Moods' FROM TABS TO KEEP BAR SLIM
                                                 items = navigationItems.filter { it.route != Screens.MoodAndGenres.route },
                                                 slim = slimNav,
                                                 pureBlack = pureBlack,
@@ -1398,7 +1362,6 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                // DETACHED ACTIONS BINDING
                                                 onIdentifyClick = {
                                                     navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute)
                                                 },
@@ -1553,9 +1516,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // ----------------------------------------------------
-                    // FIXED: Handle openSearchImmediately cleanly
-                    // ----------------------------------------------------
                     LaunchedEffect(openSearchImmediately) {
                         if (openSearchImmediately) {
                             navController.navigate(Screens.Search.route)

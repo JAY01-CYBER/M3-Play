@@ -210,6 +210,9 @@ dependencies {
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+
 
     implementation(libs.shimmer)
 

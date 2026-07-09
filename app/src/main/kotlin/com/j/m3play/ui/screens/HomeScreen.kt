@@ -11,72 +11,27 @@
 package com.j.m3play.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.material3.carousel.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.hapticfeedback.*
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -88,31 +43,19 @@ import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.LocalSharedTransitionScope
 import com.j.m3play.R
-import com.j.m3play.constants.DisableBlurKey
-import com.j.m3play.constants.InnerTubeCookieKey
-import com.j.m3play.constants.ShowHomeCategoryChipsKey
+import com.j.m3play.constants.*
 import com.j.m3play.db.entities.Song
-import com.j.m3play.extensions.toMediaItem
 import com.j.m3play.innertube.models.SongItem
 import com.j.m3play.innertube.models.WatchEndpoint
+import com.j.m3play.innertube.pages.HomePage
 import com.j.m3play.innertube.utils.parseCookieString
 import com.j.m3play.models.toMediaMetadata
-import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
-import com.j.m3play.ui.component.ExpressivePullToRefreshBox
-import com.j.m3play.ui.component.LocalBottomSheetPageState
-import com.j.m3play.ui.component.LocalMenuState
-import com.j.m3play.ui.component.NavigationTitle
-import com.j.m3play.ui.component.TimeGreetingCard
-import com.j.m3play.ui.menu.SongMenu
-import com.j.m3play.ui.menu.YouTubeSongMenu
-import com.j.m3play.ui.menu.YouTubePlaylistMenu
-import com.j.m3play.ui.utils.SnapLayoutInfoProvider
+import com.j.m3play.ui.component.*
+import com.j.m3play.ui.menu.*
 import com.j.m3play.utils.rememberPreference
-import com.j.m3play.viewmodels.CommunityPlaylistItem
 import com.j.m3play.viewmodels.HomeViewModel
-import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -303,38 +246,91 @@ fun HomeScreen(
                 ) {
                     if (showHomeCategoryChips) {
                         item(key = "chips", contentType = "chips") {
-                            ChipsRow(chips = homePage?.chips.orEmpty().map { it to it.title }, currentValue = selectedChip, onValueUpdate = { viewModel.toggleChip(it) })
+                            val dynamicEmojis: Map<HomePage.Chip?, String> = homePage?.chips.orEmpty().associate { chip ->
+                                val emoji = when (chip.title.lowercase()) {
+                                    "relax" -> "🌿"
+                                    "workout" -> "🏋️"
+                                    "feel good" -> "☀️"
+                                    "energize" -> "⚡"
+                                    "romance" -> "❤️"
+                                    "focus" -> "🎯"
+                                    "sleep" -> "🌙"
+                                    "party" -> "🎉"
+                                    "commute" -> "🚗"
+                                    "sad" -> "🌧️"
+                                    else -> "🎵" 
+                                }
+                                (chip as HomePage.Chip?) to emoji 
+                            }
+
+                            ChipsRow(
+                                chips = homePage?.chips.orEmpty().map { it to it.title },
+                                currentValue = selectedChip,
+                                onValueUpdate = { viewModel.toggleChip(it) },
+                                emojiIcons = dynamicEmojis 
+                            )
                         }
                     }
 
                     item(key = "greeting", contentType = "greeting") { 
-                        TimeGreetingCard(onSearchClick = { runCatching { navController.navigate("search/") } }) 
-                    }
-                    
-                    item(key = "actions_1", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionCard(title = "Liked", icon = R.drawable.favorite, onClick = { runCatching { navController.navigate("auto_playlist/liked") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = "Downloads", icon = R.drawable.download, onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } }, modifier = Modifier.weight(1f))
-                        }
-                    }
+                        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                        
+                        TimeGreetingCard(
+                            onMixClick = { 
+                                val picks = quickPicks ?: emptyList()
+                                
+                                if (picks.isNotEmpty()) {
+                                    val seedSong = when (currentHour) {
+                                        in 4..11 -> picks.firstOrNull() 
+                                        in 12..16 -> picks.getOrNull(picks.size / 3) ?: picks.random() 
+                                        in 17..20 -> picks.getOrNull(picks.size / 2) ?: picks.random() 
+                                        else -> picks.lastOrNull() ?: picks.random() 
+                                    }
 
-                    item(key = "actions_2", contentType = "actions") {
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ActionCard(title = "History", icon = R.drawable.history, onClick = { runCatching { navController.navigate("history") } }, modifier = Modifier.weight(1f))
-                            ActionCard(title = if (isLoggedIn) "Account" else "Library", icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music, onClick = { if (isLoggedIn) runCatching { navController.navigate("account") } else runCatching { navController.navigate("library") } }, modifier = Modifier.weight(1f))
-                        }
-                    }
-                    
-                    communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
-                        item(key = "community_title", contentType = "title") { 
-                            NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) 
-                        }
-                        item(key = "community_row", contentType = "row") {
-                            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
-                                items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
-                                    CommunityPlaylistCard(item = item, onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") }, onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }, onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } })
+                                    seedSong?.let { song ->
+                                        playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
+                                    }
                                 }
                             }
+                        ) 
+                    }
+                    
+                    item(key = "quick_actions", contentType = "actions") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ActionCard(
+                                title = "Liked",
+                                icon = R.drawable.favorite,
+                                iconTint = Color(0xFF673AB7),
+                                onClick = { runCatching { navController.navigate("auto_playlist/liked") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = "Downloads",
+                                icon = R.drawable.download,
+                                iconTint = Color(0xFF1976D2),
+                                onClick = { runCatching { navController.navigate("auto_playlist/downloaded") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = "History",
+                                icon = R.drawable.history,
+                                iconTint = Color(0xFF388E3C),
+                                onClick = { runCatching { navController.navigate("history") } },
+                                modifier = Modifier.weight(1f)
+                            )
+                            ActionCard(
+                                title = if (isLoggedIn) "Account" else "Library",
+                                icon = if (isLoggedIn) R.drawable.person else R.drawable.library_music,
+                                iconTint = Color(0xFFFF5722),
+                                onClick = {
+                                    if (isLoggedIn) runCatching { navController.navigate("account") }
+                                    else runCatching { navController.navigate("library") }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
 
@@ -367,12 +363,32 @@ fun HomeScreen(
                         item(key = "keep_listening_section", contentType = "section") { KeepListeningSection(keepListening = items, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                     }
 
+                    // --- COMMUNITY PLAYLISTS ---
+                    communityPlaylists?.takeIf { it.isNotEmpty() }?.let { playlists ->
+                        item(key = "community_title", contentType = "title") { 
+                            NavigationTitle(title = stringResource(R.string.from_the_community), modifier = Modifier.animateItem()) 
+                        }
+                        item(key = "community_row", contentType = "row") {
+                            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.animateItem()) {
+                                items(items = playlists, key = { it.playlist.id }, contentType = { "community_card" }) { item ->
+                                    CommunityPlaylistCard(
+                                        item = item, 
+                                        onClick = { navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}") }, 
+                                        onSongClick = { song: SongItem -> playerConnection.playQueue(YouTubeQueue(song.endpoint ?: WatchEndpoint(videoId = song.id), song.toMediaMetadata())) }, 
+                                        onMenuClick = { song: SongItem -> menuState.show { YouTubeSongMenu(song = song, navController = navController, onDismiss = menuState::dismiss) } }, 
+                                        onSaveClick = { menuState.show { YouTubePlaylistMenu(playlist = item.playlist, coroutineScope = scope, onDismiss = menuState::dismiss) } }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    // ----------------------------------------
+
                     AccountPlaylistsContainer(viewModel = viewModel, accountName = accountName, accountImageUrl = url, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope)
 
                     forgottenFavorites?.takeIf { it.isNotEmpty() }?.let { favorites ->
                         item(key = "forgotten_favorites_title", contentType = "title") { NavigationTitle(title = stringResource(R.string.forgotten_favorites), modifier = Modifier.animateItem()) }
                         item(key = "forgotten_favorites_section", contentType = "section") { 
-                            // Yahan snap variables hata diye hain kyunki carousel automatically ye manage karta hai
                             ForgottenFavoritesSection(
                                 forgottenFavorites = favorites, 
                                 mediaMetadata = mediaMetadata, 
@@ -392,7 +408,6 @@ fun HomeScreen(
                         item(key = "section_content_${section.title}_$index", contentType = "section") { HomePageSectionContent(section = section, mediaMetadata = mediaMetadata, isPlaying = isPlaying, navController = navController, playerConnection = playerConnection, menuState = menuState, haptic = haptic, scope = scope) }
                     }
 
-                    // YAHAN PAR WAVY ANIMATION ADD KIYA HAI
                     if (isLoading || homePage?.continuation != null && homePage?.sections?.isNotEmpty() == true) {
                         item(key = "loading_wavy", contentType = "loading") { HomeWavyLoading(modifier = Modifier.animateItem()) }
                     }
@@ -406,6 +421,7 @@ fun HomeScreen(
 fun ActionCard(
     title: String,
     icon: Int,
+    iconTint: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -419,22 +435,22 @@ fun ActionCard(
         onClick = onClick,
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-            .height(48.dp),
-        shape = RoundedCornerShape(999.dp),
+            .height(95.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
         interactionSource = interactionSource
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        Column(
+            modifier = Modifier.fillMaxSize().padding(vertical = 12.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(painter = painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(painter = painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(28.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

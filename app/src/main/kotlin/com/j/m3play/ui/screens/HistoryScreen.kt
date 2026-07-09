@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V6     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -13,27 +13,33 @@ package com.j.m3play.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,8 +49,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -54,8 +61,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.j.m3play.innertube.models.WatchEndpoint
@@ -73,8 +82,6 @@ import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.ListQueue
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
-import com.j.m3play.ui.component.HideOnScrollFAB
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.NavigationTitle
@@ -103,20 +110,20 @@ fun HistoryScreen(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
 
-    var selection by remember {
-        mutableStateOf(false)
-    }
+    var selection by remember { mutableStateOf(false) }
 
     var isSearching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
     val focusRequester = remember { FocusRequester() }
+    
     LaunchedEffect(isSearching) {
         if (isSearching) {
             focusRequester.requestFocus()
         }
     }
+    
     if (isSearching) {
         BackHandler {
             isSearching = false
@@ -159,10 +166,7 @@ fun HistoryScreen(
                 songs.filter { event ->
                     event.song.song.title.contains(query.text, ignoreCase = true) ||
                             event.song.artists.any {
-                                it.name.contains(
-                                    query.text,
-                                    ignoreCase = true
-                                )
+                                it.name.contains(query.text, ignoreCase = true)
                             }
                 }
             }.filterValues { it.isNotEmpty() }
@@ -196,33 +200,88 @@ fun HistoryScreen(
 
     val lazyListState = rememberLazyListState()
 
+    val isFabVisible = if (historySource == HistorySource.REMOTE) {
+        filteredRemoteContent?.any { it.songs.isNotEmpty() } == true
+    } else {
+        allWrappedItems.isNotEmpty()
+    }
+
+    // Dynamic padding logic: Calculates exact bottom boundary based on Mini-player & Nav Bar
+    val playerInsets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val dynamicBottomPadding = playerInsets.calculateBottomPadding() + 16.dp
+
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
             contentPadding = LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
                 .asPaddingValues(),
             modifier = Modifier.windowInsetsPadding(
-                LocalPlayerAwareWindowInsets.current.only(
-                    WindowInsetsSides.Top
-                )
+                LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Top)
             )
         ) {
             item {
-                ChipsRow(
-                    chips = if (isLoggedIn) listOf(
-                        HistorySource.LOCAL to stringResource(R.string.local_history),
-                        HistorySource.REMOTE to stringResource(R.string.remote_history),
-                    ) else {
-                        listOf(HistorySource.LOCAL to stringResource(R.string.local_history))
-                    },
-                    currentValue = historySource,
-                    onValueUpdate = {
-                        viewModel.historySource.value = it
-                        if (it == HistorySource.REMOTE){
-                            viewModel.fetchRemoteHistory()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                            .padding(4.dp)
+                    ) {
+                        Row(modifier = Modifier.clip(CircleShape)) {
+                            // Local Tab
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.primaryContainer 
+                                        else Color.Transparent
+                                    )
+                                    .clickable { viewModel.historySource.value = HistorySource.LOCAL }
+                                    .padding(horizontal = 32.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.local_history),
+                                    fontWeight = if (historySource == HistorySource.LOCAL) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (historySource == HistorySource.LOCAL) MaterialTheme.colorScheme.onPrimaryContainer 
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            // Remote Tab (Only if logged in)
+                            if (isLoggedIn) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.primaryContainer 
+                                            else Color.Transparent
+                                        )
+                                        .clickable {
+                                            viewModel.historySource.value = HistorySource.REMOTE
+                                            viewModel.fetchRemoteHistory()
+                                        }
+                                        .padding(horizontal = 32.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.remote_history),
+                                        fontWeight = if (historySource == HistorySource.REMOTE) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (historySource == HistorySource.REMOTE) MaterialTheme.colorScheme.onPrimaryContainer 
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
-                )
+                }
             }
 
             if (historySource == HistorySource.REMOTE && isLoggedIn) {
@@ -254,7 +313,8 @@ fun HistoryScreen(
                                                 onDismiss = menuState::dismiss
                                             )
                                         }
-                                    }
+                                    },
+                                    onLongClick = {}
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.more_vert),
@@ -306,13 +366,13 @@ fun HistoryScreen(
                         key = { index, wrappedItem -> "${dateAgo}_${wrappedItem.item.event.id}_$index" }
                     ) { index, wrappedItem ->
                         val event = wrappedItem.item
+                        
                         SongListItem(
                             song = event.song,
                             isActive = event.song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
                             isSelected = wrappedItem.isSelected && selection,
-
                             trailingContent = {
                                 IconButton(
                                     onClick = {
@@ -326,7 +386,8 @@ fun HistoryScreen(
                                                 )
                                             }
                                         }
-                                    }
+                                    },
+                                    onLongClick = {}
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.more_vert),
@@ -370,38 +431,51 @@ fun HistoryScreen(
             }
         }
 
-        HideOnScrollFAB(
-            visible = if (historySource == HistorySource.REMOTE) {
-                filteredRemoteContent?.any { it.songs.isNotEmpty() } == true
-            } else {
-                allWrappedItems.isNotEmpty()
-            },
-            lazyListState = lazyListState,
-            icon = R.drawable.shuffle,
-            onClick = {
-                if (historySource == HistorySource.REMOTE && historyPage != null) {
-                    val songs = filteredRemoteContent?.flatMap { it.songs } ?: emptyList()
-                    if (songs.isNotEmpty()) {
+        // FAB completely dynamic now based on WindowInsets
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isFabVisible,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = dynamicBottomPadding),
+            enter = androidx.compose.animation.scaleIn(),
+            exit = androidx.compose.animation.scaleOut()
+        ) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    if (historySource == HistorySource.REMOTE && historyPage != null) {
+                        val songs = filteredRemoteContent?.flatMap { it.songs } ?: emptyList()
+                        if (songs.isNotEmpty()) {
+                            playerConnection.playQueue(
+                                ListQueue(
+                                    title = context.getString(R.string.history),
+                                    items = songs.map { it.toMediaItem() }.shuffled()
+                                )
+                            )
+                        }
+                    } else {
                         playerConnection.playQueue(
                             ListQueue(
                                 title = context.getString(R.string.history),
-                                items = songs.map { it.toMediaItem() }.shuffled()
+                                items = allWrappedItems.map { it.item.song.toMediaItem() }.shuffled()
                             )
                         )
                     }
-                } else {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = context.getString(R.string.history),
-                            items = allWrappedItems.map { it.item.song.toMediaItem() }.shuffled()
-                        )
-                    )
-                }
-            }
-        )
+                },
+                icon = { 
+                    Icon(
+                        painter = painterResource(R.drawable.shuffle), 
+                        contentDescription = null
+                    ) 
+                },
+                text = { Text("Shuffle") },
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
     }
 
-    TopAppBar(
+    CenterAlignedTopAppBar(
         title = {
             if (selection) {
                 val count = allWrappedItems.count { it.isSelected }
@@ -434,7 +508,17 @@ fun HistoryScreen(
                         .focusRequester(focusRequester)
                 )
             } else {
-                Text(stringResource(R.string.history))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = stringResource(R.string.history),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "Your recently played songs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         navigationIcon = {
@@ -459,7 +543,10 @@ fun HistoryScreen(
                     if (!isSearching && !selection) {
                         navController.backToMain()
                     }
-                }
+                },
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
             ) {
                 Icon(
                     painter = painterResource(
@@ -479,7 +566,8 @@ fun HistoryScreen(
                         } else {
                             allWrappedItems.forEach { it.isSelected = true }
                         }
-                    }
+                    },
+                    onLongClick = {}
                 ) {
                     Icon(
                         painter = painterResource(
@@ -500,7 +588,8 @@ fun HistoryScreen(
                                 currentItems = emptyList()
                             )
                         }
-                    }
+                    },
+                    onLongClick = {}
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.more_vert),
@@ -509,7 +598,11 @@ fun HistoryScreen(
                 }
             } else if (!isSearching) {
                 IconButton(
-                    onClick = { isSearching = true }
+                    onClick = { isSearching = true },
+                    onLongClick = {},
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.search),

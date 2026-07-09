@@ -196,17 +196,16 @@ object YouTube {
                             .distinctBy { it.id }
                             .ifEmpty { null } ?: return@mapNotNull null
                     )
-                else
+                else if (it.musicShelfRenderer != null)
                     SearchSummary(
-                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = it.musicShelfRenderer?.contents?.getItems()
-                            ?.mapNotNull {
-                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                            }
+                        title = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer.contents?.getItems()
+                            ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
                             ?.distinctBy { it.id }
                             ?.ifEmpty { null } ?: return@mapNotNull null
                     )
-            }!!
+                else null
+            } ?: emptyList()
         )
     }
 

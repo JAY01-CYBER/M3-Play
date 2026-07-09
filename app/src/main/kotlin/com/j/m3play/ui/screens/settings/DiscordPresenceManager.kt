@@ -51,18 +51,15 @@ object DiscordPresenceManager {
     private var lastFailedRestartDueToParams = 0L
     private const val FAILED_RESTART_LOCKOUT = 60_000L
 
-
     // Last successful RPC timestamps (nullable).
     // Exposed as StateFlow so Compose can observe changes.
     private val _lastRpcStartTime = MutableStateFlow<Long?>(null)
     val lastRpcStartTimeFlow = _lastRpcStartTime.asStateFlow()
-    val lastRpcStartTime: Long?
-        get() = _lastRpcStartTime.value
+    val lastRpcStartTime: Long? get() = _lastRpcStartTime.value
 
     private val _lastRpcEndTime = MutableStateFlow<Long?>(null)
     val lastRpcEndTimeFlow = _lastRpcEndTime.asStateFlow()
-    val lastRpcEndTime: Long?
-        get() = _lastRpcEndTime.value
+    val lastRpcEndTime: Long? get() = _lastRpcEndTime.value
     private val rpcMutex = Mutex()
 
     /** Public helper to update the last RPC timestamps from callers. */
@@ -116,6 +113,9 @@ object DiscordPresenceManager {
                     return@withLock true
                 }
 
+                // 1. Fetching se pehle ka exact time record kiya
+                val fetchStartTime = System.currentTimeMillis()
+
                 try {
                     withTimeout(8_000L) {
                         DiscordImageResolver.resolveImagesForSong(context, song)
@@ -124,8 +124,17 @@ object DiscordPresenceManager {
                     Timber.tag(logTag).v(e, "image resolution for presence failed or timed out")
                 }
 
+                // 2. Calculate kiya ki network/image delay kitna hua
+                val timeTakenForImage = System.currentTimeMillis() - fetchStartTime
+                
+                // 3. Purane positionMs mein delay time add kar diya (Sync fix)
+                val adjustedPositionMs = positionMs + timeTakenForImage
+
                 val rpc = getOrCreateRpc(context, token)
-                val result = rpc.updateSong(song, positionMs, isPaused)
+                
+                // 4. Ab DiscordRPC ko adjusted exact time bheja
+                val result = rpc.updateSong(song, adjustedPositionMs, isPaused)
+                
                 if (result.isSuccess) {
                     consecutiveFailures = 0
                     Timber.tag(logTag).d(
@@ -136,7 +145,8 @@ object DiscordPresenceManager {
 
                     if (!isPaused) {
                         val now = System.currentTimeMillis()
-                        val calculatedStartTime = now - positionMs
+                        // Use the adjusted position here too for UI sync
+                        val calculatedStartTime = now - adjustedPositionMs
                         val calculatedEndTime = calculatedStartTime + song.song.duration * 1000L
                         setLastRpcTimestamps(calculatedStartTime, calculatedEndTime)
                     }
