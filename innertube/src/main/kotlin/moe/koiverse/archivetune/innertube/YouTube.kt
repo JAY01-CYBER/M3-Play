@@ -79,10 +79,6 @@ import java.net.Proxy
 import java.util.Locale
 import kotlin.random.Random
 
-/**
- * Parse useful data with [InnerTube] sending requests.
- * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
- */
 object YouTube {
     private val innerTube = InnerTube()
 
@@ -187,7 +183,7 @@ object YouTube {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         SearchSummaryPage(
             summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
-                if (it.musicCardShelfRenderer != null)
+                if (it.musicCardShelfRenderer != null) {
                     SearchSummary(
                         title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
                         items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
@@ -200,17 +196,22 @@ object YouTube {
                             .distinctBy { it.id }
                             .ifEmpty { null } ?: return@mapNotNull null
                     )
-                else
-                    SearchSummary(
-                        title = it.musicShelfRenderer?.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = it.musicShelfRenderer?.contents?.getItems()
-                            ?.mapNotNull {
-                                SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                            }
-                            ?.distinctBy { it.id }
-                            ?.ifEmpty { null } ?: return@mapNotNull null
-                    )
-            }!!
+                } else {
+                    // 🔥 THE MAGIC FIX: Yahan parser 'itemSectionRenderer' wale naye wrapper ke andar jhaank kar list nikalega!
+                    val shelf = it.musicShelfRenderer ?: it.itemSectionRenderer?.contents?.firstOrNull()?.musicShelfRenderer
+                    if (shelf != null) {
+                        SearchSummary(
+                            title = shelf.title?.runs?.firstOrNull()?.text ?: "Other",
+                            items = shelf.contents?.getItems()
+                                ?.mapNotNull {
+                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
+                                }
+                                ?.distinctBy { it.id }
+                                ?.ifEmpty { null } ?: return@mapNotNull null
+                        )
+                    } else null
+                }
+            } ?: emptyList()
         )
     }
 
@@ -280,7 +281,7 @@ object YouTube {
                 artists = albumArtists,
                 year = albumYear,
                 thumbnail = albumThumbnail,
-                explicit = false, // TODO: Extract explicit badge for albums from YouTube response
+                explicit = false,
             ),
             songs = if (withSongs) albumSongs(playlistId, AlbumItem(
                 browseId = browseId,
@@ -312,7 +313,7 @@ object YouTube {
             .contents.firstOrNull()?.musicPlaylistShelfRenderer?.contents?.getContinuation()
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
-        val maxRequests = 50 // Prevent excessive API calls
+        val maxRequests = 50
         
         var consecutiveEmptyResponses = 0
         while (continuation != null && requestCount < maxRequests) {
@@ -344,7 +345,8 @@ object YouTube {
         songs
     }
 
-    suspend fun artist(browseId: String): Result<ArtistPage> = runCatching {
+
+        suspend fun artist(browseId: String): Result<ArtistPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
 
         ArtistPage(
@@ -778,14 +780,6 @@ object YouTube {
             }
         }.toMutableList()
 
-        /*
-         * We need to fetch the artist page when accessing the library because it allows to have
-         * a proper playEndpoint, which is needed to correctly report the playing indicator in
-         * the home page.
-         *
-         * Despite this, we need to use the old thumbnail because it's the proper format for a
-         * square picture, which is what we need.
-         */
         items.forEachIndexed { index, item ->
             if (item is ArtistItem) {
                 artist(item.id).getOrNull()?.artist?.let { fetchedArtist ->
@@ -876,8 +870,13 @@ object YouTube {
 
     private fun convertToChartItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         return try {
+            // Extracted chart ID safe fallback
+            val chartVideoId = renderer.playlistItemData?.videoId 
+                ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                ?: renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId
+
             when {
-                renderer.flexColumns.size >= 3 && renderer.playlistItemData?.videoId != null -> {
+                renderer.flexColumns.size >= 3 && chartVideoId != null -> {
                     val firstColumn = renderer.flexColumns.getOrNull(0)
                         ?.musicResponsiveListItemFlexColumnRenderer
                         ?.text ?: return null
@@ -903,7 +902,7 @@ object YouTube {
                         ?.text
 
                     SongItem(
-                        id = renderer.playlistItemData.videoId,
+                        id = chartVideoId,
                         title = title,
                         artists = artists,
                         thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
@@ -1049,10 +1048,7 @@ object YouTube {
 
     suspend fun registerPlayback(playlistId: String? = null, playbackTracking: String) = runCatching {
         val cpn = (1..16).map {
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(
-                0,
-                64
-            )]
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"[Random.Default.nextInt(0, 64)]
         }.joinToString("")
 
         val playbackUrl = playbackTracking.replace(
@@ -1092,7 +1088,6 @@ object YouTube {
         val songs = items.map { it.first }
         val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
 
-        // load automix items
         playlistPanelRenderer.contents.lastOrNull()?.automixPreviewVideoRenderer?.content?.automixPlaylistVideoRenderer?.navigationEndpoint?.watchPlaylistEndpoint?.let { watchPlaylistEndpoint ->
             return@runCatching next(watchPlaylistEndpoint).getOrThrow().let { result ->
                 result.copy(
@@ -1150,7 +1145,7 @@ object YouTube {
 
     suspend fun queue(videoIds: List<String>? = null, playlistId: String? = null): Result<List<SongItem>> = runCatching {
         if (videoIds != null) {
-            assert(videoIds.size <= MAX_GET_QUEUE_SIZE) // Max video limit
+            assert(videoIds.size <= MAX_GET_QUEUE_SIZE)
         }
         innerTube.getQueue(WEB_REMIX, videoIds, playlistId).body<GetQueueResponse>().queueDatas
             .mapNotNull {
@@ -1219,6 +1214,6 @@ object YouTube {
     }
 
     const val MAX_GET_QUEUE_SIZE = 1000
-
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
+
