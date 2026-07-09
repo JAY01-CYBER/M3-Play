@@ -179,41 +179,33 @@ object YouTube {
         )
     }
 
-    // [FIX APPLIED HERE]
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
-                if (content.musicCardShelfRenderer != null) {
-                    val shelf = content.musicCardShelfRenderer
+            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
+                if (it.musicCardShelfRenderer != null)
                     SearchSummary(
-                        title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(shelf))
+                        title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
                             .plus(
-                                shelf.contents
+                                it.musicCardShelfRenderer.contents
                                     ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    ?.mapNotNull { SearchPage.toYTItem(it) } 
+                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
                                     .orEmpty()
                             )
                             .distinctBy { it.id }
                             .ifEmpty { null } ?: return@mapNotNull null
                     )
-                } 
-                else if (content.musicShelfRenderer != null) {
-                    val shelf = content.musicShelfRenderer
+                else if (it.musicShelfRenderer != null)
                     SearchSummary(
-                        title = shelf.title?.runs?.firstOrNull()?.text ?: "Other",
-                        items = shelf.contents?.getItems()
-                            ?.mapNotNull {
-                                SearchPage.toYTItem(it) 
-                            }
+                        title = it.musicShelfRenderer.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = it.musicShelfRenderer.contents?.getItems()
+                            ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
                             ?.distinctBy { it.id }
                             ?.ifEmpty { null } ?: return@mapNotNull null
                     )
-                } else {
-                    null
-                }
-            } ?: emptyList() 
+                else null
+            } ?: emptyList()
         )
     }
 
