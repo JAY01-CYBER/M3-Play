@@ -179,39 +179,41 @@ object YouTube {
         )
     }
 
+    // [FIX APPLIED HERE]
     suspend fun searchSummary(query: String): Result<SearchSummaryPage> = runCatching {
         val response = innerTube.search(WEB_REMIX, query).body<SearchResponse>()
         SearchSummaryPage(
-            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { it ->
-                if (it.musicCardShelfRenderer != null) {
+            summaries = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer?.contents?.mapNotNull { content ->
+                if (content.musicCardShelfRenderer != null) {
+                    val shelf = content.musicCardShelfRenderer
                     SearchSummary(
-                        title = it.musicCardShelfRenderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
-                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(it.musicCardShelfRenderer))
+                        title = shelf.header?.musicCardShelfHeaderBasicRenderer?.title?.runs?.firstOrNull()?.text ?: "Top result",
+                        items = listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(shelf))
                             .plus(
-                                it.musicCardShelfRenderer.contents
+                                shelf.contents
                                     ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    ?.mapNotNull(SearchSummaryPage.Companion::fromMusicResponsiveListItemRenderer)
+                                    ?.mapNotNull { SearchPage.toYTItem(it) } 
                                     .orEmpty()
                             )
                             .distinctBy { it.id }
                             .ifEmpty { null } ?: return@mapNotNull null
                     )
+                } 
+                else if (content.musicShelfRenderer != null) {
+                    val shelf = content.musicShelfRenderer
+                    SearchSummary(
+                        title = shelf.title?.runs?.firstOrNull()?.text ?: "Other",
+                        items = shelf.contents?.getItems()
+                            ?.mapNotNull {
+                                SearchPage.toYTItem(it) 
+                            }
+                            ?.distinctBy { it.id }
+                            ?.ifEmpty { null } ?: return@mapNotNull null
+                    )
                 } else {
-                    // 🔥 THE MAGIC FIX: Yahan parser 'itemSectionRenderer' wale naye wrapper ke andar jhaank kar list nikalega!
-                    val shelf = it.musicShelfRenderer ?: it.itemSectionRenderer?.contents?.firstOrNull()?.musicShelfRenderer
-                    if (shelf != null) {
-                        SearchSummary(
-                            title = shelf.title?.runs?.firstOrNull()?.text ?: "Other",
-                            items = shelf.contents?.getItems()
-                                ?.mapNotNull {
-                                    SearchSummaryPage.fromMusicResponsiveListItemRenderer(it)
-                                }
-                                ?.distinctBy { it.id }
-                                ?.ifEmpty { null } ?: return@mapNotNull null
-                        )
-                    } else null
+                    null
                 }
-            } ?: emptyList()
+            } ?: emptyList() 
         )
     }
 
@@ -345,8 +347,7 @@ object YouTube {
         songs
     }
 
-
-        suspend fun artist(browseId: String): Result<ArtistPage> = runCatching {
+    suspend fun artist(browseId: String): Result<ArtistPage> = runCatching {
         val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
 
         ArtistPage(
@@ -1216,4 +1217,3 @@ object YouTube {
     const val MAX_GET_QUEUE_SIZE = 1000
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
 }
-
