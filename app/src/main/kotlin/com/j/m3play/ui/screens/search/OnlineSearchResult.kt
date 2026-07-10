@@ -78,10 +78,6 @@ import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
 
-private val CustomBgColor = Color(0xFF0A0A0A)
-private val CustomSurfaceColor = Color(0xFF222222)
-private val CustomAccentColor = Color(0xFFFFD2B4)
-
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OnlineSearchResult(
@@ -95,7 +91,6 @@ fun OnlineSearchResult(
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     
-    // NEW: Focus manager to control keyboard
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current 
 
     val coroutineScope = rememberCoroutineScope()
@@ -159,7 +154,8 @@ fun OnlineSearchResult(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
+                // BUG FIX: Badhaya hua padding taaki list top bar se na chipke
+                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 20.dp,
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
@@ -218,6 +214,11 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
+                
+                // BUG FIX: Spacer added specifically for filtered tabs ("Songs", "Albums" etc.)
+                // Jisse filter select karne par pehla gaana filter bar se thoda niche dikhe
+                item { Spacer(modifier = Modifier.height(8.dp)) }
+
                 items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
                 
                 if (itemsPage?.continuation != null) {
@@ -241,40 +242,53 @@ fun OnlineSearchResult(
             }
         }
 
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 1.dp,
-            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = AppBarHeight).fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = AppBarHeight)
+                .fillMaxWidth()
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
         ) {
-            ChipsRow(
-                chips = listOf(
-                    null to stringResource(R.string.filter_all),
-                    FILTER_SONG to stringResource(R.string.filter_songs),
-                    FILTER_VIDEO to stringResource(R.string.filter_videos),
-                    FILTER_ALBUM to stringResource(R.string.filter_albums),
-                    FILTER_ARTIST to stringResource(R.string.filter_artists),
-                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                ),
-                currentValue = searchFilter,
-                onValueUpdate = {
-                    if (viewModel.filter.value != it) viewModel.filter.value = it
-                    coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                },
-                icons = mapOf(
-                    null to R.drawable.search,
-                    FILTER_SONG to R.drawable.music_note,
-                    FILTER_VIDEO to R.drawable.slow_motion_video,
-                    FILTER_ALBUM to R.drawable.album,
-                    FILTER_ARTIST to R.drawable.person,
-                    FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
-                    FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
-                ),
-            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val filters = listOf(
+                    null to "All",
+                    FILTER_SONG to "Songs",
+                    FILTER_VIDEO to "Videos",
+                    FILTER_ALBUM to "Albums"
+                )
+                
+                items(filters.size) { index ->
+                    val filterItem = filters[index]
+                    val isSelected = searchFilter == filterItem.first
+                    
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable {
+                                if (viewModel.filter.value != filterItem.first) {
+                                    viewModel.filter.value = filterItem.first
+                                }
+                                coroutineScope.launch { lazyListState.animateScrollToItem(0) }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = filterItem.second,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
         }
 
-        // ---------- FULLY EDITABLE SEARCH BAR overlay ----------
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -300,8 +314,6 @@ fun OnlineSearchResult(
                     .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.CenterStart
             ) {
-                
-                // Decode query accurately from URL
                 val queryText = remember {
                     val rawQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
                     try {
@@ -319,7 +331,6 @@ fun OnlineSearchResult(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        // Placeholder Text (Shows when text is cleared)
                         if (textFieldValue.text.isEmpty()) {
                             Text(
                                 text = "Search YouTube Music...", 
@@ -329,7 +340,6 @@ fun OnlineSearchResult(
                             )
                         }
                         
-                        // Actual Editable Text Field
                         androidx.compose.foundation.text.BasicTextField(
                             value = textFieldValue,
                             onValueChange = { textFieldValue = it },
@@ -340,7 +350,7 @@ fun OnlineSearchResult(
                                 onSearch = {
                                     focusManager.clearFocus()
                                     if (textFieldValue.text.isNotEmpty() && textFieldValue.text != queryText) {
-                                        navController.popBackStack() // Remove current page
+                                        navController.popBackStack()
                                         navController.navigate("search/${java.net.URLEncoder.encode(textFieldValue.text, "UTF-8")}")
                                     }
                                 }
@@ -350,7 +360,6 @@ fun OnlineSearchResult(
                         )
                     }
                     
-                    // Clear (X) button logic
                     if (textFieldValue.text.isNotEmpty()) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
