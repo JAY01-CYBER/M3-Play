@@ -94,6 +94,9 @@ fun OnlineSearchResult(
     val haptic = LocalHapticFeedback.current
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    
+    // NEW: Focus manager to control keyboard
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current 
 
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
@@ -271,7 +274,7 @@ fun OnlineSearchResult(
             )
         }
 
-        // ---------- FIXED: TOP SEARCH BAR overlay is here ----------
+        // ---------- FULLY EDITABLE SEARCH BAR overlay ----------
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -294,13 +297,11 @@ fun OnlineSearchResult(
                     .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(50))
-                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { navController.popBackStack() }, 
+                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.CenterStart
             ) {
                 
-                // BULLETPROOF FIX: Getting search text directly from NavController URL arguments. 
-                // Ye hamesha accurate kaam karega aur compile bhi hoga!
+                // Decode query accurately from URL
                 val queryText = remember {
                     val rawQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
                     try {
@@ -309,25 +310,58 @@ fun OnlineSearchResult(
                         rawQuery
                     }
                 }
+                
+                var textFieldValue by remember(queryText) { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(queryText)) }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), 
                     horizontalArrangement = Arrangement.SpaceBetween, 
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = queryText.ifEmpty { stringResource(R.string.search_yt_music) }, 
-                        color = MaterialTheme.colorScheme.onSurface, 
-                        maxLines = 1, 
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        // Placeholder Text (Shows when text is cleared)
+                        if (textFieldValue.text.isEmpty()) {
+                            Text(
+                                text = "Search YouTube Music...", 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), 
+                                maxLines = 1, 
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        
+                        // Actual Editable Text Field
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = textFieldValue,
+                            onValueChange = { textFieldValue = it },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                    if (textFieldValue.text.isNotEmpty() && textFieldValue.text != queryText) {
+                                        navController.popBackStack() // Remove current page
+                                        navController.navigate("search/${java.net.URLEncoder.encode(textFieldValue.text, "UTF-8")}")
+                                    }
+                                }
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                     
-                    if (queryText.isNotEmpty()) {
+                    // Clear (X) button logic
+                    if (textFieldValue.text.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             painter = painterResource(R.drawable.close), 
                             contentDescription = "Clear", 
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, 
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { 
+                                    textFieldValue = androidx.compose.ui.text.input.TextFieldValue("") 
+                                }
                         )
                     }
                 }
