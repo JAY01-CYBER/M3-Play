@@ -66,6 +66,11 @@ import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
 
+// ADDED MISSING COLORS HERE!
+val CustomBgColor = Color(0xFF0A0A0A)
+val CustomSurfaceColor = Color(0xFF222222)
+val CustomAccentColor = Color(0xFFFFD2B4)
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OnlineSearchResult(
@@ -253,7 +258,6 @@ fun OnlineSearchResult(
                             .background(if (isSelected) CustomAccentColor else CustomSurfaceColor)
                             .border(1.dp, if (isSelected) Color.Transparent else Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
                             .clickable {
-                                // FIXED: Using filterItem to avoid Value syntax conflict
                                 if (viewModel.filter.value != filterItem.first) {
                                     viewModel.filter.value = filterItem.first
                                 }
@@ -375,7 +379,6 @@ fun PremiumTopResultCard(
                     modifier = Modifier.size(40.dp).border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape).clickable { /* Download Logic */ },
                     contentAlignment = Alignment.Center
                 ) {
-                    // Added a fallback generic icon since R.drawable.download might not exist based on previous missing icons
                     Icon(imageVector = Icons.Rounded.Add, contentDescription = "Download", tint = Color.White, modifier = Modifier.size(20.dp)) 
                 }
             }
