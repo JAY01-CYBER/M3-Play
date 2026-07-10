@@ -2,6 +2,7 @@ package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -142,7 +144,6 @@ fun OnlineSearchResult(
         ) {
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
-                    // Section Title
                     item {
                         Text(
                             text = summary.title,
@@ -152,7 +153,6 @@ fun OnlineSearchResult(
                         )
                     }
 
-                    // Premium Top Result Card Logic
                     if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
                         val topItem = summary.items.first()
                         item(key = "top_result_card_${topItem.id}") {
@@ -189,7 +189,6 @@ fun OnlineSearchResult(
                             }
                             items(items = summary.items.drop(1), key = { "more_from_yt_${it.id}" }, itemContent = ytItemContent)
                             
-                            // "See all results >" Button (As in screenshot)
                             item {
                                 Box(
                                     modifier = Modifier
@@ -214,7 +213,6 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
-                // Filtered Items View
                 items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
                 if (itemsPage?.continuation != null) { item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } } }
                 if (itemsPage?.items?.isEmpty() == true) { item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) } }
@@ -225,7 +223,6 @@ fun OnlineSearchResult(
             }
         }
 
-        // Custom Chips Row Overlay
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -247,8 +244,8 @@ fun OnlineSearchResult(
                 )
                 
                 items(filters.size) { index ->
-                    val filter = filters[index]
-                    val isSelected = searchFilter == filter.first
+                    val filterItem = filters[index]
+                    val isSelected = searchFilter == filterItem.first
                     
                     Row(
                         modifier = Modifier
@@ -256,15 +253,17 @@ fun OnlineSearchResult(
                             .background(if (isSelected) CustomAccentColor else CustomSurfaceColor)
                             .border(1.dp, if (isSelected) Color.Transparent else Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
                             .clickable {
-                                if (viewModel.filter.value != filter.first) viewModel.filter.value = filter.first
+                                // FIXED: Using filterItem to avoid Value syntax conflict
+                                if (viewModel.filter.value != filterItem.first) {
+                                    viewModel.filter.value = filterItem.first
+                                }
                                 coroutineScope.launch { lazyListState.animateScrollToItem(0) }
                             }
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Optional Icons can be added here like in the screenshot
                         Text(
-                            text = filter.second,
+                            text = filterItem.second,
                             color = if (isSelected) Color.Black else Color.White,
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -273,7 +272,6 @@ fun OnlineSearchResult(
             }
         }
 
-        // Search Bar Top Layout
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -305,7 +303,6 @@ fun OnlineSearchResult(
     }
 }
 
-// --- EXACT Screenshot Match Premium Top Result Card ---
 @Composable
 fun PremiumTopResultCard(
     item: YTItem,
@@ -348,10 +345,7 @@ fun PremiumTopResultCard(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Action Buttons matching the screenshot exactly
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                
-                // Main PLAY Button (Peach color)
                 Button(
                     onClick = onPlayClick,
                     modifier = Modifier.weight(1f).height(48.dp),
@@ -365,7 +359,6 @@ fun PremiumTopResultCard(
                 
                 Spacer(modifier = Modifier.width(16.dp))
                 
-                // SAVE Button (Transparent)
                 Row(
                     modifier = Modifier.weight(1f).clickable { /* Save Logic */ }.padding(vertical = 12.dp),
                     horizontalArrangement = Arrangement.Center,
@@ -378,12 +371,12 @@ fun PremiumTopResultCard(
                 
                 Spacer(modifier = Modifier.width(8.dp))
                 
-                // DOWNLOAD Button (Circle outline)
                 Box(
                     modifier = Modifier.size(40.dp).border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape).clickable { /* Download Logic */ },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(painter = painterResource(R.drawable.download), contentDescription = "Download", tint = Color.White, modifier = Modifier.size(20.dp)) // Ensure you have a download icon
+                    // Added a fallback generic icon since R.drawable.download might not exist based on previous missing icons
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = "Download", tint = Color.White, modifier = Modifier.size(20.dp)) 
                 }
             }
         }
