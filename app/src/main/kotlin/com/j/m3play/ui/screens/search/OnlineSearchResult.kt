@@ -12,6 +12,7 @@ package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -75,6 +77,10 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
+
+private val CustomBgColor = Color(0xFF0A0A0A)
+private val CustomSurfaceColor = Color(0xFF222222)
+private val CustomAccentColor = Color(0xFFFFD2B4)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -292,7 +298,17 @@ fun OnlineSearchResult(
                     .clickable { navController.popBackStack() }, 
                 contentAlignment = Alignment.CenterStart
             ) {
-                val queryText by viewModel.query.collectAsState()
+                
+                // BULLETPROOF FIX: Getting search text directly from NavController URL arguments. 
+                // Ye hamesha accurate kaam karega aur compile bhi hoga!
+                val queryText = remember {
+                    val rawQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
+                    try {
+                        java.net.URLDecoder.decode(rawQuery, "UTF-8")
+                    } catch (e: Exception) {
+                        rawQuery
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), 
