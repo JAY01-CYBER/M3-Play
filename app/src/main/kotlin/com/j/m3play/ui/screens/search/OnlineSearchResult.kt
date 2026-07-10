@@ -42,11 +42,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -204,7 +204,7 @@ fun OnlineSearchResult(
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
-            // "ALL" tab logic (No filter selected)
+            // "ALL" tab logic
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
                     if (index > 0) {
@@ -268,7 +268,6 @@ fun OnlineSearchResult(
                             )
                         }
 
-                        // Agar "MORE FROM YOUTUBE" items hain, toh unhe niche dikhayein
                         if (summary.items.size > 1) {
                             item {
                                 Text(
@@ -285,7 +284,6 @@ fun OnlineSearchResult(
                             )
                         }
                     } else {
-                        // Normal Items for other sections (Songs, Artists, etc.)
                         items(
                             items = summary.items,
                             key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
@@ -300,7 +298,6 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
-                // Specific Filter (Songs, Videos, etc.) selected
                 items(
                     items = itemsPage?.items.orEmpty().distinctBy { it.id },
                     key = { "filtered_${it.id}" },
@@ -417,9 +414,9 @@ fun PremiumTopResultCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (pureBlack) Color(0xFF121212) else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (pureBlack) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -427,7 +424,7 @@ fun PremiumTopResultCard(
                     model = item.thumbnail,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(72.dp)
                         .clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
@@ -436,11 +433,12 @@ fun PremiumTopResultCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = subtitleText,
                         style = MaterialTheme.typography.bodyMedium,
@@ -459,13 +457,13 @@ fun PremiumTopResultCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                FilledTonalButton(
+                Button(
                     onClick = onPlayClick,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onSurface,
                         contentColor = MaterialTheme.colorScheme.surface
                     )
@@ -475,19 +473,25 @@ fun PremiumTopResultCard(
                         contentDescription = "Play"
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play")
+                    Text("Play", fontWeight = FontWeight.Bold)
                 }
+                
                 Spacer(modifier = Modifier.width(12.dp))
+                
                 OutlinedButton(
                     onClick = { /* Handle Save/Library logic */ },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Add, 
                         contentDescription = "Save"
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save")
+                    Text("Save", fontWeight = FontWeight.SemiBold)
                 }
             }
         }
