@@ -1,40 +1,13 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,26 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -97,7 +52,6 @@ import com.j.m3play.constants.SearchFilterHeight
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
@@ -129,20 +83,12 @@ fun OnlineSearchResult(
     val searchFilter by viewModel.filter.collectAsState()
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
-        derivedStateOf {
-            searchFilter?.value?.let {
-                viewModel.viewStateMap[it]
-            }
-        }
+        derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } }
     }
 
     LaunchedEffect(lazyListState) {
-        snapshotFlow {
-            lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" }
-        }.collect { shouldLoadMore ->
-            if (!shouldLoadMore) return@collect
-            viewModel.loadMore()
-        }
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
+            .collect { shouldLoadMore -> if (shouldLoadMore) viewModel.loadMore() }
     }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem) -> Unit = { item: YTItem ->
@@ -159,16 +105,10 @@ fun OnlineSearchResult(
         }
         YouTubeListItem(
             item = item,
-            isActive = when (item) {
-                is SongItem -> mediaMetadata?.id == item.id
-                is AlbumItem -> mediaMetadata?.album?.id == item.id
-                else -> false
-            },
+            isActive = when (item) { is SongItem -> mediaMetadata?.id == item.id; is AlbumItem -> mediaMetadata?.album?.id == item.id; else -> false },
             isPlaying = isPlaying,
             trailingContent = {
-                IconButton(onClick = longClick) {
-                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-                }
+                IconButton(onClick = longClick) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, tint = Color.White) }
             },
             modifier = Modifier
                 .combinedClickable(
@@ -190,64 +130,34 @@ fun OnlineSearchResult(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else CustomBgColor)
     ) {
-        
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            
             contentPadding = PaddingValues(
-                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
+                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + 60.dp,
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
-            // "ALL" tab logic
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
-                    if (index > 0) {
-                        item(key = "divider_$index") {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
-                        }
-                    }
-
-                    // Section Title Row
+                    // Section Title
                     item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(18.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = summary.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                        Text(
+                            text = summary.title,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 16.dp, top = if (index == 0) 16.dp else 24.dp, bottom = 12.dp)
+                        )
                     }
 
                     // Premium Top Result Card Logic
                     if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
                         val topItem = summary.items.first()
-                        
                         item(key = "top_result_card_${topItem.id}") {
                             PremiumTopResultCard(
                                 item = topItem,
-                                pureBlack = pureBlack,
                                 onPlayClick = {
                                     if (topItem is SongItem) {
                                         if (topItem.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
@@ -271,46 +181,43 @@ fun OnlineSearchResult(
                         if (summary.items.size > 1) {
                             item {
                                 Text(
-                                    text = "MORE FROM YOUTUBE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
+                                    text = "More from YouTube",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp)
                                 )
                             }
-                            items(
-                                items = summary.items.drop(1),
-                                key = { "more_from_yt_${it.id}" },
-                                itemContent = ytItemContent
-                            )
+                            items(items = summary.items.drop(1), key = { "more_from_yt_${it.id}" }, itemContent = ytItemContent)
+                            
+                            // "See all results >" Button (As in screenshot)
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(CustomSurfaceColor)
+                                        .clickable { /* Navigate to full results */ }
+                                        .padding(vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "See all results  >", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                                }
+                            }
                         }
                     } else {
-                        items(
-                            items = summary.items,
-                            key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
-                            itemContent = ytItemContent,
-                        )
+                        items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }, itemContent = ytItemContent)
                     }
-
-                    item { Spacer(Modifier.height(4.dp)) }
                 }
 
                 if (searchSummary?.summaries?.isEmpty() == true) {
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
-                items(
-                    items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                    key = { "filtered_${it.id}" },
-                    itemContent = ytItemContent,
-                )
-
-                if (itemsPage?.continuation != null) {
-                    item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
-                }
-
-                if (itemsPage?.items?.isEmpty() == true) {
-                    item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-                }
+                // Filtered Items View
+                items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
+                if (itemsPage?.continuation != null) { item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } } }
+                if (itemsPage?.items?.isEmpty() == true) { item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) } }
             }
 
             if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
@@ -318,58 +225,66 @@ fun OnlineSearchResult(
             }
         }
 
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 1.dp,
+        // Custom Chips Row Overlay
+        Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .padding(top = AppBarHeight)
                 .fillMaxWidth()
+                .background(if (pureBlack) Color.Black else CustomBgColor)
         ) {
-            ChipsRow(
-                chips = listOf(
-                    null to stringResource(R.string.filter_all),
-                    FILTER_SONG to stringResource(R.string.filter_songs),
-                    FILTER_VIDEO to stringResource(R.string.filter_videos),
-                    FILTER_ALBUM to stringResource(R.string.filter_albums),
-                    FILTER_ARTIST to stringResource(R.string.filter_artists),
-                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                ),
-                currentValue = searchFilter,
-                onValueUpdate = {
-                    if (viewModel.filter.value != it) viewModel.filter.value = it
-                    coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                },
-                icons = mapOf(
-                    null to R.drawable.search,
-                    FILTER_SONG to R.drawable.music_note,
-                    FILTER_VIDEO to R.drawable.slow_motion_video,
-                    FILTER_ALBUM to R.drawable.album,
-                    FILTER_ARTIST to R.drawable.person,
-                    FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
-                    FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
-                ),
-            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val filters = listOf(
+                    null to "All",
+                    FILTER_SONG to "Songs",
+                    FILTER_VIDEO to "Videos",
+                    FILTER_ALBUM to "Albums"
+                )
+                
+                items(filters.size) { index ->
+                    val filter = filters[index]
+                    val isSelected = searchFilter == filter.first
+                    
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isSelected) CustomAccentColor else CustomSurfaceColor)
+                            .border(1.dp, if (isSelected) Color.Transparent else Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
+                            .clickable {
+                                if (viewModel.filter.value != filter.first) viewModel.filter.value = filter.first
+                                coroutineScope.launch { lazyListState.animateScrollToItem(0) }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Optional Icons can be added here like in the screenshot
+                        Text(
+                            text = filter.second,
+                            color = if (isSelected) Color.Black else Color.White,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
         }
 
+        // Search Bar Top Layout
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
+                .background(if (pureBlack) Color.Black else CustomBgColor)
                 .statusBarsPadding()
                 .height(AppBarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
+                Icon(painter = painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = Color.White)
             }
             Box(
                 modifier = Modifier
@@ -377,32 +292,28 @@ fun OnlineSearchResult(
                     .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(50))
-                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                    .background(CustomSurfaceColor)
                     .clickable { navController.popBackStack() }, 
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text(
-                    text = stringResource(R.string.search_yt_music),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = viewModel.query.value, color = Color.White, maxLines = 1, style = MaterialTheme.typography.bodyLarge)
+                    Icon(painter = painterResource(R.drawable.close), contentDescription = "Clear", tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                }
             }
         }
     }
 }
 
-// --- Premium Top Result Card Composable ---
+// --- EXACT Screenshot Match Premium Top Result Card ---
 @Composable
 fun PremiumTopResultCard(
     item: YTItem,
-    pureBlack: Boolean,
     onPlayClick: () -> Unit,
     onMenuClick: () -> Unit
 ) {
     val subtitleText = when (item) {
-        is SongItem -> "Song • ${item.artists.joinToString { it.name }}"
+        is SongItem -> "Song • ${item.artists.joinToString { it.name }}\nAlbum • ${item.album?.name ?: "Unknown"}"
         is ArtistItem -> "Artist"
         is AlbumItem -> "Album • ${item.artists?.joinToString { it.name } ?: ""}"
         is PlaylistItem -> "Playlist • ${item.author?.name ?: ""}"
@@ -410,88 +321,69 @@ fun PremiumTopResultCard(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (pureBlack) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = CustomSurfaceColor),
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.Top) {
                 AsyncImage(
                     model = item.thumbnail,
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(8.dp)),
+                    modifier = Modifier.size(80.dp).clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(text = item.title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(text = subtitleText, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = "Menu",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                IconButton(onClick = onMenuClick, modifier = Modifier.size(24.dp).padding(top = 4.dp)) {
+                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = "Menu", tint = Color.White)
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
+            // Action Buttons matching the screenshot exactly
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                
+                // Main PLAY Button (Peach color)
                 Button(
                     onClick = onPlayClick,
                     modifier = Modifier.weight(1f).height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onSurface,
-                        contentColor = MaterialTheme.colorScheme.surface
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = CustomAccentColor, contentColor = Color.Black),
+                    shape = RoundedCornerShape(50)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.PlayArrow, 
-                        contentDescription = "Play"
-                    )
+                    Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = "Play", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play", fontWeight = FontWeight.Bold)
+                    Text("Play", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 
-                OutlinedButton(
-                    onClick = { /* Handle Save/Library logic */ },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                // SAVE Button (Transparent)
+                Row(
+                    modifier = Modifier.weight(1f).clickable { /* Save Logic */ }.padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add, 
-                        contentDescription = "Save"
-                    )
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save", fontWeight = FontWeight.SemiBold)
+                    Text("Save", fontWeight = FontWeight.Normal, color = Color.White, fontSize = 16.sp)
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // DOWNLOAD Button (Circle outline)
+                Box(
+                    modifier = Modifier.size(40.dp).border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape).clickable { /* Download Logic */ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(painter = painterResource(R.drawable.download), contentDescription = "Download", tint = Color.White, modifier = Modifier.size(20.dp)) // Ensure you have a download icon
                 }
             }
         }
