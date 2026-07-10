@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V3     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -45,7 +45,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -56,6 +55,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
@@ -73,6 +76,39 @@ import com.j.m3play.viewmodels.MoodAndGenresViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+
+// Helper Composable for Lottie Loading
+@Composable
+fun LottieLoadingAnimation(modifier: Modifier = Modifier) {
+    // Make sure you have a loading.json file in your res/raw folder!
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    LottieAnimation(
+        composition = composition,
+        iterations = LottieConstants.IterateForever,
+        modifier = modifier.size(100.dp) // Adjust size as needed
+    )
+}
+
+val dynamicQuotesList = listOf(
+    // Music Focused
+    "What do you want to play?", "What are you in the mood for?", "Find your next favorite song.", 
+    "Start listening.", "Play something amazing.", "Pick your vibe.", "Let's find your soundtrack.", 
+    "Ready for some music?", "What's on repeat today?", "Your next song is waiting.",
+    // Modern & Minimal
+    "Search songs, artists, albums...", "Search your favorites.", "Discover something new.", 
+    "Find your perfect vibe.", "Music for every mood.", "Press play.", "Hit play.", 
+    "Listen your way.", "Explore new sounds.", "Endless music awaits.",
+    // Mood Based
+    "Feeling chill?", "Need some energy?", "Late-night vibes?", "What's today's mood?", 
+    "Calm or chaotic?", "Happy, sad, or hyped?", "Find music for every moment.", 
+    "Let the music speak.", "Your mood, your music.", "Soundtrack your day.",
+    // Personalized & Special
+    "Welcome back 👋", "What's the vibe today?", "Ready to play?", "What are we listening to today?", 
+    "Your music, your way.", "Let's make today sound better.", "Find your favorite tracks.", 
+    "Play what you love.", "Start your musical journey.", "Discover. Play. Repeat.",
+    "Play a song that reminds you of her ✨", "Tune out the world.", "Vibe check! What's playing?", 
+    "Let the beat drop."
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +130,9 @@ fun SearchScreen(
     var selectedTabIndex by rememberSaveable { mutableStateOf(1) } 
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
+
+    // Random quote generator (changes on recomposition)
+    val currentQuote = remember { dynamicQuotesList.random() }
 
     LaunchedEffect(searchActive) {
         if (searchActive) {
@@ -126,17 +165,23 @@ fun SearchScreen(
         topBar = {
             Column(modifier = Modifier.background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
                 
-                // Greeting Header Using Dynamic Theme Colors
+                // Dynamic Header
                 AnimatedVisibility(visible = !searchActive) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "Good evening", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f))
-                            IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
-                                Icon(imageVector = Icons.Rounded.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onBackground)
-                            }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), 
+                        horizontalArrangement = Arrangement.SpaceBetween, 
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = currentQuote, 
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        IconButton(onClick = { }, modifier = Modifier.size(24.dp)) {
+                            Icon(imageVector = Icons.Rounded.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onBackground)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "What do you want to play?", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -182,7 +227,6 @@ fun SearchScreen(
                     }
                 }
 
-                // Custom Pill Chips using dynamic Material Theme Colors
                 AnimatedVisibility(visible = !searchActive, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                     LazyRow(
                         modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
@@ -253,15 +297,13 @@ fun SearchScreen(
     }
 }
 
-// Keep original old functions for these tabs
 @Composable
 fun ExploreTabContent(navController: NavController, viewModel: MoodAndGenresViewModel = hiltViewModel(), contentPadding: PaddingValues = PaddingValues(0.dp)) {
     val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
     
     if (moodAndGenresList == null) { 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            // Changed loading to Wavy Circular style
-            CircularProgressIndicator(strokeCap = androidx.compose.ui.graphics.StrokeCap.Round, color = MaterialTheme.colorScheme.primary) 
+            LottieLoadingAnimation() 
         } 
     } else {
         LazyVerticalGrid(
@@ -298,7 +340,7 @@ fun AlbumsTabContent(navController: NavController, viewModel: ExploreViewModel =
 
     if (newReleaseAlbums == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularProgressIndicator(strokeCap = androidx.compose.ui.graphics.StrokeCap.Round, color = MaterialTheme.colorScheme.primary) 
+            LottieLoadingAnimation()
         }
     } else {
         LazyVerticalGrid(
