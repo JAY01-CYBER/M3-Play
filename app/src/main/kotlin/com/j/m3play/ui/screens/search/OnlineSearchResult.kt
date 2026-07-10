@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -210,10 +209,9 @@ fun OnlineSearchResult(
                 items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
                 
                 if (itemsPage?.continuation != null) {
-                    // NEW: Wavy Circular Progress Loading instead of Shimmer
                     item(key = "loading") { 
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeCap = StrokeCap.Round) 
+                            LottieLoadingAnimation() 
                         }
                     }
                 }
@@ -225,7 +223,7 @@ fun OnlineSearchResult(
             if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
                 item { 
                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeCap = StrokeCap.Round) 
+                        LottieLoadingAnimation() 
                     } 
                 }
             }
