@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -66,6 +67,8 @@ import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
+import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
+import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.menu.YouTubeArtistMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
@@ -262,16 +265,56 @@ fun OnlineSearchResult(
             )
         }
 
+        // ---------- FIXED: TOP SEARCH BAR overlay is here ----------
         Row(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface).statusBarsPadding().height(AppBarHeight),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
+                .statusBarsPadding()
+                .height(AppBarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navController.popBackStack() }) { Icon(painter = painterResource(R.drawable.arrow_back), contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface) }
+            IconButton(onClick = { navController.popBackStack() }) { 
+                Icon(
+                    painter = painterResource(R.drawable.arrow_back), 
+                    contentDescription = "Back", 
+                    tint = MaterialTheme.colorScheme.onSurface
+                ) 
+            }
             Box(
-                modifier = Modifier.weight(1f).padding(end = 16.dp, top = 8.dp, bottom = 8.dp).fillMaxHeight().clip(RoundedCornerShape(50)).background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant).clickable { navController.popBackStack() }, 
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(50))
+                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { navController.popBackStack() }, 
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text(text = stringResource(R.string.search_yt_music), modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, style = MaterialTheme.typography.bodyLarge)
+                val queryText by viewModel.query.collectAsState()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), 
+                    horizontalArrangement = Arrangement.SpaceBetween, 
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = queryText.ifEmpty { stringResource(R.string.search_yt_music) }, 
+                        color = MaterialTheme.colorScheme.onSurface, 
+                        maxLines = 1, 
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    
+                    if (queryText.isNotEmpty()) {
+                        Icon(
+                            painter = painterResource(R.drawable.close), 
+                            contentDescription = "Clear", 
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, 
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         }
     }
