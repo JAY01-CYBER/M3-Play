@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -71,7 +72,6 @@ import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
-import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.menu.YouTubeArtistMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
@@ -141,11 +141,10 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // --- NEW: AnimatedContent lagaya gaya hai tab switching animation ke liye ---
-        AnimatedContent(
+        // BUG FIX: Explicitly provided type <String?> to AnimatedContent
+        AnimatedContent<String?>(
             targetState = searchFilter,
             transitionSpec = {
-                // Fade in and slide up slightly for new tab, Fade out and slide down slightly for old tab
                 (fadeIn(animationSpec = tween(300)) + slideInVertically(animationSpec = tween(300)) { 40 }).togetherWith(
                     fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -40 }
                 )
@@ -154,12 +153,9 @@ fun OnlineSearchResult(
             modifier = Modifier.fillMaxSize()
         ) { currentTab ->
             
-            // Har tab ka apna alag scroll state banega
             val listState = rememberLazyListState()
-            
             val currentItemsPage = currentTab?.let { viewModel.viewStateMap[it] }
 
-            // Pagination/Load More Logic
             LaunchedEffect(listState) {
                 snapshotFlow { listState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
                     .collect { shouldLoadMore -> 
@@ -218,10 +214,23 @@ fun OnlineSearchResult(
                             }
                             if (summary.items.size > 1) {
                                 item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
-                                items(items = summary.items.drop(1), key = { "more_from_yt_${it.id}" }, itemContent = ytItemContent)
+                                
+                                // BUG FIX: Changed to explicit lambda block to fix 'K' type inference failure
+                                items(
+                                    items = summary.items.drop(1), 
+                                    key = { "more_from_yt_${it.id}" }
+                                ) { item -> 
+                                    this.ytItemContent(item) 
+                                }
                             }
                         } else {
-                            items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }, itemContent = ytItemContent)
+                            // BUG FIX: Changed to explicit lambda block
+                            items(
+                                items = summary.items, 
+                                key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }
+                            ) { item -> 
+                                this.ytItemContent(item) 
+                            }
                         }
                         item { Spacer(Modifier.height(4.dp)) }
                     }
@@ -232,7 +241,13 @@ fun OnlineSearchResult(
                 } else {
                     item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                    items(items = currentItemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
+                    // BUG FIX: Changed to explicit lambda block
+                    items(
+                        items = currentItemsPage?.items.orEmpty().distinctBy { it.id }, 
+                        key = { "filtered_${it.id}" }
+                    ) { item -> 
+                        this.ytItemContent(item) 
+                    }
                     
                     if (currentItemsPage?.continuation != null) {
                         item(key = "loading") { 
@@ -254,7 +269,7 @@ fun OnlineSearchResult(
                     }
                 }
             }
-        } // End of AnimatedContent
+        } 
 
         Box(
             modifier = Modifier
@@ -291,7 +306,6 @@ fun OnlineSearchResult(
                                 if (viewModel.filter.value != filterItem.first) {
                                     viewModel.filter.value = filterItem.first
                                 }
-                                // No animateScrollToItem(0) needed, AnimatedContent handles fresh state
                             }
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
