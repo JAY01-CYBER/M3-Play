@@ -65,7 +65,6 @@ import com.j.m3play.constants.SearchFilterHeight
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
@@ -77,6 +76,10 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
+
+private val CustomBgColor = Color(0xFF0A0A0A)
+private val CustomSurfaceColor = Color(0xFF222222)
+private val CustomAccentColor = Color(0xFFFFD2B4)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -154,8 +157,8 @@ fun OnlineSearchResult(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                // BUG FIX: Badhaya hua padding taaki list top bar se na chipke
-                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 20.dp,
+                // FIX: Removed extra 20.dp to fix the large gap, keeping accurate spacing.
+                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
@@ -215,9 +218,7 @@ fun OnlineSearchResult(
                 }
             } else {
                 
-                // BUG FIX: Spacer added specifically for filtered tabs ("Songs", "Albums" etc.)
-                // Jisse filter select karne par pehla gaana filter bar se thoda niche dikhe
-                item { Spacer(modifier = Modifier.height(8.dp)) }
+                // FIX: Removed the extra Spacer here which was causing the huge blank gap
 
                 items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
                 
@@ -255,11 +256,15 @@ fun OnlineSearchResult(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // FIX: Restored all tabs!
                 val filters = listOf(
                     null to "All",
                     FILTER_SONG to "Songs",
                     FILTER_VIDEO to "Videos",
-                    FILTER_ALBUM to "Albums"
+                    FILTER_ALBUM to "Albums",
+                    FILTER_ARTIST to "Artists",
+                    FILTER_COMMUNITY_PLAYLIST to "Community playlists",
+                    FILTER_FEATURED_PLAYLIST to "Featured playlists"
                 )
                 
                 items(filters.size) { index ->
