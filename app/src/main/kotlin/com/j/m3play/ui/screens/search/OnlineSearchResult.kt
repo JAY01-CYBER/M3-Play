@@ -79,6 +79,10 @@ import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
 
+private val CustomBgColor = Color(0xFF0A0A0A)
+private val CustomSurfaceColor = Color(0xFF222222)
+private val CustomAccentColor = Color(0xFFFFD2B4)
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun OnlineSearchResult(
@@ -141,7 +145,6 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // BUG FIX: Corrected explicit type parameter to YouTube.SearchFilter
         AnimatedContent<com.j.m3play.innertube.YouTube.SearchFilter?>(
             targetState = searchFilter,
             transitionSpec = {
@@ -215,20 +218,18 @@ fun OnlineSearchResult(
                             if (summary.items.size > 1) {
                                 item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
                                 
+                                // BULLETPROOF FIX: Removed explicit `key` parameters to avoid Kotlin Type Inference issues.
                                 items(
-                                    items = summary.items.drop(1), 
-                                    key = { "more_from_yt_${it.id}" }
-                                ) { item -> 
-                                    this.ytItemContent(item) 
-                                }
+                                    items = summary.items.drop(1),
+                                    itemContent = ytItemContent
+                                )
                             }
                         } else {
+                            // BULLETPROOF FIX
                             items(
-                                items = summary.items, 
-                                key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }
-                            ) { item -> 
-                                this.ytItemContent(item) 
-                            }
+                                items = summary.items,
+                                itemContent = ytItemContent
+                            )
                         }
                         item { Spacer(Modifier.height(4.dp)) }
                     }
@@ -239,12 +240,11 @@ fun OnlineSearchResult(
                 } else {
                     item { Spacer(modifier = Modifier.height(8.dp)) }
 
+                    // BULLETPROOF FIX
                     items(
-                        items = currentItemsPage?.items.orEmpty().distinctBy { it.id }, 
-                        key = { "filtered_${it.id}" }
-                    ) { item -> 
-                        this.ytItemContent(item) 
-                    }
+                        items = currentItemsPage?.items.orEmpty().distinctBy { it.id },
+                        itemContent = ytItemContent
+                    )
                     
                     if (currentItemsPage?.continuation != null) {
                         item(key = "loading") { 
