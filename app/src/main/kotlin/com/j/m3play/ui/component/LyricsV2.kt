@@ -126,7 +126,8 @@ import kotlin.math.roundToInt
 // Constants
 // ──────────────────────────────────────────────────────────────────────
 private const val LRC_LEAD_MS = 300L
-private const val TTML_LEAD_MS = 0L
+// Audio Latency Fix: Push text +280ms forward to perfectly hit the audio beat
+private const val TTML_AUDIO_LATENCY_OFFSET_MS = 280L 
 private const val LYRICS_ANCHOR_RATIO = 0.40f // Apple Music anchors slightly lower
 private val LYRICS_ITEM_FALLBACK_HEIGHT_DP = 72.dp
 private val LYRICS_ITEM_GAP_DP = 28.dp // Large breathing room between lines
@@ -273,7 +274,9 @@ fun LyricsV2(
     }
 
     // ── Sync & Scroll Mechanics ──
-    val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
+    val hasWordTimings = remember(entriesWithWords) { entriesWithWords.any { it.words != null } }
+    // Add latency offset for exact word syncing
+    val leadMs = if (isTtmlFormat || hasWordTimings) TTML_AUDIO_LATENCY_OFFSET_MS else LRC_LEAD_MS
     var currentPositionState by remember { mutableLongStateOf(0L) }
     
     var currentPlayingLineIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -291,7 +294,9 @@ fun LyricsV2(
                     val sliderPos = sliderPositionProvider()
                     isSeeking = sliderPos != null
                     val pos = sliderPos ?: player.currentPosition
-                    val visualTuningOffsetMs = 150L 
+                    
+                    // Minor tuning offset to ensure wipe finishes right as the sound ends
+                    val visualTuningOffsetMs = if (isTtmlFormat || hasWordTimings) 30L else 150L 
                     currentPositionState = pos + leadMs + visualTuningOffsetMs
                     
                     val currentLineIdx = findCurrentLineIndex(entriesWithWords, currentPositionState, 0L)
@@ -730,7 +735,9 @@ private fun AppleMusicNativeClipCanvas(
                         if (smoothPositionF >= wEnd) {
                             lineWipeX = maxOf(lineWipeX, charBounds.right)
                         } else if (smoothPositionF > wStart) {
-                            val progress = ((smoothPositionF - wStart) / (wEnd - wStart).coerceAtLeast(1f)).coerceIn(0f, 1f)
+                            //  Eased progress (Punchy wipe instead of purely linear)
+                            val rawProgress = ((smoothPositionF - wStart) / (wEnd - wStart).coerceAtLeast(1f)).coerceIn(0f, 1f)
+                            val progress = rawProgress * rawProgress * (3f - 2f * rawProgress)
                             
                             var wLeftOnLine = Float.MAX_VALUE
                             var wRightOnLine = Float.MIN_VALUE
