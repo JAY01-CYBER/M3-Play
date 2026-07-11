@@ -141,8 +141,8 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        // BUG FIX: Explicitly provided type <String?> to AnimatedContent
-        AnimatedContent<String?>(
+        // BUG FIX: Corrected explicit type parameter to YouTube.SearchFilter
+        AnimatedContent<com.j.m3play.innertube.YouTube.SearchFilter?>(
             targetState = searchFilter,
             transitionSpec = {
                 (fadeIn(animationSpec = tween(300)) + slideInVertically(animationSpec = tween(300)) { 40 }).togetherWith(
@@ -215,7 +215,6 @@ fun OnlineSearchResult(
                             if (summary.items.size > 1) {
                                 item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
                                 
-                                // BUG FIX: Changed to explicit lambda block to fix 'K' type inference failure
                                 items(
                                     items = summary.items.drop(1), 
                                     key = { "more_from_yt_${it.id}" }
@@ -224,7 +223,6 @@ fun OnlineSearchResult(
                                 }
                             }
                         } else {
-                            // BUG FIX: Changed to explicit lambda block
                             items(
                                 items = summary.items, 
                                 key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }
@@ -241,7 +239,6 @@ fun OnlineSearchResult(
                 } else {
                     item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                    // BUG FIX: Changed to explicit lambda block
                     items(
                         items = currentItemsPage?.items.orEmpty().distinctBy { it.id }, 
                         key = { "filtered_${it.id}" }
