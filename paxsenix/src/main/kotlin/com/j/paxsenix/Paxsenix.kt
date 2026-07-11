@@ -220,6 +220,7 @@ object Paxsenix {
     
     private fun getQuality(lrc: String): Int {
         if (lrc.isBlank()) return 0
+        if (lrc.contains("<tt", ignoreCase = true) || lrc.contains("http://www.w3.org/ns/ttml", ignoreCase = true)) return 3
         val hasWordTimings = (lrc.contains("<") && lrc.contains(">") && (lrc.contains("|") || lrc.contains(":"))) ||
                 lrc.contains(Regex("<\\d{1,2}:\\d{2}\\.\\d{2,3}>"))
         
@@ -303,11 +304,8 @@ object Paxsenix {
         Log.d("Paxsenix", "Lyrics response: type=$lyricsType")
         
         if (!response.ttmlContent.isNullOrBlank()) {
-            val lrc = convertTTMLToAppFormat(response.ttmlContent)
-            if (lrc.isNotEmpty()) {
-                Log.d("Paxsenix", "Generated LRC from ttmlContent using TTMLParser")
-                return@runCatching lrc
-            }
+            Log.d("Paxsenix", "Returning raw TTML content for perfect word sync")
+            return@runCatching response.ttmlContent
         }
 
         if (!response.elrcMultiPerson.isNullOrBlank()) {
@@ -418,14 +416,13 @@ object Paxsenix {
     private fun convertTTMLToAppFormat(ttml: String): String {
         return try {
             val parsedLines = TTMLParser.parseTTML(ttml)
-            toLRC(parsedLines) // <-- NAYA LOCAL toLRC YAHAN USE HUA
+            toLRC(parsedLines) 
         } catch (e: Exception) {
             Log.e("Paxsenix", "TTML conversion failed: ${e.message}", e)
             ""
         }
     }
 
-    // <-- TTML ko safely format karne ka naya function
     private fun toLRC(lines: List<TTMLParser.ParsedLine>): String {
         return buildString {
             lines.forEach { line ->
