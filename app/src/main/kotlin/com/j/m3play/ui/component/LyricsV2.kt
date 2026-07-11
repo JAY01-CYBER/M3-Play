@@ -175,7 +175,7 @@ fun LyricsV2(
     val isSynced = remember(lyrics) { lyrics != null && (lyrics.startsWith("[") || isTtml(lyrics)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics) }
 
-    val lyricsEntries: List<LyricsEntry> = remember(lyrics) {
+    val lyricsEntries: List<LyricsEntry> = remember(lyrics, currentLyrics?.provider) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) {
             emptyList()
         } else {
@@ -184,7 +184,15 @@ fun LyricsV2(
                 lyrics.startsWith("[") -> parseLyrics(lyrics)
                 else -> lyrics.lines().filter { it.isNotBlank() }.mapIndexed { _, line -> LyricsEntry(time = -1L, text = line.trim()) }
             }
-            if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(HEAD_LYRICS_ENTRY) + parsed else parsed
+            
+            val providerName = currentLyrics?.provider?.uppercase() ?: "UNKNOWN"
+            val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
+            
+            if (parsed.isNotEmpty() && parsed.first().time >= 0) {
+                listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed 
+            } else {
+                listOf(providerEntry) + parsed
+            }
         }
     }
 
