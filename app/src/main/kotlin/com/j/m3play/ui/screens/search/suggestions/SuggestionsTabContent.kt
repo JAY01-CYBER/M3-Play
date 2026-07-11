@@ -58,7 +58,8 @@ fun SuggestionsTabContent(
         if (isLoading && suggestionTracks == null) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().height(300.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    // Yahan par CircularProgressIndicator hata kar Lottie animation laga diya
+                    com.j.m3play.ui.screens.search.LottieLoadingAnimation()
                 }
             }
         }

@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V4     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -23,12 +23,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -40,9 +44,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.TextFieldValue // <--- FIXED: Import Added
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +54,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.LocalPlayerConnection
@@ -67,6 +75,34 @@ import com.j.m3play.viewmodels.MoodAndGenresViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+
+// Helper Composable for Lottie Loading (Accessible globally in this file and others)
+@Composable
+fun LottieLoadingAnimation(modifier: Modifier = Modifier) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    LottieAnimation(
+        composition = composition,
+        iterations = LottieConstants.IterateForever,
+        modifier = modifier.size(100.dp)
+    )
+}
+
+val dynamicQuotesList = listOf(
+    "What do you want to play?", "What are you in the mood for?", "Find your next favorite song.", 
+    "Start listening.", "Play something amazing.", "Pick your vibe.", "Let's find your soundtrack.", 
+    "Ready for some music?", "What's on repeat today?", "Your next song is waiting.",
+    "Search songs, artists, albums...", "Search your favorites.", "Discover something new.", 
+    "Find your perfect vibe.", "Music for every mood.", "Press play.", "Hit play.", 
+    "Listen your way.", "Explore new sounds.", "Endless music awaits.",
+    "Feeling chill?", "Need some energy?", "Late-night vibes?", "What's today's mood?", 
+    "Calm or chaotic?", "Happy, sad, or hyped?", "Find music for every moment.", 
+    "Let the music speak.", "Your mood, your music.", "Soundtrack your day.",
+    "Welcome back 👋", "What's the vibe today?", "Ready to play?", "What are we listening to today?", 
+    "Your music, your way.", "Let's make today sound better.", "Find your favorite tracks.", 
+    "Play what you love.", "Start your musical journey.", "Discover. Play. Repeat.",
+    "Play a song that reminds you of her ✨", "Tune out the world.", "Vibe check! What's playing?", 
+    "Let the beat drop."
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +124,8 @@ fun SearchScreen(
     var selectedTabIndex by rememberSaveable { mutableStateOf(1) } 
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
+
+    val currentQuote = remember { dynamicQuotesList.random() }
 
     LaunchedEffect(searchActive) {
         if (searchActive) {
@@ -116,9 +154,22 @@ fun SearchScreen(
     }
 
     Scaffold(
-    modifier = Modifier.statusBarsPadding(),
-    topBar = {
-            Column(modifier = Modifier.background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)) {
+        modifier = Modifier.statusBarsPadding(),
+        topBar = {
+            Column(modifier = Modifier.background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)) {
+                
+                // Dynamic Header - NO BELL ICON NOW!
+                AnimatedVisibility(visible = !searchActive) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
+                        Text(
+                            text = currentQuote, 
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
                 SearchBar(
                     query = query.text,
                     onQueryChange = { query = TextFieldValue(it) },
@@ -127,8 +178,8 @@ fun SearchScreen(
                     onActiveChange = { searchActive = it },
                     placeholder = {
                         Text(
-                            text = stringResource(if (searchSource == SearchSource.LOCAL) R.string.search_library else R.string.search_yt_music),
-                            style = TextStyle(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 16.sp)
+                            text = "Search YouTube Music...",
+                            style = TextStyle(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
                         )
                     },
                     leadingIcon = {
@@ -142,13 +193,15 @@ fun SearchScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (query.text.isNotEmpty()) {
                                 IconButton(onClick = { query = TextFieldValue("") }) { Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface) }
-                            }
-                            IconButton(onClick = { searchSource = if (searchSource == SearchSource.ONLINE) SearchSource.LOCAL else SearchSource.ONLINE }) {
-                                Icon(painter = painterResource(if (searchSource == SearchSource.LOCAL) R.drawable.library_music else R.drawable.language), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                            } else if (!searchActive) {
+                                IconButton(onClick = { }) { Icon(painter = painterResource(R.drawable.mic), contentDescription = "Voice Search", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                             }
                         }
                     },
-                    colors = SearchBarDefaults.colors(containerColor = if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant),
+                    colors = SearchBarDefaults.colors(
+                        containerColor = if (pureBlack) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant,
+                        dividerColor = Color.Transparent
+                    ),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = searchBarHorizontalPadding).padding(top = searchBarTopPadding)
                 ) {
                     if (showSearchContent) {
@@ -160,18 +213,43 @@ fun SearchScreen(
                 }
 
                 AnimatedVisibility(visible = !searchActive, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-                    SecondaryTabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = Color.Transparent,
-                        indicator = {
-                            Box(modifier = Modifier.tabIndicatorOffset(selectedTabIndex).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                                Box(modifier = Modifier.width(32.dp).height(3.dp).clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)).background(MaterialTheme.colorScheme.primary))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val tabs = listOf(
+                            Triple("Explore", Icons.Rounded.Explore, 0),
+                            Triple("Suggestions", Icons.Rounded.Star, 1),
+                            Triple("Albums", Icons.Rounded.Album, 2)
+                        )
+                        
+                        items(tabs.size) { index ->
+                            val isSelected = selectedTabIndex == index
+                            val item = tabs[index]
+                            
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(50))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { selectedTabIndex = index }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = item.second, 
+                                    contentDescription = null, 
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = item.first, 
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, 
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                )
                             }
                         }
-                    ) {
-                        Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }, text = { Text("Explore") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Suggestions") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Tab(selected = selectedTabIndex == 2, onClick = { selectedTabIndex = 2 }, text = { Text("Albums") }, selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -204,66 +282,37 @@ fun SearchScreen(
     }
 }
 
-// -----------------------------------------------------------------
-// EXPLORE TAB (FIXED: Uses LazyVerticalGrid correctly for Items)
-// -----------------------------------------------------------------
 @Composable
-fun ExploreTabContent(
-    navController: NavController, 
-    viewModel: MoodAndGenresViewModel = hiltViewModel(), 
-    contentPadding: PaddingValues = PaddingValues(0.dp)
-) {
+fun ExploreTabContent(navController: NavController, viewModel: MoodAndGenresViewModel = hiltViewModel(), contentPadding: PaddingValues = PaddingValues(0.dp)) {
     val moodAndGenresList by viewModel.moodAndGenres.collectAsState()
     
     if (moodAndGenresList == null) { 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
-            CircularProgressIndicator() 
+            LottieLoadingAnimation() 
         } 
     } else {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(
-                start = 6.dp, 
-                top = 12.dp, 
-                end = 6.dp, 
-                bottom = 12.dp + contentPadding.calculateBottomPadding()
-            ),
+            contentPadding = PaddingValues(start = 6.dp, top = 12.dp, end = 6.dp, bottom = 12.dp + contentPadding.calculateBottomPadding()),
             modifier = Modifier.fillMaxSize()
         ) {
             items(items = moodAndGenresList!!) { item ->
                 Box(
                     contentAlignment = Alignment.CenterStart, 
-                    modifier = Modifier
-                        .padding(6.dp)
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.padding(6.dp).height(64.dp).clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .clickable { 
-                            navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") 
-                        }
+                        .clickable { navController.navigate("youtube_browse/${item.endpoint.browseId}?params=${item.endpoint.params}") }
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text(
-                        text = item.title, 
-                        style = MaterialTheme.typography.labelLarge, 
-                        maxLines = 2, 
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(text = item.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
     }
 }
 
-// -----------------------------------------------------------------
-// ALBUMS TAB
-// -----------------------------------------------------------------
 @Composable
-fun AlbumsTabContent(
-    navController: NavController, 
-    viewModel: ExploreViewModel = hiltViewModel(), 
-    contentPadding: PaddingValues = PaddingValues(0.dp)
-) {
+fun AlbumsTabContent(navController: NavController, viewModel: ExploreViewModel = hiltViewModel(), contentPadding: PaddingValues = PaddingValues(0.dp)) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
     val playerConnection = LocalPlayerConnection.current
@@ -275,7 +324,9 @@ fun AlbumsTabContent(
     val newReleaseAlbums = explorePage?.newReleaseAlbums
 
     if (newReleaseAlbums == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { 
+            LottieLoadingAnimation()
+        }
     } else {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 160.dp),
@@ -284,17 +335,10 @@ fun AlbumsTabContent(
         ) {
             items(items = newReleaseAlbums, key = { it.id }) { album ->
                 YouTubeGridItem(
-                    item = album, 
-                    isActive = mediaMetadata?.album?.id == album.id, 
-                    isPlaying = isPlaying, 
-                    coroutineScope = coroutineScope, 
-                    fillMaxWidth = true, 
+                    item = album, isActive = mediaMetadata?.album?.id == album.id, isPlaying = isPlaying, coroutineScope = coroutineScope, fillMaxWidth = true, 
                     modifier = Modifier.combinedClickable(
                         onClick = { navController.navigate("album/${album.id}") }, 
-                        onLongClick = { 
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show { YouTubeAlbumMenu(albumItem = album, navController = navController, onDismiss = menuState::dismiss) } 
-                        }
+                        onLongClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); menuState.show { YouTubeAlbumMenu(albumItem = album, navController = navController, onDismiss = menuState::dismiss) } }
                     )
                 )
             }

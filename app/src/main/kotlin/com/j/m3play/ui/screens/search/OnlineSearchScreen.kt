@@ -85,26 +85,13 @@ fun OnlineSearchScreen(
         ),
         modifier = Modifier
             .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+            .background(Color.Transparent) // Blends with search bar background
     ) {
-        // --- History Section ---
-        if (viewState.history.isNotEmpty()) {
-            item(key = "history_header") {
-                Text(
-                    text = stringResource(R.string.search_history),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { index, history ->
+        
+        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { _, history ->
             SuggestionItem(
                 query = history.query,
                 online = false,
-                shape = getGroupedSuggestionShape(index, viewState.history.size),
                 onClick = {
                     onSearch(history.query)
                     onDismiss()
@@ -115,7 +102,6 @@ fun OnlineSearchScreen(
             )
         }
 
-        // --- Top Results Section ---
         if (viewState.items.isNotEmpty()) {
             item(key = "search_divider") {
                 Text(
@@ -123,15 +109,13 @@ fun OnlineSearchScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
                 )
             }
-            item(key = "search_divider_spacer") { Spacer(modifier = Modifier.height(8.dp)) }
         }
 
         val distinctItems = viewState.items.distinctBy { it.id }
-        itemsIndexed(distinctItems, key = { _, it -> "item_${it.id}" }) { index, item ->
-            val shape = getGroupedSuggestionShape(index, distinctItems.size)
+        itemsIndexed(distinctItems, key = { _, it -> "item_${it.id}" }) { _, item ->
             YouTubeListItem(
                 item = item,
                 isActive = when (item) {
@@ -152,97 +136,91 @@ fun OnlineSearchScreen(
                                 }
                             }
                         }
-                    ) { Icon(painterResource(R.drawable.more_vert), contentDescription = null) }
+                    ) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground) }
                 },
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 1.dp)
-                    .clip(shape)
-                    .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .combinedClickable(
-                        onClick = {
-                            when (item) {
-                                is SongItem -> {
-                                    if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                    else { playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())); onDismiss() }
-                                }
-                                is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
-                                is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
-                                is PlaylistItem -> { navController.navigate("online_playlist/${item.id}"); onDismiss() }
+                    .fillMaxWidth()
+                    .clickable {
+                        when (item) {
+                            is SongItem -> {
+                                if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                else { playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())); onDismiss() }
                             }
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                when (item) {
-                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
-                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
-                                }
-                            }
+                            is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
+                            is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
+                            is PlaylistItem -> { navController.navigate("online_playlist/${item.id}"); onDismiss() }
                         }
-                    )
+                    }
             )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SuggestionItem(
     modifier: Modifier = Modifier,
     query: String,
     online: Boolean,
-    shape: Shape,
     onClick: () -> Unit,
     onDelete: () -> Unit = {},
     onFillTextField: () -> Unit,
     pureBlack: Boolean
 ) {
+    val haptic = LocalHapticFeedback.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Remove from history?") },
+            text = { Text("Do you want to remove \"$query\" from your search history?") },
+            confirmButton = { TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Remove") } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") } },
+            containerColor = if (pureBlack) Color.DarkGray else MaterialTheme.colorScheme.surface
+        )
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 1.dp)
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(shape)
-            .background(if (pureBlack) Color.DarkGray.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick)
+            .height(48.dp)
+            .background(Color.Transparent) 
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { 
+                    if (!online) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteDialog = true
+                    }
+                }
+            )
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
     ) {
         Icon(
             painterResource(if (online) R.drawable.search else R.drawable.history),
             contentDescription = null,
-            modifier = Modifier.padding(horizontal = 16.dp).alpha(0.5f),
-            tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface
+            modifier = Modifier.padding(horizontal = 16.dp).size(22.dp),
+            tint = if (pureBlack) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(
             text = query,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
             color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
 
-        if (!online) {
-            IconButton(onClick = onDelete, modifier = Modifier.alpha(0.5f)) {
-                Icon(painter = painterResource(R.drawable.close), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.7f)) {
+            Icon(
+                painter = painterResource(R.drawable.arrow_top_left), 
+                contentDescription = null, 
+                modifier = Modifier.size(24.dp),
+                tint = if (pureBlack) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-
-        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.5f)) {
-            Icon(painter = painterResource(R.drawable.arrow_top_left), contentDescription = null, tint = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-fun getGroupedSuggestionShape(index: Int, size: Int): Shape {
-    return when {
-        size == 1 -> RoundedCornerShape(16.dp)
-        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-        index == size - 1 -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-        else -> RoundedCornerShape(4.dp)
     }
 }

@@ -248,6 +248,7 @@ dependencies {
     implementation(project(":paxsenix"))
     implementation("com.github.Kyant0:m3color:2025.4")
     implementation(libs.compose.cloudy)
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

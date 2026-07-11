@@ -12,29 +12,13 @@ package com.j.m3play.ui.screens.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,30 +26,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -74,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -97,7 +65,6 @@ import com.j.m3play.constants.SearchFilterHeight
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
@@ -109,6 +76,10 @@ import com.j.m3play.ui.menu.YouTubePlaylistMenu
 import com.j.m3play.ui.menu.YouTubeSongMenu
 import com.j.m3play.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.launch
+
+private val CustomBgColor = Color(0xFF0A0A0A)
+private val CustomSurfaceColor = Color(0xFF222222)
+private val CustomAccentColor = Color(0xFFFFD2B4)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -122,6 +93,8 @@ fun OnlineSearchResult(
     val haptic = LocalHapticFeedback.current
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current 
 
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
@@ -129,20 +102,12 @@ fun OnlineSearchResult(
     val searchFilter by viewModel.filter.collectAsState()
     val searchSummary = viewModel.summaryPage
     val itemsPage by remember(searchFilter) {
-        derivedStateOf {
-            searchFilter?.value?.let {
-                viewModel.viewStateMap[it]
-            }
-        }
+        derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } }
     }
 
     LaunchedEffect(lazyListState) {
-        snapshotFlow {
-            lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" }
-        }.collect { shouldLoadMore ->
-            if (!shouldLoadMore) return@collect
-            viewModel.loadMore()
-        }
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
+            .collect { shouldLoadMore -> if (shouldLoadMore) viewModel.loadMore() }
     }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem) -> Unit = { item: YTItem ->
@@ -165,11 +130,7 @@ fun OnlineSearchResult(
                 else -> false
             },
             isPlaying = isPlaying,
-            trailingContent = {
-                IconButton(onClick = longClick) {
-                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null)
-                }
-            },
+            trailingContent = { IconButton(onClick = longClick) { Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground) } },
             modifier = Modifier
                 .combinedClickable(
                     onClick = {
@@ -190,60 +151,35 @@ fun OnlineSearchResult(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        
         LazyColumn(
             state = lazyListState,
             modifier = Modifier.fillMaxSize(),
-            
             contentPadding = PaddingValues(
+                // FIX: Removed extra 20.dp to fix the large gap, keeping accurate spacing.
                 top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
                 bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
             )
         ) {
-            // "ALL" tab logic (No filter selected)
             if (searchFilter == null) {
                 searchSummary?.summaries?.forEachIndexed { index, summary ->
                     if (index > 0) {
                         item(key = "divider_$index") {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                            )
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                     }
 
-                    // Section Title Row
                     item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .height(18.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
                             Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = summary.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                            Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
 
-                    // Premium Top Result Card Logic
                     if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
                         val topItem = summary.items.first()
-                        
                         item(key = "top_result_card_${topItem.id}") {
                             PremiumTopResultCard(
                                 item = topItem,
@@ -267,32 +203,13 @@ fun OnlineSearchResult(
                                 }
                             )
                         }
-
-                        // Agar "MORE FROM YOUTUBE" items hain, toh unhe niche dikhayein
                         if (summary.items.size > 1) {
-                            item {
-                                Text(
-                                    text = "MORE FROM YOUTUBE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)
-                                )
-                            }
-                            items(
-                                items = summary.items.drop(1),
-                                key = { "more_from_yt_${it.id}" },
-                                itemContent = ytItemContent
-                            )
+                            item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
+                            items(items = summary.items.drop(1), key = { "more_from_yt_${it.id}" }, itemContent = ytItemContent)
                         }
                     } else {
-                        // Normal Items for other sections (Songs, Artists, etc.)
-                        items(
-                            items = summary.items,
-                            key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" },
-                            itemContent = ytItemContent,
-                        )
+                        items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }, itemContent = ytItemContent)
                     }
-
                     item { Spacer(Modifier.height(4.dp)) }
                 }
 
@@ -300,62 +217,81 @@ fun OnlineSearchResult(
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             } else {
-                // Specific Filter (Songs, Videos, etc.) selected
-                items(
-                    items = itemsPage?.items.orEmpty().distinctBy { it.id },
-                    key = { "filtered_${it.id}" },
-                    itemContent = ytItemContent,
-                )
+                
+                // FIX: Removed the extra Spacer here which was causing the huge blank gap
 
+                items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
+                
                 if (itemsPage?.continuation != null) {
-                    item(key = "loading") { ShimmerHost { repeat(3) { ListItemPlaceHolder() } } }
+                    item(key = "loading") { 
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            LottieLoadingAnimation() 
+                        }
+                    }
                 }
-
                 if (itemsPage?.items?.isEmpty() == true) {
                     item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             }
 
             if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
-                item { ShimmerHost { repeat(8) { ListItemPlaceHolder() } } }
+                item { 
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                        LottieLoadingAnimation() 
+                    } 
+                }
             }
         }
 
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 1.dp,
+        Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .padding(top = AppBarHeight)
                 .fillMaxWidth()
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
         ) {
-            ChipsRow(
-                chips = listOf(
-                    null to stringResource(R.string.filter_all),
-                    FILTER_SONG to stringResource(R.string.filter_songs),
-                    FILTER_VIDEO to stringResource(R.string.filter_videos),
-                    FILTER_ALBUM to stringResource(R.string.filter_albums),
-                    FILTER_ARTIST to stringResource(R.string.filter_artists),
-                    FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                    FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                ),
-                currentValue = searchFilter,
-                onValueUpdate = {
-                    if (viewModel.filter.value != it) viewModel.filter.value = it
-                    coroutineScope.launch { lazyListState.animateScrollToItem(0) }
-                },
-                icons = mapOf(
-                    null to R.drawable.search,
-                    FILTER_SONG to R.drawable.music_note,
-                    FILTER_VIDEO to R.drawable.slow_motion_video,
-                    FILTER_ALBUM to R.drawable.album,
-                    FILTER_ARTIST to R.drawable.person,
-                    FILTER_COMMUNITY_PLAYLIST to R.drawable.queue_music,
-                    FILTER_FEATURED_PLAYLIST to R.drawable.playlist_play,
-                ),
-            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // FIX: Restored all tabs!
+                val filters = listOf(
+                    null to "All",
+                    FILTER_SONG to "Songs",
+                    FILTER_VIDEO to "Videos",
+                    FILTER_ALBUM to "Albums",
+                    FILTER_ARTIST to "Artists",
+                    FILTER_COMMUNITY_PLAYLIST to "Community playlists",
+                    FILTER_FEATURED_PLAYLIST to "Featured playlists"
+                )
+                
+                items(filters.size) { index ->
+                    val filterItem = filters[index]
+                    val isSelected = searchFilter == filterItem.first
+                    
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable {
+                                if (viewModel.filter.value != filterItem.first) {
+                                    viewModel.filter.value = filterItem.first
+                                }
+                                coroutineScope.launch { lazyListState.animateScrollToItem(0) }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = filterItem.second,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+            }
         }
 
         Row(
@@ -367,12 +303,12 @@ fun OnlineSearchResult(
                 .height(AppBarHeight),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = { navController.popBackStack() }) { 
                 Icon(
-                    painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = "Back",
+                    painter = painterResource(R.drawable.arrow_back), 
+                    contentDescription = "Back", 
                     tint = MaterialTheme.colorScheme.onSurface
-                )
+                ) 
             }
             Box(
                 modifier = Modifier
@@ -380,23 +316,75 @@ fun OnlineSearchResult(
                     .padding(end = 16.dp, top = 8.dp, bottom = 8.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(50))
-                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { navController.popBackStack() }, 
+                    .background(if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text(
-                    text = stringResource(R.string.search_yt_music),
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                val queryText = remember {
+                    val rawQuery = navController.currentBackStackEntry?.arguments?.getString("query") ?: ""
+                    try {
+                        java.net.URLDecoder.decode(rawQuery, "UTF-8")
+                    } catch (e: Exception) {
+                        rawQuery
+                    }
+                }
+                
+                var textFieldValue by remember(queryText) { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(queryText)) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), 
+                    horizontalArrangement = Arrangement.SpaceBetween, 
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (textFieldValue.text.isEmpty()) {
+                            Text(
+                                text = "Search YouTube Music...", 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), 
+                                maxLines = 1, 
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = textFieldValue,
+                            onValueChange = { textFieldValue = it },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                                onSearch = {
+                                    focusManager.clearFocus()
+                                    if (textFieldValue.text.isNotEmpty() && textFieldValue.text != queryText) {
+                                        navController.popBackStack()
+                                        navController.navigate("search/${java.net.URLEncoder.encode(textFieldValue.text, "UTF-8")}")
+                                    }
+                                }
+                            ),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    
+                    if (textFieldValue.text.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(R.drawable.close), 
+                            contentDescription = "Clear", 
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, 
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { 
+                                    textFieldValue = androidx.compose.ui.text.input.TextFieldValue("") 
+                                }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-// --- Premium Top Result Card Composable ---
+// --- Premium Top Result Card (Theme Dependent Colors) ---
 @Composable
 fun PremiumTopResultCard(
     item: YTItem,
@@ -413,81 +401,57 @@ fun PremiumTopResultCard(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (pureBlack) Color(0xFF121212) else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (pureBlack) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.Top) {
                 AsyncImage(
                     model = item.thumbnail,
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(8.dp)),
+                    modifier = Modifier.size(72.dp).clip(if (item is ArtistItem) CircleShape else RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Text(text = item.title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = subtitleText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = "Menu",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                IconButton(onClick = onMenuClick, modifier = Modifier.size(24.dp).padding(top = 4.dp)) {
+                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                FilledTonalButton(
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Button(
                     onClick = onPlayClick,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.onSurface,
-                        contentColor = MaterialTheme.colorScheme.surface
-                    )
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                    shape = RoundedCornerShape(50)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.PlayArrow, 
-                        contentDescription = "Play"
-                    )
+                    Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = "Play", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play")
+                    Text("Play", fontWeight = FontWeight.Bold)
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                OutlinedButton(
-                    onClick = { /* Handle Save/Library logic */ },
-                    modifier = Modifier.weight(1f)
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Row(
+                    modifier = Modifier.weight(1f).clickable { /* Save Logic */ }.padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Add, 
-                        contentDescription = "Save"
-                    )
+                    Icon(imageVector = Icons.Rounded.Add, contentDescription = "Save", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save")
+                    Text("Save", fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
