@@ -10,8 +10,6 @@
 
 package com.j.m3play.ui.screens.search
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,11 +65,11 @@ import com.j.m3play.constants.SearchFilterHeight
 import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.models.toMediaMetadata
 import com.j.m3play.playback.queues.YouTubeQueue
-import com.j.m3play.ui.component.ChipsRow
 import com.j.m3play.ui.component.EmptyPlaceholder
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.YouTubeListItem
 import com.j.m3play.ui.component.shimmer.ListItemPlaceHolder
+import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.menu.YouTubeAlbumMenu
 import com.j.m3play.ui.menu.YouTubeArtistMenu
 import com.j.m3play.ui.menu.YouTubePlaylistMenu
@@ -97,10 +95,20 @@ fun OnlineSearchResult(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current 
+
     val coroutineScope = rememberCoroutineScope()
+    val lazyListState = rememberLazyListState()
 
     val searchFilter by viewModel.filter.collectAsState()
     val searchSummary = viewModel.summaryPage
+    val itemsPage by remember(searchFilter) {
+        derivedStateOf { searchFilter?.value?.let { viewModel.viewStateMap[it] } }
+    }
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
+            .collect { shouldLoadMore -> if (shouldLoadMore) viewModel.loadMore() }
+    }
 
     val ytItemContent: @Composable LazyItemScope.(YTItem) -> Unit = { item: YTItem ->
         val longClick = {
@@ -145,128 +153,95 @@ fun OnlineSearchResult(
     Box(
         modifier = Modifier.fillMaxSize().background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.background)
     ) {
-        AnimatedContent<com.j.m3play.innertube.YouTube.SearchFilter?>(
-            targetState = searchFilter,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(300)) + slideInVertically(animationSpec = tween(300)) { 40 }).togetherWith(
-                    fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300)) { -40 }
-                )
-            },
-            label = "TabSwitchAnimation",
-            modifier = Modifier.fillMaxSize()
-        ) { currentTab ->
-            
-            val listState = rememberLazyListState()
-            val currentItemsPage = currentTab?.let { viewModel.viewStateMap[it] }
-
-            LaunchedEffect(listState) {
-                snapshotFlow { listState.layoutInfo.visibleItemsInfo.any { it.key == "loading" } }
-                    .collect { shouldLoadMore -> 
-                        if (shouldLoadMore && searchFilter == currentTab) viewModel.loadMore() 
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                // FIX: Removed extra 20.dp to fix the large gap, keeping accurate spacing.
+                top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
+                bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
+            )
+        ) {
+            if (searchFilter == null) {
+                searchSummary?.summaries?.forEachIndexed { index, summary ->
+                    if (index > 0) {
+                        item(key = "divider_$index") {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        }
                     }
-            }
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding() + AppBarHeight + SearchFilterHeight + 8.dp,
-                    bottom = LocalPlayerAwareWindowInsets.current.asPaddingValues().calculateBottomPadding()
-                )
-            ) {
-                if (currentTab == null) {
-                    searchSummary?.summaries?.forEachIndexed { index, summary ->
-                        if (index > 0) {
-                            item(key = "divider_$index") {
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                            }
+                    item {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
+                            Spacer(Modifier.width(10.dp))
+                            Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                         }
+                    }
 
-                        item {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                                Box(modifier = Modifier.width(3.dp).height(18.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                                Spacer(Modifier.width(10.dp))
-                                Text(text = summary.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                            }
-                        }
-
-                        if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
-                            val topItem = summary.items.first()
-                            item(key = "top_result_card_${topItem.id}") {
-                                PremiumTopResultCard(
-                                    item = topItem,
-                                    pureBlack = pureBlack,
-                                    onPlayClick = {
-                                        if (topItem is SongItem) {
-                                            if (topItem.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
-                                            else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = topItem.id), topItem.toMediaMetadata()))
-                                        }
-                                    },
-                                    onMenuClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        menuState.show {
-                                            when (topItem) {
-                                                is SongItem -> YouTubeSongMenu(song = topItem, navController = navController, onDismiss = menuState::dismiss)
-                                                is AlbumItem -> YouTubeAlbumMenu(albumItem = topItem, navController = navController, onDismiss = menuState::dismiss)
-                                                is ArtistItem -> YouTubeArtistMenu(artist = topItem, onDismiss = menuState::dismiss)
-                                                is PlaylistItem -> YouTubePlaylistMenu(playlist = topItem, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
-                                            }
+                    if (summary.title.equals("Top result", ignoreCase = true) && summary.items.isNotEmpty()) {
+                        val topItem = summary.items.first()
+                        item(key = "top_result_card_${topItem.id}") {
+                            PremiumTopResultCard(
+                                item = topItem,
+                                pureBlack = pureBlack,
+                                onPlayClick = {
+                                    if (topItem is SongItem) {
+                                        if (topItem.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                        else playerConnection.playQueue(YouTubeQueue(WatchEndpoint(videoId = topItem.id), topItem.toMediaMetadata()))
+                                    }
+                                },
+                                onMenuClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    menuState.show {
+                                        when (topItem) {
+                                            is SongItem -> YouTubeSongMenu(song = topItem, navController = navController, onDismiss = menuState::dismiss)
+                                            is AlbumItem -> YouTubeAlbumMenu(albumItem = topItem, navController = navController, onDismiss = menuState::dismiss)
+                                            is ArtistItem -> YouTubeArtistMenu(artist = topItem, onDismiss = menuState::dismiss)
+                                            is PlaylistItem -> YouTubePlaylistMenu(playlist = topItem, coroutineScope = coroutineScope, onDismiss = menuState::dismiss)
                                         }
                                     }
-                                )
-                            }
-                            if (summary.items.size > 1) {
-                                item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
-                                
-                                // BULLETPROOF FIX: Removed explicit `key` parameters to avoid Kotlin Type Inference issues.
-                                items(
-                                    items = summary.items.drop(1),
-                                    itemContent = ytItemContent
-                                )
-                            }
-                        } else {
-                            // BULLETPROOF FIX
-                            items(
-                                items = summary.items,
-                                itemContent = ytItemContent
+                                }
                             )
                         }
-                        item { Spacer(Modifier.height(4.dp)) }
+                        if (summary.items.size > 1) {
+                            item { Text(text = "MORE FROM YOUTUBE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 8.dp)) }
+                            items(items = summary.items.drop(1), key = { "more_from_yt_${it.id}" }, itemContent = ytItemContent)
+                        }
+                    } else {
+                        items(items = summary.items, key = { "${summary.title}/${it.id}/${summary.items.indexOf(it)}" }, itemContent = ytItemContent)
                     }
+                    item { Spacer(Modifier.height(4.dp)) }
+                }
 
-                    if (searchSummary?.summaries?.isEmpty() == true) {
-                        item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-                    }
-                } else {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                if (searchSummary?.summaries?.isEmpty() == true) {
+                    item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
+                }
+            } else {
+                
+                // FIX: Removed the extra Spacer here which was causing the huge blank gap
 
-                    // BULLETPROOF FIX
-                    items(
-                        items = currentItemsPage?.items.orEmpty().distinctBy { it.id },
-                        itemContent = ytItemContent
-                    )
-                    
-                    if (currentItemsPage?.continuation != null) {
-                        item(key = "loading") { 
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                LottieLoadingAnimation() 
-                            }
+                items(items = itemsPage?.items.orEmpty().distinctBy { it.id }, key = { "filtered_${it.id}" }, itemContent = ytItemContent)
+                
+                if (itemsPage?.continuation != null) {
+                    item(key = "loading") { 
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            LottieLoadingAnimation() 
                         }
                     }
-                    if (currentItemsPage?.items?.isEmpty() == true) {
-                        item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
-                    }
                 }
-
-                if (currentTab == null && searchSummary == null || currentTab != null && currentItemsPage == null) {
-                    item { 
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            LottieLoadingAnimation() 
-                        } 
-                    }
+                if (itemsPage?.items?.isEmpty() == true) {
+                    item { EmptyPlaceholder(icon = R.drawable.search, text = stringResource(R.string.no_results_found)) }
                 }
             }
-        } 
+
+            if (searchFilter == null && searchSummary == null || searchFilter != null && itemsPage == null) {
+                item { 
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                        LottieLoadingAnimation() 
+                    } 
+                }
+            }
+        }
 
         Box(
             modifier = Modifier
@@ -281,6 +256,7 @@ fun OnlineSearchResult(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // FIX: Restored all tabs!
                 val filters = listOf(
                     null to "All",
                     FILTER_SONG to "Songs",
@@ -303,6 +279,7 @@ fun OnlineSearchResult(
                                 if (viewModel.filter.value != filterItem.first) {
                                     viewModel.filter.value = filterItem.first
                                 }
+                                coroutineScope.launch { lazyListState.animateScrollToItem(0) }
                             }
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -407,6 +384,7 @@ fun OnlineSearchResult(
     }
 }
 
+// --- Premium Top Result Card (Theme Dependent Colors) ---
 @Composable
 fun PremiumTopResultCard(
     item: YTItem,
