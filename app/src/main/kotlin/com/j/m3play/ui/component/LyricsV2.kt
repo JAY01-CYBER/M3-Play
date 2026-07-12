@@ -62,9 +62,7 @@ import com.j.m3play.lyrics.LyricsUtils.romanizeKorean
 import com.j.m3play.ui.component.shimmer.*
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.*
-import com.j.m3play.ui.component.share.LyricsShareImageDialog
-import com.j.m3play.ui.component.share.LyricsSharePayload
-import com.j.m3play.ui.component.share.shareLyricsAsText
+
 
 
 private const val LRC_LEAD_MS = 300L
