@@ -1,20 +1,26 @@
 /*
- * M3Play Component Module - Premium Accord Edition
- * Signature: M3PLAY::COMPONENT:
+ * M3Play Component Module
+ * Signature: M3PLAY::COMPONENT::
  */
 
 package com.j.m3play.ui.component
 
 import android.annotation.SuppressLint
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -117,14 +123,14 @@ import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
 import kotlin.math.abs
 
-// Core Constants
+// Accord Core Constants
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
-// Visual Constants
+// Accord Visual Constants
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
 private const val ACCORD_ACTIVE_SCALE = 1f
@@ -177,9 +183,19 @@ fun LyricsV2(
         Color.White
     }
 
+    val inactiveAlpha = 0.35f
+    
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
     val maxSelectionLimit = 5
+    var showMaxSelectionToast by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showMaxSelectionToast) {
+        if (showMaxSelectionToast) {
+            Toast.makeText(context, context.getString(R.string.max_selection_limit, maxSelectionLimit), Toast.LENGTH_SHORT).show()
+            showMaxSelectionToast = false
+        }
+    }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
@@ -369,7 +385,7 @@ fun LyricsV2(
                 val isSelected = selectedIndices.contains(index)
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
                 
-                // ACCORD APP LOGIC: Strong dimming to 0.2f
+                // ACCORD APP LOGIC: Dimming to 0.2f
                 val targetAlpha = when {
                     !isSynced -> 0.92f
                     isActive -> ACCORD_ACTIVE_ALPHA
@@ -384,6 +400,14 @@ fun LyricsV2(
                 val targetBlur = when {
                     !isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
                     else -> (distanceFromActive * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
+                }
+
+                //  APPLE MUSIC LOGIC: The Glide (Slide-Up) Effect
+                val targetOffsetY = when {
+                    !isSynced -> 0.dp
+                    isActive -> 0.dp
+                    index > currentLineIndex -> 16.dp // Future lines sit lower
+                    else -> (-8).dp // Past lines glide up slightly
                 }
 
                 val animatedLineScale by animateFloatAsState(
@@ -402,6 +426,13 @@ fun LyricsV2(
                     targetValue = targetBlur,
                     animationSpec = tween(durationMillis = 500, easing = AccordDecelerateEasing),
                     label = "accordLineBlur"
+                )
+
+                // 🍎 Animating the Glide
+                val animatedLineOffsetY by animateDpAsState(
+                    targetValue = targetOffsetY,
+                    animationSpec = tween(durationMillis = 500, easing = AccordDecelerateEasing),
+                    label = "appleLineGlide"
                 )
                 
                 val lineTransformOrigin = remember(item.agent) {
@@ -423,7 +454,7 @@ fun LyricsV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
-                            // ACCORD APP LOGIC: 32dp horizontal, 14dp vertical padding
+                            // Padding like Accord
                             .padding(
                                 start = 32.dp,
                                 end = 32.dp,
@@ -439,6 +470,7 @@ fun LyricsV2(
                                 scaleX = animatedLineScale
                                 scaleY = animatedLineScale
                                 alpha = animatedLineAlpha
+                                translationY = animatedLineOffsetY.toPx() //  Applying the Glide Offset
                                 transformOrigin = lineTransformOrigin
                             }
                             .combinedClickable(
