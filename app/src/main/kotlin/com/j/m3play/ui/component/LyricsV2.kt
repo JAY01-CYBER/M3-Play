@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module 
- * Signature: M3PLAY::COMPONENT:
+ * M3Play Component Module
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -44,6 +44,7 @@ import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.abs
 import kotlin.math.sin
+import kotlin.math.cos
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -69,7 +70,7 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
-// Accord Visual Constants
+// Visual Constants
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
 private const val ACCORD_ACTIVE_SCALE = 1f
@@ -224,13 +225,13 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    // 60 FPS SMOOTH TIME ENGINE 
+    // ✨ 60 FPS SMOOTH TIME ENGINE ✨
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var lastPlayerPos = player.currentPosition
         var lastUpdateTime = System.currentTimeMillis()
         while (isActive) {
-            delay(16L)
+            delay(16L) // Update 60 times a second
             val now = System.currentTimeMillis()
             val sliderPos = sliderPositionProvider()
             val rawPos = if (sliderPos != null) {
@@ -355,42 +356,7 @@ fun LyricsV2(
                             .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
                             .padding(start = 32.dp, end = 32.dp, top = if (index <= 1) 0.dp else 14.dp, bottom = 14.dp)
                             .blur(radiusX = animatedBlur.dp, radiusY = animatedBlur.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                            //  YAHAN LAGAYA HAI POORI LINE KA NUDGE AUR BOUNCE 
-                            .graphicsLayer { 
-                                var shift = 0f
-                                var scalePop = 0f
-                                
-                                if (isActive && item.words != null) {
-                                    val currentTime = currentTimeProvider()
-                                    val maxShift = 5.dp.toPx() 
-                                    val attackDuration = 100L
-                                    val decayDuration = 200L
-                                    val totalImpulseTime = attackDuration + decayDuration
-                                    
-                                    for (word in item.words) {
-                                        if (word.isBackground) continue // Sirf main words par line bounce karegi
-                                        val wordStartMs = (word.startTime * 1000).toLong()
-                                        if (currentTime >= wordStartMs && currentTime < wordStartMs + totalImpulseTime) {
-                                            val timeSinceStart = currentTime - wordStartMs
-                                            val progress = if (timeSinceStart < attackDuration) {
-                                                timeSinceStart.toFloat() / attackDuration.toFloat()
-                                            } else {
-                                                1f - ((timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat())
-                                            }
-                                            shift = progress * maxShift
-                                            scalePop = progress * 0.015f // 1.5% Scale BUMP (Apple style)
-                                            break
-                                        }
-                                    }
-                                }
-
-                                scaleX = animatedLineScale + scalePop
-                                scaleY = animatedLineScale + scalePop
-                                alpha = animatedLineAlpha
-                                translationY = animatedLineOffsetY.toPx()
-                                translationX = if (lineIsRtl) -shift else shift
-                                transformOrigin = lineTransformOrigin 
-                            }
+                            .graphicsLayer { scaleX = animatedLineScale; scaleY = animatedLineScale; alpha = animatedLineAlpha; translationY = animatedLineOffsetY.toPx(); transformOrigin = lineTransformOrigin }
                             .combinedClickable(
                                 enabled = true,
                                 onClick = {
@@ -862,11 +828,34 @@ private fun AnimatedWordV2(
             layout((placeable.width - paddingPx * 2).coerceAtLeast(0), (placeable.height - paddingPx * 2).coerceAtLeast(0)) { placeable.place(-paddingPx, -paddingPx) }
         }.graphicsLayer { 
             clip = false
-            // translationX (Individual word nudge) has been completely removed!
+            //  DRAW PHASE ORGANIC SINE/COSINE NUDGE ENGINE 
+            val currentTime = currentTimeProvider()
+            val maxShift = 6f // Halka sa shift aur bada lagaya natural look ke liye
+            val attackDuration = 100L // Fast and snappy start
+            val decayDuration = 350L // Lamba smooth settle
+            val totalImpulseTime = attackDuration + decayDuration
+            
+            val shift = if (isLineActive && currentTime >= wordStartMs && currentTime < wordStartMs + totalImpulseTime) {
+                val timeSinceStart = currentTime - wordStartMs
+                if (timeSinceStart < attackDuration) {
+                    // Smooth Sine Ease-Out
+                    val p = timeSinceStart.toFloat() / attackDuration.toFloat()
+                    maxShift * kotlin.math.sin(p * Math.PI / 2.0).toFloat()
+                } else {
+                    // Smooth Cosine Ease-In
+                    val p = (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat()
+                    maxShift * kotlin.math.cos(p * Math.PI / 2.0).toFloat()
+                }
+            } else {
+                0f
+            }
+            translationX = if (isRtl) -shift else shift
         }
     ) {
+        // Inactive Base Layer
         Text(text = word.text, style = lyricStyle, color = textColor.copy(alpha = 0.5f), modifier = Modifier.padding(safePadding))
         
+        //  DRAW PHASE ORGANIC LIQUID MASK FILL ENGINE 
         Text(
             text = word.text, style = lyricStyle, color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
             modifier = Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
@@ -875,21 +864,24 @@ private fun AnimatedWordV2(
                 val isWordActive = currentTime in wordStartMs until wordEndMs
                 
                 if (isLinePast || isWordComplete || isWordActive) {
-                    val progress = when {
+                    val rawProgress = when {
                         isLinePast || isWordComplete -> 1f
                         currentTime <= wordStartMs -> 0f
                         else -> ((currentTime - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
                     }
                     
-                    if (progress >= 1f) {
+                    //  Liquid fill ko bhi ultra-smooth curve diya 
+                    val smoothProgress = rawProgress * rawProgress * (3f - 2f * rawProgress)
+                    
+                    if (smoothProgress >= 1f) {
                         drawContent()
-                    } else if (progress > 0f) {
+                    } else if (smoothProgress > 0f) {
                         drawContent()
                         val totalWidth = size.width
                         val fadeWidth = 20f
                         val paddingPx = safePadding.toPx()
                         val textWidth = totalWidth - (paddingPx * 2)
-                        val fillWidth = textWidth * progress
+                        val fillWidth = textWidth * smoothProgress
                         
                         val endFraction = (paddingPx + fillWidth + fadeWidth) / totalWidth
                         val solidFraction = (paddingPx + fillWidth) / totalWidth
