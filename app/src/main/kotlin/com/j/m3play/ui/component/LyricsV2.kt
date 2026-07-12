@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module - Premium Accord Edition + Apple Glide
- * Signature: M3PLAY::COMPONENT::ACCORD::GLIDE::FIXED
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT:
  */
 
 package com.j.m3play.ui.component
@@ -31,17 +31,25 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,6 +86,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.Font
@@ -187,10 +196,15 @@ fun LyricsV2(
 
     val inactiveAlpha = 0.35f
     
+    // SHARE UI STATES (Added Back)
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
     val maxSelectionLimit = 5
     var showMaxSelectionToast by remember { mutableStateOf(false) }
+    var showShareDialog by remember { mutableStateOf(false) }
+    var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var showShareImageDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showMaxSelectionToast) {
         if (showMaxSelectionToast) {
@@ -205,7 +219,6 @@ fun LyricsV2(
     val isSynced = remember(lyrics) { lyrics != null && (lyrics.startsWith("[") || isTtml(lyrics)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics) }
 
-    // PROVIDER NAME ADDED BACK HERE 
     val lyricsEntries: List<LyricsEntry> = remember(lyrics, currentLyrics?.provider) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         val parsed = when {
@@ -463,7 +476,6 @@ fun LyricsV2(
                             .padding(
                                 start = 32.dp,
                                 end = 32.dp,
-                                // Padding handled dynamically to prevent overlap
                                 top = if (index <= 1) 0.dp else 14.dp,
                                 bottom = 14.dp
                             )
@@ -487,7 +499,7 @@ fun LyricsV2(
                                             selectedIndices.remove(index)
                                             if (selectedIndices.isEmpty()) isSelectionModeActive = false
                                         } else {
-                                            if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index)
+                                            if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else showMaxSelectionToast = true
                                         }
                                     } else if (lyricsClick && isSynced && item.time > 0) {
                                         player.seekTo(item.time)
@@ -519,7 +531,6 @@ fun LyricsV2(
                             Text(text = romanizedText, style = supplementaryTextStyle, color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f), textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(bottom = (lyricsTextSize * 0.18f).dp))
                         }
 
-                        // Use ExtraBold for Active, Bold for Inactive to make active pop more
                         val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
 
                         if (item.words != null && isSynced) {
@@ -544,8 +555,8 @@ fun LyricsV2(
                                     fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                                    letterSpacing = (-0.5).sp, //  Safely widened to prevent overlap
-                                    platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevents Vertical Cut
+                                    letterSpacing = (-0.5).sp,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false),
                                     lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
                                 ),
                                 color = textColor,
@@ -569,6 +580,136 @@ fun LyricsV2(
                 shapes = ButtonDefaults.shapes()
             ) { Text(text = "Resume", style = MaterialTheme.typography.labelLarge) }
         }
+        
+        // SHARE UI (Added Back) 
+        if (isSelectionModeActive) {
+            mediaMetadata?.let { metadata ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(color = Color.Black.copy(alpha = 0.3f), shape = CircleShape)
+                                .clickable {
+                                    isSelectionModeActive = false
+                                    selectedIndices.clear()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(painter = painterResource(id = R.drawable.close), contentDescription = stringResource(R.string.cancel), tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .background(
+                                    color = if (selectedIndices.isNotEmpty()) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+                                .clickable(enabled = selectedIndices.isNotEmpty()) {
+                                    if (selectedIndices.isNotEmpty()) {
+                                        val sortedIndices = selectedIndices.sorted()
+                                        val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
+
+                                        if (selectedLyricsText.isNotBlank()) {
+                                            shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
+                                            showShareDialog = true
+                                        }
+                                        isSelectionModeActive = false
+                                        selectedIndices.clear()
+                                    }
+                                }
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(painter = painterResource(id = R.drawable.share), contentDescription = stringResource(R.string.share_selected), tint = Color.Black, modifier = Modifier.size(20.dp))
+                            Text(text = stringResource(R.string.share), color = Color.Black, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // SHARE DIALOGS (Added Back) 
+    if (showShareDialog && shareDialogData != null) {
+        val (lyricsText, songTitle, artists) = shareDialogData!!
+        BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.padding(16.dp).fillMaxWidth(0.85f)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(text = stringResource(R.string.share_lyrics), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                shareLyricsAsText(context = context, payload = LyricsSharePayload(lyricsText, songTitle, artists), songId = mediaMetadata?.id)
+                                showShareDialog = false
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(text = stringResource(R.string.share_as_text), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                shareDialogData = Triple(lyricsText, songTitle, artists)
+                                showShareImageDialog = true
+                                showShareDialog = false
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(text = stringResource(R.string.share_as_image), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cancel),
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .clickable { showShareDialog = false }
+                                .padding(vertical = 8.dp, horizontal = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showShareImageDialog && shareDialogData != null) {
+        val (lyricsText, songTitle, artists) = shareDialogData!!
+        LyricsShareImageDialog(
+            mediaMetadata = mediaMetadata,
+            payload = LyricsSharePayload(lyricsText, songTitle, artists),
+            onDismissRequest = { showShareImageDialog = false }
+        )
     }
 }
 
@@ -640,12 +781,11 @@ private fun AnimatedWordV2(
     val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
         fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
         lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-        letterSpacing = (-0.5).sp, //  Prevent horizontal cut
-        platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevent vertical cut
+        letterSpacing = (-0.5).sp, 
+        platformStyle = PlatformTextStyle(includeFontPadding = false), 
         lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
     )
 
-    //  INVISIBLE SAFE PADDING TRICK TO FIX ALL CLIPPING
     val safePadding = 8.dp
     
     Box(
@@ -668,7 +808,7 @@ private fun AnimatedWordV2(
         Text(
             text = word.text,
             style = lyricStyle,
-            color = textColor.copy(alpha = if (isBackground) 0.5f else 0.5f), // Dimmed base for word wipe
+            color = textColor.copy(alpha = if (isBackground) 0.5f else 0.5f), 
             modifier = Modifier.padding(safePadding)
         )
 
@@ -709,7 +849,7 @@ private fun LyricsLineLrcBounce(
                 text = word,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = effectiveFontSize.sp, fontWeight = fontWeight, fontStyle = fontStyle, lineHeight = (effectiveFontSize * lineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp,
-                    platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevents Vertical Cut
+                    platformStyle = PlatformTextStyle(includeFontPadding = false), 
                     lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
                 ),
                 color = textColor,
