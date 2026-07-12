@@ -69,7 +69,7 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
-// Visual Constants
+// Accord Visual Constants
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
 private const val ACCORD_ACTIVE_SCALE = 1f
@@ -224,23 +224,19 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    // 60 FPS SMOOTH TIME INTERPOLATION ENGINE 
+    // 60 FPS SMOOTH TIME ENGINE 
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
-        
         var lastPlayerPos = player.currentPosition
         var lastUpdateTime = System.currentTimeMillis()
-        
         while (isActive) {
-            delay(16L) // 60 Frames Per Second
+            delay(16L)
             val now = System.currentTimeMillis()
-            
             val sliderPos = sliderPositionProvider()
             val rawPos = if (sliderPos != null) {
                 sliderPos
             } else {
                 val playerPos = player.currentPosition
-                // Jab tak player khud update na de, hum device ke time ke hisaab se position aage badhayenge
                 if (playerPos != lastPlayerPos) {
                     lastPlayerPos = playerPos
                     lastUpdateTime = now
@@ -248,11 +244,13 @@ fun LyricsV2(
                 val elapsed = now - lastUpdateTime
                 lastPlayerPos + (if (player.isPlaying) elapsed else 0)
             }
-
             currentPositionMs = (rawPos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
         }
     }
+
+    // DRAW PHASE TIME PROVIDER 
+    val currentTimeProvider = remember { { currentPositionMs } }
 
     val listState = rememberLazyListState()
     var isManualScrolling by remember { mutableStateOf(false) }
@@ -357,7 +355,42 @@ fun LyricsV2(
                             .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
                             .padding(start = 32.dp, end = 32.dp, top = if (index <= 1) 0.dp else 14.dp, bottom = 14.dp)
                             .blur(radiusX = animatedBlur.dp, radiusY = animatedBlur.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                            .graphicsLayer { scaleX = animatedLineScale; scaleY = animatedLineScale; alpha = animatedLineAlpha; translationY = animatedLineOffsetY.toPx(); transformOrigin = lineTransformOrigin }
+                            //  YAHAN LAGAYA HAI POORI LINE KA NUDGE AUR BOUNCE 
+                            .graphicsLayer { 
+                                var shift = 0f
+                                var scalePop = 0f
+                                
+                                if (isActive && item.words != null) {
+                                    val currentTime = currentTimeProvider()
+                                    val maxShift = 5.dp.toPx() 
+                                    val attackDuration = 100L
+                                    val decayDuration = 200L
+                                    val totalImpulseTime = attackDuration + decayDuration
+                                    
+                                    for (word in item.words) {
+                                        if (word.isBackground) continue // Sirf main words par line bounce karegi
+                                        val wordStartMs = (word.startTime * 1000).toLong()
+                                        if (currentTime >= wordStartMs && currentTime < wordStartMs + totalImpulseTime) {
+                                            val timeSinceStart = currentTime - wordStartMs
+                                            val progress = if (timeSinceStart < attackDuration) {
+                                                timeSinceStart.toFloat() / attackDuration.toFloat()
+                                            } else {
+                                                1f - ((timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat())
+                                            }
+                                            shift = progress * maxShift
+                                            scalePop = progress * 0.015f // 1.5% Scale BUMP (Apple style)
+                                            break
+                                        }
+                                    }
+                                }
+
+                                scaleX = animatedLineScale + scalePop
+                                scaleY = animatedLineScale + scalePop
+                                alpha = animatedLineAlpha
+                                translationY = animatedLineOffsetY.toPx()
+                                translationX = if (lineIsRtl) -shift else shift
+                                transformOrigin = lineTransformOrigin 
+                            }
                             .combinedClickable(
                                 enabled = true,
                                 onClick = {
@@ -389,7 +422,8 @@ fun LyricsV2(
 
                         if (item.words != null && isSynced) {
                             LyricsLineV2(
-                                words = item.words!!, isActive = isActive, isPast = isPast, currentPositionMs = currentPositionMs,
+                                words = item.words!!, isActive = isActive, isPast = isPast, 
+                                currentTimeProvider = currentTimeProvider, 
                                 textColor = textColor, baseFontSize = lyricsTextSize, isLineAllBackground = isAllBackground, textAlign = textAlign, lyricsFontFamily = lyricsFontFamily, isRtl = lineIsRtl, fontWeight = currentFontWeight
                             )
                         } else if (isSynced) {
@@ -775,7 +809,7 @@ fun LyricsV2(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LyricsLineV2(
-    words: List<WordTimestamp>, isActive: Boolean, isPast: Boolean, currentPositionMs: Long, textColor: Color,
+    words: List<WordTimestamp>, isActive: Boolean, isPast: Boolean, currentTimeProvider: () -> Long, textColor: Color,
     baseFontSize: Float, isLineAllBackground: Boolean, textAlign: TextAlign, lyricsFontFamily: FontFamily?, isRtl: Boolean, fontWeight: FontWeight
 ) {
     val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
@@ -789,7 +823,7 @@ private fun LyricsLineV2(
                     Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = baseFontSize.sp), color = Color.Transparent)
                     return@forEachIndexed
                 }
-                AnimatedWordV2(word = word, isLineActive = isActive, isLinePast = isPast, currentPositionMs = currentPositionMs, textColor = textColor, fontSize = if (isLineAllBackground) baseFontSize * 0.82f else baseFontSize, isBackground = isLineAllBackground, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight)
+                AnimatedWordV2(word = word, isLineActive = isActive, isLinePast = isPast, currentTimeProvider = currentTimeProvider, textColor = textColor, fontSize = if (isLineAllBackground) baseFontSize * 0.82f else baseFontSize, isBackground = isLineAllBackground, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight)
             }
         }
     }
@@ -802,7 +836,7 @@ private fun LyricsLineV2(
                     Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (baseFontSize * 0.65f).sp), color = Color.Transparent)
                     return@forEachIndexed
                 }
-                AnimatedWordV2(word = word, isLineActive = isActive, isLinePast = isPast, currentPositionMs = currentPositionMs, textColor = textColor, fontSize = baseFontSize * 0.65f, isBackground = true, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight)
+                AnimatedWordV2(word = word, isLineActive = isActive, isLinePast = isPast, currentTimeProvider = currentTimeProvider, textColor = textColor, fontSize = baseFontSize * 0.65f, isBackground = true, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight)
             }
         }
     }
@@ -810,37 +844,11 @@ private fun LyricsLineV2(
 
 @Composable
 private fun AnimatedWordV2(
-    word: WordTimestamp, isLineActive: Boolean, isLinePast: Boolean, currentPositionMs: Long, textColor: Color, fontSize: Float, isBackground: Boolean, lyricsFontFamily: FontFamily?, isRtl: Boolean, fontWeight: FontWeight
+    word: WordTimestamp, isLineActive: Boolean, isLinePast: Boolean, currentTimeProvider: () -> Long, textColor: Color, fontSize: Float, isBackground: Boolean, lyricsFontFamily: FontFamily?, isRtl: Boolean, fontWeight: FontWeight
 ) {
     val wordStartMs = (word.startTime * 1000).toLong()
     val wordEndMs = (word.endTime * 1000).toLong()
     val wordDuration = (wordEndMs - wordStartMs).coerceAtLeast(1L)
-    val isWordComplete = currentPositionMs >= wordEndMs
-    val isWordActive = currentPositionMs in wordStartMs until wordEndMs
-
-    val progress = when {
-        isWordComplete -> 1f
-        currentPositionMs <= wordStartMs -> 0f
-        else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-    }
-
-    val maxShift = 5f
-    val attackDuration = 120L
-    val decayDuration = 250L
-    val totalImpulseTime = attackDuration + decayDuration
-    
-    val shift = if (isLineActive && currentPositionMs >= wordStartMs && currentPositionMs < wordStartMs + totalImpulseTime) {
-        val timeSinceStart = currentPositionMs - wordStartMs
-        if (timeSinceStart < attackDuration) {
-            val p = timeSinceStart.toFloat() / attackDuration.toFloat()
-            androidx.compose.ui.util.lerp(0f, maxShift, p)
-        } else {
-            val p = (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat()
-            androidx.compose.ui.util.lerp(maxShift, 0f, p)
-        }
-    } else {
-        0f
-    }
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val lyricStyle = MaterialTheme.typography.headlineMedium.copy(fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal, lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None))
@@ -854,15 +862,28 @@ private fun AnimatedWordV2(
             layout((placeable.width - paddingPx * 2).coerceAtLeast(0), (placeable.height - paddingPx * 2).coerceAtLeast(0)) { placeable.place(-paddingPx, -paddingPx) }
         }.graphicsLayer { 
             clip = false
-            translationX = if (isRtl) -shift else shift
+            // translationX (Individual word nudge) has been completely removed!
         }
     ) {
         Text(text = word.text, style = lyricStyle, color = textColor.copy(alpha = 0.5f), modifier = Modifier.padding(safePadding))
-        if (isWordComplete || isWordActive || isLinePast) {
-            Text(
-                text = word.text, style = lyricStyle, color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
-                modifier = if (isWordActive && !isWordComplete) {
-                    Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+        
+        Text(
+            text = word.text, style = lyricStyle, color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
+            modifier = Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+                val currentTime = currentTimeProvider()
+                val isWordComplete = currentTime >= wordEndMs
+                val isWordActive = currentTime in wordStartMs until wordEndMs
+                
+                if (isLinePast || isWordComplete || isWordActive) {
+                    val progress = when {
+                        isLinePast || isWordComplete -> 1f
+                        currentTime <= wordStartMs -> 0f
+                        else -> ((currentTime - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
+                    }
+                    
+                    if (progress >= 1f) {
+                        drawContent()
+                    } else if (progress > 0f) {
                         drawContent()
                         val totalWidth = size.width
                         val fadeWidth = 20f
@@ -874,28 +895,19 @@ private fun AnimatedWordV2(
                         val solidFraction = (paddingPx + fillWidth) / totalWidth
 
                         val softBrush = if (!isRtl) {
-                            Brush.horizontalGradient(
-                                0f to Color.Black,
-                                solidFraction.coerceAtLeast(0f) to Color.Black,
-                                endFraction.coerceAtMost(1f) to Color.Transparent
-                            )
+                            Brush.horizontalGradient(0f to Color.Black, solidFraction.coerceAtLeast(0f) to Color.Black, endFraction.coerceAtMost(1f) to Color.Transparent)
                         } else {
                             val solidStartX = (paddingPx + (textWidth - fillWidth)).coerceIn(0f, totalWidth)
                             val fadeStartX = (solidStartX - fadeWidth).coerceIn(0f, totalWidth)
                             val fadeStartFraction = (fadeStartX / totalWidth).coerceIn(0f, 1f)
                             val solidStartFraction = (solidStartX / totalWidth).coerceIn(0f, 1f)
-                            Brush.horizontalGradient(
-                                0f to Color.Transparent,
-                                fadeStartFraction to Color.Transparent,
-                                solidStartFraction to Color.Black,
-                                1f to Color.Black
-                            )
+                            Brush.horizontalGradient(0f to Color.Transparent, fadeStartFraction to Color.Transparent, solidStartFraction to Color.Black, 1f to Color.Black)
                         }
                         drawRect(brush = softBrush, blendMode = BlendMode.DstIn)
                     }
-                } else Modifier.padding(safePadding)
-            )
-        }
+                }
+            }
+        )
     }
 }
 
