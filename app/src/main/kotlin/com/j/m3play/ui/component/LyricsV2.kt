@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module 
- * Signature: M3PLAY::COMPONENT:
+ * M3Play Component Module - Premium Accord Edition + Apple Glide + Share UI
+ * Signature: M3PLAY::COMPONENT::ACCORD::GLIDE::SHARE::FIXED
  */
 
 package com.j.m3play.ui.component
@@ -105,6 +105,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.LyricsClickKey
@@ -132,7 +133,9 @@ import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
-import kotlin.math.abs
+import com.j.m3play.ui.component.share.LyricsShareImageDialog
+import com.j.m3play.ui.component.share.LyricsSharePayload
+import com.j.m3play.ui.component.share.shareLyricsAsText
 
 // Accord Core Constants
 private const val LRC_LEAD_MS = 300L
@@ -196,7 +199,6 @@ fun LyricsV2(
 
     val inactiveAlpha = 0.35f
     
-    // SHARE UI STATES (Added Back)
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
@@ -580,8 +582,7 @@ fun LyricsV2(
                 shapes = ButtonDefaults.shapes()
             ) { Text(text = "Resume", style = MaterialTheme.typography.labelLarge) }
         }
-        
-        // SHARE UI (Added Back) 
+
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
                 Box(
@@ -638,8 +639,7 @@ fun LyricsV2(
             }
         }
     }
-    
-    // SHARE DIALOGS (Added Back) 
+
     if (showShareDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!!
         BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
@@ -858,3 +858,4 @@ private fun LyricsLineLrcBounce(
         }
     }
 }
+p
