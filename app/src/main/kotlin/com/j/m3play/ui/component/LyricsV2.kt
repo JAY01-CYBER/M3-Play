@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module
- * Signature: M3PLAY::COMPONENT
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT:
  */
 
 package com.j.m3play.ui.component
@@ -62,8 +62,6 @@ import com.j.m3play.lyrics.LyricsUtils.romanizeKorean
 import com.j.m3play.ui.component.shimmer.*
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.*
-
-
 
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
@@ -226,15 +224,33 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
+    // 60 FPS SMOOTH TIME INTERPOLATION ENGINE 
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
-        val pollIntervalMs = if (isTtmlFormat) 16L else 50L
+        
+        var lastPlayerPos = player.currentPosition
+        var lastUpdateTime = System.currentTimeMillis()
+        
         while (isActive) {
+            delay(16L) // 60 Frames Per Second
+            val now = System.currentTimeMillis()
+            
             val sliderPos = sliderPositionProvider()
-            val pos = sliderPos ?: player.currentPosition
-            currentPositionMs = (pos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+            val rawPos = if (sliderPos != null) {
+                sliderPos
+            } else {
+                val playerPos = player.currentPosition
+                // Jab tak player khud update na de, hum device ke time ke hisaab se position aage badhayenge
+                if (playerPos != lastPlayerPos) {
+                    lastPlayerPos = playerPos
+                    lastUpdateTime = now
+                }
+                val elapsed = now - lastUpdateTime
+                lastPlayerPos + (if (player.isPlaying) elapsed else 0)
+            }
+
+            currentPositionMs = (rawPos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
-            delay(pollIntervalMs)
         }
     }
 
@@ -808,7 +824,6 @@ private fun AnimatedWordV2(
         else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
     }
 
-    // GLOSSY'S NUDGE/BOUNCE EFFECT 
     val maxShift = 5f
     val attackDuration = 120L
     val decayDuration = 250L
@@ -839,7 +854,6 @@ private fun AnimatedWordV2(
             layout((placeable.width - paddingPx * 2).coerceAtLeast(0), (placeable.height - paddingPx * 2).coerceAtLeast(0)) { placeable.place(-paddingPx, -paddingPx) }
         }.graphicsLayer { 
             clip = false
-            // APPLYING THE NUDGE
             translationX = if (isRtl) -shift else shift
         }
     ) {
@@ -850,8 +864,6 @@ private fun AnimatedWordV2(
                 modifier = if (isWordActive && !isWordComplete) {
                     Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
                         drawContent()
-                        
-                        // GLOSSY'S SOFT GRADIENT MASK 
                         val totalWidth = size.width
                         val fadeWidth = 20f
                         val paddingPx = safePadding.toPx()
