@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module - Premium Accord Edition + Apple Glide + Share UI
- * Signature: M3PLAY::COMPONENT::ACCORD::GLIDE::SHARE::FIXED
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT:
  */
 
 package com.j.m3play.ui.component
