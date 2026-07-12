@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module
- * Signature: M3PLAY::COMPONENENT
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT:
  */
 
 package com.j.m3play.ui.component
@@ -328,9 +328,12 @@ fun LyricsV2(
                 
                 val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
+                
+                //  FIX: Properly remember and pass the composable value BEFORE the lambda
+                val baseLayoutDirection = LocalLayoutDirection.current
                 val lineText = remember(item.text, item.words) { item.words?.joinToString("") { it.text }?.takeIf { it.isNotBlank() } ?: item.text }
                 val lineIsRtl = remember(lineText) { isRtlText(lineText) }
-                val lineLayoutDirection = remember(lineIsRtl, LocalLayoutDirection.current) { if (lineIsRtl) LayoutDirection.Rtl else LocalLayoutDirection.current }
+                val lineLayoutDirection = remember(lineIsRtl, baseLayoutDirection) { if (lineIsRtl) LayoutDirection.Rtl else baseLayoutDirection }
 
                 CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
                     Column(
@@ -480,7 +483,7 @@ fun LyricsV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                //  NATIVE M3PLAY INTENT LOGIC 
+                                // NATIVE M3PLAY INTENT LOGIC 
                                 val shareIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     type = "text/plain"
@@ -551,7 +554,7 @@ fun LyricsV2(
         }
     }
 
-    // NATIVE M3PLAY IMAGE CARD DIALOG 
+    //  NATIVE M3PLAY IMAGE CARD DIALOG 
     if (showColorPickerDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
