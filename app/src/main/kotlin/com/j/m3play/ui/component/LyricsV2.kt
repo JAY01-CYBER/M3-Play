@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module
- * Signature: M3PLAY::COMPONENT::
+ * M3Play Component Module - Premium Accord Edition + Apple Glide
+ * Signature: M3PLAY::COMPONENT::ACCORD::GLIDE::FIXED
  */
 
 package com.j.m3play.ui.component
@@ -79,10 +79,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
@@ -203,14 +205,23 @@ fun LyricsV2(
     val isSynced = remember(lyrics) { lyrics != null && (lyrics.startsWith("[") || isTtml(lyrics)) }
     val isTtmlFormat = remember(lyrics) { lyrics != null && isTtml(lyrics) }
 
-    val lyricsEntries: List<LyricsEntry> = remember(lyrics) {
+    // PROVIDER NAME ADDED BACK HERE 
+    val lyricsEntries: List<LyricsEntry> = remember(lyrics, currentLyrics?.provider) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) return@remember emptyList()
         val parsed = when {
             isTtml(lyrics) -> parseTtml(lyrics)
             lyrics.startsWith("[") -> parseLyrics(lyrics)
             else -> lyrics.lines().filter { it.isNotBlank() }.mapIndexed { _, line -> LyricsEntry(time = -1L, text = line.trim()) }
         }
-        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(HEAD_LYRICS_ENTRY) + parsed else parsed
+        
+        val providerName = currentLyrics?.provider?.uppercase() ?: "UNKNOWN"
+        val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
+
+        if (parsed.isNotEmpty() && parsed.first().time >= 0) {
+            listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed
+        } else {
+            listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed
+        }
     }
 
     val entriesWithWords: List<LyricsEntry> = remember(lyricsEntries) {
@@ -370,7 +381,7 @@ fun LyricsV2(
         ) {
             itemsIndexed(
                 items = entriesWithWords,
-                key = { index, entry -> "${index}_${entry.time}" }
+                key = { index, entry -> "${index}_${entry.time}_${entry.text.hashCode()}" }
             ) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) {
                     Spacer(modifier = Modifier.height(120.dp))
@@ -385,7 +396,6 @@ fun LyricsV2(
                 val isSelected = selectedIndices.contains(index)
                 val distanceFromActive = if (isSynced) abs(index - currentLineIndex) else 0
                 
-                // ACCORD APP LOGIC: Dimming to 0.2f
                 val targetAlpha = when {
                     !isSynced -> 0.92f
                     isActive -> ACCORD_ACTIVE_ALPHA
@@ -393,21 +403,18 @@ fun LyricsV2(
                     else -> ACCORD_INACTIVE_ALPHA
                 }
                 
-                // ACCORD APP LOGIC: Subtle scale to 0.96f
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
                 
-                // ACCORD APP LOGIC: Blur per line distance
                 val targetBlur = when {
                     !isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling -> 0f
                     else -> (distanceFromActive * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
                 }
 
-                //  APPLE MUSIC LOGIC: The Glide (Slide-Up) Effect
                 val targetOffsetY = when {
                     !isSynced -> 0.dp
                     isActive -> 0.dp
-                    index > currentLineIndex -> 16.dp // Future lines sit lower
-                    else -> (-8).dp // Past lines glide up slightly
+                    index > currentLineIndex -> 16.dp 
+                    else -> (-8).dp 
                 }
 
                 val animatedLineScale by animateFloatAsState(
@@ -428,7 +435,6 @@ fun LyricsV2(
                     label = "accordLineBlur"
                 )
 
-                // 🍎 Animating the Glide
                 val animatedLineOffsetY by animateDpAsState(
                     targetValue = targetOffsetY,
                     animationSpec = tween(durationMillis = 500, easing = AccordDecelerateEasing),
@@ -454,11 +460,11 @@ fun LyricsV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
-                            // Padding like Accord
                             .padding(
                                 start = 32.dp,
                                 end = 32.dp,
-                                top = if (index == 0 || (index == 1 && entriesWithWords[0] == HEAD_LYRICS_ENTRY)) 0.dp else 14.dp,
+                                // Padding handled dynamically to prevent overlap
+                                top = if (index <= 1) 0.dp else 14.dp,
                                 bottom = 14.dp
                             )
                             .blur(
@@ -470,7 +476,7 @@ fun LyricsV2(
                                 scaleX = animatedLineScale
                                 scaleY = animatedLineScale
                                 alpha = animatedLineAlpha
-                                translationY = animatedLineOffsetY.toPx() //  Applying the Glide Offset
+                                translationY = animatedLineOffsetY.toPx() 
                                 transformOrigin = lineTransformOrigin
                             }
                             .combinedClickable(
@@ -493,6 +499,8 @@ fun LyricsV2(
                                         selectedIndices.add(index)
                                     } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
                                         selectedIndices.add(index)
+                                    } else if (!isSelected) {
+                                        showMaxSelectionToast = true
                                     }
                                 }
                             ),
@@ -511,32 +519,38 @@ fun LyricsV2(
                             Text(text = romanizedText, style = supplementaryTextStyle, color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f), textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(bottom = (lyricsTextSize * 0.18f).dp))
                         }
 
+                        // Use ExtraBold for Active, Bold for Inactive to make active pop more
+                        val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
+
                         if (item.words != null && isSynced) {
                             LyricsLineV2(
                                 words = item.words!!, isActive = isActive, isPast = isPast, currentPositionMs = currentPositionMs,
                                 textColor = textColor, inactiveAlpha = 1f, baseFontSize = lyricsTextSize,
                                 isLineAllBackground = isAllBackground, textAlign = textAlign, lyricsFontFamily = lyricsFontFamily,
-                                isRtl = lineIsRtl
+                                isRtl = lineIsRtl, fontWeight = currentFontWeight
                             )
                         } else if (isSynced) {
                             LyricsLineLrcBounce(
                                 text = item.text, isActive = isActive, textColor = textColor,
                                 fontSize = lyricsTextSize, lineSpacing = lyricsLineSpacing, isAllBackground = isAllBackground,
-                                lyricsFontFamily = lyricsFontFamily, textAlign = textAlign
+                                lyricsFontFamily = lyricsFontFamily, textAlign = textAlign, fontWeight = currentFontWeight
                             )
                         } else {
                             Text(
                                 text = item.text,
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp,
-                                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+                                    fontWeight = currentFontWeight,
                                     fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+                                    letterSpacing = (-0.5).sp, //  Safely widened to prevent overlap
+                                    platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevents Vertical Cut
+                                    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
                                 ),
                                 color = textColor,
                                 textAlign = textAlign,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                             )
                         }
                     }
@@ -563,7 +577,7 @@ fun LyricsV2(
 private fun LyricsLineV2(
     words: List<WordTimestamp>, isActive: Boolean, isPast: Boolean, currentPositionMs: Long, textColor: Color,
     inactiveAlpha: Float, baseFontSize: Float, isLineAllBackground: Boolean, textAlign: TextAlign,
-    lyricsFontFamily: FontFamily?, isRtl: Boolean
+    lyricsFontFamily: FontFamily?, isRtl: Boolean, fontWeight: FontWeight
 ) {
     val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
     val mainWords = words.filter { !it.isBackground }
@@ -579,7 +593,7 @@ private fun LyricsLineV2(
                 AnimatedWordV2(
                     word = word, wordIndex = wordIndex, isLineActive = isActive, isLinePast = isPast, currentPositionMs = currentPositionMs,
                     textColor = textColor, inactiveAlpha = inactiveAlpha, fontSize = if (isLineAllBackground) baseFontSize * 0.82f else baseFontSize,
-                    isBackground = isLineAllBackground, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl
+                    isBackground = isLineAllBackground, lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight
                 )
             }
         }
@@ -596,7 +610,7 @@ private fun LyricsLineV2(
                 AnimatedWordV2(
                     word = word, wordIndex = wordIndex + mainWords.size, isLineActive = isActive, isLinePast = isPast, currentPositionMs = currentPositionMs,
                     textColor = textColor, inactiveAlpha = inactiveAlpha, fontSize = baseFontSize * 0.65f, isBackground = true,
-                    lyricsFontFamily = lyricsFontFamily, isRtl = isRtl
+                    lyricsFontFamily = lyricsFontFamily, isRtl = isRtl, fontWeight = fontWeight
                 )
             }
         }
@@ -607,7 +621,7 @@ private fun LyricsLineV2(
 private fun AnimatedWordV2(
     word: WordTimestamp, wordIndex: Int, isLineActive: Boolean, isLinePast: Boolean, currentPositionMs: Long,
     textColor: Color, inactiveAlpha: Float, fontSize: Float, isBackground: Boolean, lyricsFontFamily: FontFamily?,
-    isRtl: Boolean
+    isRtl: Boolean, fontWeight: FontWeight
 ) {
     val wordStartMs = (word.startTime * 1000).toLong()
     val wordEndMs = (word.endTime * 1000).toLong()
@@ -622,34 +636,58 @@ private fun AnimatedWordV2(
     }
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
-    val fontWeight = if (isLineActive || isLinePast) FontWeight.Bold else FontWeight.Bold
 
-    Box(modifier = Modifier.graphicsLayer { clip = false }) {
+    val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
+        fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
+        lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
+        letterSpacing = (-0.5).sp, //  Prevent horizontal cut
+        platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevent vertical cut
+        lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
+    )
+
+    //  INVISIBLE SAFE PADDING TRICK TO FIX ALL CLIPPING
+    val safePadding = 8.dp
+    
+    Box(
+        modifier = Modifier
+            .layout { measurable, constraints ->
+                val paddingPx = safePadding.roundToPx()
+                val looseConstraints = constraints.copy(
+                    minWidth = 0,
+                    maxWidth = if (constraints.maxWidth == Constraints.Infinity) Constraints.Infinity else constraints.maxWidth + paddingPx * 2,
+                    minHeight = 0,
+                    maxHeight = if (constraints.maxHeight == Constraints.Infinity) Constraints.Infinity else constraints.maxHeight + paddingPx * 2
+                )
+                val placeable = measurable.measure(looseConstraints)
+                val width = (placeable.width - paddingPx * 2).coerceAtLeast(0)
+                val height = (placeable.height - paddingPx * 2).coerceAtLeast(0)
+                layout(width, height) { placeable.place(-paddingPx, -paddingPx) }
+            }
+            .graphicsLayer { clip = false }
+    ) {
         Text(
             text = word.text,
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
-                lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-            ),
-            color = textColor.copy(alpha = if (isBackground) 0.5f else 0.5f) // Dimmed base for word wipe
+            style = lyricStyle,
+            color = textColor.copy(alpha = if (isBackground) 0.5f else 0.5f), // Dimmed base for word wipe
+            modifier = Modifier.padding(safePadding)
         )
 
         if (isWordComplete || isWordActive || isLinePast) {
             Text(
                 text = word.text,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
-                    lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                ),
+                style = lyricStyle,
                 color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
                 modifier = if (isWordActive && !isWordComplete) {
-                    Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
-                        drawContent()
-                        val edgeWidth = 8.dp.toPx()
-                        val center = if (isRtl) size.width - ((size.width + edgeWidth * 2) * progress - edgeWidth) else (size.width + edgeWidth * 2) * progress - edgeWidth
-                        drawRect(brush = Brush.horizontalGradient(colors = if (isRtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent), startX = center - edgeWidth, endX = center + edgeWidth), blendMode = BlendMode.DstIn)
-                    }
-                } else Modifier
+                    Modifier
+                        .padding(safePadding)
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .drawWithContent {
+                            drawContent()
+                            val edgeWidth = 8.dp.toPx()
+                            val center = if (isRtl) size.width - ((size.width + edgeWidth * 2) * progress - edgeWidth) else (size.width + edgeWidth * 2) * progress - edgeWidth
+                            drawRect(brush = Brush.horizontalGradient(colors = if (isRtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent), startX = center - edgeWidth, endX = center + edgeWidth), blendMode = BlendMode.DstIn)
+                        }
+                } else Modifier.padding(safePadding)
             )
         }
     }
@@ -659,19 +697,23 @@ private fun AnimatedWordV2(
 @Composable
 private fun LyricsLineLrcBounce(
     text: String, isActive: Boolean, textColor: Color, fontSize: Float, lineSpacing: Float,
-    isAllBackground: Boolean, lyricsFontFamily: FontFamily?, textAlign: TextAlign
+    isAllBackground: Boolean, lyricsFontFamily: FontFamily?, textAlign: TextAlign, fontWeight: FontWeight
 ) {
     val words = remember(text) { text.split(Regex("(?<=\\s)")) }
     val effectiveFontSize = if (isAllBackground) fontSize * 0.82f else fontSize
-    val fontWeight = if (isActive) FontWeight.Bold else FontWeight.Bold
     val fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal
 
     FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }) {
         words.forEach { word ->
             Text(
                 text = word,
-                style = MaterialTheme.typography.headlineMedium.copy(fontSize = effectiveFontSize.sp, fontWeight = fontWeight, fontStyle = fontStyle, lineHeight = (effectiveFontSize * lineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily),
-                color = textColor
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontSize = effectiveFontSize.sp, fontWeight = fontWeight, fontStyle = fontStyle, lineHeight = (effectiveFontSize * lineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false), //  Prevents Vertical Cut
+                    lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
+                ),
+                color = textColor,
+                modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
             )
         }
     }
