@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module 
- * Signature: M3PLAY::COMPONENT:
+ * M3Play Component Module
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -62,6 +62,10 @@ import com.j.m3play.lyrics.LyricsUtils.romanizeKorean
 import com.j.m3play.ui.component.shimmer.*
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.*
+import com.j.m3play.ui.component.share.LyricsShareImageDialog
+import com.j.m3play.ui.component.share.LyricsSharePayload
+import com.j.m3play.ui.component.share.shareLyricsAsText
+
 
 private const val LRC_LEAD_MS = 300L
 private const val TTML_LEAD_MS = 0L
@@ -118,7 +122,6 @@ fun LyricsV2(
 
     val textColor = if (playerBackground == PlayerBackgroundStyle.DEFAULT) MaterialTheme.colorScheme.onBackground else Color.White
 
-    // --- SHARE UI STATES ---
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
@@ -128,7 +131,6 @@ fun LyricsV2(
     var showShareDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     
-    // NATIVE M3PLAY IMAGE GENERATION STATES
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var selectedGlassStyle by remember { mutableStateOf(LyricsGlassStyle.FrostedDark) }
     var paletteGlassStyle by remember { mutableStateOf<LyricsGlassStyle?>(null) }
@@ -329,7 +331,6 @@ fun LyricsV2(
                 val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
                 
-                //  FIX: Properly remember and pass the composable value BEFORE the lambda
                 val baseLayoutDirection = LocalLayoutDirection.current
                 val lineText = remember(item.text, item.words) { item.words?.joinToString("") { it.text }?.takeIf { it.isNotBlank() } ?: item.text }
                 val lineIsRtl = remember(lineText) { isRtlText(lineText) }
@@ -483,7 +484,6 @@ fun LyricsV2(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                // NATIVE M3PLAY INTENT LOGIC 
                                 val shareIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     type = "text/plain"
@@ -554,7 +554,6 @@ fun LyricsV2(
         }
     }
 
-    //  NATIVE M3PLAY IMAGE CARD DIALOG 
     if (showColorPickerDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
@@ -811,6 +810,25 @@ private fun AnimatedWordV2(
         else -> ((currentPositionMs - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
     }
 
+    // GLOSSY'S NUDGE/BOUNCE EFFECT 
+    val maxShift = 5f
+    val attackDuration = 120L
+    val decayDuration = 250L
+    val totalImpulseTime = attackDuration + decayDuration
+    
+    val shift = if (isLineActive && currentPositionMs >= wordStartMs && currentPositionMs < wordStartMs + totalImpulseTime) {
+        val timeSinceStart = currentPositionMs - wordStartMs
+        if (timeSinceStart < attackDuration) {
+            val p = timeSinceStart.toFloat() / attackDuration.toFloat()
+            androidx.compose.ui.util.lerp(0f, maxShift, p)
+        } else {
+            val p = (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat()
+            androidx.compose.ui.util.lerp(maxShift, 0f, p)
+        }
+    } else {
+        0f
+    }
+
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val lyricStyle = MaterialTheme.typography.headlineMedium.copy(fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal, lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None))
     val safePadding = 8.dp
@@ -821,7 +839,11 @@ private fun AnimatedWordV2(
             val looseConstraints = constraints.copy(minWidth = 0, maxWidth = if (constraints.maxWidth == Constraints.Infinity) Constraints.Infinity else constraints.maxWidth + paddingPx * 2, minHeight = 0, maxHeight = if (constraints.maxHeight == Constraints.Infinity) Constraints.Infinity else constraints.maxHeight + paddingPx * 2)
             val placeable = measurable.measure(looseConstraints)
             layout((placeable.width - paddingPx * 2).coerceAtLeast(0), (placeable.height - paddingPx * 2).coerceAtLeast(0)) { placeable.place(-paddingPx, -paddingPx) }
-        }.graphicsLayer { clip = false }
+        }.graphicsLayer { 
+            clip = false
+            // APPLYING THE NUDGE
+            translationX = if (isRtl) -shift else shift
+        }
     ) {
         Text(text = word.text, style = lyricStyle, color = textColor.copy(alpha = 0.5f), modifier = Modifier.padding(safePadding))
         if (isWordComplete || isWordActive || isLinePast) {
@@ -830,9 +852,36 @@ private fun AnimatedWordV2(
                 modifier = if (isWordActive && !isWordComplete) {
                     Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
                         drawContent()
-                        val edgeWidth = 8.dp.toPx()
-                        val center = if (isRtl) size.width - ((size.width + edgeWidth * 2) * progress - edgeWidth) else (size.width + edgeWidth * 2) * progress - edgeWidth
-                        drawRect(brush = Brush.horizontalGradient(colors = if (isRtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent), startX = center - edgeWidth, endX = center + edgeWidth), blendMode = BlendMode.DstIn)
+                        
+                        // GLOSSY'S SOFT GRADIENT MASK 
+                        val totalWidth = size.width
+                        val fadeWidth = 20f
+                        val paddingPx = safePadding.toPx()
+                        val textWidth = totalWidth - (paddingPx * 2)
+                        val fillWidth = textWidth * progress
+                        
+                        val endFraction = (paddingPx + fillWidth + fadeWidth) / totalWidth
+                        val solidFraction = (paddingPx + fillWidth) / totalWidth
+
+                        val softBrush = if (!isRtl) {
+                            Brush.horizontalGradient(
+                                0f to Color.Black,
+                                solidFraction.coerceAtLeast(0f) to Color.Black,
+                                endFraction.coerceAtMost(1f) to Color.Transparent
+                            )
+                        } else {
+                            val solidStartX = (paddingPx + (textWidth - fillWidth)).coerceIn(0f, totalWidth)
+                            val fadeStartX = (solidStartX - fadeWidth).coerceIn(0f, totalWidth)
+                            val fadeStartFraction = (fadeStartX / totalWidth).coerceIn(0f, 1f)
+                            val solidStartFraction = (solidStartX / totalWidth).coerceIn(0f, 1f)
+                            Brush.horizontalGradient(
+                                0f to Color.Transparent,
+                                fadeStartFraction to Color.Transparent,
+                                solidStartFraction to Color.Black,
+                                1f to Color.Black
+                            )
+                        }
+                        drawRect(brush = softBrush, blendMode = BlendMode.DstIn)
                     }
                 } else Modifier.padding(safePadding)
             )
