@@ -7,14 +7,18 @@ package com.j.m3play.ui.component
 
 import android.annotation.SuppressLint
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +60,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -77,6 +83,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -117,9 +124,9 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
-// Hardcoded ArchiveTune premium visuals configurations to prevent missing key errors
+// Hardcoded ArchiveTune premium visuals configurations
 private const val BOUNCE_FACTOR = 1f
-private const val GLOW_FACTOR = 0f // Kept 0 for the clean look you wanted
+private const val GLOW_FACTOR = 0f 
 private const val FILL_TRANSITION_WIDTH = 8f
 
 private fun isRtlText(text: String): Boolean {
@@ -167,8 +174,19 @@ fun LyricsV2(
     }
 
     val inactiveAlpha = 0.35f
+    
+    // Selection state & variables added back
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
+    val maxSelectionLimit = 5
+    var showMaxSelectionToast by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showMaxSelectionToast) {
+        if (showMaxSelectionToast) {
+            Toast.makeText(context, context.getString(R.string.max_selection_limit, maxSelectionLimit), Toast.LENGTH_SHORT).show()
+            showMaxSelectionToast = false
+        }
+    }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
@@ -424,7 +442,11 @@ fun LyricsV2(
                                             selectedIndices.remove(index)
                                             if (selectedIndices.isEmpty()) isSelectionModeActive = false
                                         } else {
-                                            if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index)
+                                            if (selectedIndices.size < maxSelectionLimit) {
+                                                selectedIndices.add(index)
+                                            } else {
+                                                showMaxSelectionToast = true
+                                            }
                                         }
                                     } else if (lyricsClick && isSynced && item.time > 0) {
                                         player.seekTo(item.time)
@@ -436,6 +458,8 @@ fun LyricsV2(
                                         selectedIndices.add(index)
                                     } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
                                         selectedIndices.add(index)
+                                    } else if (!isSelected) {
+                                        showMaxSelectionToast = true
                                     }
                                 }
                             ),
@@ -476,7 +500,7 @@ fun LyricsV2(
                                     fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal,
                                     lineHeight = (lyricsTextSize * lyricsLineSpacing).sp,
                                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                                    letterSpacing = (-1.0).sp // TIGHT KERNING FOR CLEAN LOOK
+                                    letterSpacing = (-1.0).sp 
                                 ),
                                 color = textColor.copy(alpha = if (isActive) 1f else 0.52f),
                                 textAlign = textAlign,
@@ -584,7 +608,7 @@ private fun AnimatedWordV2(
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
                 lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                letterSpacing = (-1.0).sp // TIGHT KERNING
+                letterSpacing = (-1.0).sp
             ),
             color = textColor.copy(alpha = if (isBackground) inactiveAlpha * 0.7f else inactiveAlpha)
         )
@@ -595,7 +619,7 @@ private fun AnimatedWordV2(
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal,
                     lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily,
-                    letterSpacing = (-1.0).sp // TIGHT KERNING
+                    letterSpacing = (-1.0).sp
                 ),
                 color = textColor.copy(alpha = if (isBackground) 0.75f else 1f),
                 modifier = if (isWordActive && !isWordComplete) {
