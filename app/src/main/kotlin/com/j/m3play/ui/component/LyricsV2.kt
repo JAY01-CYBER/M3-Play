@@ -1,6 +1,6 @@
 /*
  * M3Play Component Module 
- * Signature: M3PLAY::COMPONENT:
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -94,7 +94,6 @@ private fun isRtlText(text: String): Boolean {
     }
     return false
 }
-
 
 @Composable
 private fun KaraokeWord(
@@ -267,8 +266,8 @@ fun LyricsV2(
             else -> lyrics.lines().filter { it.isNotBlank() }.mapIndexed { _, line -> LyricsEntry(time = -1L, text = line.trim()) }
         }
         val providerName = currentLyrics?.provider?.uppercase() ?: "UNKNOWN"
-        val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
-        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed else listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed
+        val providerEntry = LyricsEntry(0L, "✨ Provided by $providerName")
+        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + parsed else listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + parsed
     }
 
     val entriesWithWords: List<LyricsEntry> = remember(lyricsEntries) {
@@ -362,7 +361,6 @@ fun LyricsV2(
 
     val currentTimeProvider = remember { { currentPositionMs } }
 
-    
     var userManualOffset by remember { mutableFloatStateOf(0f) }
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
     var deferredCurrentLineIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -444,7 +442,7 @@ fun LyricsV2(
         val scrollClampMin = minOf(minOffset, maxOffset)
         val scrollClampMax = maxOf(minOffset, maxOffset)
 
-    
+        
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -477,7 +475,7 @@ fun LyricsV2(
         ) {
             entriesWithWords.forEachIndexed { index, item ->
                 if (abs(index - deferredCurrentLineIndex) > 15) return@forEachIndexed
-                if (item == HEAD_LYRICS_ENTRY) return@forEachIndexed
+                if (item == LyricsEntry.HEAD_LYRICS_ENTRY) return@forEachIndexed
 
                 val distance = abs(index - deferredCurrentLineIndex)
                 val rawTargetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
@@ -613,24 +611,23 @@ fun LyricsV2(
             }
         }
 
-        
         AnimatedVisibility(
             visible = !isAutoScrollEnabled && isSynced,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
         ) {
             FilledTonalButton(
                 onClick = {
                     flingJob?.cancel()
+                    deferredCurrentLineIndex = currentLineIndex
                     isAutoScrollEnabled = true
-                    // Seek line pe layega center mein
+                    scope.launch {
+                        Animatable(userManualOffset).animateTo(0f, tween(400, easing = FastOutSlowInEasing)) { userManualOffset = value }
+                    }
                 },
                 shapes = ButtonDefaults.shapes()
-            ) { 
-                Icon(painter = painterResource(id = R.drawable.play), contentDescription = null, modifier = Modifier.size(18.dp).padding(end = 6.dp))
-                Text(text = stringResource(R.string.resume_autoscroll), style = MaterialTheme.typography.labelLarge) 
-            }
+            ) { Text(text = "Resume", style = MaterialTheme.typography.labelLarge) }
         }
 
         if (isSelectionModeActive) {
