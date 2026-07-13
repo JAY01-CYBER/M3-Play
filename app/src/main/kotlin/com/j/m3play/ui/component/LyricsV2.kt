@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module
- * Signature: M3PLAY::COMPONENT:
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -42,6 +42,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.abs
+import kotlin.math.pow 
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -78,7 +79,7 @@ private val AppleEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
 
 private fun easeOutExp(x: Float): Float {
-    return if (x == 1f) 1f else 1f - kotlin.math.pow(2.0, -10.0 * x.toDouble()).toFloat()
+    return if (x == 1f) 1f else 1f - (2.0).pow(-10.0 * x.toDouble()).toFloat()
 }
 
 private fun isRtlText(text: String): Boolean {
@@ -95,7 +96,6 @@ private fun isRtlText(text: String): Boolean {
     }
     return false
 }
-
 
 @Composable
 private fun MusicLineDots(isActive: Boolean) {
@@ -131,10 +131,10 @@ private fun MusicLineDots(isActive: Boolean) {
     }
 }
 
-
 @Composable
 private fun AnimatedAppleWord(
     word: WordTimestamp,
+    isLineActive: Boolean,
     currentTimeProvider: () -> Long,
     textColor: Color,
     fontSize: Float,
@@ -181,13 +181,12 @@ private fun AnimatedAppleWord(
                         else -> ((currentTime - charStartMs).toFloat() / charDurationMs.toFloat()).coerceIn(0f, 1f)
                     }
 
-                    // Skia React Native Logic -> Opacity 0.5 to 1.0 with Easing.exp
                     val targetAlphaBase = if (isBackground) 0.35f else 0.5f
                     val targetAlphaMax = if (isBackground) 0.65f else 1f
                     alpha = targetAlphaBase + ((targetAlphaMax - targetAlphaBase) * easeOutExp(progress))
 
-                    // Skia React Native Logic -> TranslateY 0 to -2 with Linear Easing
-                    translationY = maxTranslateY * progress
+                    
+                    translationY = if (isLineActive) maxTranslateY * progress else 0f
                 }
             )
         }
@@ -366,7 +365,6 @@ fun LyricsV2(
         }
     }
 
-    // Scroll to Active Line logic ported from RN
     LaunchedEffect(currentLineIndex, isManualScrolling) {
         if (isManualScrolling || !isSynced || currentLineIndex < 0 || currentLineIndex >= entriesWithWords.size) return@LaunchedEffect
         val viewportHeight = listState.layoutInfo.viewportSize.height
@@ -403,7 +401,6 @@ fun LyricsV2(
                 .smoothFadingEdge(vertical = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // FlatList Header equivalent
             item { Spacer(modifier = Modifier.height(100.dp)) }
 
             itemsIndexed(items = entriesWithWords, key = { index, entry -> "${index}_${entry.time}_${entry.text.hashCode()}" }) { index, item ->
@@ -423,9 +420,7 @@ fun LyricsV2(
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
                 val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
-                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AppleEase), label = "S")
-                
-                // RN Port: Opacity changes quickly (100ms) with Quad Easing
+                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
                 val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(100, easing = FastOutSlowInEasing), label = "A")
                 val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AppleEase), label = "B")
 
@@ -484,7 +479,6 @@ fun LyricsV2(
 
                         val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
 
-                        
                         if (item.text.isBlank() || item.text == " ") {
                             MusicLineDots(isActive = isActive)
                         } 
@@ -528,7 +522,6 @@ fun LyricsV2(
                 }
             }
             
-            // FlatList Spacer equivalent
             item { Spacer(modifier = Modifier.height(listState.layoutInfo.viewportSize.height.dp.coerceAtLeast(300.dp))) }
         }
 
