@@ -42,7 +42,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.abs
-import kotlin.math.pow 
+import kotlin.math.pow
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -76,7 +76,6 @@ private const val ACCORD_BLUR_STEP = 1.5f
 
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 private val AppleEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
-
 
 private fun easeOutExp(x: Float): Float {
     return if (x == 1f) 1f else 1f - (2.0).pow(-10.0 * x.toDouble()).toFloat()
@@ -185,7 +184,6 @@ private fun AnimatedAppleWord(
                     val targetAlphaMax = if (isBackground) 0.65f else 1f
                     alpha = targetAlphaBase + ((targetAlphaMax - targetAlphaBase) * easeOutExp(progress))
 
-                    
                     translationY = if (isLineActive) maxTranslateY * progress else 0f
                 }
             )
@@ -420,7 +418,8 @@ fun LyricsV2(
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
                 val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
-                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
+                
+                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AppleEase), label = "S")
                 val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(100, easing = FastOutSlowInEasing), label = "A")
                 val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AppleEase), label = "B")
 
