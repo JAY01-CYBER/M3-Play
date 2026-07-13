@@ -1,5 +1,5 @@
 /*
- * M3Play Component Module
+ * M3Play Component Module 
  * Signature: M3PLAY::COMPONENT
  */
 
@@ -75,10 +75,13 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
+
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
 private const val ACCORD_ACTIVE_SCALE = 1f
 private const val ACCORD_INACTIVE_SCALE = 0.96f
+private const val ACCORD_MAX_BLUR = 8f
+private const val ACCORD_BLUR_STEP = 2f
 private val AccordDecelerateEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 
 private fun isRtlText(text: String): Boolean {
@@ -96,7 +99,6 @@ private fun isRtlText(text: String): Boolean {
     return false
 }
 
-//  GLOSSY'S 3-LAYER KARAOKE COMPONENT (PERFECT LIQUID FILL) 
 @Composable
 private fun KaraokeWord(
     text: String,
@@ -230,12 +232,22 @@ fun LyricsV2(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
+    val maxSelectionLimit = 5 
+    var showMaxSelectionToast by remember { mutableStateOf(false) }
+    
     var showShareDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var selectedGlassStyle by remember { mutableStateOf(LyricsGlassStyle.FrostedDark) }
     var paletteGlassStyle by remember { mutableStateOf<LyricsGlassStyle?>(null) }
     var showProgressDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showMaxSelectionToast) {
+        if (showMaxSelectionToast) {
+            Toast.makeText(context, context.getString(R.string.max_selection_limit, maxSelectionLimit), Toast.LENGTH_SHORT).show()
+            showMaxSelectionToast = false
+        }
+    }
 
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val lyrics = currentLyrics?.lyrics
@@ -321,7 +333,7 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    //  60 FPS Engine 
+    
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var lastPlayerPos = player.currentPosition
@@ -345,7 +357,7 @@ fun LyricsV2(
 
     val currentTimeProvider = remember { { currentPositionMs } }
 
-    // GLOSSY'S CUSTOM CANVAS SCROLL ENGINE 
+
     var userManualOffset by remember { mutableFloatStateOf(0f) }
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
     var isManualScrolling by remember { mutableStateOf(false) }
@@ -416,24 +428,28 @@ fun LyricsV2(
             map
         }
 
-        // Clamping logic for manual swipe
+        
         val minOffset = remember(itemHeights.toMap(), entriesWithWords, deferredCurrentLineIndex, anchorY) {
             if (entriesWithWords.isEmpty()) 0f else {
-                val totalBelow = (deferredCurrentLineIndex until entriesWithWords.size - 1).sumOf { (itemHeights[it]?.toFloat() ?: lineHeightPx) + gapPx }
+                val totalBelow = (deferredCurrentLineIndex until entriesWithWords.size - 1).sumOf { 
+                    ((itemHeights[it]?.toFloat() ?: lineHeightPx) + gapPx).toDouble() 
+                }.toFloat()
                 val lastHeight = itemHeights[entriesWithWords.size - 1]?.toFloat() ?: lineHeightPx
                 with(density) { 100.dp.toPx() } - anchorY - totalBelow - lastHeight
             }
         }
         val maxOffset = remember(itemHeights.toMap(), entriesWithWords, deferredCurrentLineIndex, maxHeightPx, anchorY) {
             if (entriesWithWords.isEmpty()) 0f else {
-                val totalAbove = (0 until deferredCurrentLineIndex).sumOf { (itemHeights[it]?.toFloat() ?: lineHeightPx) + gapPx }
+                val totalAbove = (0 until deferredCurrentLineIndex).sumOf { 
+                    ((itemHeights[it]?.toFloat() ?: lineHeightPx) + gapPx).toDouble() 
+                }.toFloat()
                 maxHeightPx - with(density) { 150.dp.toPx() } - anchorY + totalAbove
             }
         }
         val scrollClampMin = minOf(minOffset, maxOffset)
         val scrollClampMax = maxOf(minOffset, maxOffset)
 
-        //  THE CONTINUOUS CANVAS BOX 
+    
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -474,7 +490,7 @@ fun LyricsV2(
                 val distance = abs(index - deferredCurrentLineIndex)
                 val rawTargetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
                 
-                //  GLOSSY'S WAVE / ACCORDION STAGGER DELAY 
+                
                 val animatedOffset by animateFloatAsState(
                     targetValue = rawTargetOffset,
                     animationSpec = tween(750, (distance * 20).coerceAtMost(200), FastOutSlowInEasing),
@@ -493,7 +509,9 @@ fun LyricsV2(
                     else -> ACCORD_INACTIVE_ALPHA
                 }
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
-                val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
+                
+                
+                val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
                 val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
                 val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "A")
@@ -532,7 +550,8 @@ fun LyricsV2(
                                                 selectedIndices.remove(index)
                                                 if (selectedIndices.isEmpty()) isSelectionModeActive = false
                                             } else {
-                                                if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else Toast.makeText(context, context.getString(R.string.max_selection_limit, maxSelectionLimit), Toast.LENGTH_SHORT).show()
+                                                
+                                                if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else showMaxSelectionToast = true
                                             }
                                         } else if (lyricsClick && isSynced && item.time > 0) {
                                             player.seekTo(item.time)
@@ -544,7 +563,7 @@ fun LyricsV2(
                                             isSelectionModeActive = true; selectedIndices.add(index)
                                         } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
                                             selectedIndices.add(index)
-                                        }
+                                        } else if (!isSelected) showMaxSelectionToast = true
                                     }
                                 ),
                             horizontalAlignment = horizontalAlignment,
@@ -598,16 +617,6 @@ fun LyricsV2(
             }
         }
 
-        if (isManualScrolling && isSynced) {
-            androidx.compose.material3.FilledTonalButton(
-                onClick = {
-                    isManualScrolling = false
-                    isAutoScrollEnabled = true
-                },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), shapes = ButtonDefaults.shapes()
-            ) { Text(text = "Resume", style = MaterialTheme.typography.labelLarge) }
-        }
-
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
                 Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
@@ -659,7 +668,6 @@ fun LyricsV2(
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(text = stringResource(R.string.share_lyrics), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable {
                             val shareIntent = Intent().apply {
@@ -676,7 +684,6 @@ fun LyricsV2(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(text = stringResource(R.string.share_as_text), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
-
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable {
                             shareDialogData = Triple(lyricsText, songTitle, artists)
@@ -688,7 +695,6 @@ fun LyricsV2(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(text = stringResource(R.string.share_as_image), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                     }
-
                     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.End) {
                         Text(text = stringResource(R.string.cancel), fontSize = 16.sp, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium, modifier = Modifier.clickable { showShareDialog = false }.padding(vertical = 8.dp, horizontal = 12.dp))
                     }
@@ -761,7 +767,7 @@ fun LyricsV2(
                                     val image = ComposeToImage.createLyricsImage(context = context, coverArtUrl = coverUrl, songTitle = songTitle, artistName = artists, lyrics = lyricsText, width = exportSize, height = exportSize, glassStyle = selectedGlassStyle)
                                     val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
                                     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "image/png"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share Lyrics"))
-                                } catch (e: Exception) { Toast.makeText(context, "Failed to create image: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
+                                } catch (e: Exception) { Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
                             }
                         },
                         shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().height(52.dp)
