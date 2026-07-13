@@ -78,7 +78,10 @@ private const val ACCORD_ACTIVE_SCALE = 1f
 private const val ACCORD_INACTIVE_SCALE = 0.95f
 private const val ACCORD_MAX_BLUR = 8f
 private const val ACCORD_BLUR_STEP = 1.5f
-private val AccordDecelerateEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
+
+
+private val iosSpring = spring<Float>(dampingRatio = 0.82f, stiffness = 150f)
+private val iosSpringOffset = spring<Float>(dampingRatio = 0.85f, stiffness = 120f)
 
 private fun isRtlText(text: String): Boolean {
     for (ch in text) {
@@ -95,6 +98,7 @@ private fun isRtlText(text: String): Boolean {
     return false
 }
 
+// SKIA-INSPIRED KARAOKE SHADER ENGINE 
 @Composable
 private fun KaraokeWord(
     text: String,
@@ -107,7 +111,6 @@ private fun KaraokeWord(
     inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
     isBackground: Boolean = false,
-    nudgeEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
@@ -123,37 +126,17 @@ private fun KaraokeWord(
                     placeable.place(-glowPaddingPx, -glowPaddingPx)
                 }
             }
-            .graphicsLayer {
-                clip = false
-                val currentTime = currentTimeProvider()
-                val maxShift = 5f
-                val attackDuration = 120L
-                val decayDuration = 250L
-                val totalImpulseTime = attackDuration + decayDuration
-                
-                val shift = if (nudgeEnabled && currentTime >= startTime && currentTime < startTime + totalImpulseTime) {
-                    val timeSinceStart = currentTime - startTime
-                    if (timeSinceStart < attackDuration) {
-                        androidx.compose.ui.util.lerp(0f, maxShift, timeSinceStart.toFloat() / attackDuration.toFloat())
-                    } else {
-                        androidx.compose.ui.util.lerp(maxShift, 0f, (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat())
-                    }
-                } else {
-                    0f
-                }
-                translationX = if (isRtl) -shift else shift
-            }
     ) {
         val effectiveFontSize = if (isBackground) fontSize * 0.7f else fontSize
         val effectiveAlpha = if (isBackground) 0.6f else 1f
         
-        // 1. Inactive Layer
+        // 1. Inactive Layer (Background Text)
         Text(
             text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = inactiveAlpha * effectiveAlpha),
             fontWeight = fontWeight, modifier = Modifier.padding(glowPadding)
         )
 
-        // 2. Completed Layer
+        // 2. Completed Layer (Solid Fill)
         Text(
             text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = effectiveAlpha), fontWeight = fontWeight,
             modifier = Modifier.padding(glowPadding).drawWithContent {
@@ -161,7 +144,7 @@ private fun KaraokeWord(
             }
         )
 
-        // 3. Active Sweep Layer (Liquid Feel)
+        // 3. Active Skia Sweep Layer (Liquid Mask)
         Box(
             modifier = Modifier
                 .graphicsLayer {
@@ -180,13 +163,13 @@ private fun KaraokeWord(
                     
                     if ((rawProgress > 0f && rawProgress < 1f) || isFading) {
                         drawContent()
-                        val fadeWidth = 24f 
                         val paddingPx = glowPadding.toPx()
                         val textWidth = size.width - (paddingPx * 2)
                         
-                        // Smooth out the progress for liquid feel
+                        
                         val progress = rawProgress * rawProgress * (3f - 2f * rawProgress)
                         val fillWidth = textWidth * progress
+                        val fadeWidth = textWidth * 0.15f // 15% Blur Edge exactly like React Native Skia
                         
                         val endFraction = (paddingPx + fillWidth + fadeWidth) / size.width
                         val solidFraction = (paddingPx + fillWidth) / size.width
@@ -266,8 +249,8 @@ fun LyricsV2(
             else -> lyrics.lines().filter { it.isNotBlank() }.mapIndexed { _, line -> LyricsEntry(time = -1L, text = line.trim()) }
         }
         val providerName = currentLyrics?.provider?.uppercase() ?: "UNKNOWN"
-        val providerEntry = LyricsEntry(0L, "✨ Provided by $providerName")
-        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + parsed else listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + parsed
+        val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
+        if (parsed.isNotEmpty() && parsed.first().time >= 0) listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed else listOf(HEAD_LYRICS_ENTRY, providerEntry) + parsed
     }
 
     val entriesWithWords: List<LyricsEntry> = remember(lyricsEntries) {
@@ -365,18 +348,31 @@ fun LyricsV2(
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
     var deferredCurrentLineIndex by rememberSaveable { mutableIntStateOf(0) }
     val itemHeights = remember { mutableStateMapOf<Int, Int>() }
+    var isInitialLayout by remember(entriesWithWords) { mutableStateOf(true) }
     var flingJob by remember { mutableStateOf<Job?>(null) }
     val velocityTracker = remember { VelocityTracker() }
     val decayAnimSpec = remember { exponentialDecay<Float>(frictionMultiplier = 1.8f) }
 
+    LaunchedEffect(entriesWithWords.size, currentLineIndex) {
+        if (entriesWithWords.isNotEmpty()) {
+            val h = itemHeights.toMap()
+            val windowStart = (currentLineIndex - 3).coerceAtLeast(0)
+            val windowEnd = (currentLineIndex + 3).coerceAtMost(entriesWithWords.size - 1)
+            val needsMeasurement = (windowStart..windowEnd).any { !h.containsKey(it) }
+            if (needsMeasurement) {
+                isInitialLayout = true
+                snapshotFlow { 
+                    val hh = itemHeights.toMap()
+                    (windowStart..windowEnd).all { hh.containsKey(it) } 
+                }.first { it }
+                isInitialLayout = false
+            }
+        }
+    }
+
     LaunchedEffect(currentLineIndex, isAutoScrollEnabled) {
         if (isAutoScrollEnabled && currentLineIndex != -1) {
             deferredCurrentLineIndex = currentLineIndex
-            // Smoothly ease back to center if manual offset was applied
-            if (abs(userManualOffset) > 1f) {
-                Animatable(userManualOffset).animateTo(0f, tween(500, easing = FastOutSlowInEasing)) { userManualOffset = value }
-            }
-            userManualOffset = 0f
         }
     }
 
@@ -442,7 +438,6 @@ fun LyricsV2(
         val scrollClampMin = minOf(minOffset, maxOffset)
         val scrollClampMax = maxOf(minOffset, maxOffset)
 
-        
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -452,6 +447,7 @@ fun LyricsV2(
                     awaitPointerEventScope {
                         while (true) {
                             val down = awaitFirstDown(requireUnconsumed = false)
+                            if (isInitialLayout) continue
                             flingJob?.cancel()
                             velocityTracker.resetTracking()
                             isAutoScrollEnabled = false
@@ -475,15 +471,19 @@ fun LyricsV2(
         ) {
             entriesWithWords.forEachIndexed { index, item ->
                 if (abs(index - deferredCurrentLineIndex) > 15) return@forEachIndexed
-                if (item == LyricsEntry.HEAD_LYRICS_ENTRY) return@forEachIndexed
+                if (item == HEAD_LYRICS_ENTRY) return@forEachIndexed
 
-                val distance = abs(index - deferredCurrentLineIndex)
-                val rawTargetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
+                val targetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
                 
-                // GLOSSY STAGGER DELAY
+                val frozenOffset = remember { mutableFloatStateOf(targetOffset) }
+                LaunchedEffect(isAutoScrollEnabled, targetOffset, isInitialLayout) {
+                    if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
+                }
+
+        
                 val animatedOffset by animateFloatAsState(
-                    targetValue = rawTargetOffset,
-                    animationSpec = tween(750, (distance * 20).coerceAtMost(200), FastOutSlowInEasing),
+                    targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
+                    animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() else iosSpringOffset,
                     label = "offset_$index"
                 )
 
@@ -491,6 +491,7 @@ fun LyricsV2(
                 val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
                 val isActive = isSynced && index == deferredCurrentLineIndex
                 val isSelected = selectedIndices.contains(index)
+                val distance = abs(index - deferredCurrentLineIndex)
                 
                 val targetAlpha = when {
                     !isSynced -> 0.92f
@@ -501,9 +502,10 @@ fun LyricsV2(
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
                 val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || !isAutoScrollEnabled) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
-                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
-                val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "A")
-                val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
+                
+                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = iosSpring, label = "S")
+                val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = iosSpring, label = "A")
+                val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = iosSpring, label = "B")
                 val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
                 
@@ -550,6 +552,9 @@ fun LyricsV2(
                                             flingJob?.cancel()
                                             deferredCurrentLineIndex = index
                                             isAutoScrollEnabled = true
+                                            scope.launch {
+                                                Animatable(userManualOffset).animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 100f)) { userManualOffset = value }
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -570,34 +575,13 @@ fun LyricsV2(
                             val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
 
                             if (item.words != null && isSynced) {
-                                val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
-                                val mainWords = item.words.filter { !it.isBackground }
-                                val bgWords = item.words.filter { it.isBackground }
-
-                                if (mainWords.isNotEmpty()) {
-                                    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
-                                        mainWords.forEach { word ->
-                                            if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = lyricsTextSize.sp), color = Color.Transparent)
-                                            else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = isAllBackground, nudgeEnabled = isActive)
-                                        }
-                                    }
-                                }
-
-                                if (bgWords.isNotEmpty()) {
-                                    if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(4.dp))
-                                    FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
-                                        bgWords.forEach { word ->
-                                            if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (lyricsTextSize * 0.65f).sp), color = Color.Transparent)
-                                            else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = (lyricsTextSize * 0.65f).sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = true, nudgeEnabled = isActive)
-                                        }
-                                    }
-                                }
+                                LyricsLineV2(
+                                    words = item.words!!, currentTimeProvider = currentTimeProvider, textColor = textColor, baseFontSize = lyricsTextSize, isLineAllBackground = isAllBackground, textAlign = textAlign, lyricsFontFamily = lyricsFontFamily, isRtl = lineIsRtl, fontWeight = currentFontWeight
+                                )
                             } else if (isSynced) {
-                                val words = item.text.split(Regex("(?<=\\s)"))
-                                val effectiveFontSize = if (isAllBackground) lyricsTextSize * 0.82f else lyricsTextSize
-                                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }) {
-                                    words.forEach { word -> Text(text = word, style = MaterialTheme.typography.headlineMedium.copy(fontSize = effectiveFontSize.sp, fontWeight = currentFontWeight, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, lineHeight = (effectiveFontSize * lyricsLineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)), color = textColor, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
-                                }
+                                LyricsLineLrcBounce(
+                                    text = item.text, textColor = textColor, fontSize = lyricsTextSize, lineSpacing = lyricsLineSpacing, isAllBackground = isAllBackground, lyricsFontFamily = lyricsFontFamily, textAlign = textAlign, fontWeight = currentFontWeight
+                                )
                             } else {
                                 Text(
                                     text = item.text,
@@ -612,22 +596,24 @@ fun LyricsV2(
         }
 
         AnimatedVisibility(
-            visible = !isAutoScrollEnabled && isSynced,
+            visible = !isAutoScrollEnabled && isSynced && !isSelectionModeActive,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
         ) {
             FilledTonalButton(
                 onClick = {
                     flingJob?.cancel()
-                    deferredCurrentLineIndex = currentLineIndex
                     isAutoScrollEnabled = true
                     scope.launch {
-                        Animatable(userManualOffset).animateTo(0f, tween(400, easing = FastOutSlowInEasing)) { userManualOffset = value }
+                        Animatable(userManualOffset).animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 100f)) { userManualOffset = value }
                     }
                 },
                 shapes = ButtonDefaults.shapes()
-            ) { Text(text = "Resume", style = MaterialTheme.typography.labelLarge) }
+            ) { 
+                Icon(painter = painterResource(id = R.drawable.play), contentDescription = null, modifier = Modifier.size(18.dp).padding(end = 6.dp))
+                Text(text = "Resume", style = MaterialTheme.typography.labelLarge) 
+            }
         }
 
         if (isSelectionModeActive) {
@@ -787,6 +773,58 @@ fun LyricsV2(
                     ) { Text(text = stringResource(id = R.string.share), fontWeight = FontWeight.SemiBold, fontSize = 16.sp) }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LyricsLineV2(
+    words: List<WordTimestamp>, currentTimeProvider: () -> Long, textColor: Color,
+    baseFontSize: Float, isLineAllBackground: Boolean, textAlign: TextAlign, lyricsFontFamily: FontFamily?, isRtl: Boolean, fontWeight: FontWeight
+) {
+    val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
+    val mainWords = words.filter { !it.isBackground }
+    val bgWords = words.filter { it.isBackground }
+
+    if (mainWords.isNotEmpty()) {
+        FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
+            mainWords.forEachIndexed { _, word ->
+                if (word.text == " " || word.text == "\n") {
+                    Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = baseFontSize.sp), color = Color.Transparent)
+                    return@forEachIndexed
+                }
+                KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = isRtl, fontSize = if (isLineAllBackground) (baseFontSize * 0.82f).sp else baseFontSize.sp, textColor = textColor, inactiveAlpha = 1f, fontWeight = fontWeight, isBackground = isLineAllBackground)
+            }
+        }
+    }
+
+    if (bgWords.isNotEmpty()) {
+        if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(4.dp))
+        FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
+            bgWords.forEachIndexed { _, word ->
+                if (word.text == " " || word.text == "\n") {
+                    Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (baseFontSize * 0.65f).sp), color = Color.Transparent)
+                    return@forEachIndexed
+                }
+                KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = isRtl, fontSize = (baseFontSize * 0.65f).sp, textColor = textColor, inactiveAlpha = 1f, fontWeight = fontWeight, isBackground = true)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LyricsLineLrcBounce(
+    text: String, textColor: Color, fontSize: Float, lineSpacing: Float, isAllBackground: Boolean, lyricsFontFamily: FontFamily?, textAlign: TextAlign, fontWeight: FontWeight
+) {
+    val words = remember(text) { text.split(Regex("(?<=\\s)")) }
+    val effectiveFontSize = if (isAllBackground) fontSize * 0.82f else fontSize
+    val fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal
+
+    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }) {
+        words.forEach { word ->
+            Text(text = word, style = MaterialTheme.typography.headlineMedium.copy(fontSize = effectiveFontSize.sp, fontWeight = fontWeight, fontStyle = fontStyle, lineHeight = (effectiveFontSize * lineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)), color = textColor, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp))
         }
     }
 }
