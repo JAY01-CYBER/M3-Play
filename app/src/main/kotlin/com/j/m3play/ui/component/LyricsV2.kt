@@ -1,6 +1,6 @@
 /*
- * M3Play Component Module - Staggered Lyrics Physics (Adapted from Metrolist)
- * Signature: M3PLAY::COMPONENT::STAGGERED_PHYSICS::60FPS::FIXED
+ * M3Play Component Module 
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -11,6 +11,7 @@ import android.content.Intent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,23 +19,29 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.verticalDrag
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
@@ -45,6 +52,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -53,6 +61,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +69,10 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.palette.graphics.Palette
 import coil3.ImageLoader
@@ -69,6 +80,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -340,7 +352,7 @@ fun LyricsV2(
 
     val currentTimeProvider = remember { { currentPositionState } }
 
-    // ── STAGGERED SCROLL PHYSICS LOGIC (From the requested file) ──
+    // ── STAGGERED SCROLL PHYSICS LOGIC ──
     val listState = rememberLazyListState()
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
     var userManualOffset by remember { mutableFloatStateOf(0f) }
@@ -443,7 +455,7 @@ fun LyricsV2(
             }
         }
 
-        LaunchedEffect(showLyrics, lyrics, entriesWithWords.size) {
+        LaunchedEffect(lyrics, entriesWithWords.size) {
             if (entriesWithWords.isNotEmpty()) {
                 isInitialLayout = true
                 snapshotFlow { 
@@ -529,7 +541,7 @@ fun LyricsV2(
                             .fillMaxWidth()
                             .layout { m, c -> 
                                 val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
-                                layout(p.width, 0) { p.place(0, 0) }
+                                layout(p.width, p.height) { p.place(0, 0) }
                             }
                             .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
                             .onSizeChanged { itemHeights[listIndex] = it.height }
@@ -807,7 +819,17 @@ fun LyricsV2(
                             showColorPickerDialog = false; showProgressDialog = true
                             scope.launch {
                                 try {
-                                    val image = ComposeToImage.createLyricsImage(context, coverUrl, songTitle, artists, lyricsText, 1080, 1080, selectedGlassStyle)
+                                    val exportSize = 1080
+                                    val image = ComposeToImage.createLyricsImage(
+                                        context = context,
+                                        coverArtUrl = coverUrl,
+                                        songTitle = songTitle,
+                                        artistName = artists,
+                                        lyrics = lyricsText,
+                                        width = exportSize,
+                                        height = exportSize,
+                                        glassStyle = selectedGlassStyle
+                                    )
                                     val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
                                     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "image/png"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share Lyrics"))
                                 } catch (e: Exception) { Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
