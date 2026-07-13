@@ -117,8 +117,6 @@ private fun MusicLineDots(isActive: Boolean) {
         }
     }
 }
-
-
 @Composable
 private fun AppleMusicWordWipe(
     word: WordTimestamp,
@@ -143,14 +141,17 @@ private fun AppleMusicWordWipe(
         else -> ((currentTime - startTime).toFloat() / duration.toFloat()).coerceIn(0f, 1f)
     }
 
+    val baseStyle = MaterialTheme.typography.headlineMedium
+    val fallbackFontFamily = baseStyle.fontFamily
+
     // Single text style generation
-    val lyricStyle = remember(actualFontSize, fontWeight, lyricsFontFamily) {
-        MaterialTheme.typography.headlineMedium.copy(
+    val lyricStyle = remember(actualFontSize, fontWeight, lyricsFontFamily, baseStyle, fallbackFontFamily) {
+        baseStyle.copy(
             fontSize = actualFontSize.sp, 
             fontWeight = fontWeight, 
             fontStyle = FontStyle.Normal, 
             lineHeight = (actualFontSize * 1.35f).sp, 
-            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, 
+            fontFamily = lyricsFontFamily ?: fallbackFontFamily, 
             letterSpacing = (-0.5).sp, 
             platformStyle = PlatformTextStyle(includeFontPadding = false), 
             lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
@@ -286,7 +287,7 @@ fun LyricsV2(
                     val cleanTokens = tokens.filter { it.isNotEmpty() }
                     
                     if (cleanTokens.isEmpty()) entry else {
-                    
+                
                         val tokenWeights = cleanTokens.map { token ->
                             val baseWeight = token.length.toDouble()
                             // Add extra weight (pause) for punctuation
@@ -334,6 +335,7 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
+    
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var lastPlayerPos = player.currentPosition
@@ -384,7 +386,7 @@ fun LyricsV2(
         }
     }
 
-    
+
     LaunchedEffect(currentLineIndex, isManualScrolling) {
         if (isManualScrolling || !isSynced || currentLineIndex < 0 || currentLineIndex >= entriesWithWords.size) return@LaunchedEffect
         
@@ -418,7 +420,6 @@ fun LyricsV2(
 
         LazyColumn(
             state = listState,
-            // Removed internal contentPadding to rely entirely on exact scrollOffset math
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
@@ -435,7 +436,7 @@ fun LyricsV2(
                 val isActive = isSynced && index == currentLineIndex
                 val isSelected = selectedIndices.contains(index)
                 
-                
+        
                 val targetAlpha = when {
                     !isSynced -> 0.92f
                     isActive -> 1f
@@ -453,7 +454,7 @@ fun LyricsV2(
                     else -> 0.95f
                 }
 
-                
+            
                 val targetBlur = when {
                     !isSynced || isActive || isManualScrolling -> 0f
                     distance <= 2 -> 0f
