@@ -47,6 +47,7 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.* 
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -78,7 +79,9 @@ private const val ACCORD_ACTIVE_SCALE = 1f
 private const val ACCORD_INACTIVE_SCALE = 0.95f
 private const val ACCORD_MAX_BLUR = 8f
 private const val ACCORD_BLUR_STEP = 1.5f
+private val AccordDecelerateEasing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 
+private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
 private val iosSpring = spring<Float>(dampingRatio = 0.82f, stiffness = 150f)
 private val iosSpringOffset = spring<Float>(dampingRatio = 0.85f, stiffness = 120f)
@@ -98,7 +101,6 @@ private fun isRtlText(text: String): Boolean {
     return false
 }
 
-// SKIA-INSPIRED KARAOKE SHADER ENGINE 
 @Composable
 private fun KaraokeWord(
     text: String,
@@ -111,6 +113,7 @@ private fun KaraokeWord(
     inactiveAlpha: Float,
     fontWeight: FontWeight = FontWeight.ExtraBold,
     isBackground: Boolean = false,
+    nudgeEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val duration = endTime - startTime
@@ -126,17 +129,35 @@ private fun KaraokeWord(
                     placeable.place(-glowPaddingPx, -glowPaddingPx)
                 }
             }
+            .graphicsLayer {
+                clip = false
+                val currentTime = currentTimeProvider()
+                val maxShift = 5f
+                val attackDuration = 120L
+                val decayDuration = 250L
+                val totalImpulseTime = attackDuration + decayDuration
+                
+                val shift = if (nudgeEnabled && currentTime >= startTime && currentTime < startTime + totalImpulseTime) {
+                    val timeSinceStart = currentTime - startTime
+                    if (timeSinceStart < attackDuration) {
+                        androidx.compose.ui.util.lerp(0f, maxShift, timeSinceStart.toFloat() / attackDuration.toFloat())
+                    } else {
+                        androidx.compose.ui.util.lerp(maxShift, 0f, (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat())
+                    }
+                } else {
+                    0f
+                }
+                translationX = if (isRtl) -shift else shift
+            }
     ) {
         val effectiveFontSize = if (isBackground) fontSize * 0.7f else fontSize
         val effectiveAlpha = if (isBackground) 0.6f else 1f
         
-        // 1. Inactive Layer (Background Text)
         Text(
             text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = inactiveAlpha * effectiveAlpha),
             fontWeight = fontWeight, modifier = Modifier.padding(glowPadding)
         )
 
-        // 2. Completed Layer (Solid Fill)
         Text(
             text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = effectiveAlpha), fontWeight = fontWeight,
             modifier = Modifier.padding(glowPadding).drawWithContent {
@@ -144,7 +165,6 @@ private fun KaraokeWord(
             }
         )
 
-        // 3. Active Skia Sweep Layer (Liquid Mask)
         Box(
             modifier = Modifier
                 .graphicsLayer {
@@ -163,13 +183,12 @@ private fun KaraokeWord(
                     
                     if ((rawProgress > 0f && rawProgress < 1f) || isFading) {
                         drawContent()
+                        val fadeWidth = 24f 
                         val paddingPx = glowPadding.toPx()
                         val textWidth = size.width - (paddingPx * 2)
                         
-                        
                         val progress = rawProgress * rawProgress * (3f - 2f * rawProgress)
                         val fillWidth = textWidth * progress
-                        val fadeWidth = textWidth * 0.15f // 15% Blur Edge exactly like React Native Skia
                         
                         val endFraction = (paddingPx + fillWidth + fadeWidth) / size.width
                         val solidFraction = (paddingPx + fillWidth) / size.width
@@ -320,7 +339,6 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var lastPlayerPos = player.currentPosition
@@ -373,6 +391,23 @@ fun LyricsV2(
     LaunchedEffect(currentLineIndex, isAutoScrollEnabled) {
         if (isAutoScrollEnabled && currentLineIndex != -1) {
             deferredCurrentLineIndex = currentLineIndex
+        }
+    }
+
+    LaunchedEffect(isAutoScrollEnabled) {
+        if (isAutoScrollEnabled) {
+            val start = userManualOffset
+            if (abs(start) < 1f) {
+                userManualOffset = 0f
+                return@LaunchedEffect
+            }
+            val anim = Animatable(start)
+            var lastValue = start
+            anim.animateTo(0f, tween((abs(start) / 4f).toInt().coerceIn(200, 600), easing = FastOutSlowInEasing)) {
+                userManualOffset += (value - lastValue)
+                lastValue = value
+            }
+            userManualOffset = 0f
         }
     }
 
@@ -480,7 +515,6 @@ fun LyricsV2(
                     if (isAutoScrollEnabled || isInitialLayout) frozenOffset.floatValue = targetOffset
                 }
 
-        
                 val animatedOffset by animateFloatAsState(
                     targetValue = if (isAutoScrollEnabled) targetOffset else frozenOffset.floatValue,
                     animationSpec = if (isInitialLayout || !isAutoScrollEnabled) snap() else iosSpringOffset,
@@ -502,7 +536,6 @@ fun LyricsV2(
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
                 val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || !isAutoScrollEnabled) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
-                
                 val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = iosSpring, label = "S")
                 val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = iosSpring, label = "A")
                 val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = iosSpring, label = "B")
@@ -552,9 +585,6 @@ fun LyricsV2(
                                             flingJob?.cancel()
                                             deferredCurrentLineIndex = index
                                             isAutoScrollEnabled = true
-                                            scope.launch {
-                                                Animatable(userManualOffset).animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 100f)) { userManualOffset = value }
-                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -605,9 +635,6 @@ fun LyricsV2(
                 onClick = {
                     flingJob?.cancel()
                     isAutoScrollEnabled = true
-                    scope.launch {
-                        Animatable(userManualOffset).animateTo(0f, spring(dampingRatio = 0.8f, stiffness = 100f)) { userManualOffset = value }
-                    }
                 },
                 shapes = ButtonDefaults.shapes()
             ) { 
