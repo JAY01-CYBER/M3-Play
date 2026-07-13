@@ -1,6 +1,6 @@
 /*
  * M3Play Component Module 
- * Signature: M3PLAY::COMPONENT:
+ * Signature: M3PLAY::COMPONENT
  */
 
 package com.j.m3play.ui.component
@@ -67,6 +67,7 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
+private val AppleEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
 private fun isRtlText(text: String): Boolean {
     for (ch in text) {
@@ -82,7 +83,6 @@ private fun isRtlText(text: String): Boolean {
     }
     return false
 }
-
 
 @Composable
 private fun MusicLineDots(isActive: Boolean) {
@@ -135,68 +135,66 @@ private fun AppleMusicWordWipe(
     val duration = (endTime - startTime).coerceAtLeast(1L)
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
-    val lyricStyle = MaterialTheme.typography.headlineMedium.copy(
-        fontSize = actualFontSize.sp, 
-        fontWeight = fontWeight, // No font weight changes to prevent layout shift
-        fontStyle = FontStyle.Normal, 
-        lineHeight = (actualFontSize * 1.35f).sp, 
-        fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, 
-        letterSpacing = (-0.5).sp, 
-        platformStyle = PlatformTextStyle(includeFontPadding = false), 
-        lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
-    )
+    
+    val currentTime = currentTimeProvider()
+    val progress = when {
+        currentTime >= endTime -> 1f
+        currentTime <= startTime -> 0f
+        else -> ((currentTime - startTime).toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+    }
 
-    Box(modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) {
-        // 1. Inactive / Unsung Text Layer (Dim)
-        Text(
-            text = word.text,
-            style = lyricStyle,
-            color = textColor.copy(alpha = 0.25f)
-        )
-
-        // 2. Active / Sung Text Layer (Bright with Wipe Shader)
-        Text(
-            text = word.text,
-            style = lyricStyle,
-            color = textColor.copy(alpha = if (isBackground) 0.75f else 1f),
-            modifier = Modifier
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    val currentTime = currentTimeProvider()
-                    val progress = when {
-                        currentTime >= endTime -> 1f
-                        currentTime <= startTime -> 0f
-                        else -> ((currentTime - startTime).toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                    }
-
-                    if (progress >= 1f) {
-                        drawContent() // Fully filled
-                    } else if (progress > 0f) {
-                        drawContent() // Applying gradient wipe
-                        
-                        val width = size.width
-                        val edge = 30f // Width of the soft blurry edge
-                        val currentX = width * progress
-
-                        val startX = if (isRtl) width else 0f
-                        val endX = if (isRtl) 0f else width
-
-                        val stop1 = ((currentX - edge) / width).coerceIn(0f, 1f)
-                        val stop2 = ((currentX + edge) / width).coerceIn(0f, 1f)
-
-                        val gradientBrush = Brush.horizontalGradient(
-                            0f to Color.Black,
-                            stop1 to Color.Black,
-                            stop2 to Color.Transparent,
-                            1f to Color.Transparent,
-                            startX = startX,
-                            endX = endX
-                        )
-                        drawRect(brush = gradientBrush, blendMode = BlendMode.DstIn)
-                    }
-                }
+    // Single text style generation
+    val lyricStyle = remember(actualFontSize, fontWeight, lyricsFontFamily) {
+        MaterialTheme.typography.headlineMedium.copy(
+            fontSize = actualFontSize.sp, 
+            fontWeight = fontWeight, 
+            fontStyle = FontStyle.Normal, 
+            lineHeight = (actualFontSize * 1.35f).sp, 
+            fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, 
+            letterSpacing = (-0.5).sp, 
+            platformStyle = PlatformTextStyle(includeFontPadding = false), 
+            lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)
         )
     }
+
+    val activeColor = textColor.copy(alpha = if (isBackground) 0.75f else 1f)
+    val inactiveColor = textColor.copy(alpha = 0.25f)
+
+    // Dynamic Brush without layer allocation
+    val textBrush = remember(progress, isRtl, activeColor, inactiveColor) {
+        if (progress >= 1f) SolidColor(activeColor)
+        else if (progress <= 0f) SolidColor(inactiveColor)
+        else {
+            val softEdge = 0.15f
+            if (!isRtl) {
+                Brush.horizontalGradient(
+                    0f to activeColor,
+                    (progress - softEdge).coerceAtLeast(0f) to activeColor,
+                    (progress + softEdge).coerceAtMost(1f) to inactiveColor,
+                    1f to inactiveColor
+                )
+            } else {
+                // Correct RTL Gradient Edge calculation
+                Brush.horizontalGradient(
+                    0f to inactiveColor,
+                    (1f - progress - softEdge).coerceAtLeast(0f) to inactiveColor,
+                    (1f - progress + softEdge).coerceAtMost(1f) to activeColor,
+                    1f to activeColor
+                )
+            }
+        }
+    }
+
+    // Optical Emphasis: Subtle bloom scale for currently active word (no bouncing)
+    val opticalScale = if (progress in 0.01f..0.99f) 1.015f else 1f
+
+    Text(
+        text = word.text,
+        style = lyricStyle.copy(brush = textBrush),
+        modifier = Modifier
+            .padding(horizontal = 2.dp, vertical = 4.dp)
+            .scale(opticalScale)
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -266,6 +264,7 @@ fun LyricsV2(
                     val lineDurationMs = (nextEntryTime - entry.time).coerceAtLeast(500L)
                     val lineStartSec = entry.time / 1000.0
                     val isCjkText = isJapanese(entry.text) || isChinese(entry.text) || isKorean(entry.text)
+                    
                     val tokens = if (isCjkText) {
                         val chars = mutableListOf<String>()
                         var currentWord = StringBuilder()
@@ -282,19 +281,29 @@ fun LyricsV2(
                         val groupedTokens = mutableListOf<String>()
                         chars.forEachIndexed { _, c -> if (c.isBlank()) { if (groupedTokens.isNotEmpty()) groupedTokens[groupedTokens.lastIndex] = groupedTokens.last() + c } else groupedTokens.add(c) }
                         groupedTokens
-                    } else entry.text.split(Regex("\\s+"))
+                    } else entry.text.split(Regex("(?<=\\s)|(?=\\s)")) // Better split preserving spaces
                     
-                    if (tokens.isEmpty()) entry else {
-                        val totalChars = tokens.sumOf { it.length }.coerceAtLeast(1)
+                    val cleanTokens = tokens.filter { it.isNotEmpty() }
+                    
+                    if (cleanTokens.isEmpty()) entry else {
+                    
+                        val tokenWeights = cleanTokens.map { token ->
+                            val baseWeight = token.length.toDouble()
+                            // Add extra weight (pause) for punctuation
+                            val punctuationWeight = if (token.matches(Regex(".*[,.?!;].*"))) 3.0 else 0.0
+                            baseWeight + punctuationWeight
+                        }
+                        val totalWeight = tokenWeights.sum().coerceAtLeast(1.0)
+                        
                         val words = mutableListOf<WordTimestamp>()
                         var currentOffsetMs = 0.0
-                        tokens.forEachIndexed { wordIdx, token ->
-                            val weight = token.length.toDouble() / totalChars
+                        
+                        cleanTokens.forEachIndexed { wordIdx, token ->
+                            val weight = tokenWeights[wordIdx] / totalWeight
                             val wordDurMs = lineDurationMs * weight
                             val wordStartSec = lineStartSec + (currentOffsetMs / 1000.0)
                             val wordEndSec = wordStartSec + (wordDurMs / 1000.0)
-                            val wordText = if (wordIdx < tokens.lastIndex && !isCjkText) "$token " else token
-                            words.add(WordTimestamp(text = wordText, startTime = wordStartSec, endTime = wordEndSec))
+                            words.add(WordTimestamp(text = token, startTime = wordStartSec, endTime = wordEndSec))
                             currentOffsetMs += wordDurMs
                         }
                         entry.copy(words = words)
@@ -328,21 +337,25 @@ fun LyricsV2(
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var lastPlayerPos = player.currentPosition
-        var lastUpdateTime = System.currentTimeMillis()
+        var baseFrameTime = 0L
+        
         while (isActive) {
-            delay(16L) // 60fps synced update
-            val now = System.currentTimeMillis()
-            val sliderPos = sliderPositionProvider()
-            val rawPos = if (sliderPos != null) sliderPos else {
+            withFrameMillis { frameTime ->
                 val playerPos = player.currentPosition
                 if (playerPos != lastPlayerPos) {
                     lastPlayerPos = playerPos
-                    lastUpdateTime = now
+                    baseFrameTime = frameTime
                 }
-                lastPlayerPos + (if (player.isPlaying) now - lastUpdateTime else 0)
+                
+                val interpolatedPos = if (player.isPlaying) {
+                    lastPlayerPos + (frameTime - baseFrameTime)
+                } else {
+                    lastPlayerPos
+                }
+                
+                currentPositionMs = (interpolatedPos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+                currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
             }
-            currentPositionMs = (rawPos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
-            currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
         }
     }
 
@@ -374,15 +387,15 @@ fun LyricsV2(
     
     LaunchedEffect(currentLineIndex, isManualScrolling) {
         if (isManualScrolling || !isSynced || currentLineIndex < 0 || currentLineIndex >= entriesWithWords.size) return@LaunchedEffect
+        
+        val viewportHeight = listState.layoutInfo.viewportSize.height
+        val targetOffset = (viewportHeight * 0.40f).toInt() 
         val distance = abs(currentLineIndex - listState.firstVisibleItemIndex)
         
-        // Rapid jump if too far behind/ahead to prevent long scrolling visual glitches
         if (distance > 15) {
-            listState.scrollToItem((currentLineIndex - 2).coerceAtLeast(0))
+            listState.scrollToItem((currentLineIndex - 2).coerceAtLeast(0), scrollOffset = -targetOffset)
         }
-        // Smoothly animate exactly to the index. 
-        // The contentPadding ensures this places it at 40% height automatically!
-        listState.animateScrollToItem(index = currentLineIndex)
+        listState.animateScrollToItem(index = currentLineIndex, scrollOffset = -targetOffset)
     }
 
     BackHandler(enabled = isSelectionModeActive) { isSelectionModeActive = false; selectedIndices.clear() }
@@ -403,20 +416,18 @@ fun LyricsV2(
             return@BoxWithConstraints
         }
 
-    
-        val viewportHeightDp = maxHeight
-        val topPadding = viewportHeightDp * 0.40f // Focal point exactly at 40% from top
-        val bottomPadding = viewportHeightDp * 0.60f
-
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding),
+            // Removed internal contentPadding to rely entirely on exact scrollOffset math
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
                 .smoothFadingEdge(vertical = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Buffer to allow scrolling up to the 40% focal point
+            item { Spacer(modifier = Modifier.height(maxHeight * 0.40f)) }
+
             itemsIndexed(items = entriesWithWords, key = { index, entry -> "${index}_${entry.time}_${entry.text.hashCode()}" }) { index, item ->
                 if (item == HEAD_LYRICS_ENTRY) return@itemsIndexed
 
@@ -424,21 +435,33 @@ fun LyricsV2(
                 val isActive = isSynced && index == currentLineIndex
                 val isSelected = selectedIndices.contains(index)
                 
+                
                 val targetAlpha = when {
                     !isSynced -> 0.92f
                     isActive -> 1f
-                    isManualScrolling -> 0.5f
-                    else -> 0.35f
+                    isManualScrolling -> 0.55f
+                    distance == 1 -> 0.48f
+                    distance == 2 -> 0.32f
+                    else -> 0.20f
                 }
                 
-                // Apple Music Cinematic Zoom/Dim Effect
-                val targetScale = if (isActive) 1.05f else 0.85f 
-                val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance * 3f).coerceAtMost(12f)
+                
+                val targetScale = when {
+                    !isSynced -> 1f
+                    isActive -> 1f
+                    distance == 1 -> 0.975f
+                    else -> 0.95f
+                }
 
-                // Spring physics for natural expansion and contraction of lines
-                val springSpecScale = spring<Float>(dampingRatio = 0.8f, stiffness = 100f)
-                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = springSpecScale, label = "S")
-                val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(300, easing = FastOutSlowInEasing), label = "A")
+                
+                val targetBlur = when {
+                    !isSynced || isActive || isManualScrolling -> 0f
+                    distance <= 2 -> 0f
+                    else -> ((distance - 2) * 1.5f).coerceAtMost(6f)
+                }
+
+                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AppleEase), label = "S")
+                val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(400, easing = FastOutSlowInEasing), label = "A")
                 val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(400, easing = FastOutSlowInEasing), label = "B")
 
                 val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
@@ -494,7 +517,7 @@ fun LyricsV2(
                             Text(text = romanizedText, style = MaterialTheme.typography.bodyMedium.copy(fontSize = (lyricsTextSize * 0.55f).sp, lineHeight = (lyricsTextSize * 0.75f).sp, fontWeight = FontWeight.Normal, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily), color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f), textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(bottom = (lyricsTextSize * 0.18f).dp))
                         }
 
-                        val currentFontWeight = FontWeight.Bold // Static Font Weight ensures NO layout jitter!
+                        val currentFontWeight = FontWeight.Bold
 
                         if (item.text.isBlank() || item.text == " ") {
                             MusicLineDots(isActive = isActive)
@@ -532,6 +555,9 @@ fun LyricsV2(
                     }
                 }
             }
+            
+            // Buffer to allow the final lines to scroll up to the 40% focal point
+            item { Spacer(modifier = Modifier.height(maxHeight * 0.60f)) }
         }
 
         AnimatedVisibility(
@@ -544,7 +570,7 @@ fun LyricsV2(
                 onClick = {
                     isManualScrolling = false
                     scope.launch {
-                        listState.animateScrollToItem(index = currentLineIndex)
+                        listState.animateScrollToItem(index = currentLineIndex, scrollOffset = -(listState.layoutInfo.viewportSize.height * 0.40f).toInt())
                     }
                 },
                 shapes = ButtonDefaults.shapes()
