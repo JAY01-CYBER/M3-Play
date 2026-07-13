@@ -1,5 +1,5 @@
 /*
- * M3Play Component Module 
+ * M3Play Component Module
  * Signature: M3PLAY::COMPONENT
  */
 
@@ -50,6 +50,8 @@ import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.cos
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -74,7 +76,6 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
-
 
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
@@ -125,7 +126,7 @@ fun LyricsV2(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     var isSelectionModeActive by rememberSaveable { mutableStateOf(false) }
     val selectedIndices = remember { mutableStateListOf<Int>() }
-    val maxSelectionLimit = 5 
+    val maxSelectionLimit = 5
     var showMaxSelectionToast by remember { mutableStateOf(false) }
     
     var showShareDialog by remember { mutableStateOf(false) }
@@ -253,6 +254,7 @@ fun LyricsV2(
     var userManualOffset by remember { mutableFloatStateOf(0f) }
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
     var deferredCurrentLineIndex by remember { mutableIntStateOf(0) }
+    var isManualScrolling by remember { mutableStateOf(false) }
     val itemHeights = remember { mutableStateMapOf<Int, Int>() }
     var flingJob by remember { mutableStateOf<Job?>(null) }
     val velocityTracker = remember { VelocityTracker() }
@@ -306,7 +308,6 @@ fun LyricsV2(
             map
         }
 
-        
         val minOffset = remember(itemHeights.toMap(), entriesWithWords, deferredCurrentLineIndex, anchorY) {
             if (entriesWithWords.isEmpty()) 0f else {
                 val totalBelow = (deferredCurrentLineIndex until entriesWithWords.size - 1).sumOf { 
@@ -327,7 +328,6 @@ fun LyricsV2(
         val scrollClampMin = minOf(minOffset, maxOffset)
         val scrollClampMax = maxOf(minOffset, maxOffset)
 
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -340,6 +340,7 @@ fun LyricsV2(
                             flingJob?.cancel()
                             velocityTracker.resetTracking()
                             isAutoScrollEnabled = false
+                            isManualScrolling = true
                             velocityTracker.addPosition(down.uptimeMillis, down.position)
                             verticalDrag(down.id) { change ->
                                 userManualOffset = (userManualOffset + change.positionChange().y).coerceIn(scrollClampMin, scrollClampMax)
@@ -377,6 +378,14 @@ fun LyricsV2(
                 val isSelected = selectedIndices.contains(index)
                 val isPast = isSynced && index < currentLineIndex
                 
+                
+                val targetGlideOffsetY = when {
+                    !isSynced -> 0.dp
+                    isActive -> 0.dp
+                    index > currentLineIndex -> 24.dp // Naye words neeche se aayenge
+                    else -> (-12).dp // Purane words upar jayenge
+                }
+
                 val targetAlpha = when {
                     !isSynced -> 0.92f
                     isActive -> ACCORD_ACTIVE_ALPHA
@@ -384,13 +393,13 @@ fun LyricsV2(
                     else -> ACCORD_INACTIVE_ALPHA
                 }
                 val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
-                
-                
                 val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || !isAutoScrollEnabled) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
                 val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
                 val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "A")
                 val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
+                val animatedGlideOffsetY by animateDpAsState(targetValue = targetGlideOffsetY, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "YGlide")
+                
                 val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                 val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
                 
@@ -416,7 +425,13 @@ fun LyricsV2(
                                 .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
                                 .padding(start = 32.dp, end = 32.dp, top = if (index <= 1) 0.dp else 14.dp, bottom = 14.dp)
                                 .blur(radiusX = animatedBlur.dp, radiusY = animatedBlur.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                                .graphicsLayer { scaleX = animatedLineScale; scaleY = animatedLineScale; alpha = animatedLineAlpha; transformOrigin = lineTransformOrigin }
+                                .graphicsLayer { 
+                                    scaleX = animatedLineScale
+                                    scaleY = animatedLineScale
+                                    alpha = animatedLineAlpha
+                                    translationY = animatedGlideOffsetY.toPx() 
+                                    transformOrigin = lineTransformOrigin 
+                                }
                                 .combinedClickable(
                                     enabled = true,
                                     onClick = {
@@ -454,7 +469,6 @@ fun LyricsV2(
 
                             val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
 
-                            
                             if (item.words != null && isSynced) {
                                 LyricsLineV2(
                                     words = item.words!!, isActive = isActive, isPast = isPast, currentTimeProvider = currentTimeProvider, textColor = textColor, baseFontSize = lyricsTextSize, isLineAllBackground = isAllBackground, textAlign = textAlign, lyricsFontFamily = lyricsFontFamily, isRtl = lineIsRtl, fontWeight = currentFontWeight
@@ -487,6 +501,7 @@ fun LyricsV2(
                     flingJob?.cancel()
                     deferredCurrentLineIndex = currentLineIndex
                     isAutoScrollEnabled = true
+                    isManualScrolling = false
                     scope.launch {
                         Animatable(userManualOffset).animateTo(0f, tween(400, easing = FastOutSlowInEasing)) { userManualOffset = value }
                     }
@@ -668,7 +683,7 @@ private fun LyricsLineV2(
 
     if (mainWords.isNotEmpty()) {
         FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
-            mainWords.forEachIndexed { _, word ->
+            mainWords.forEachIndexed { wordIndex, word ->
                 if (word.text == " " || word.text == "\n") {
                     Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = baseFontSize.sp), color = Color.Transparent)
                     return@forEachIndexed
@@ -681,7 +696,7 @@ private fun LyricsLineV2(
     if (bgWords.isNotEmpty()) {
         if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(4.dp))
         FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
-            bgWords.forEachIndexed { _, word ->
+            bgWords.forEachIndexed { wordIndex, word ->
                 if (word.text == " " || word.text == "\n") {
                     Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (baseFontSize * 0.65f).sp), color = Color.Transparent)
                     return@forEachIndexed
@@ -691,6 +706,7 @@ private fun LyricsLineV2(
         }
     }
 }
+
 
 @Composable
 private fun AnimatedWordV2(
@@ -702,82 +718,81 @@ private fun AnimatedWordV2(
 
     val actualFontSize = if (isBackground) fontSize * 0.85f else fontSize
     val lyricStyle = MaterialTheme.typography.headlineMedium.copy(fontSize = actualFontSize.sp, fontWeight = fontWeight, fontStyle = FontStyle.Normal, lineHeight = (actualFontSize * 1.35f).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None))
-    val safePadding = 8.dp
     
-    Box(
-        modifier = Modifier.layout { measurable, constraints ->
-            val paddingPx = safePadding.roundToPx()
-            val looseConstraints = constraints.copy(minWidth = 0, maxWidth = if (constraints.maxWidth == Constraints.Infinity) Constraints.Infinity else constraints.maxWidth + paddingPx * 2, minHeight = 0, maxHeight = if (constraints.maxHeight == Constraints.Infinity) Constraints.Infinity else constraints.maxHeight + paddingPx * 2)
-            val placeable = measurable.measure(looseConstraints)
-            layout((placeable.width - paddingPx * 2).coerceAtLeast(0), (placeable.height - paddingPx * 2).coerceAtLeast(0)) { placeable.place(-paddingPx, -paddingPx) }
-        }.graphicsLayer { 
-            clip = false
-            val currentTime = currentTimeProvider()
-            val maxShift = 6f 
-            val attackDuration = 100L 
-            val decayDuration = 350L 
-            val totalImpulseTime = attackDuration + decayDuration
-            
-            val shift = if (isLineActive && currentTime >= wordStartMs && currentTime < wordStartMs + totalImpulseTime) {
-                val timeSinceStart = currentTime - wordStartMs
-                if (timeSinceStart < attackDuration) {
-                    val p = timeSinceStart.toFloat() / attackDuration.toFloat()
-                    maxShift * kotlin.math.sin(p * Math.PI / 2.0).toFloat()
-                } else {
-                    val p = (timeSinceStart - attackDuration).toFloat() / decayDuration.toFloat()
-                    maxShift * kotlin.math.cos(p * Math.PI / 2.0).toFloat()
-                }
-            } else {
-                0f
-            }
-            translationX = if (isRtl) -shift else shift
-        }
-    ) {
-        Text(text = word.text, style = lyricStyle, color = textColor.copy(alpha = 0.5f), modifier = Modifier.padding(safePadding))
-        
-        Text(
-            text = word.text, style = lyricStyle, color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
-            modifier = Modifier.padding(safePadding).graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
-                val currentTime = currentTimeProvider()
-                val isWordComplete = currentTime >= wordEndMs
-                val isWordActive = currentTime in wordStartMs until wordEndMs
-                
-                if (isLinePast || isWordComplete || isWordActive) {
-                    val rawProgress = when {
-                        isLinePast || isWordComplete -> 1f
-                        currentTime <= wordStartMs -> 0f
-                        else -> ((currentTime - wordStartMs).toFloat() / wordDuration).coerceIn(0f, 1f)
-                    }
-                    
-                    val smoothProgress = rawProgress * rawProgress * (3f - 2f * rawProgress)
-                    
-                    if (smoothProgress >= 1f) {
-                        drawContent()
-                    } else if (smoothProgress > 0f) {
-                        drawContent()
-                        val totalWidth = size.width
-                        val fadeWidth = 20f
-                        val paddingPx = safePadding.toPx()
-                        val textWidth = totalWidth - (paddingPx * 2)
-                        val fillWidth = textWidth * smoothProgress
-                        
-                        val endFraction = (paddingPx + fillWidth + fadeWidth) / totalWidth
-                        val solidFraction = (paddingPx + fillWidth) / totalWidth
+    val chars = word.text.toCharArray()
+    val charDurationMs = wordDuration / chars.size.coerceAtLeast(1)
 
-                        val softBrush = if (!isRtl) {
-                            Brush.horizontalGradient(0f to Color.Black, solidFraction.coerceAtLeast(0f) to Color.Black, endFraction.coerceAtMost(1f) to Color.Transparent)
+    // Using Row to render individual characters
+    Row(
+        modifier = Modifier.padding(horizontal = 4.dp), // Word spacing
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(0.dp) // Tight character spacing
+    ) {
+        chars.forEachIndexed { charIndex, char ->
+            val charStartMs = wordStartMs + (charIndex * charDurationMs)
+            val charEndMs = charStartMs + charDurationMs
+            
+            Box(
+                modifier = Modifier.graphicsLayer { 
+                    clip = false
+                    val currentTime = currentTimeProvider()
+                    val maxShiftY = -8f 
+                    val attackDuration = 80L 
+                    val decayDuration = 200L 
+                    val totalImpulseTime = attackDuration + decayDuration
+                    
+                    var shiftY = 0f
+                    var scalePop = 0f
+                    if (isLineActive && currentTime >= charStartMs && currentTime < charStartMs + totalImpulseTime) {
+                        val t = currentTime - charStartMs
+                        if (t < attackDuration) {
+                            val p = t.toFloat() / attackDuration.toFloat()
+                            shiftY = maxShiftY * kotlin.math.sin(p * Math.PI / 2.0).toFloat()
+                            scalePop = 0.05f * kotlin.math.sin(p * Math.PI / 2.0).toFloat() // 5% scale pop
                         } else {
-                            val solidStartX = (paddingPx + (textWidth - fillWidth)).coerceIn(0f, totalWidth)
-                            val fadeStartX = (solidStartX - fadeWidth).coerceIn(0f, totalWidth)
-                            val fadeStartFraction = (fadeStartX / totalWidth).coerceIn(0f, 1f)
-                            val solidStartFraction = (solidStartX / totalWidth).coerceIn(0f, 1f)
-                            Brush.horizontalGradient(0f to Color.Transparent, fadeStartFraction to Color.Transparent, solidStartFraction to Color.Black, 1f to Color.Black)
+                            val p = (t - attackDuration).toFloat() / decayDuration.toFloat()
+                            shiftY = maxShiftY * kotlin.math.cos(p * Math.PI / 2.0).toFloat()
+                            scalePop = 0.05f * kotlin.math.cos(p * Math.PI / 2.0).toFloat()
                         }
-                        drawRect(brush = softBrush, blendMode = BlendMode.DstIn)
                     }
+                    translationY = shiftY
+                    scaleX = 1f + scalePop
+                    scaleY = 1f + scalePop
                 }
+            ) {
+                // Inactive Character Base
+                Text(text = char.toString(), style = lyricStyle, color = textColor.copy(alpha = 0.35f))
+                
+                // Active Character Mask
+                Text(
+                    text = char.toString(), style = lyricStyle, color = textColor.copy(alpha = if (isBackground) 0.85f else 1f),
+                    modifier = Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+                        val currentTime = currentTimeProvider()
+                        val progress = when {
+                            isLinePast || currentTime >= charEndMs -> 1f
+                            currentTime <= charStartMs -> 0f
+                            else -> ((currentTime - charStartMs).toFloat() / charDurationMs).coerceIn(0f, 1f)
+                        }
+                        
+                        if (progress >= 1f) {
+                            drawContent()
+                        } else if (progress > 0f) {
+                            drawContent()
+                            val width = size.width * progress
+                            drawRect(
+                                brush = Brush.horizontalGradient(
+                                    0f to Color.Black,
+                                    1f to Color.Transparent,
+                                    startX = (width - 10f).coerceAtLeast(0f),
+                                    endX = width + 5f
+                                ),
+                                blendMode = BlendMode.DstIn
+                            )
+                        }
+                    }
+                )
             }
-        )
+        }
     }
 }
 
