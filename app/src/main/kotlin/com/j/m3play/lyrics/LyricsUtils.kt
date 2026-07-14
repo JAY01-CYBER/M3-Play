@@ -4,8 +4,6 @@
 package com.j.m3play.lyrics
 
 import android.text.format.DateUtils
-import com.atilika.kuromoji.ipadic.Tokenizer
-import com.github.promeg.pinyinhelper.Pinyin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -40,7 +38,6 @@ object LyricsUtils {
         }.joinToString("\n")
     }
 
-    private val kuromojiTokenizer: Tokenizer by lazy { Tokenizer() }
 
     private fun decodeHtmlEntities(text: String): String {
         if (!text.contains('&')) return text
