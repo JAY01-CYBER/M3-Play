@@ -70,9 +70,6 @@ import com.j.m3play.constants.DynamicThemeKey
 import com.j.m3play.constants.GridItemSize
 import com.j.m3play.constants.GridItemsSizeKey
 import com.j.m3play.constants.LibraryFilter
-import com.j.m3play.constants.LyricsClickKey
-import com.j.m3play.constants.LyricsScrollKey
-import com.j.m3play.constants.LyricsTextPositionKey
 import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
 import com.j.m3play.constants.UseNewMiniPlayerDesignKey
@@ -84,10 +81,8 @@ import com.j.m3play.constants.RandomThemeOnStartupKey
 import com.j.m3play.constants.UseSystemFontKey
 import com.j.m3play.constants.PlayerButtonsStyle
 import com.j.m3play.constants.PlayerButtonsStyleKey
-import com.j.m3play.constants.LyricsAnimationStyleKey
-import com.j.m3play.constants.LyricsAnimationStyle
-import com.j.m3play.constants.LyricsTextSizeKey
-import com.j.m3play.constants.LyricsLineSpacingKey
+import com.j.m3play.constants.LyricsRomanizeJapaneseKey
+import com.j.m3play.constants.LyricsRomanizeKoreanKey
 import com.j.m3play.constants.SliderStyle
 import com.j.m3play.constants.SliderStyleKey
 import com.j.m3play.constants.SlimNavBarKey
@@ -105,7 +100,6 @@ import com.j.m3play.constants.M3PlayCanvasKey
 import com.j.m3play.constants.ThumbnailCornerRadiusKey
 import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.DisableBlurKey
-import com.j.m3play.constants.UseLyricsV2Key
 import com.j.m3play.ui.component.DefaultDialog
 import com.j.m3play.ui.component.EnumListPreference
 import com.j.m3play.ui.component.ListPreference
@@ -146,13 +140,8 @@ fun AppearanceSettings(
     val (useSystemFont, onUseSystemFontChange) = rememberPreference(UseSystemFontKey, false)
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(DefaultOpenTabKey, NavigationTab.HOME)
     val (playerButtonsStyle, onPlayerButtonsStyleChange) = rememberEnumPreference(PlayerButtonsStyleKey, PlayerButtonsStyle.DEFAULT)
-    val (lyricsPosition, onLyricsPositionChange) = rememberEnumPreference(LyricsTextPositionKey, LyricsPosition.LEFT)
-    val (lyricsAnimation, onLyricsAnimationChange) = rememberEnumPreference<LyricsAnimationStyle>(LyricsAnimationStyleKey, LyricsAnimationStyle.APPLE)
-    val (lyricsClick, onLyricsClickChange) = rememberPreference(LyricsClickKey, true)
-    val (lyricsScroll, onLyricsScrollChange) = rememberPreference(LyricsScrollKey, true)
-    val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, 26f)
-    val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, 1.3f)
-    val (useLyricsV2, onUseLyricsV2Change) = rememberPreference(UseLyricsV2Key, false)
+    val (lyricsRomanizeJapanese, onLyricsRomanizeJapaneseChange) = rememberPreference(LyricsRomanizeJapaneseKey, true)
+    val (lyricsRomanizeKorean, onLyricsRomanizeKoreanChange) = rememberPreference(LyricsRomanizeKoreanKey, true)
     val (sliderStyle, onSliderStyleChange) = rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val (swipeThumbnail, onSwipeThumbnailChange) = rememberPreference(SwipeThumbnailKey, true)
     val (swipeSensitivity, onSwipeSensitivityChange) = rememberPreference(SwipeSensitivityKey, 0.73f)
@@ -364,7 +353,6 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        // 🔥 Main Player Background (List Restricted to only allow 6 options without blur ones)
                         ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -391,7 +379,6 @@ fun AppearanceSettings(
                             onValueSelected = onPlayerBackgroundChange,
                         )
 
-                        // 🔥 Mini Player Background (All Options Available including Blur and Apple Music)
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -568,181 +555,19 @@ fun AppearanceSettings(
                     elevation = CardDefaults.cardElevation(0.dp)
                 ) {
                     Column(Modifier.padding(vertical = 12.dp)) {
+                        
                         SwitchPreference(
-                            title = { Text("Lyrics V2 (Experimental)") },
-                            description = "Use the new fluid word-synced lyrics engine",
-                            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                            checked = useLyricsV2,
-                            onCheckedChange = onUseLyricsV2Change,
-                        )
-
-                        EnumListPreference(
-                            title = { Text(stringResource(R.string.lyrics_text_position)) },
-                            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                            selectedValue = lyricsPosition,
-                            onValueSelected = onLyricsPositionChange,
-                            valueText = {
-                                when (it) {
-                                    LyricsPosition.LEFT -> stringResource(R.string.left)
-                                    LyricsPosition.CENTER -> stringResource(R.string.center)
-                                    LyricsPosition.RIGHT -> stringResource(R.string.right)
-                                    else -> it.name
-                                }
-                            },
-                        )
-
-                        EnumListPreference(
-                            title = { Text(stringResource(R.string.lyrics_animation_style)) },
-                            icon = { Icon(painterResource(R.drawable.animation), null) },
-                            selectedValue = lyricsAnimation,
-                            onValueSelected = onLyricsAnimationChange,
-                            valueText = {
-                                when (it) {
-                                    LyricsAnimationStyle.NONE -> stringResource(R.string.none)
-                                    LyricsAnimationStyle.FADE -> stringResource(R.string.fade)
-                                    LyricsAnimationStyle.GLOW -> stringResource(R.string.glow)
-                                    LyricsAnimationStyle.SLIDE -> stringResource(R.string.slide)
-                                    LyricsAnimationStyle.KARAOKE -> stringResource(R.string.karaoke)
-                                    LyricsAnimationStyle.APPLE -> stringResource(R.string.apple_music_style)
-                                    else -> it.name
-                                }
-                            }
+                            title = { Text(stringResource(R.string.lyrics_romanize_japanese)) },
+                            icon = { Icon(painterResource(R.drawable.translate), null) },
+                            checked = lyricsRomanizeJapanese,
+                            onCheckedChange = onLyricsRomanizeJapaneseChange,
                         )
 
                         SwitchPreference(
-                            title = { Text(stringResource(R.string.lyrics_click_change)) },
-                            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                            checked = lyricsClick,
-                            onCheckedChange = onLyricsClickChange,
-                        )
-
-                        SwitchPreference(
-                            title = { Text(stringResource(R.string.lyrics_auto_scroll)) },
-                            icon = { Icon(painterResource(R.drawable.lyrics), null) },
-                            checked = lyricsScroll,
-                            onCheckedChange = onLyricsScrollChange,
-                        )
-
-                        var showLyricsTextSizeDialog by rememberSaveable { mutableStateOf(false) }
-                        
-                        if (showLyricsTextSizeDialog) {
-                            var tempTextSize by remember { mutableFloatStateOf(lyricsTextSize) }
-                            
-                            DefaultDialog(
-                                onDismiss = { 
-                                    tempTextSize = lyricsTextSize
-                                    showLyricsTextSizeDialog = false 
-                                },
-                                buttons = {
-                                    TextButton(onClick = { tempTextSize = 24f }) {
-                                        Text(stringResource(R.string.reset))
-                                    }
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    TextButton(onClick = { 
-                                        tempTextSize = lyricsTextSize
-                                        showLyricsTextSizeDialog = false 
-                                    }) {
-                                        Text(stringResource(android.R.string.cancel))
-                                    }
-                                    TextButton(onClick = { 
-                                        onLyricsTextSizeChange(tempTextSize)
-                                        showLyricsTextSizeDialog = false 
-                                    }) {
-                                        Text(stringResource(android.R.string.ok))
-                                    }
-                                }
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.lyrics_text_size),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                    Text(
-                                        text = "${tempTextSize.roundToInt()} sp",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                    Slider(
-                                        value = tempTextSize,
-                                        onValueChange = { tempTextSize = it },
-                                        valueRange = 16f..36f,
-                                        steps = 19,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-                        
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.lyrics_text_size)) },
-                            description = "${lyricsTextSize.roundToInt()} sp",
-                            icon = { Icon(painterResource(R.drawable.text_fields), null) },
-                            onClick = { showLyricsTextSizeDialog = true }
-                        )
-                        
-                        var showLyricsLineSpacingDialog by rememberSaveable { mutableStateOf(false) }
-                        
-                        if (showLyricsLineSpacingDialog) {
-                            var tempLineSpacing by remember { mutableFloatStateOf(lyricsLineSpacing) }
-                            
-                            DefaultDialog(
-                                onDismiss = { 
-                                    tempLineSpacing = lyricsLineSpacing
-                                    showLyricsLineSpacingDialog = false 
-                                },
-                                buttons = {
-                                    TextButton(onClick = { tempLineSpacing = 1.3f }) {
-                                        Text(stringResource(R.string.reset))
-                                    }
-                                    Spacer(modifier = Modifier.weight(1f))
-                                    TextButton(onClick = { 
-                                        tempLineSpacing = lyricsLineSpacing
-                                        showLyricsLineSpacingDialog = false 
-                                    }) {
-                                        Text(stringResource(android.R.string.cancel))
-                                    }
-                                    TextButton(onClick = { 
-                                        onLyricsLineSpacingChange(tempLineSpacing)
-                                        showLyricsLineSpacingDialog = false 
-                                    }) {
-                                        Text(stringResource(android.R.string.ok))
-                                    }
-                                }
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.lyrics_line_spacing),
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                    Text(
-                                        text = "${String.format("%.1f", tempLineSpacing)}x",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    )
-                                    Slider(
-                                        value = tempLineSpacing,
-                                        onValueChange = { tempLineSpacing = it },
-                                        valueRange = 1.0f..2.0f,
-                                        steps = 19,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                        }
-                        
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.lyrics_line_spacing)) },
-                            description = "${String.format("%.1f", lyricsLineSpacing)}x",
-                            icon = { Icon(painterResource(R.drawable.text_fields), null) },
-                            onClick = { showLyricsLineSpacingDialog = true }
+                            title = { Text(stringResource(R.string.lyrics_romanize_korean)) },
+                            icon = { Icon(painterResource(R.drawable.translate), null) },
+                            checked = lyricsRomanizeKorean,
+                            onCheckedChange = onLyricsRomanizeKoreanChange,
                         )
                     }
                 }
@@ -956,12 +781,4 @@ enum class DarkMode {
 
 enum class NavigationTab {
     HOME, SEARCH, LIBRARY
-}
-
-enum class LyricsPosition {
-    LEFT, CENTER, RIGHT
-}
-
-enum class PlayerTextAlignment {
-    SIDED, CENTER
 }
