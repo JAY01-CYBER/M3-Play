@@ -1,16 +1,15 @@
-/*
- * M3Play - Modern Music Player
- *
- * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
+/**
+ * M3Play Project
  */
-
 package com.j.m3play.viewmodels
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.j.m3play.db.MusicDatabase
 import com.j.m3play.db.entities.LyricsEntity
+import com.j.m3play.db.entities.Song
 import com.j.m3play.lyrics.LyricsHelper
 import com.j.m3play.lyrics.LyricsResult
 import com.j.m3play.models.MediaMetadata
@@ -23,7 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
- 
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,14 +40,16 @@ constructor(
     private val _isNetworkAvailable = MutableStateFlow(false)
     val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
 
+    private val _currentSong = mutableStateOf<Song?>(null)
+    val currentSong: State<Song?> = _currentSong
+
     init {
         viewModelScope.launch {
             networkConnectivity.networkStatus.collect { isConnected ->
                 _isNetworkAvailable.value = isConnected
             }
         }
-  
-        // Set initial state using synchronous check
+
         _isNetworkAvailable.value = try {
             networkConnectivity.isCurrentlyConnected()
         } catch (e: Exception) {
@@ -56,18 +57,23 @@ constructor(
         }
     }
 
+    fun setCurrentSong(song: Song) {
+        _currentSong.value = song
+    }
+
     fun search(
         mediaId: String,
         title: String,
         artist: String,
         duration: Int,
+        album: String? = null,
     ) {
         isLoading.value = true
         results.value = emptyList()
         job?.cancel()
         job =
             viewModelScope.launch(Dispatchers.IO) {
-                lyricsHelper.getAllLyrics(mediaId, title, artist, null, duration) { result ->
+                lyricsHelper.getAllLyrics(mediaId, title, artist, duration, album) { result ->
                     results.update {
                         it + result
                     }
@@ -85,37 +91,13 @@ constructor(
         mediaMetadata: MediaMetadata,
         lyricsEntity: LyricsEntity?,
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                
-                val result = lyricsHelper.getLyrics(mediaMetadata)
-                database.query {
-                    lyricsEntity?.let(::delete)
-                    
-                    upsert(LyricsEntity(
-                        id = mediaMetadata.id, 
-                        lyrics = result.lyrics, 
-                        provider = result.providerName
-                    ))
+        database.query {
+            lyricsEntity?.let(::delete)
+            val lyricsWithProvider =
+                runBlocking {
+                    lyricsHelper.getLyrics(mediaMetadata)
                 }
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    fun updateLyrics(
-        mediaMetadata: MediaMetadata,
-        lyrics: String,
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            database.query {
-                
-                upsert(LyricsEntity(
-                    id = mediaMetadata.id, 
-                    lyrics = lyrics, 
-                    provider = "Local"
-                ))
-            }
+            upsert(LyricsEntity(mediaMetadata.id, lyricsWithProvider.lyrics, lyricsWithProvider.provider))
         }
     }
 }
