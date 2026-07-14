@@ -141,7 +141,6 @@ class TogetherOnlineHost(
         val trimmed = url.trim()
         return when {
             trimmed.startsWith("ws://") -> "wss://${trimmed.removePrefix("ws://")}"
-            trimmed.startsWith("wss://") -> "ws://${trimmed.removePrefix("wss://")}"
             else -> null
         }
     }
@@ -157,11 +156,18 @@ class TogetherOnlineHost(
                 is javax.net.ssl.SSLHandshakeException -> "Secure connection failed"
                 is IllegalArgumentException ->
                     if (raw.contains("ws", ignoreCase = true) && raw.contains("scheme", ignoreCase = true)) "Invalid server websocket URL" else null
-                else -> null
+                else -> {
+                    val httpStatus = HTTP_STATUS_PATTERN.find(raw)?.groupValues?.getOrNull(1)
+                    if (httpStatus != null) "Server returned $httpStatus" else null
+                }
             }
 
         val detail = reason ?: raw.takeIf { it.isNotBlank() }
         return if (detail == null) "Connection failed" else "Connection failed: $detail"
+    }
+
+    companion object {
+        private val HTTP_STATUS_PATTERN = Regex("""'(\d{3}(?: [\w\s]+)?)'""")
     }
 
     suspend fun disconnect() {

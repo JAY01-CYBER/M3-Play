@@ -13,7 +13,7 @@ import java.net.URI
 
 object TogetherOnlineEndpoint {
 
-    private const val MyServerBaseUrl = "https://metroserverx.meowery.eu"
+    private const val MyServerBaseUrl = "https://m3play.thessc.edu.eu.org"
 
     suspend fun baseUrlOrNull(
         dataStore: DataStore<Preferences>,
