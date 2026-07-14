@@ -26,9 +26,7 @@ import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
-class LyricsMenuViewModel
-@Inject
-constructor(
+class LyricsMenuViewModel @Inject constructor(
     private val lyricsHelper: LyricsHelper,
     val database: MusicDatabase,
     private val networkConnectivity: NetworkConnectivityObserver,
@@ -49,55 +47,30 @@ constructor(
                 _isNetworkAvailable.value = isConnected
             }
         }
-
-        _isNetworkAvailable.value = try {
-            networkConnectivity.isCurrentlyConnected()
-        } catch (e: Exception) {
-            true // Assume connected as fallback
-        }
+        _isNetworkAvailable.value = try { networkConnectivity.isCurrentlyConnected() } catch (e: Exception) { true }
     }
 
-    fun setCurrentSong(song: Song) {
-        _currentSong.value = song
-    }
+    fun setCurrentSong(song: Song) { _currentSong.value = song }
 
-    fun search(
-        mediaId: String,
-        title: String,
-        artist: String,
-        duration: Int,
-        album: String? = null,
-    ) {
+    fun search(mediaId: String, title: String, artist: String, duration: Int, album: String? = null) {
         isLoading.value = true
         results.value = emptyList()
         job?.cancel()
-        job =
-            viewModelScope.launch(Dispatchers.IO) {
-                lyricsHelper.getAllLyrics(mediaId, title, artist, duration, album) { result ->
-                    results.update {
-                        it + result
-                    }
-                }
-                isLoading.value = false
+        job = viewModelScope.launch(Dispatchers.IO) {
+            lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
+                results.update { it + result }
             }
+            isLoading.value = false
+        }
     }
 
-    fun cancelSearch() {
-        job?.cancel()
-        job = null
-    }
+    fun cancelSearch() { job?.cancel(); job = null }
 
-    fun refetchLyrics(
-        mediaMetadata: MediaMetadata,
-        lyricsEntity: LyricsEntity?,
-    ) {
+    fun refetchLyrics(mediaMetadata: MediaMetadata, lyricsEntity: LyricsEntity?) {
         database.query {
             lyricsEntity?.let(::delete)
-            val lyricsWithProvider =
-                runBlocking {
-                    lyricsHelper.getLyrics(mediaMetadata)
-                }
-            upsert(LyricsEntity(mediaMetadata.id, lyricsWithProvider.lyrics, lyricsWithProvider.provider))
+            val lyricsResult = runBlocking { lyricsHelper.getLyrics(mediaMetadata) }
+            upsert(LyricsEntity(mediaMetadata.id, lyricsResult.lyrics, lyricsResult.providerName))
         }
     }
 }
