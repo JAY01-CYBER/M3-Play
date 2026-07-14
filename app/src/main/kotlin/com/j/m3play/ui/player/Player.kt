@@ -50,7 +50,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,6 +60,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -76,7 +76,6 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -186,7 +185,6 @@ import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.PlayerSliderTrack
 import com.j.m3play.ui.component.ResizableIconButton
 import com.j.m3play.ui.component.rememberBottomSheetState
-import com.j.m3play.ui.component.ExperimentalLyrics
 import com.j.m3play.ui.menu.PlayerMenu
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.ui.utils.ShowMediaInfo
@@ -328,6 +326,7 @@ fun BottomSheetPlayer(
     var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     var isFullScreen by rememberSaveable { mutableStateOf(false) }
 
+    // 🔥 STATUS BAR HIDE LOGIC FOR FULL SCREEN 🔥
     val view = androidx.compose.ui.platform.LocalView.current
     val window = (context as? android.app.Activity)?.window
 
@@ -351,6 +350,7 @@ fun BottomSheetPlayer(
             }
         }
     }
+    // 🔥 --------------------------------------- 🔥
 
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
@@ -462,7 +462,6 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.secondary,
             MaterialTheme.colorScheme.onSecondary
         )
-        else -> Pair(TextBackgroundColor, icBackgroundColor)
     }
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
@@ -829,7 +828,7 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+                if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -923,7 +922,7 @@ fun BottomSheetPlayer(
                                     onExpandQueue = queueSheetState::expandSoft,
                                     onMenuClick = {
                                         menuState.show {
-                                            com.j.m3play.ui.menu.PlayerMenu(
+                                            PlayerMenu(
                                                 mediaMetadata = metadata,
                                                 navController = navController,
                                                 playerBottomSheetState = state,
@@ -967,7 +966,7 @@ fun BottomSheetPlayer(
                             ) { showLyrics ->
                                 if (showLyrics) {
                                     enrichedMetadata?.let { metadata ->
-                                        PlayerInlineLyricsView(
+                                        InlineLyricsView(
                                             mediaMetadata = metadata,
                                             showLyrics = showLyrics,
                                             positionProvider = { position },
@@ -1067,7 +1066,7 @@ fun BottomSheetPlayer(
                                         onExpandQueue = queueSheetState::expandSoft,
                                         onMenuClick = {
                                             menuState.show {
-                                                com.j.m3play.ui.menu.PlayerMenu(
+                                                PlayerMenu(
                                                     mediaMetadata = metadata,
                                                     navController = navController,
                                                     playerBottomSheetState = state,
@@ -1111,7 +1110,7 @@ fun BottomSheetPlayer(
                             ) { showLyrics ->
                                 if (showLyrics) {
                                     enrichedMetadata?.let { metadata ->
-                                        PlayerInlineLyricsView(
+                                        InlineLyricsView(
                                             mediaMetadata = metadata,
                                             showLyrics = showLyrics,
                                             positionProvider = { position },
@@ -1151,7 +1150,6 @@ fun BottomSheetPlayer(
                 MaterialTheme.colorScheme.secondary,
                 MaterialTheme.colorScheme.onSecondary
             )
-            else -> Pair(queueOnBackgroundColor, queueSurfaceColor)
         }
 
         AnimatedVisibility(
@@ -1425,29 +1423,6 @@ private fun Modifier.littlePlayerOverlayGestures(
                     lastTapPosition = upPosition
                 }
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PlayerInlineLyricsView(
-    mediaMetadata: MediaMetadata,
-    showLyrics: Boolean,
-    positionProvider: () -> Long,
-    textBackgroundColor: Color
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp)),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            ExperimentalLyrics(sliderPositionProvider = { positionProvider() }, showLyrics = showLyrics)
         }
     }
 }
