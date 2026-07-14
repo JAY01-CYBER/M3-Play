@@ -1,13 +1,3 @@
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │                                            │
- * │  Signature: M3PLAY::UI::EXPRESSIVE::V1     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -40,13 +30,15 @@ val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
 
-enum class SliderStyle {
-    Standard,
-    Wavy,
-    Thick,
-    Circular,
-    Simple,
-}
+
+val HistoryDuration = floatPreferencesKey("historyDuration")
+val TopSize = stringPreferencesKey("topSize")
+val ShowLyricsKey = booleanPreferencesKey("showLyrics")
+val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style")
+val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
+
+enum class SliderStyle { Standard, Wavy, Thick, Circular, Simple }
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
 val AppLanguageKey = stringPreferencesKey("appLanguage")
@@ -76,11 +68,9 @@ val TogetherRequireHostApprovalToJoinKey = booleanPreferencesKey("together_requi
 val TogetherLastJoinLinkKey = stringPreferencesKey("together_last_join_link")
 val TogetherWelcomeShownKey = booleanPreferencesKey("together_welcome_shown")
     
-// ListenBrainz scrobbling
 val ListenBrainzEnabledKey = booleanPreferencesKey("listenbrainz_enabled")
 val ListenBrainzTokenKey = stringPreferencesKey("listenbrainz_token")
 
-// Last.fm scrobbling
 val LastFMSessionKey = stringPreferencesKey("lastfmSession")
 val LastFMUsernameKey = stringPreferencesKey("lastfmUsername")
 val EnableLastFMScrobblingKey = booleanPreferencesKey("lastfmScrobblingEnable")
@@ -89,9 +79,6 @@ val ScrobbleDelayPercentKey = floatPreferencesKey("scrobbleDelayPercent")
 val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
-// ====================================================
-// 🔥 SPOTIFY INTEGRATION KEYS 🔥
-// ====================================================
 val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
 val SpotifyTokenKey = stringPreferencesKey("spotify_token")
 val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
@@ -106,19 +93,14 @@ val SpotifyAccountNameKey = stringPreferencesKey("spotify_account_name")
 val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_url")
 val ShowSpotifyPlaylistsKey = booleanPreferencesKey("show_spotify_playlists")
 val SpotifyLibraryPlaylistsCacheKey = stringPreferencesKey("spotify_library_playlists_cache")
-// ====================================================
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
 
-enum class AudioQuality {
-    AUTO, HIGH, HIGHEST, LOW,
-}
+enum class AudioQuality { AUTO, HIGH, HIGHEST, LOW }
 
 val PlayerStreamClientKey = stringPreferencesKey("playerStreamClient")
-enum class PlayerStreamClient {
-    ANDROID_VR, WEB_REMIX, IOS, TVHTML5, ANDROID_MUSIC,
-}
+enum class PlayerStreamClient { ANDROID_VR, WEB_REMIX, IOS, TVHTML5, ANDROID_MUSIC }
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
 val PermanentShuffleKey = booleanPreferencesKey("permanentShuffle")
@@ -236,9 +218,7 @@ val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist"
 val ShowTopPlaylistKey = booleanPreferencesKey("show_top_playlist")
 val ShowCachedPlaylistKey = booleanPreferencesKey("show_cached_playlist")
 
-// ====================================================
-// lyrics
-// ====================================================
+// 🔥 GLOSSY LYRICS & TRANSLATION ENGINE KEYS 🔥
 val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
 enum class LyricsAnimationStyle { NONE, FADE, GLOW, SLIDE, KARAOKE, APPLE }
 
@@ -258,6 +238,10 @@ val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
 val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
 val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
 
+// Romanization missing keys added here 
+val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
+val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
+
 // AI Translation Keys
 val OpenRouterApiKey = stringPreferencesKey("openRouterApiKey")
 val AiProviderKey = stringPreferencesKey("aiProvider")
@@ -271,16 +255,7 @@ val DeeplApiKey = stringPreferencesKey("deeplApiKey")
 val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
 val AiSystemPromptKey = stringPreferencesKey("aiSystemPrompt")
 
-const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings.
-
-CRITICAL RULES:
-1. Output ONLY a JSON array: ["line1", "line2", "line3"]
-2. NO explanations, NO questions, NO additional text
-3. Each input line maps to exactly one output line
-4. Preserve empty lines as empty strings ""
-5. Return EXACTLY {lineCount} items in the array
-6. If uncertain, provide best approximation but maintain line count"""
-// ====================================================
+const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings."""
 
 enum class LibraryViewType { LIST, GRID ; fun toggle() = when (this) { LIST -> GRID; GRID -> LIST } }
 enum class SongFilter { LIBRARY, LIKED, DOWNLOADED }
@@ -307,7 +282,9 @@ enum class MyTopFilter {
 }
 enum class QuickPicks { QUICK_PICKS, LAST_LISTEN }
 enum class PreferredLyricsProvider { LRCLIB, KUGOU, BETTER_LYRICS, SIMPMUSIC, YOULYPLUS, PAXSENIX }
-enum class PlayerButtonsStyle { DEFAULT, SECONDARY }
+
+// Enums fixed for player styles
+enum class PlayerButtonsStyle { DEFAULT, SECONDARY, PRIMARY, TERTIARY }
 enum class PlayerDesignStyle { V1, V2, V3, V4, V5, V6 }
 enum class PlayerBackgroundStyle { DEFAULT, GRADIENT, CUSTOM, BLUR, COLORING, BLUR_GRADIENT, GLOW, GLOW_ANIMATED, APPLE_MUSIC, LIVE_MESH }
 
@@ -344,9 +321,6 @@ val PoTokenPlayerKey = stringPreferencesKey("poTokenPlayer")
 val UseVisitorDataKey = booleanPreferencesKey("useVisitorData")
 val PoTokenSourceUrlKey = stringPreferencesKey("poTokenSourceUrl")
 
-val LanguageCodeToName = mapOf("en" to "English (US)", "en-GB" to "English (UK)", "ja" to "日本語", "ko" to "한국어", "vi" to "Tiếng Việt", "zh" to "中文", "zh-CN" to "简体中文", "zh-TW" to "繁體中文", "fr" to "Français", "de" to "Deutsch", "es" to "Español", "pt" to "Português", "pt-BR" to "Português (Brasil)", "ru" to "Русский", "it" to "Italiano", "nl" to "Nederlands", "pl" to "Polski", "tr" to "Türkçe", "ar" to "العربية", "hi" to "हिन्दी", "th" to "ไทย", "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "uk" to "Українська", "cs" to "Čeština", "el" to "Ελληνικά", "he" to "עברית", "hu" to "Magyar", "ro" to "Română", "fi" to "Suomi", "da" to "Dansk", "no" to "Norsk", "sv" to "Svenska", "sk" to "Slovenčina", "bg" to "Български", "hr" to "Hrvatski", "sr" to "Срpsки", "lt" to "Lietuvių", "lv" to "Latviešu", "et" to "Eesti")
-val CountryCodeToName = mapOf("JP" to "Japan", "KR" to "South Korea", "US" to "United States", "GB" to "United Kingdom", "CN" to "China", "TW" to "Taiwan", "HK" to "Hong Kong", "FR" to "France", "DE" to "Germany", "ES" to "Spain", "MX" to "Mexico", "BR" to "Brazil", "RU" to "Russia", "IT" to "Italy", "NL" to "Netherlands", "PL" to "Poland", "TR" to "Turkey", "AU" to "Australia", "CA" to "Canada", "IN" to "India", "ID" to "Indonesia", "TH" to "Thailand", "VN" to "Vietnam", "PH" to "Philippines", "MY" to "Malaysia", "SG" to "Singapore", "AR" to "Argentina", "CL" to "Chile", "CO" to "Colombia", "PE" to "Peru", "ZA" to "South Africa", "EG" to "Egypt", "SA" to "Saudi Arabia", "AE" to "United Arab Emirates")
-
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
@@ -354,15 +328,5 @@ val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotificatio
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
 val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
-
-val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
-val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
-val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
-val GitHubReleasesEtagKey = stringPreferencesKey("github_releases_etag")
-val GitHubReleasesJsonKey = stringPreferencesKey("github_releases_json")
-val GitHubReleasesLastCheckedAtKey = longPreferencesKey("github_releases_last_checked_at")
-val GitHubReleasesFingerprintKey = stringPreferencesKey("github_releases_fingerprint")
-val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
-val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel { STABLE, NIGHTLY }
