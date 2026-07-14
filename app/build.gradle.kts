@@ -100,10 +100,13 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("keystore/release.keystore")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            val keystoreFile = file("keystore/release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
@@ -230,8 +233,6 @@ dependencies {
     implementation(libs.room.ktx)
 
     implementation(libs.apache.lang3)
-    
-
 
     implementation(libs.hilt)
     implementation(libs.jsoup)
