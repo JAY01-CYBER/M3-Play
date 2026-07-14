@@ -111,9 +111,7 @@ import com.j.m3play.extensions.togglePlayPause
 import com.j.m3play.extensions.toggleRepeatMode
 import com.j.m3play.lyrics.LyricsHelper
 import com.j.m3play.models.MediaMetadata
-import com.j.m3play.ui.component.Lyrics
-import com.j.m3play.ui.component.LyricsV2
-import com.j.m3play.constants.UseLyricsV2Key
+import com.j.m3play.ui.component.MetrolistLyrics 
 import com.j.m3play.ui.component.LocalMenuState
 import com.j.m3play.ui.component.BigSeekBar
 import androidx.navigation.NavController
@@ -159,7 +157,6 @@ fun LyricsScreen(
     
     val sliderStyle by rememberEnumPreference(SliderStyleKey, SliderStyle.Standard)
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
-    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
@@ -389,16 +386,15 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // YAHAN SE PURANA BADGE UDA DIYA GAYA HAI
                                 Box(
                                     modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (useLyricsV2) {
-                                        LyricsV2(sliderPositionProvider = { sliderPosition })
-                                    } else {
-                                        Lyrics(sliderPositionProvider = { sliderPosition })
-                                    }
+                                    // NAYA LYRICS ENGINE YAHAN LAGA HAI (LANDSCAPE)
+                                    MetrolistLyrics(
+                                        sliderPositionProvider = { sliderPosition ?: position },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
                                 }
                             }
                         }
@@ -648,16 +644,15 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // YAHAN SE BHI PURANA BADGE UDA DIYA GAYA HAI
                         Box(
                             modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
                             contentAlignment = Alignment.TopCenter
                         ) {
-                            if (useLyricsV2) {
-                                LyricsV2(sliderPositionProvider = { sliderPosition })
-                            } else {
-                                Lyrics(sliderPositionProvider = { sliderPosition })
-                            }
+                            // NAYA LYRICS ENGINE YAHAN LAGA HAI (PORTRAIT)
+                            MetrolistLyrics(
+                                sliderPositionProvider = { sliderPosition ?: position },
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
                     }
 
@@ -841,7 +836,6 @@ fun InlineLyricsView(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
-    val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
@@ -883,11 +877,11 @@ fun InlineLyricsView(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                if (useLyricsV2) {
-                    LyricsV2(sliderPositionProvider = { positionProvider() })
-                } else {
-                    Lyrics(sliderPositionProvider = { positionProvider() })
-                }
+                // NAYA LYRICS ENGINE YAHAN BHI LAGA HAI (INLINE)
+                MetrolistLyrics(
+                    sliderPositionProvider = { positionProvider() },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
