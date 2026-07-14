@@ -100,13 +100,10 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = file("keystore/release.keystore")
-            if (keystoreFile.exists()) {
-                storeFile = keystoreFile
-                storePassword = System.getenv("STORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
-            }
+            storeFile = file("keystore/release.keystore")
+            storePassword = System.getenv("STORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 
@@ -114,17 +111,6 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            
-            // YAHAN MAIN CHANGE HAI:
-            // Agar keystore exist karega toh release config se sign hoga
-            // Warna default debug config se app sign ho jayegi taaki build successful rahe
-            val keystoreFile = file("keystore/release.keystore")
-            if (keystoreFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
-            }
-
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -226,6 +212,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+
+
     implementation(libs.shimmer)
 
     implementation(libs.media3)
@@ -288,6 +276,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget.set(JvmTarget.JVM_21)
         freeCompilerArgs.add("-Xannotation-default-target=param-property")
         
+        // Yahan par humne Material 3 aur Foundation API ke sabhi warnings ko suppress kar diya hai
         freeCompilerArgs.addAll(
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
