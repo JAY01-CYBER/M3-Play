@@ -61,7 +61,7 @@ class TogetherGuestPlaybackPlannerTest {
         assertEquals(
             listOf(
                 TogetherGuestOp.AddTrack(TogetherTrack(id = "b", title = "B"), AddTrackMode.PLAY_NEXT),
-                TogetherGuestOp.Control(ControlAction.SkipNext),
+                TogetherGuestOp.Control(ControlAction.SeekToTrack(trackId = "b", positionMs = 0L)),
             ),
             ops,
         )

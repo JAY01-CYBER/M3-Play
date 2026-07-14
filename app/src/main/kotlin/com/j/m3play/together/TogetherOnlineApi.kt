@@ -85,8 +85,9 @@ class TogetherOnlineApi(
         }
 
     private suspend fun <T> withRetry(
-        maxAttempts: Int = 2,
-        initialDelayMs: Long = 800,
+        maxAttempts: Int = 4,
+        initialDelayMs: Long = 1000,
+        maxDelayMs: Long = 10_000,
         block: suspend () -> T,
     ): T {
         var lastException: Throwable? = null
@@ -96,7 +97,8 @@ class TogetherOnlineApi(
             } catch (t: Throwable) {
                 lastException = t
                 if (attempt < maxAttempts && isRetryable(t)) {
-                    delay(initialDelayMs * attempt)
+                    val backoffMs = (initialDelayMs * attempt).coerceAtMost(maxDelayMs)
+                    delay(backoffMs)
                 } else {
                     throw t
                 }
@@ -109,7 +111,9 @@ class TogetherOnlineApi(
         val root = generateSequence(t) { it.cause }.lastOrNull() ?: t
         return root is java.net.SocketTimeoutException ||
             root is java.net.ConnectException ||
-            root is java.io.IOException
+            root is java.io.IOException ||
+            root is java.net.UnknownHostException ||
+            (root is javax.net.ssl.SSLException && root.message?.contains("timeout", ignoreCase = true) == true)
     }
 
     @Serializable
