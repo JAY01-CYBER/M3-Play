@@ -229,7 +229,7 @@ dependencies {
     implementation(libs.room.ktx)
 
     implementation(libs.apache.lang3)
-    implementation("com.github.promeg:tinypinyin:2.0.3")
+    
 
 
     implementation(libs.hilt)
