@@ -16,7 +16,10 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.verticalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,12 +35,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.drawText // <-- YE IMPORT MISSING THA
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.j.m3play.LocalPlayerConnection
+import com.j.m3play.db.entities.LyricsEntity
 import com.j.m3play.lyrics.LyricsEntry
+import com.j.m3play.lyrics.LyricsUtils
 import com.j.m3play.lyrics.MetrolistLyricsUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -45,7 +51,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-// Handles • • • Indicators & Lines seamlessly
 sealed class LyricsListItem {
     data class Line(val index: Int, val entry: LyricsEntry) : LyricsListItem()
     data class Indicator(val index: Int, val gap: Long, val startTime: Long, val endTime: Long) : LyricsListItem()
@@ -58,43 +63,103 @@ fun MetrolistLyrics(
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val player = playerConnection.player
-    val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
+    val currentLyricsEntity by playerConnection.currentLyrics.collectAsState(initial = null)
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    // 1. Parsing with Real Metrolist Math
-    val parsedLyrics = remember(currentLyrics) {
-        val lyricsText = currentLyrics?.toString() ?: ""
-        val rawLines = MetrolistLyricsUtils.parseLyrics(lyricsText)
+    var isPlainText by remember { mutableStateOf(false) }
+    var plainTextContent by remember { mutableStateOf("") }
+
+    // 1. Parsing with Robust App-Native Logic
+    val parsedLyrics = remember(currentLyricsEntity) {
+        isPlainText = false
+        plainTextContent = ""
+        
+        // Exact way the original app gets lyrics text
+        val lyricsText = currentLyricsEntity?.lyrics?.trim() ?: ""
         
         val mergedList = mutableListOf<LyricsListItem>()
-        if (rawLines.isNotEmpty()) {
-            rawLines.forEachIndexed { i, entry ->
-                if (entry.text.isNotBlank()) {
-                    mergedList.add(LyricsListItem.Line(i, entry))
+        
+        if (lyricsText.isNotBlank() && lyricsText != LyricsEntity.LYRICS_NOT_FOUND) {
+            val rawLines = when {
+                // Use original TTML parser
+                LyricsUtils.isTtml(lyricsText) -> LyricsUtils.parseTtml(lyricsText, null)
+                // Use standard LRC parser or Metrolist Parser
+                lyricsText.startsWith("[") -> {
+                    val metro = MetrolistLyricsUtils.parseLyrics(lyricsText)
+                    if (metro.isNotEmpty()) metro else LyricsUtils.parseLyrics(lyricsText)
                 }
-                if (i < rawLines.size - 1) {
-                    val nextStart = rawLines[i + 1].time
-                    val currentEnd = if (!entry.words.isNullOrEmpty()) {
-                        (entry.words.last().endTime * 1000).toLong()
-                    } else if (entry.text.isBlank()) {
-                        entry.time
-                    } else null
+                // Plain Text Fallback!
+                else -> emptyList()
+            }
+            
+            if (rawLines.isNotEmpty()) {
+                rawLines.forEachIndexed { i, entry ->
+                    if (entry.text.isNotBlank()) {
+                        mergedList.add(LyricsListItem.Line(i, entry))
+                    }
+                    if (i < rawLines.size - 1) {
+                        val nextStart = rawLines[i + 1].time
+                        val currentEnd = if (!entry.words.isNullOrEmpty()) {
+                            (entry.words.last().endTime * 1000).toLong()
+                        } else if (entry.text.isBlank()) {
+                            entry.time
+                        } else null
 
-                    if (currentEnd != null && currentEnd < nextStart) {
-                        val gap = nextStart - currentEnd
-                        // Metrolist Original Apple Music Dots Math
-                        if (gap > 4000L) {
-                            mergedList.add(LyricsListItem.Indicator(i, gap, currentEnd, nextStart))
+                        if (currentEnd != null && currentEnd < nextStart) {
+                            val gap = nextStart - currentEnd
+                            if (gap > 4000L) {
+                                mergedList.add(LyricsListItem.Indicator(i, gap, currentEnd, nextStart))
+                            }
                         }
                     }
                 }
+            } else {
+                // Properly handle Unsynced Plain Text Lyrics
+                isPlainText = true
+                plainTextContent = lyricsText
             }
         }
         mergedList
     }
 
-    // 2. Exact 60FPS Time Tracker
+    // 2. Loading State Handling
+    if (currentLyricsEntity == null) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Color.White.copy(alpha = 0.5f))
+        }
+        return
+    }
+
+    // 3. Empty or Plain Text Handling
+    if (parsedLyrics.isEmpty()) {
+        if (isPlainText) {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = plainTextContent,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Medium,
+                    lineHeight = 38.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No synced lyrics available", color = Color.White.copy(alpha = 0.5f))
+            }
+        }
+        return
+    }
+
+    // 4. Exact 60FPS Time Tracker
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     LaunchedEffect(parsedLyrics, playerConnection.playbackState) {
         var lastPlayerPos = player.currentPosition
@@ -120,7 +185,7 @@ fun MetrolistLyrics(
         }
     }
 
-    // 3. Active Line Index
+    // 5. Active Line Index
     val activeIndex by remember(currentPositionMs, parsedLyrics) {
         derivedStateOf {
             val idx = parsedLyrics.indexOfLast { item ->
@@ -133,14 +198,7 @@ fun MetrolistLyrics(
         }
     }
 
-    if (parsedLyrics.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No synced lyrics available", color = Color.White.copy(alpha = 0.5f))
-        }
-        return
-    }
-
-    // 4. Metrolist Original Velocity Physics (Bouncy Scroll)
+    // 6. Velocity Physics (Bouncy Scroll)
     var userManualOffset by remember { mutableFloatStateOf(0f) }
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
     val velocityTracker = remember { VelocityTracker() }
@@ -152,7 +210,6 @@ fun MetrolistLyrics(
             val start = userManualOffset
             val anim = Animatable(start)
             var lastValue = start
-            // <-- FIX HERE: Added `easing =` to fix Int expectation error
             anim.animateTo(0f, tween(durationMillis = (abs(start) / 4f).toInt().coerceIn(200, 600), easing = FastOutSlowInEasing)) {
                 userManualOffset += (value - lastValue)
                 lastValue = value
@@ -194,7 +251,7 @@ fun MetrolistLyrics(
     ) {
         val maxHeightPx = constraints.maxHeight.toFloat()
         val anchorY = maxHeightPx * 0.35f 
-        val lineHeightPx = with(density) { 52.dp.toPx() } // Dynamic gap
+        val lineHeightPx = with(density) { 52.dp.toPx() } 
         
         parsedLyrics.forEachIndexed { listIndex, item ->
             val distance = abs(listIndex - activeIndex)
@@ -246,7 +303,6 @@ fun MetrolistLyrics(
             ) {
                 when (item) {
                     is LyricsListItem.Indicator -> {
-                        // 5. Apple Music 3 Dots Logic
                         val progress = ((currentPositionMs - item.startTime).toFloat() / item.gap.toFloat()).coerceIn(0f, 1f)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -268,7 +324,6 @@ fun MetrolistLyrics(
                     }
                     
                     is LyricsListItem.Line -> {
-                        // 6. EXACT CANVAS TEXT MEASURE & WIPE
                         val entry = item.entry
                         val baseStyle = TextStyle(
                             fontSize = 32.sp,
@@ -292,16 +347,13 @@ fun MetrolistLyrics(
                                 .padding(horizontal = 24.dp)
                                 .graphicsLayer { this.alpha = alpha }
                         ) {
-                            // Draw base dim text
                             drawText(
                                 textLayoutResult = textLayoutResult,
                                 color = Color.White.copy(alpha = if (isActive) 0.25f else 1f)
                             )
 
-                            // Apply Karaoke Wipe on active text
                             if (isActive) {
                                 if (!entry.words.isNullOrEmpty()) {
-                                    // Math for exact word-by-word bounds calculation
                                     var charGlobalIndex = 0
                                     entry.words.forEach { word ->
                                         val wordText = word.text 
@@ -327,7 +379,6 @@ fun MetrolistLyrics(
                                         }
                                     }
                                 } else {
-                                    // Fallback if song has no WordTimestamps
                                     val fallbackDuration = 4000f
                                     val lineProgress = ((currentPositionMs - entry.time).toFloat() / fallbackDuration).coerceIn(0f, 1f)
                                     val fillWidth = size.width * lineProgress
