@@ -92,15 +92,12 @@ val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 // ====================================================
 // 🔥 SPOTIFY INTEGRATION KEYS 🔥
 // ====================================================
-
-// M3Play Original Keys
 val SpotifyConnectedKey = booleanPreferencesKey("spotify_connected")
 val SpotifyTokenKey = stringPreferencesKey("spotify_token")
 val SpotifyRefreshTokenKey = stringPreferencesKey("spotify_refresh_token")
 val SpotifyUserNameKey = stringPreferencesKey("spotify_user_name")
 val ShowSpotifyPlaylistKey = booleanPreferencesKey("show_spotify_playlist")
 
-// ArchiveTune Core Spotify Keys
 val SpotifySpDcKey = stringPreferencesKey("spotify_sp_dc")
 val SpotifySpKeyKey = stringPreferencesKey("spotify_sp_key")
 val SpotifyAccessTokenKey = stringPreferencesKey("spotify_access_token")
@@ -109,28 +106,18 @@ val SpotifyAccountNameKey = stringPreferencesKey("spotify_account_name")
 val SpotifyAccountAvatarUrlKey = stringPreferencesKey("spotify_account_avatar_url")
 val ShowSpotifyPlaylistsKey = booleanPreferencesKey("show_spotify_playlists")
 val SpotifyLibraryPlaylistsCacheKey = stringPreferencesKey("spotify_library_playlists_cache")
-
 // ====================================================
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
-
 val NetworkMeteredKey = booleanPreferencesKey("networkMetered")
 
 enum class AudioQuality {
-    AUTO,
-    HIGH,
-    HIGHEST,
-    LOW,
+    AUTO, HIGH, HIGHEST, LOW,
 }
 
 val PlayerStreamClientKey = stringPreferencesKey("playerStreamClient")
-
 enum class PlayerStreamClient {
-    ANDROID_VR,
-    WEB_REMIX,
-    IOS,
-    TVHTML5,
-    ANDROID_MUSIC,
+    ANDROID_VR, WEB_REMIX, IOS, TVHTML5, ANDROID_MUSIC,
 }
 
 val PersistentQueueKey = booleanPreferencesKey("persistentQueue")
@@ -249,218 +236,97 @@ val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist"
 val ShowTopPlaylistKey = booleanPreferencesKey("show_top_playlist")
 val ShowCachedPlaylistKey = booleanPreferencesKey("show_cached_playlist")
 
-enum class LibraryViewType {
-    LIST,
-    GRID,
-    ;
-    fun toggle() =
-        when (this) {
-            LIST -> GRID
-            GRID -> LIST
-        }
-}
+// ====================================================
+// lyrics
+// ====================================================
+val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
+enum class LyricsAnimationStyle { NONE, FADE, GLOW, SLIDE, KARAOKE, APPLE }
 
-enum class SongFilter {
-    LIBRARY,
-    LIKED,
-    DOWNLOADED
-}
+val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
+enum class LyricsPosition { LEFT, CENTER, RIGHT }
 
-enum class ArtistFilter {
-    LIBRARY,
-    LIKED
-}
+val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
+val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
+val LyricsClickKey = booleanPreferencesKey("lyricsClick")
+val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
+val HideStatusBarOnFullscreenKey = booleanPreferencesKey("hideStatusBarOnFullscreen")
+val LyricsRomanizeAsMainKey = booleanPreferencesKey("lyricsRomanizeAsMain")
+val LyricsRomanizeCyrillicByLineKey = booleanPreferencesKey("lyricsRomanizeCyrillicByLine")
+val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
+val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
+val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
+val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
+val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
 
-enum class AlbumFilter {
-    LIBRARY,
-    LIKED,
-    DOWNLOADED,
-    DOWNLOADED_FULL
-}
+// AI Translation Keys
+val OpenRouterApiKey = stringPreferencesKey("openRouterApiKey")
+val AiProviderKey = stringPreferencesKey("aiProvider")
+val OpenRouterBaseUrlKey = stringPreferencesKey("openRouterBaseUrl")
+val OpenRouterModelKey = stringPreferencesKey("openRouterModel")
+const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
+const val OpenRouterDefaultModel = "google/gemini-2.5-flash-lite"
+val TranslateModeKey = stringPreferencesKey("translateMode")
+val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
+val DeeplApiKey = stringPreferencesKey("deeplApiKey")
+val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
+val AiSystemPromptKey = stringPreferencesKey("aiSystemPrompt")
 
-enum class SongSortType {
-    CREATE_DATE,
-    NAME,
-    ARTIST,
-    PLAY_TIME,
-}
+const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings.
 
-enum class PlaylistSongSortType {
-    CUSTOM,
-    CREATE_DATE,
-    NAME,
-    ARTIST,
-    PLAY_TIME,
-}
+CRITICAL RULES:
+1. Output ONLY a JSON array: ["line1", "line2", "line3"]
+2. NO explanations, NO questions, NO additional text
+3. Each input line maps to exactly one output line
+4. Preserve empty lines as empty strings ""
+5. Return EXACTLY {lineCount} items in the array
+6. If uncertain, provide best approximation but maintain line count"""
+// ====================================================
 
-enum class AutoPlaylistSongSortType {
-    CREATE_DATE,
-    NAME,
-    ARTIST,
-    PLAY_TIME,
-}
-
-enum class ArtistSortType {
-    CREATE_DATE,
-    NAME,
-    SONG_COUNT,
-    PLAY_TIME,
-}
-
-enum class ArtistSongSortType {
-    CREATE_DATE,
-    NAME,
-    PLAY_TIME,
-}
-
-enum class AlbumSortType {
-    CREATE_DATE,
-    NAME,
-    ARTIST,
-    YEAR,
-    SONG_COUNT,
-    LENGTH,
-    PLAY_TIME,
-}
-
-enum class PlaylistSortType {
-    CREATE_DATE,
-    NAME,
-    SONG_COUNT,
-    LAST_UPDATED,
-    CUSTOM,
-}
-
-enum class MixSortType {
-    CREATE_DATE,
-    NAME,
-    LAST_UPDATED,
-}
-
-enum class GridItemSize {
-    BIG,
-    SMALL,
-}
-
+enum class LibraryViewType { LIST, GRID ; fun toggle() = when (this) { LIST -> GRID; GRID -> LIST } }
+enum class SongFilter { LIBRARY, LIKED, DOWNLOADED }
+enum class ArtistFilter { LIBRARY, LIKED }
+enum class AlbumFilter { LIBRARY, LIKED, DOWNLOADED, DOWNLOADED_FULL }
+enum class SongSortType { CREATE_DATE, NAME, ARTIST, PLAY_TIME }
+enum class PlaylistSongSortType { CUSTOM, CREATE_DATE, NAME, ARTIST, PLAY_TIME }
+enum class AutoPlaylistSongSortType { CREATE_DATE, NAME, ARTIST, PLAY_TIME }
+enum class ArtistSortType { CREATE_DATE, NAME, SONG_COUNT, PLAY_TIME }
+enum class ArtistSongSortType { CREATE_DATE, NAME, PLAY_TIME }
+enum class AlbumSortType { CREATE_DATE, NAME, ARTIST, YEAR, SONG_COUNT, LENGTH, PLAY_TIME }
+enum class PlaylistSortType { CREATE_DATE, NAME, SONG_COUNT, LAST_UPDATED, CUSTOM }
+enum class MixSortType { CREATE_DATE, NAME, LAST_UPDATED }
+enum class GridItemSize { BIG, SMALL }
 enum class MyTopFilter {
-    ALL_TIME,
-    DAY,
-    WEEK,
-    MONTH,
-    YEAR,
-    ;
-    fun toTimeMillis(): Long =
-        when (this) {
-            DAY ->
-                LocalDateTime
-                    .now()
-                    .minusDays(1)
-                    .toInstant(ZoneOffset.UTC)
-                    .toEpochMilli()
-
-            WEEK ->
-                LocalDateTime
-                    .now()
-                    .minusWeeks(1)
-                    .toInstant(ZoneOffset.UTC)
-                    .toEpochMilli()
-
-            MONTH ->
-                LocalDateTime
-                    .now()
-                    .minusMonths(1)
-                    .toInstant(ZoneOffset.UTC)
-                    .toEpochMilli()
-
-            YEAR ->
-                LocalDateTime
-                    .now()
-                    .minusMonths(12)
-                    .toInstant(ZoneOffset.UTC)
-                    .toEpochMilli()
-
-            ALL_TIME -> 0
-        }
+    ALL_TIME, DAY, WEEK, MONTH, YEAR;
+    fun toTimeMillis(): Long = when (this) {
+        DAY -> LocalDateTime.now().minusDays(1).toInstant(ZoneOffset.UTC).toEpochMilli()
+        WEEK -> LocalDateTime.now().minusWeeks(1).toInstant(ZoneOffset.UTC).toEpochMilli()
+        MONTH -> LocalDateTime.now().minusMonths(1).toInstant(ZoneOffset.UTC).toEpochMilli()
+        YEAR -> LocalDateTime.now().minusMonths(12).toInstant(ZoneOffset.UTC).toEpochMilli()
+        ALL_TIME -> 0
+    }
 }
+enum class QuickPicks { QUICK_PICKS, LAST_LISTEN }
+enum class PreferredLyricsProvider { LRCLIB, KUGOU, BETTER_LYRICS, SIMPMUSIC, YOULYPLUS, PAXSENIX }
+enum class PlayerButtonsStyle { DEFAULT, SECONDARY }
+enum class PlayerDesignStyle { V1, V2, V3, V4, V5, V6 }
+enum class PlayerBackgroundStyle { DEFAULT, GRADIENT, CUSTOM, BLUR, COLORING, BLUR_GRADIENT, GLOW, GLOW_ANIMATED, APPLE_MUSIC, LIVE_MESH }
 
-enum class QuickPicks {
-    QUICK_PICKS,
-    LAST_LISTEN,
-}
-
-enum class PreferredLyricsProvider {
-    LRCLIB,
-    KUGOU,
-    BETTER_LYRICS,
-    SIMPMUSIC,
-    YOULYPLUS,
-    PAXSENIX,
-}
-
-enum class PlayerButtonsStyle {
-    DEFAULT,
-    SECONDARY,
-}
-
-enum class PlayerDesignStyle {
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-}
-
-enum class PlayerBackgroundStyle {
-    DEFAULT,
-    GRADIENT,
-    CUSTOM,
-    BLUR,
-    COLORING,
-    BLUR_GRADIENT,
-    GLOW,
-    GLOW_ANIMATED,
-    APPLE_MUSIC,
-    LIVE_MESH
-}
-
-// Keys for customized background
 val PlayerCustomImageUriKey = stringPreferencesKey("playerCustomImageUri")
 val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
-val TopSize = stringPreferencesKey("topSize")
-val HistoryDuration = floatPreferencesKey("historyDuration")
-
-val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
-val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
-val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style") 
-val ShowLyricsKey = booleanPreferencesKey("showLyrics")
-val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
-val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
-val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
-
-// Queue lyrics pre-load settings
 val PreloadQueueLyricsEnabledKey = booleanPreferencesKey("preload_queue_lyrics_enabled")
 val QueueLyricsPreloadCountKey = intPreferencesKey("queue_lyrics_preload_count")
-
 val PlayerVolumeKey = floatPreferencesKey("playerVolume")
 val RepeatModeKey = intPreferencesKey("repeatMode")
-
 val SearchSourceKey = stringPreferencesKey("searchSource")
 val SwipeThumbnailKey = booleanPreferencesKey("swipeThumbnail")
 val SwipeSensitivityKey = floatPreferencesKey("swipeSensitivity")
 
 enum class SearchSource {
-    LOCAL,
-    ONLINE,
-    ;
-    fun toggle() =
-        when (this) {
-            LOCAL -> ONLINE
-            ONLINE -> LOCAL
-        }
+    LOCAL, ONLINE;
+    fun toggle() = when (this) { LOCAL -> ONLINE; ONLINE -> LOCAL }
 }
 
 val VisitorDataKey = stringPreferencesKey("visitorData")
@@ -478,94 +344,12 @@ val PoTokenPlayerKey = stringPreferencesKey("poTokenPlayer")
 val UseVisitorDataKey = booleanPreferencesKey("useVisitorData")
 val PoTokenSourceUrlKey = stringPreferencesKey("poTokenSourceUrl")
 
-val LanguageCodeToName =
-    mapOf(
-        "en" to "English (US)",
-        "en-GB" to "English (UK)",
-        "ja" to "日本語",
-        "ko" to "한국어",
-        "vi" to "Tiếng Việt",
-        "zh" to "中文",
-        "zh-CN" to "简体中文",
-        "zh-TW" to "繁體中文",
-        "fr" to "Français",
-        "de" to "Deutsch",
-        "es" to "Español",
-        "pt" to "Português",
-        "pt-BR" to "Português (Brasil)",
-        "ru" to "Русский",
-        "it" to "Italiano",
-        "nl" to "Nederlands",
-        "pl" to "Polski",
-        "tr" to "Türkçe",
-        "ar" to "العربية",
-        "hi" to "हिन्दी",
-        "th" to "ไทย",
-        "id" to "Bahasa Indonesia",
-        "ms" to "Bahasa Melayu",
-        "uk" to "Українська",
-        "cs" to "Čeština",
-        "el" to "Ελληνικά",
-        "he" to "עברית",
-        "hu" to "Magyar",
-        "ro" to "Română",
-        "fi" to "Suomi",
-        "da" to "Dansk",
-        "no" to "Norsk",
-        "sv" to "Svenska",
-        "sk" to "Slovenčina",
-        "bg" to "Български",
-        "hr" to "Hrvatski",
-        "sr" to "Срpsки",
-        "lt" to "Lietuvių",
-        "lv" to "Latviešu",
-        "et" to "Eesti",
-    )
+val LanguageCodeToName = mapOf("en" to "English (US)", "en-GB" to "English (UK)", "ja" to "日本語", "ko" to "한국어", "vi" to "Tiếng Việt", "zh" to "中文", "zh-CN" to "简体中文", "zh-TW" to "繁體中文", "fr" to "Français", "de" to "Deutsch", "es" to "Español", "pt" to "Português", "pt-BR" to "Português (Brasil)", "ru" to "Русский", "it" to "Italiano", "nl" to "Nederlands", "pl" to "Polski", "tr" to "Türkçe", "ar" to "العربية", "hi" to "हिन्दी", "th" to "ไทย", "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "uk" to "Українська", "cs" to "Čeština", "el" to "Ελληνικά", "he" to "עברית", "hu" to "Magyar", "ro" to "Română", "fi" to "Suomi", "da" to "Dansk", "no" to "Norsk", "sv" to "Svenska", "sk" to "Slovenčina", "bg" to "Български", "hr" to "Hrvatski", "sr" to "Срpsки", "lt" to "Lietuvių", "lv" to "Latviešu", "et" to "Eesti")
+val CountryCodeToName = mapOf("JP" to "Japan", "KR" to "South Korea", "US" to "United States", "GB" to "United Kingdom", "CN" to "China", "TW" to "Taiwan", "HK" to "Hong Kong", "FR" to "France", "DE" to "Germany", "ES" to "Spain", "MX" to "Mexico", "BR" to "Brazil", "RU" to "Russia", "IT" to "Italy", "NL" to "Netherlands", "PL" to "Poland", "TR" to "Turkey", "AU" to "Australia", "CA" to "Canada", "IN" to "India", "ID" to "Indonesia", "TH" to "Thailand", "VN" to "Vietnam", "PH" to "Philippines", "MY" to "Malaysia", "SG" to "Singapore", "AR" to "Argentina", "CL" to "Chile", "CO" to "Colombia", "PE" to "Peru", "ZA" to "South Africa", "EG" to "Egypt", "SA" to "Saudi Arabia", "AE" to "United Arab Emirates")
 
-val CountryCodeToName =
-    mapOf(
-        "JP" to "Japan",
-        "KR" to "South Korea",
-        "US" to "United States",
-        "GB" to "United Kingdom",
-        "CN" to "China",
-        "TW" to "Taiwan",
-        "HK" to "Hong Kong",
-        "FR" to "France",
-        "DE" to "Germany",
-        "ES" to "Spain",
-        "MX" to "Mexico",
-        "BR" to "Brazil",
-        "RU" to "Russia",
-        "IT" to "Italy",
-        "NL" to "Netherlands",
-        "PL" to "Poland",
-        "TR" to "Turkey",
-        "AU" to "Australia",
-        "CA" to "Canada",
-        "IN" to "India",
-        "ID" to "Indonesia",
-        "TH" to "Thailand",
-        "VN" to "Vietnam",
-        "PH" to "Philippines",
-        "MY" to "Malaysia",
-        "SG" to "Singapore",
-        "AR" to "Argentina",
-        "CL" to "Chile",
-        "CO" to "Colombia",
-        "PE" to "Peru",
-        "ZA" to "South Africa",
-        "EG" to "Egypt",
-        "SA" to "Saudi Arabia",
-        "AE" to "United Arab Emirates",
-    )
-
-// App rating / star prompt preferences
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
-
-// Update settings
 val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
@@ -574,16 +358,11 @@ val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
 val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
 val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
 val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
-
 val GitHubReleasesEtagKey = stringPreferencesKey("github_releases_etag")
 val GitHubReleasesJsonKey = stringPreferencesKey("github_releases_json")
 val GitHubReleasesLastCheckedAtKey = longPreferencesKey("github_releases_last_checked_at")
 val GitHubReleasesFingerprintKey = stringPreferencesKey("github_releases_fingerprint")
-
 val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
 val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
-enum class UpdateChannel {
-    STABLE,
-    NIGHTLY,
-}
+enum class UpdateChannel { STABLE, NIGHTLY }
