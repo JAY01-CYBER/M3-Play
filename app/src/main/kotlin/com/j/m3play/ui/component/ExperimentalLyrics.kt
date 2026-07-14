@@ -1,8 +1,6 @@
 package com.j.m3play.ui.component
 
-import android.app.Activity
 import android.content.Intent
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
@@ -30,32 +28,27 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
 import com.j.m3play.constants.*
 import com.j.m3play.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
-import com.j.m3play.lyrics.LyricsResyncHelper
+import com.j.m3play.lyrics.LyricsEntry
 import com.j.m3play.lyrics.LyricsTranslationHelper
-import com.j.m3play.lyrics.LyricsUtils.findActiveLineIndices
-import com.j.m3play.lyrics.lyricsTextLooksSynced
+import com.j.m3play.lyrics.LyricsUtils
 import com.j.m3play.ui.component.shimmer.ShimmerHost
 import com.j.m3play.ui.component.shimmer.TextPlaceholder
 import com.j.m3play.ui.utils.fadingEdge
 import com.j.m3play.utils.ComposeToImage
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
-import com.j.m3play.viewmodels.LyricsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
@@ -63,13 +56,31 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+sealed class LyricsListItem {
+    data class Line(val index: Int, val entry: LyricsEntry) : LyricsListItem()
+    data class Indicator(val afterLineIndex: Int, val gapMs: Long, val gapStartMs: Long, val gapEndMs: Long, val nextAgent: String?) : LyricsListItem()
+}
+
+@Composable
+internal fun IntervalIndicator(gapStartMs: Long, gapEndMs: Long, currentPositionMs: Long, visible: Boolean, color: Color, modifier: Modifier = Modifier) {
+    val alpha = remember { Animatable(0f) }
+    val rowHeightPx = remember { Animatable(0f) }
+    LaunchedEffect(visible) {
+        if (visible) { rowHeightPx.animateTo(1f, tween(200)); alpha.animateTo(1f, tween(200)) } 
+        else { alpha.animateTo(0f, tween(200)); rowHeightPx.animateTo(0f, tween(200)) }
+    }
+    val progress = if (gapEndMs > gapStartMs) ((currentPositionMs - gapStartMs).toFloat() / (gapEndMs - gapStartMs).toFloat()).coerceIn(0f, 1f) else 0f
+    Box(modifier = modifier.height(72.dp * rowHeightPx.value).padding(top = 16.dp * rowHeightPx.value).graphicsLayer { this.alpha = alpha.value; this.clip = true }, contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(progress = { progress }, modifier = Modifier.size(36.dp).alpha(alpha.value), color = color, trackColor = color.copy(alpha = 0.2f))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExperimentalLyrics(
     sliderPositionProvider: () -> Long?,
     modifier: Modifier = Modifier,
-    showLyrics: Boolean,
-    lyricsViewModel: LyricsViewModel = hiltViewModel()
+    showLyrics: Boolean
 ) {
     val playerConnection = LocalPlayerConnection.current ?: return
     val database = LocalDatabase.current
@@ -99,18 +110,76 @@ fun ExperimentalLyrics(
     val currentLyricsEntity by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
     
     val lyrics = remember(currentLyricsEntity) { currentLyricsEntity?.lyrics?.trim() }
-
     val playerBackground by rememberEnumPreference(PlayerBackgroundStyleKey, PlayerBackgroundStyle.DEFAULT)
 
-    val lines by lyricsViewModel.lines.collectAsStateWithLifecycle()
-    val mergedLyricsList by lyricsViewModel.mergedLyricsList.collectAsStateWithLifecycle()
-
-    LaunchedEffect(lyrics) {
-        lyricsViewModel.processLyrics(lyrics, emptyList(), false, showIntervalIndicator)
+    // --- 🔥 ROBUST LOCAL PARSING LOGIC (BYPASSES BUGGY VIEWMODEL) 🔥 ---
+    val lines = remember(lyrics) {
+        when {
+            lyrics.isNullOrBlank() || lyrics == LYRICS_NOT_FOUND -> emptyList()
+            lyrics.contains("<tt") || lyrics.contains("xmlns=\"http://www.w3.org/ns/ttml\"") -> {
+                try {
+                    // Try using M3-Play's native parser first
+                    LyricsUtils.parseTtml(lyrics)
+                } catch (t: Throwable) {
+                    // FALLBACK: If native parser fails, manually strip XML and extract time
+                    val entries = mutableListOf<LyricsEntry>()
+                    val pTagRegex = Regex("<p\\s+begin=\"([^\"]+)\"[^>]*>(.*?)</p>", RegexOption.DOT_MATCHES_ALL)
+                    val matches = pTagRegex.findAll(lyrics).toList()
+                    
+                    if (matches.isNotEmpty()) {
+                        matches.forEach { matchResult ->
+                            val timeStr = matchResult.groupValues[1]
+                            val textWithTags = matchResult.groupValues[2]
+                            var timeMs = 0L
+                            try {
+                                val parts = timeStr.split(":")
+                                if (parts.size >= 2) {
+                                    val m = parts[parts.size - 2].toLong()
+                                    val sParts = parts[parts.size - 1].split(".")
+                                    val s = sParts[0].toLong()
+                                    val ms = if (sParts.size > 1) sParts[1].padEnd(3, '0').substring(0, 3).toLong() else 0L
+                                    timeMs = m * 60000 + s * 1000 + ms
+                                }
+                            } catch (e: Exception) {}
+                            
+                            // Remove inner XML tags (like <span>)
+                            val text = textWithTags.replace(Regex("<[^>]*>"), "").trim()
+                            if (text.isNotBlank()) {
+                                entries.add(LyricsEntry(timeMs, text))
+                            }
+                        }
+                        entries
+                    } else {
+                        // Ultimate Fallback: Just strip all XML tags and show as plain text
+                        val cleanText = lyrics.replace(Regex("<[^>]*>"), "").replace(Regex("(?m)^[ \t]*\r?\n"), "").trim()
+                        cleanText.lines().filter { it.isNotBlank() }.mapIndexed { i, l -> LyricsEntry(i * 1000L, l.trim()) }
+                    }
+                }
+            }
+            lyrics.trim().startsWith("[") -> LyricsUtils.parseLyrics(lyrics)
+            else -> lyrics.lines().filter { it.isNotBlank() }.mapIndexed { i, l -> LyricsEntry(i * 1000L, l.trim()) }
+        }
     }
 
-    val isSynced = remember(lyrics) { lyricsTextLooksSynced(lyrics) }
-    val hasWordTimings = remember(lines) { lines.any { it.words?.isNotEmpty() == true } }
+    val mergedLyricsList = remember(lines, showIntervalIndicator) {
+        val list = mutableListOf<LyricsListItem>()
+        lines.forEachIndexed { i, entry ->
+            if (entry.text.isNotBlank()) list.add(LyricsListItem.Line(i, entry))
+            val isSynced = lines.any { it.time > 0 }
+            if (showIntervalIndicator && isSynced && i < lines.size - 1) {
+                val nextStart = lines[i + 1].time
+                val currentEnd = if (!entry.words.isNullOrEmpty()) (entry.words.last().endTime * 1000).toLong() else entry.time
+                if (currentEnd < nextStart) {
+                    val gap = nextStart - currentEnd
+                    if (gap > 4000L) list.add(LyricsListItem.Indicator(i, gap, currentEnd, nextStart, lines[i + 1].agent))
+                }
+            }
+        }
+        list
+    }
+    // ---------------------------------------------------------------------
+
+    val isSynced = remember(lines) { lines.any { it.time > 0L } }
 
     DisposableEffect(Unit) {
         LyricsTranslationHelper.setCompositionActive(true)
@@ -133,9 +202,6 @@ fun ExperimentalLyrics(
         else -> Color.White
     }
 
-    var activeLineIndices by remember { mutableStateOf(emptySet<Int>()) }
-    var scrollTargetIndex by rememberSaveable { mutableIntStateOf(-1) }
-    var previousScrollActiveIndices by remember { mutableStateOf(emptySet<Int>()) }
     var currentPositionState by remember { mutableLongStateOf(0L) }
     var deferredCurrentLineIndex by rememberSaveable { mutableIntStateOf(0) }
     var isSeeking by remember { mutableStateOf(false) }
@@ -143,28 +209,28 @@ fun ExperimentalLyrics(
     val selectedIndices = remember { mutableStateListOf<Int>() }
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
 
-    var showProgressDialog by remember { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
 
     BackHandler(enabled = isSelectionModeActive) { isSelectionModeActive = false; selectedIndices.clear() }
 
+    val activeLineIndices = remember(lines, currentPositionState) {
+        val index = lines.indexOfLast { it.time <= currentPositionState }
+        if (index != -1) setOf(index) else emptySet()
+    }
+
     LaunchedEffect(lyrics, lines) {
-        if (lyrics.isNullOrEmpty() || lines.isEmpty()) { activeLineIndices = emptySet(); return@LaunchedEffect }
+        if (lyrics.isNullOrEmpty() || lines.isEmpty()) return@LaunchedEffect
         while (isActive) {
             delay(16)
             val sliderPosition = sliderPositionProvider()
             isSeeking = sliderPosition != null
             val position = sliderPosition ?: playerConnection.player.currentPosition
             currentPositionState = position
-            val effectivePosition = position
             
-            val initialActiveIndices = findActiveLineIndices(lines, effectivePosition)
-            activeLineIndices = initialActiveIndices
-
             if (isAutoScrollEnabled) {
-                deferredCurrentLineIndex = initialActiveIndices.maxOrNull() ?: -1
+                deferredCurrentLineIndex = activeLineIndices.maxOrNull() ?: -1
             }
         }
     }
