@@ -60,7 +60,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -185,6 +184,7 @@ import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.PlayerSliderTrack
 import com.j.m3play.ui.component.ResizableIconButton
 import com.j.m3play.ui.component.rememberBottomSheetState
+import com.j.m3play.ui.component.LyricsV2
 import com.j.m3play.ui.menu.PlayerMenu
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.ui.utils.ShowMediaInfo
@@ -326,7 +326,6 @@ fun BottomSheetPlayer(
     var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     var isFullScreen by rememberSaveable { mutableStateOf(false) }
 
-    // 🔥 STATUS BAR HIDE LOGIC FOR FULL SCREEN 🔥
     val view = androidx.compose.ui.platform.LocalView.current
     val window = (context as? android.app.Activity)?.window
 
@@ -350,7 +349,6 @@ fun BottomSheetPlayer(
             }
         }
     }
-    // 🔥 --------------------------------------- 🔥
 
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
@@ -462,6 +460,7 @@ fun BottomSheetPlayer(
             MaterialTheme.colorScheme.secondary,
             MaterialTheme.colorScheme.onSecondary
         )
+        else -> Pair(TextBackgroundColor, icBackgroundColor)
     }
 
     val download by LocalDownloadUtil.current.getDownload(mediaMetadata?.id ?: "")
@@ -922,7 +921,7 @@ fun BottomSheetPlayer(
                                     onExpandQueue = queueSheetState::expandSoft,
                                     onMenuClick = {
                                         menuState.show {
-                                            PlayerMenu(
+                                            com.j.m3play.ui.menu.PlayerMenu(
                                                 mediaMetadata = metadata,
                                                 navController = navController,
                                                 playerBottomSheetState = state,
@@ -1066,7 +1065,7 @@ fun BottomSheetPlayer(
                                         onExpandQueue = queueSheetState::expandSoft,
                                         onMenuClick = {
                                             menuState.show {
-                                                PlayerMenu(
+                                                com.j.m3play.ui.menu.PlayerMenu(
                                                     mediaMetadata = metadata,
                                                     navController = navController,
                                                     playerBottomSheetState = state,
@@ -1150,6 +1149,7 @@ fun BottomSheetPlayer(
                 MaterialTheme.colorScheme.secondary,
                 MaterialTheme.colorScheme.onSecondary
             )
+            else -> Pair(queueOnBackgroundColor, queueSurfaceColor)
         }
 
         AnimatedVisibility(
