@@ -1,3 +1,8 @@
+/*
+ * M3Play UI System
+ * Signature: M3PLAY::UI::EXPRESSIVE::V1
+ */
+
 package com.j.m3play.constants
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -29,14 +34,8 @@ val CropThumbnailToSquareKey = booleanPreferencesKey("cropThumbnailToSquare")
 val SeekExtraSeconds = booleanPreferencesKey("seekExtraSeconds")
 val DisableBlurKey = booleanPreferencesKey("disableBlur")
 val MiniPlayerLastAnchorKey = intPreferencesKey("miniPlayerLastAnchor")
-
-
 val HistoryDuration = floatPreferencesKey("historyDuration")
 val TopSize = stringPreferencesKey("topSize")
-val ShowLyricsKey = booleanPreferencesKey("showLyrics")
-val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
-val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style")
-val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 
 enum class SliderStyle { Standard, Wavy, Thick, Circular, Simple }
 
@@ -161,8 +160,8 @@ val DiscordActivityButton2EnabledKey = booleanPreferencesKey("discordActivityBut
 val DiscordShowWhenPausedKey = booleanPreferencesKey("discordShowWhenPaused")
 val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
 val DiscordPresenceIntervalValueKey = intPreferencesKey("discordPresenceIntervalValue")
-val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceIntervalUnit") 
-val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") 
+val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceIntervalUnit")
+val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus")
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeTextSourceKey = stringPreferencesKey("discordLargeTextSource")
 val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
@@ -218,45 +217,6 @@ val ShowDownloadedPlaylistKey = booleanPreferencesKey("show_downloaded_playlist"
 val ShowTopPlaylistKey = booleanPreferencesKey("show_top_playlist")
 val ShowCachedPlaylistKey = booleanPreferencesKey("show_cached_playlist")
 
-// 🔥 GLOSSY LYRICS & TRANSLATION ENGINE KEYS 🔥
-val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
-enum class LyricsAnimationStyle { NONE, FADE, GLOW, SLIDE, KARAOKE, APPLE }
-
-val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
-enum class LyricsPosition { LEFT, CENTER, RIGHT }
-
-val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
-val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
-val LyricsClickKey = booleanPreferencesKey("lyricsClick")
-val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
-val HideStatusBarOnFullscreenKey = booleanPreferencesKey("hideStatusBarOnFullscreen")
-val LyricsRomanizeAsMainKey = booleanPreferencesKey("lyricsRomanizeAsMain")
-val LyricsRomanizeCyrillicByLineKey = booleanPreferencesKey("lyricsRomanizeCyrillicByLine")
-val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
-val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
-val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
-val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
-val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
-
-// Romanization missing keys added here 
-val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
-val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
-
-// AI Translation Keys
-val OpenRouterApiKey = stringPreferencesKey("openRouterApiKey")
-val AiProviderKey = stringPreferencesKey("aiProvider")
-val OpenRouterBaseUrlKey = stringPreferencesKey("openRouterBaseUrl")
-val OpenRouterModelKey = stringPreferencesKey("openRouterModel")
-const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
-const val OpenRouterDefaultModel = "google/gemini-2.5-flash-lite"
-val TranslateModeKey = stringPreferencesKey("translateMode")
-val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
-val DeeplApiKey = stringPreferencesKey("deeplApiKey")
-val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
-val AiSystemPromptKey = stringPreferencesKey("aiSystemPrompt")
-
-const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings."""
-
 enum class LibraryViewType { LIST, GRID ; fun toggle() = when (this) { LIST -> GRID; GRID -> LIST } }
 enum class SongFilter { LIBRARY, LIKED, DOWNLOADED }
 enum class ArtistFilter { LIBRARY, LIKED }
@@ -283,7 +243,10 @@ enum class MyTopFilter {
 enum class QuickPicks { QUICK_PICKS, LAST_LISTEN }
 enum class PreferredLyricsProvider { LRCLIB, KUGOU, BETTER_LYRICS, SIMPMUSIC, YOULYPLUS, PAXSENIX }
 
-// Enums fixed for player styles
+// --- PLAYER STYLES ---
+val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
+val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
+val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style") 
 enum class PlayerButtonsStyle { DEFAULT, SECONDARY, PRIMARY, TERTIARY }
 enum class PlayerDesignStyle { V1, V2, V3, V4, V5, V6 }
 enum class PlayerBackgroundStyle { DEFAULT, GRADIENT, CUSTOM, BLUR, COLORING, BLUR_GRADIENT, GLOW, GLOW_ANIMATED, APPLE_MUSIC, LIVE_MESH }
@@ -292,6 +255,45 @@ val PlayerCustomImageUriKey = stringPreferencesKey("playerCustomImageUri")
 val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
+
+
+val ShowLyricsKey = booleanPreferencesKey("showLyrics")
+val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
+enum class LyricsAnimationStyle { NONE, FADE, GLOW, SLIDE, KARAOKE, APPLE }
+
+val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
+enum class LyricsPosition { LEFT, CENTER, RIGHT }
+
+val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
+val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
+val LyricsClickKey = booleanPreferencesKey("lyricsClick")
+val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
+val HideStatusBarOnFullscreenKey = booleanPreferencesKey("hideStatusBarOnFullscreen")
+val LyricsRomanizeAsMainKey = booleanPreferencesKey("lyricsRomanizeAsMain")
+val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
+val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
+val LyricsRomanizeCyrillicByLineKey = booleanPreferencesKey("lyricsRomanizeCyrillicByLine")
+val RespectAgentPositioningKey = booleanPreferencesKey("respectAgentPositioning")
+val ShowIntervalIndicatorKey = booleanPreferencesKey("showIntervalIndicator")
+val ExperimentalLyricsKey = booleanPreferencesKey("experimentalLyrics")
+val LyricsGlowEffectKey = booleanPreferencesKey("lyricsGlowEffect")
+val LyricsRomanizeList = stringPreferencesKey("lyricsRomanizeList")
+val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
+val UseLyricsV2Key = booleanPreferencesKey("useLyricsV2")
+
+val OpenRouterApiKey = stringPreferencesKey("openRouterApiKey")
+val AiProviderKey = stringPreferencesKey("aiProvider")
+val OpenRouterBaseUrlKey = stringPreferencesKey("openRouterBaseUrl")
+val OpenRouterModelKey = stringPreferencesKey("openRouterModel")
+const val OpenRouterDefaultBaseUrl = "https://openrouter.ai/api/v1/chat/completions"
+const val OpenRouterDefaultModel = "google/gemini-2.5-flash-lite"
+val TranslateModeKey = stringPreferencesKey("translateMode")
+val TranslateLanguageKey = stringPreferencesKey("translateLanguage")
+val DeeplApiKey = stringPreferencesKey("deeplApiKey")
+val DeeplFormalityKey = stringPreferencesKey("deeplFormality")
+val AiSystemPromptKey = stringPreferencesKey("aiSystemPrompt")
+
+const val DEFAULT_AI_SYSTEM_PROMPT = """You are a precise lyrics translation assistant. Your output must ALWAYS be a valid JSON array of strings."""
 
 val PreloadQueueLyricsEnabledKey = booleanPreferencesKey("preload_queue_lyrics_enabled")
 val QueueLyricsPreloadCountKey = intPreferencesKey("queue_lyrics_preload_count")
@@ -321,12 +323,28 @@ val PoTokenPlayerKey = stringPreferencesKey("poTokenPlayer")
 val UseVisitorDataKey = booleanPreferencesKey("useVisitorData")
 val PoTokenSourceUrlKey = stringPreferencesKey("poTokenSourceUrl")
 
+val LanguageCodeToName = mapOf("en" to "English (US)", "en-GB" to "English (UK)", "ja" to "日本語", "ko" to "한국어", "vi" to "Tiếng Việt", "zh" to "中文", "zh-CN" to "简体中文", "zh-TW" to "繁體中文", "fr" to "Français", "de" to "Deutsch", "es" to "Español", "pt" to "Português", "pt-BR" to "Português (Brasil)", "ru" to "Русский", "it" to "Italiano", "nl" to "Nederlands", "pl" to "Polski", "tr" to "Türkçe", "ar" to "العربية", "hi" to "हिन्दी", "th" to "ไทย", "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "uk" to "Українська", "cs" to "Čeština", "el" to "Ελληνικά", "he" to "עברית", "hu" to "Magyar", "ro" to "Română", "fi" to "Suomi", "da" to "Dansk", "no" to "Norsk", "sv" to "Svenska", "sk" to "Slovenčina", "bg" to "Български", "hr" to "Hrvatski", "sr" to "Срpsки", "lt" to "Lietuvių", "lv" to "Latviešu", "et" to "Eesti")
+val CountryCodeToName = mapOf("JP" to "Japan", "KR" to "South Korea", "US" to "United States", "GB" to "United Kingdom", "CN" to "China", "TW" to "Taiwan", "HK" to "Hong Kong", "FR" to "France", "DE" to "Germany", "ES" to "Spain", "MX" to "Mexico", "BR" to "Brazil", "RU" to "Russia", "IT" to "Italy", "NL" to "Netherlands", "PL" to "Poland", "TR" to "Turkey", "AU" to "Australia", "CA" to "Canada", "IN" to "India", "ID" to "Indonesia", "TH" to "Thailand", "VN" to "Vietnam", "PH" to "Philippines", "MY" to "Malaysia", "SG" to "Singapore", "AR" to "Argentina", "CL" to "Chile", "CO" to "Colombia", "PE" to "Peru", "ZA" to "South Africa", "EG" to "Egypt", "SA" to "Saudi Arabia", "AE" to "United Arab Emirates")
+
 val LaunchCountKey = intPreferencesKey("launch_count")
 val HasPressedStarKey = booleanPreferencesKey("has_pressed_star")
 val RemindAfterKey = intPreferencesKey("remind_after")
+
 val EnableUpdateNotificationKey = booleanPreferencesKey("enableUpdateNotification")
 val UpdateChannelKey = stringPreferencesKey("updateChannel")
 val LastUpdateCheckKey = longPreferencesKey("lastUpdateCheck")
 val LastNotifiedVersionKey = stringPreferencesKey("lastNotifiedVersion")
+
+val GitHubContributorsEtagKey = stringPreferencesKey("github_contributors_etag")
+val GitHubContributorsJsonKey = stringPreferencesKey("github_contributors_json")
+val GitHubContributorsLastCheckedAtKey = longPreferencesKey("github_contributors_last_checked_at")
+
+val GitHubReleasesEtagKey = stringPreferencesKey("github_releases_etag")
+val GitHubReleasesJsonKey = stringPreferencesKey("github_releases_json")
+val GitHubReleasesLastCheckedAtKey = longPreferencesKey("github_releases_last_checked_at")
+val GitHubReleasesFingerprintKey = stringPreferencesKey("github_releases_fingerprint")
+
+val TogetherOnlineEndpointCacheKey = stringPreferencesKey("together_online_endpoint_cache")
+val TogetherOnlineEndpointLastCheckedAtKey = longPreferencesKey("together_online_endpoint_last_checked_at")
 
 enum class UpdateChannel { STABLE, NIGHTLY }
