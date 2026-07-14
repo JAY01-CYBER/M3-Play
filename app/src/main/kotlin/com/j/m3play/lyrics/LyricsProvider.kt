@@ -1,10 +1,6 @@
-/*
- * M3Play - Modern Music Player
- *
- * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
+/**
+ * M3Play Project
  */
-
 package com.j.m3play.lyrics
 
 import android.content.Context
@@ -15,21 +11,23 @@ interface LyricsProvider {
     fun isEnabled(context: Context): Boolean
 
     suspend fun getLyrics(
+        context: Context,
         id: String,
         title: String,
         artist: String,
-        album: String?,
         duration: Int,
+        album: String? = null,
     ): Result<String>
 
     suspend fun getAllLyrics(
+        context: Context,
         id: String,
         title: String,
         artist: String,
-        album: String?,
         duration: Int,
+        album: String? = null,
         callback: (String) -> Unit,
     ) {
-        getLyrics(id, title, artist, album, duration).onSuccess(callback)
+        getLyrics(context, id, title, artist, duration, album).onSuccess(callback)
     }
 }
