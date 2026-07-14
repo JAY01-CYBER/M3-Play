@@ -178,11 +178,9 @@ val DiscordInfoDismissedKey = booleanPreferencesKey("discordInfoDismissed")
 val DiscordUsernameKey = stringPreferencesKey("discordUsername")
 val DiscordNameKey = stringPreferencesKey("discordName")
 val EnableDiscordRPCKey = booleanPreferencesKey("discordRPCEnable")
-// Discord activity customization keys
 val DiscordActivityNameKey = stringPreferencesKey("discordActivityName")
 val DiscordActivityDetailsKey = stringPreferencesKey("discordActivityDetails")
 val DiscordActivityStateKey = stringPreferencesKey("discordActivityState")
-// Custom button labels and urls for Discord activity buttons
 val DiscordActivityButton1LabelKey = stringPreferencesKey("discordActivityButton1Label")
 val DiscordActivityButton1UrlSourceKey = stringPreferencesKey("discordActivityButton1UrlSource")
 val DiscordActivityButton1CustomUrlKey = stringPreferencesKey("discordActivityButton1CustomUrl")
@@ -192,20 +190,16 @@ val DiscordActivityButton2CustomUrlKey = stringPreferencesKey("discordActivityBu
 val DiscordActivityButton1EnabledKey = booleanPreferencesKey("discordActivityButton1Enabled")
 val DiscordActivityButton2EnabledKey = booleanPreferencesKey("discordActivityButton2Enabled")
 val DiscordShowWhenPausedKey = booleanPreferencesKey("discordShowWhenPaused")
-// Activity type for Discord presence (PLAYING, STREAMING, LISTENING, WATCHING, COMPETING)
 val DiscordActivityTypeKey = stringPreferencesKey("discordActivityType")
 val DiscordPresenceIntervalValueKey = intPreferencesKey("discordPresenceIntervalValue")
-val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceIntervalUnit") // "S", "M", "H"
-val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") // "ONLINE", "IDLE", "DND", "INVISIBLE"
-
-// Discord image selection keys
+val DiscordPresenceIntervalUnitKey = stringPreferencesKey("discordPresenceIntervalUnit") 
+val DiscordPresenceStatusKey = stringPreferencesKey("discordPresenceStatus") 
 val DiscordLargeImageTypeKey = stringPreferencesKey("discordLargeImageType")
 val DiscordLargeTextSourceKey = stringPreferencesKey("discordLargeTextSource")
 val DiscordLargeTextCustomKey = stringPreferencesKey("discordLargeTextCustom")
 val DiscordLargeImageCustomUrlKey = stringPreferencesKey("discordLargeImageCustomUrl")
 val DiscordSmallImageTypeKey = stringPreferencesKey("discordSmallImageType")
 val DiscordSmallImageCustomUrlKey = stringPreferencesKey("discordSmallImageCustomUrl")
-// Activity platform (discord client platform) selection
 val DiscordActivityPlatformKey = stringPreferencesKey("discordActivityPlatform")
 
 val TranslatorContextsKey = stringPreferencesKey("translatorContexts")
@@ -417,7 +411,6 @@ enum class PlayerDesignStyle {
     V6,
 }
 
-
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
@@ -437,19 +430,6 @@ val PlayerCustomBlurKey = floatPreferencesKey("playerCustomBlur")
 val PlayerCustomContrastKey = floatPreferencesKey("playerCustomContrast")
 val PlayerCustomBrightnessKey = floatPreferencesKey("playerCustomBrightness")
 
-val LyricsAnimationStyleKey = stringPreferencesKey("lyricsAnimationStyle")
-enum class LyricsAnimationStyle {
-    NONE,
-    FADE,
-    GLOW,
-    SLIDE,
-    KARAOKE,
-    APPLE,
-}
-
-val LyricsTextSizeKey = floatPreferencesKey("lyricsTextSize")
-val LyricsLineSpacingKey = floatPreferencesKey("lyricsLineSpacing")
-
 val TopSize = stringPreferencesKey("topSize")
 val HistoryDuration = floatPreferencesKey("historyDuration")
 
@@ -457,13 +437,9 @@ val PlayerButtonsStyleKey = stringPreferencesKey("player_buttons_style")
 val PlayerBackgroundStyleKey = stringPreferencesKey("playerBackgroundStyle")
 val MiniPlayerBackgroundStyleKey = stringPreferencesKey("mini_player_background_style") 
 val ShowLyricsKey = booleanPreferencesKey("showLyrics")
-val LyricsTextPositionKey = stringPreferencesKey("lyricsTextPosition")
-val LyricsClickKey = booleanPreferencesKey("lyricsClick")
-val LyricsScrollKey = booleanPreferencesKey("lyricsScrollKey")
 val LyricsRomanizeJapaneseKey = booleanPreferencesKey("lyricsRomanizeJapanese")
 val LyricsRomanizeKoreanKey = booleanPreferencesKey("lyricsRomanizeKorean")
 val TranslateLyricsKey = booleanPreferencesKey("translateLyrics")
-val UseLyricsV2Key = booleanPreferencesKey("useLyricsV2")
 
 // Queue lyrics pre-load settings
 val PreloadQueueLyricsEnabledKey = booleanPreferencesKey("preload_queue_lyrics_enabled")
