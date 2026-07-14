@@ -1,15 +1,16 @@
-/**
- * M3Play Project
+/*
+ * M3Play - Modern Music Player
+ *
+ * Copyright (c) 2026 JAY01-CYBER
+ * Signature: M3PLAY::GENERAL::V1
  */
+
 package com.j.m3play.viewmodels
 
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.j.m3play.db.MusicDatabase
 import com.j.m3play.db.entities.LyricsEntity
-import com.j.m3play.db.entities.Song
 import com.j.m3play.lyrics.LyricsHelper
 import com.j.m3play.lyrics.LyricsResult
 import com.j.m3play.models.MediaMetadata
@@ -22,11 +23,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+ 
 import javax.inject.Inject
 
 @HiltViewModel
-class LyricsMenuViewModel @Inject constructor(
+class LyricsMenuViewModel
+@Inject
+constructor(
     private val lyricsHelper: LyricsHelper,
     val database: MusicDatabase,
     private val networkConnectivity: NetworkConnectivityObserver,
@@ -38,39 +41,81 @@ class LyricsMenuViewModel @Inject constructor(
     private val _isNetworkAvailable = MutableStateFlow(false)
     val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
 
-    private val _currentSong = mutableStateOf<Song?>(null)
-    val currentSong: State<Song?> = _currentSong
-
     init {
         viewModelScope.launch {
             networkConnectivity.networkStatus.collect { isConnected ->
                 _isNetworkAvailable.value = isConnected
             }
         }
-        _isNetworkAvailable.value = try { networkConnectivity.isCurrentlyConnected() } catch (e: Exception) { true }
-    }
-
-    fun setCurrentSong(song: Song) { _currentSong.value = song }
-
-    fun search(mediaId: String, title: String, artist: String, duration: Int, album: String? = null) {
-        isLoading.value = true
-        results.value = emptyList()
-        job?.cancel()
-        job = viewModelScope.launch(Dispatchers.IO) {
-            lyricsHelper.getAllLyrics(mediaId, title, artist, album, duration) { result ->
-                results.update { it + result }
-            }
-            isLoading.value = false
+  
+        // Set initial state using synchronous check
+        _isNetworkAvailable.value = try {
+            networkConnectivity.isCurrentlyConnected()
+        } catch (e: Exception) {
+            true // Assume connected as fallback
         }
     }
 
-    fun cancelSearch() { job?.cancel(); job = null }
+    fun search(
+        mediaId: String,
+        title: String,
+        artist: String,
+        duration: Int,
+    ) {
+        isLoading.value = true
+        results.value = emptyList()
+        job?.cancel()
+        job =
+            viewModelScope.launch(Dispatchers.IO) {
+                lyricsHelper.getAllLyrics(mediaId, title, artist, null, duration) { result ->
+                    results.update {
+                        it + result
+                    }
+                }
+                isLoading.value = false
+            }
+    }
 
-    fun refetchLyrics(mediaMetadata: MediaMetadata, lyricsEntity: LyricsEntity?) {
-        database.query {
-            lyricsEntity?.let(::delete)
-            val lyricsResult = runBlocking { lyricsHelper.getLyrics(mediaMetadata) }
-            upsert(LyricsEntity(mediaMetadata.id, lyricsResult.lyrics, lyricsResult.providerName))
+    fun cancelSearch() {
+        job?.cancel()
+        job = null
+    }
+
+    fun refetchLyrics(
+        mediaMetadata: MediaMetadata,
+        lyricsEntity: LyricsEntity?,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                
+                val result = lyricsHelper.getLyrics(mediaMetadata)
+                database.query {
+                    lyricsEntity?.let(::delete)
+                    
+                    upsert(LyricsEntity(
+                        id = mediaMetadata.id, 
+                        lyrics = result.lyrics, 
+                        provider = result.providerName
+                    ))
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.query {
+                
+                upsert(LyricsEntity(
+                    id = mediaMetadata.id, 
+                    lyrics = lyrics, 
+                    provider = "Local"
+                ))
+            }
         }
     }
 }
