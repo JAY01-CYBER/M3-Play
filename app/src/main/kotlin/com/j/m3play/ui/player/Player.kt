@@ -184,7 +184,7 @@ import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.PlayerSliderTrack
 import com.j.m3play.ui.component.ResizableIconButton
 import com.j.m3play.ui.component.rememberBottomSheetState
-import com.j.m3play.ui.component.LyricsV2
+import com.j.m3play.ui.component.ExperimentalLyrics
 import com.j.m3play.ui.menu.PlayerMenu
 import com.j.m3play.ui.screens.settings.DarkMode
 import com.j.m3play.ui.utils.ShowMediaInfo
@@ -827,7 +827,7 @@ fun BottomSheetPlayer(
             )
         }
 
-                if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
