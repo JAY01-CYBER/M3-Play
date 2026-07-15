@@ -474,7 +474,7 @@ fun Lyrics(
     }
 
     val lines = remember(lyrics, scope, mediaMetadata?.id, mediaMetadata?.duration, lyricsEntity?.provider) {
-        // 🔥 Provider ka custom line
+        
         val providerName = lyricsEntity?.provider?.uppercase() ?: "UNKNOWN"
         val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
 
@@ -697,7 +697,9 @@ fun Lyrics(
                 delay(250L)
                 continue
             }
-            withFrameNanos { }
+    
+            delay(32L) 
+            
             val sliderPosition = sliderPositionProvider()
             val seekingNow = sliderPosition != null
             if (isSeeking != seekingNow) {
@@ -719,9 +721,10 @@ fun Lyrics(
         if (isSeeking) {
             lastPreviewTime = 0L
         } else if (lastPreviewTime != 0L) {
-            delay(LyricsPreviewTime)
-            isManualScrolling = false
-            lastPreviewTime = 0L
+    
+            // delay(LyricsPreviewTime)
+            // isManualScrolling = false
+            // lastPreviewTime = 0L
         }
     }
 
@@ -1752,9 +1755,9 @@ fun Lyrics(
                             )
                         } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.SLIDE && !reduceMotionDuringScroll) {
 
-                            val popInScale = remember { Animatable(0.95f) }
-
-                            val fillProgress = remember { Animatable(0f) }
+            
+                            val popInScale = remember(index) { Animatable(0.95f) }
+                            val fillProgress = remember(index) { Animatable(0f) }
 
                             LaunchedEffect(index) {
 
@@ -1817,7 +1820,8 @@ fun Lyrics(
                             )
                         } else if (isActiveLine && effectiveAnimationStyle == LyricsAnimationStyle.APPLE && !reduceMotionDuringScroll) {
 
-                            val popInScale = remember { Animatable(0.96f) }
+                    
+                            val popInScale = remember(index) { Animatable(0.96f) }
 
                             LaunchedEffect(index) {
 
@@ -1860,7 +1864,8 @@ fun Lyrics(
                             )
                         } else {
 
-                            val popInScale = remember { Animatable(1f) }
+                
+                            val popInScale = remember(index) { Animatable(1f) }
 
                             LaunchedEffect(isActiveLine, reduceMotionDuringScroll) {
                                 if (isActiveLine && !reduceMotionDuringScroll) {
