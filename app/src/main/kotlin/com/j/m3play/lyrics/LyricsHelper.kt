@@ -39,7 +39,7 @@ constructor(
         listOf(
             SimpMusicLyricsProvider,
             BetterLyricsProvider,
-            PaxsenixLyricsProvider, // <-- PAXSENIX ADDED HERE
+            PaxsenixLyricsProvider, 
             LrcLibLyricsProvider,
             KuGouLyricsProvider,
             YouTubeSubtitleLyricsProvider,
