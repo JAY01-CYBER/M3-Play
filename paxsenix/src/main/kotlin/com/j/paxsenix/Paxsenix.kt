@@ -7,7 +7,7 @@ import com.j.paxsenix.models.LyricsResponse
 import com.j.paxsenix.models.SearchResult
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.ClientRequestException
@@ -27,7 +27,7 @@ import kotlin.math.abs
 object Paxsenix {
     private val httpClient: HttpClient by lazy {
         Log.d("Paxsenix", "Initializing Paxsenix HTTP client")
-        HttpClient(CIO) {
+        HttpClient(OkHttp) {
             install(HttpTimeout) {
                 requestTimeoutMillis = 15000
                 connectTimeoutMillis = 10000
@@ -220,6 +220,7 @@ object Paxsenix {
     
     private fun getQuality(lrc: String): Int {
         if (lrc.isBlank()) return 0
+        if (lrc.contains("<tt", ignoreCase = true) || lrc.contains("http://www.w3.org/ns/ttml", ignoreCase = true)) return 3
         val hasWordTimings = (lrc.contains("<") && lrc.contains(">") && (lrc.contains("|") || lrc.contains(":"))) ||
                 lrc.contains(Regex("<\\d{1,2}:\\d{2}\\.\\d{2,3}>"))
         
@@ -303,11 +304,8 @@ object Paxsenix {
         Log.d("Paxsenix", "Lyrics response: type=$lyricsType")
         
         if (!response.ttmlContent.isNullOrBlank()) {
-            val lrc = convertTTMLToAppFormat(response.ttmlContent)
-            if (lrc.isNotEmpty()) {
-                Log.d("Paxsenix", "Generated LRC from ttmlContent using TTMLParser")
-                return@runCatching lrc
-            }
+            Log.d("Paxsenix", "Returning raw TTML content for perfect word sync")
+            return@runCatching response.ttmlContent
         }
 
         if (!response.elrcMultiPerson.isNullOrBlank()) {
@@ -418,14 +416,13 @@ object Paxsenix {
     private fun convertTTMLToAppFormat(ttml: String): String {
         return try {
             val parsedLines = TTMLParser.parseTTML(ttml)
-            toLRC(parsedLines) // <-- NAYA LOCAL toLRC YAHAN USE HUA
+            toLRC(parsedLines) 
         } catch (e: Exception) {
             Log.e("Paxsenix", "TTML conversion failed: ${e.message}", e)
             ""
         }
     }
 
-    // <-- TTML ko safely format karne ka naya function
     private fun toLRC(lines: List<TTMLParser.ParsedLine>): String {
         return buildString {
             lines.forEach { line ->
