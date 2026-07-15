@@ -10,6 +10,7 @@
 
 package com.j.m3play.ui.player
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -324,7 +325,33 @@ fun BottomSheetPlayer(
 
     var showInlineLyrics by rememberSaveable { mutableStateOf(false) }
     var isFullScreen by rememberSaveable { mutableStateOf(false) }
-    
+
+    // STATUS BAR HIDE LOGIC FOR FULL SCREEN 
+    val view = androidx.compose.ui.platform.LocalView.current
+    val window = (context as? android.app.Activity)?.window
+
+    LaunchedEffect(isFullScreen) {
+        window?.let { win ->
+            val insetsController = androidx.core.view.WindowCompat.getInsetsController(win, view)
+            if (isFullScreen) {
+                insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
+    LaunchedEffect(state.isCollapsed, state.isDismissed) {
+        if ((state.isCollapsed || state.isDismissed) && isFullScreen) {
+            isFullScreen = false 
+            window?.let { win ->
+                androidx.core.view.WindowCompat.getInsetsController(win, view).show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+    //  --------------------------------------- 
+
     val isLoading = playbackState == STATE_BUFFERING || sliderPosition != null
 
     var gradientColors by remember {
@@ -801,7 +828,7 @@ fun BottomSheetPlayer(
             )
         }
 
-        if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
+                if (!state.isCollapsed && playerDesignStyle != PlayerDesignStyle.V5) {
             PlayerBackground(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
@@ -820,7 +847,6 @@ fun BottomSheetPlayer(
         } else 0f
         val expandProgressSafeAlpha = expandProgressRaw.coerceIn(0f, 1f)
 
-        // 🔥 METROLIST FIX: PADDING KO ANIMATE KARO 🔥
         val bottomPadding by animateDpAsState(
             targetValue = if (isFullScreen) 0.dp else queueSheetState.collapsedBound,
             label = "bottomPadding"
@@ -915,7 +941,7 @@ fun BottomSheetPlayer(
                     Row(
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = landscapeBottomPadding) // 🔥 FIXED PADDING
+                            .padding(bottom = landscapeBottomPadding) 
                             .animateContentSize(),
                     ) {
                         Box(
@@ -935,7 +961,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), // 🔥 FILL SPACE
+                                modifier = Modifier.fillMaxSize(), 
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
@@ -1061,7 +1087,7 @@ fun BottomSheetPlayer(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
-                            .padding(bottom = bottomPadding) // 🔥 FIXED PADDING (NO GAPS!)
+                            .padding(bottom = bottomPadding) 
                             .animateContentSize(),
                     ) {
                         Box(
@@ -1079,7 +1105,7 @@ fun BottomSheetPlayer(
                             AnimatedContent(
                                 targetState = showInlineLyrics,
                                 label = "LyricsTransition",
-                                modifier = Modifier.fillMaxSize(), // 🔥 FILL FULL SPACE
+                                modifier = Modifier.fillMaxSize(), 
                                 transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }
                             ) { showLyrics ->
                                 if (showLyrics) {
