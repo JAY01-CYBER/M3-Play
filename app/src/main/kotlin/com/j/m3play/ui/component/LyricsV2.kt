@@ -344,7 +344,7 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-    
+
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var anchorPlayerPositionMs = player.currentPosition.coerceAtLeast(0L)
@@ -367,18 +367,18 @@ fun LyricsV2(
                 val frameNanos = withFrameNanos { it }
                 if (anchorFrameNanos == 0L) {
                     anchorFrameNanos = frameNanos
-                    anchorPlayerPositionMs = rawPosition
+                    anchorPlayerPositionMs = rawPos
                 }
 
-                val elapsedMs = ((frameNanos - anchorFrameNanos) / 1_000_000f) // * playbackSpeed
+                val elapsedMs = ((frameNanos - anchorFrameNanos) / 1_000_000f) 
                 val projectedPosition = anchorPlayerPositionMs + elapsedMs.roundToLong()
-                val driftMs = rawPosition - projectedPosition
+                val driftMs = rawPos - projectedPosition
                 
                 val nextPosition = when {
                     driftMs > SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS || driftMs < -SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS -> {
-                        anchorPlayerPositionMs = rawPosition
+                        anchorPlayerPositionMs = rawPos
                         anchorFrameNanos = frameNanos
-                        rawPosition
+                        rawPos
                     }
                     driftMs != 0L -> {
                         projectedPosition + (driftMs * SMOOTH_PLAYBACK_DRIFT_CORRECTION).roundToLong()
@@ -395,7 +395,6 @@ fun LyricsV2(
     }
 
     val currentTimeProvider = remember { { currentPositionMs } }
-
 
     var userManualOffset by remember { mutableFloatStateOf(0f) }
     var isAutoScrollEnabled by remember { mutableStateOf(true) }
@@ -543,7 +542,7 @@ fun LyricsV2(
                     val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
                     val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                     
-                
+                    
                     val mainWords = remember(item.words) { item.words?.filter { !it.isBackground } ?: emptyList() }
                     val bgWords = remember(item.words) { item.words?.filter { it.isBackground } ?: emptyList() }
                     val isAllBackground = mainWords.isEmpty() && bgWords.isNotEmpty()
