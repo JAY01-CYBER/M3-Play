@@ -1,6 +1,12 @@
 /*
  * M3Play Component Module 
  * Signature: M3PLAY::COMPONENT
+ *
+ * Credits: 
+ * Advanced playback drift correction, syllable syncing logic, 
+ * and Material 3 Bottom Sheet UI paradigms are adapted from 
+ * ArchiveTune (© Rukamori - github.com/rukamori).
+ * Respect and thanks to the original developer!
  */
 
 package com.j.m3play.ui.component
@@ -50,6 +56,7 @@ import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 import com.j.m3play.LocalPlayerConnection
 import com.j.m3play.R
@@ -75,6 +82,10 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
+// Playback Drift Correction Constants (ArchiveTune Logic)
+private const val SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS = 80L
+private const val SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS = 180L
+private const val SMOOTH_PLAYBACK_DRIFT_CORRECTION = 0.55f
 
 private const val ACCORD_ACTIVE_ALPHA = 1f
 private const val ACCORD_INACTIVE_ALPHA = 0.2f
@@ -336,21 +347,49 @@ fun LyricsV2(
     
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
-        var lastPlayerPos = player.currentPosition
-        var lastUpdateTime = System.currentTimeMillis()
+        var anchorPlayerPositionMs = player.currentPosition.coerceAtLeast(0L)
+        var anchorFrameNanos = 0L
+
         while (isActive) {
-            delay(16L)
-            val now = System.currentTimeMillis()
             val sliderPos = sliderPositionProvider()
-            val rawPos = if (sliderPos != null) sliderPos else {
-                val playerPos = player.currentPosition
-                if (playerPos != lastPlayerPos) {
-                    lastPlayerPos = playerPos
-                    lastUpdateTime = now
+            val rawPos = (sliderPos ?: player.currentPosition).coerceAtLeast(0L)
+
+            if (sliderPos != null || !player.isPlaying) {
+                anchorPlayerPositionMs = rawPos
+                anchorFrameNanos = 0L
+                currentPositionMs = (rawPos + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+                if (sliderPos == null) {
+                    delay(100L)
+                } else {
+                    withFrameNanos { }
                 }
-                lastPlayerPos + (if (player.isPlaying) now - lastUpdateTime else 0)
+            } else {
+                val frameNanos = withFrameNanos { it }
+                if (anchorFrameNanos == 0L) {
+                    anchorFrameNanos = frameNanos
+                    anchorPlayerPositionMs = rawPosition
+                }
+
+                val elapsedMs = ((frameNanos - anchorFrameNanos) / 1_000_000f) // * playbackSpeed
+                val projectedPosition = anchorPlayerPositionMs + elapsedMs.roundToLong()
+                val driftMs = rawPosition - projectedPosition
+                
+                val nextPosition = when {
+                    driftMs > SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS || driftMs < -SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS -> {
+                        anchorPlayerPositionMs = rawPosition
+                        anchorFrameNanos = frameNanos
+                        rawPosition
+                    }
+                    driftMs != 0L -> {
+                        projectedPosition + (driftMs * SMOOTH_PLAYBACK_DRIFT_CORRECTION).roundToLong()
+                    }
+                    else -> {
+                        projectedPosition
+                    }
+                }.coerceAtLeast(0L)
+                
+                currentPositionMs = (nextPosition + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
             }
-            currentPositionMs = (rawPos.coerceAtLeast(0L) + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
             currentLineIndex = findCurrentLineIndex(entriesWithWords, currentPositionMs, 0L)
         }
     }
@@ -377,14 +416,6 @@ fun LyricsV2(
         }
     }
 
-    LaunchedEffect(isManualScrolling) {
-        if (isManualScrolling) {
-            delay(MANUAL_SCROLL_TIMEOUT_MS)
-            isManualScrolling = false
-            isAutoScrollEnabled = true
-        }
-    }
-
     BackHandler(enabled = isSelectionModeActive) { isSelectionModeActive = false; selectedIndices.clear() }
 
     val activity = context as? android.app.Activity
@@ -408,7 +439,6 @@ fun LyricsV2(
         val lineHeightPx = with(density) { 68.dp.toPx() }
         val gapPx = with(density) { 16.dp.toPx() }
 
-        // Calculate Exact Y Positions for all lines
         val positions = remember(itemHeights.toMap(), deferredCurrentLineIndex, entriesWithWords) {
             val map = mutableMapOf<Int, Float>()
             if (entriesWithWords.isEmpty()) return@remember map
@@ -428,7 +458,6 @@ fun LyricsV2(
             map
         }
 
-        
         val minOffset = remember(itemHeights.toMap(), entriesWithWords, deferredCurrentLineIndex, anchorY) {
             if (entriesWithWords.isEmpty()) 0f else {
                 val totalBelow = (deferredCurrentLineIndex until entriesWithWords.size - 1).sumOf { 
@@ -449,7 +478,6 @@ fun LyricsV2(
         val scrollClampMin = minOf(minOffset, maxOffset)
         val scrollClampMax = maxOf(minOffset, maxOffset)
 
-    
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -482,134 +510,133 @@ fun LyricsV2(
                 }
         ) {
             entriesWithWords.forEachIndexed { index, item ->
-                // Performance Windowing: Render only nearby lines
                 if (abs(index - deferredCurrentLineIndex) > 15) return@forEachIndexed
-
                 if (item == HEAD_LYRICS_ENTRY) return@forEachIndexed
 
-                val distance = abs(index - deferredCurrentLineIndex)
-                val rawTargetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
-                
-                
-                val animatedOffset by animateFloatAsState(
-                    targetValue = rawTargetOffset,
-                    animationSpec = tween(750, (distance * 20).coerceAtMost(200), FastOutSlowInEasing),
-                    label = "offset_$index"
-                )
+                key(index, item.text) {
+                    val distance = abs(index - deferredCurrentLineIndex)
+                    val rawTargetOffset = anchorY + (positions[index] ?: ((index - deferredCurrentLineIndex) * lineHeightPx))
+                    
+                    val animatedOffset by animateFloatAsState(
+                        targetValue = rawTargetOffset,
+                        animationSpec = tween(750, (distance * 20).coerceAtMost(200), FastOutSlowInEasing),
+                        label = "offset_$index"
+                    )
 
-                val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
-                val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
-                val isActive = isSynced && index == currentLineIndex
-                val isSelected = selectedIndices.contains(index)
-                
-                val targetAlpha = when {
-                    !isSynced -> 0.92f
-                    isActive -> ACCORD_ACTIVE_ALPHA
-                    isManualScrolling -> 0.4f
-                    else -> ACCORD_INACTIVE_ALPHA
-                }
-                val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
-                
-                
-                val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
+                    val textAlign = when (item.agent?.lowercase()) { "v1" -> TextAlign.Start; "v2" -> TextAlign.End; else -> TextAlign.Start }
+                    val horizontalAlignment = when (item.agent?.lowercase()) { "v1" -> Alignment.Start; "v2" -> Alignment.End; else -> Alignment.Start }
+                    val isActive = isSynced && index == currentLineIndex
+                    val isSelected = selectedIndices.contains(index)
+                    
+                    val targetAlpha = when {
+                        !isSynced -> 0.92f
+                        isActive -> ACCORD_ACTIVE_ALPHA
+                        isManualScrolling -> 0.4f
+                        else -> ACCORD_INACTIVE_ALPHA
+                    }
+                    val targetScale = if (isActive) ACCORD_ACTIVE_SCALE else ACCORD_INACTIVE_SCALE
+                    
+                    val targetBlur = if (!isSynced || isActive || (isSelectionModeActive && isSelected) || isManualScrolling) 0f else (distance.toFloat() * ACCORD_BLUR_STEP).coerceAtMost(ACCORD_MAX_BLUR)
 
-                val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
-                val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "A")
-                val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
-                val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
-                val isAllBackground = item.words?.all { it.isBackground || it.text.isBlank() } == true
+                    val animatedLineScale by animateFloatAsState(targetValue = targetScale, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "S")
+                    val animatedLineAlpha by animateFloatAsState(targetValue = targetAlpha, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "A")
+                    val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
+                    val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
+                    
                 
-                val baseLayoutDirection = LocalLayoutDirection.current
-                val lineText = remember(item.text, item.words) { item.words?.joinToString("") { it.text }?.takeIf { it.isNotBlank() } ?: item.text }
-                val lineIsRtl = remember(lineText) { isRtlText(lineText) }
-                val lineLayoutDirection = remember(lineIsRtl, baseLayoutDirection) { if (lineIsRtl) LayoutDirection.Rtl else baseLayoutDirection }
+                    val mainWords = remember(item.words) { item.words?.filter { !it.isBackground } ?: emptyList() }
+                    val bgWords = remember(item.words) { item.words?.filter { it.isBackground } ?: emptyList() }
+                    val isAllBackground = mainWords.isEmpty() && bgWords.isNotEmpty()
+                    
+                    val baseLayoutDirection = LocalLayoutDirection.current
+                    val lineText = remember(item.text, item.words) { item.words?.joinToString("") { it.text }?.takeIf { it.isNotBlank() } ?: item.text }
+                    val lineIsRtl = remember(lineText) { isRtlText(lineText) }
+                    val lineLayoutDirection = remember(lineIsRtl, baseLayoutDirection) { if (lineIsRtl) LayoutDirection.Rtl else baseLayoutDirection }
 
-                CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .layout { m, c -> 
-                                val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
-                                layout(p.width, 0) { p.place(0, 0) } // Canvas offset manipulation Trick
-                            }
-                            .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
-                    ) {
-                        Column(
+                    CompositionLocalProvider(LocalLayoutDirection provides lineLayoutDirection) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .onSizeChanged { itemHeights[index] = it.height }
-                                .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
-                                .padding(start = 32.dp, end = 32.dp, top = if (index <= 1) 0.dp else 14.dp, bottom = 14.dp)
-                                .blur(radiusX = animatedBlur.dp, radiusY = animatedBlur.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                                .graphicsLayer { scaleX = animatedLineScale; scaleY = animatedLineScale; alpha = animatedLineAlpha; transformOrigin = lineTransformOrigin }
-                                .combinedClickable(
-                                    enabled = true,
-                                    onClick = {
-                                        if (isSelectionModeActive) {
-                                            if (isSelected) {
-                                                selectedIndices.remove(index)
-                                                if (selectedIndices.isEmpty()) isSelectionModeActive = false
-                                            } else {
-                                                
-                                                if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else showMaxSelectionToast = true
-                                            }
-                                        } else if (lyricsClick && isSynced && item.time > 0) {
-                                            player.seekTo(item.time)
-                                            isAutoScrollEnabled = true
-                                        }
-                                    },
-                                    onLongClick = {
-                                        if (!isSelectionModeActive) {
-                                            isSelectionModeActive = true; selectedIndices.add(index)
-                                        } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
-                                            selectedIndices.add(index)
-                                        } else if (!isSelected) showMaxSelectionToast = true
-                                    }
-                                ),
-                            horizontalAlignment = horizontalAlignment,
+                                .layout { m, c -> 
+                                    val p = m.measure(c.copy(maxHeight = Constraints.Infinity))
+                                    layout(p.width, 0) { p.place(0, 0) } 
+                                }
+                                .offset { IntOffset(0, (animatedOffset + userManualOffset).roundToInt()) }
                         ) {
-                            val romanizedText = item.romanizedTextFlow.collectAsState().value
-                            if (romanizedText != null) {
-                                Text(text = romanizedText, style = MaterialTheme.typography.bodyMedium.copy(fontSize = (lyricsTextSize * 0.55f).sp, lineHeight = (lyricsTextSize * 0.75f).sp, fontWeight = FontWeight.Normal, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily), color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f), textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(bottom = (lyricsTextSize * 0.18f).dp))
-                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onSizeChanged { itemHeights[index] = it.height }
+                                    .background(color = if (isSelected && isSelectionModeActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
+                                    .padding(start = 32.dp, end = 32.dp, top = if (index <= 1) 0.dp else 14.dp, bottom = 14.dp)
+                                    .blur(radiusX = animatedBlur.dp, radiusY = animatedBlur.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                                    .graphicsLayer { scaleX = animatedLineScale; scaleY = animatedLineScale; alpha = animatedLineAlpha; transformOrigin = lineTransformOrigin }
+                                    .combinedClickable(
+                                        enabled = true,
+                                        onClick = {
+                                            if (isSelectionModeActive) {
+                                                if (isSelected) {
+                                                    selectedIndices.remove(index)
+                                                    if (selectedIndices.isEmpty()) isSelectionModeActive = false
+                                                } else {
+                                                    if (selectedIndices.size < maxSelectionLimit) selectedIndices.add(index) else showMaxSelectionToast = true
+                                                }
+                                            } else if (lyricsClick && isSynced && item.time > 0) {
+                                                player.seekTo(item.time)
+                                                isAutoScrollEnabled = true
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!isSelectionModeActive) {
+                                                isSelectionModeActive = true; selectedIndices.add(index)
+                                            } else if (!isSelected && selectedIndices.size < maxSelectionLimit) {
+                                                selectedIndices.add(index)
+                                            } else if (!isSelected) showMaxSelectionToast = true
+                                        }
+                                    ),
+                                horizontalAlignment = horizontalAlignment,
+                            ) {
+                                val romanizedText = item.romanizedTextFlow.collectAsState().value
+                                if (romanizedText != null) {
+                                    Text(text = romanizedText, style = MaterialTheme.typography.bodyMedium.copy(fontSize = (lyricsTextSize * 0.55f).sp, lineHeight = (lyricsTextSize * 0.75f).sp, fontWeight = FontWeight.Normal, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.bodyMedium.fontFamily), color = textColor.copy(alpha = if (isActive) 0.76f else 0.42f), textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(bottom = (lyricsTextSize * 0.18f).dp))
+                                }
 
-                            val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
+                                val currentFontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold
 
-                            if (item.words != null && isSynced) {
-                                val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
-                                val mainWords = item.words.filter { !it.isBackground }
-                                val bgWords = item.words.filter { it.isBackground }
+                                if (item.words != null && isSynced) {
+                                    val arrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }
 
-                                if (mainWords.isNotEmpty()) {
-                                    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
-                                        mainWords.forEach { word ->
-                                            if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = lyricsTextSize.sp), color = Color.Transparent)
-                                            else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = isAllBackground, nudgeEnabled = isActive)
+                                    if (mainWords.isNotEmpty()) {
+                                        FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = arrangement) {
+                                            mainWords.forEach { word ->
+                                                if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = lyricsTextSize.sp), color = Color.Transparent)
+                                                else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = isAllBackground, nudgeEnabled = isActive)
+                                            }
                                         }
                                     }
-                                }
 
-                                if (bgWords.isNotEmpty()) {
-                                    if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(4.dp))
-                                    FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
-                                        bgWords.forEach { word ->
-                                            if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (lyricsTextSize * 0.65f).sp), color = Color.Transparent)
-                                            else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = (lyricsTextSize * 0.65f).sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = true, nudgeEnabled = isActive)
+                                    if (bgWords.isNotEmpty()) {
+                                        if (mainWords.isNotEmpty()) Spacer(modifier = Modifier.height(4.dp))
+                                        FlowRow(modifier = Modifier.fillMaxWidth().alpha(0.85f), horizontalArrangement = arrangement) {
+                                            bgWords.forEach { word ->
+                                                if (word.text == " " || word.text == "\n") Text(text = " ", style = MaterialTheme.typography.headlineMedium.copy(fontSize = (lyricsTextSize * 0.65f).sp), color = Color.Transparent)
+                                                else KaraokeWord(text = word.text, startTime = (word.startTime * 1000).toLong(), endTime = (word.endTime * 1000).toLong(), currentTimeProvider = currentTimeProvider, isRtl = lineIsRtl, fontSize = (lyricsTextSize * 0.65f).sp, textColor = textColor, inactiveAlpha = if (isActive) 0.35f else 0.7f, fontWeight = currentFontWeight, isBackground = true, nudgeEnabled = isActive)
+                                            }
                                         }
                                     }
+                                } else if (isSynced) {
+                                    val words = item.text.split(Regex("(?<=\\s)"))
+                                    val effectiveFontSize = if (isAllBackground) lyricsTextSize * 0.82f else lyricsTextSize
+                                    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }) {
+                                        words.forEach { word -> Text(text = word, style = MaterialTheme.typography.headlineMedium.copy(fontSize = effectiveFontSize.sp, fontWeight = currentFontWeight, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, lineHeight = (effectiveFontSize * lyricsLineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)), color = textColor, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
+                                    }
+                                } else {
+                                    Text(
+                                        text = item.text,
+                                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp, fontWeight = currentFontWeight, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, lineHeight = (lyricsTextSize * lyricsLineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)),
+                                        color = textColor, textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                    )
                                 }
-                            } else if (isSynced) {
-                                val words = item.text.split(Regex("(?<=\\s)"))
-                                val effectiveFontSize = if (isAllBackground) lyricsTextSize * 0.82f else lyricsTextSize
-                                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = when (textAlign) { TextAlign.Center -> Arrangement.Center; TextAlign.End -> Arrangement.End; else -> Arrangement.Start }) {
-                                    words.forEach { word -> Text(text = word, style = MaterialTheme.typography.headlineMedium.copy(fontSize = effectiveFontSize.sp, fontWeight = currentFontWeight, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, lineHeight = (effectiveFontSize * lyricsLineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)), color = textColor, modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)) }
-                                }
-                            } else {
-                                Text(
-                                    text = item.text,
-                                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = if (isAllBackground) (lyricsTextSize * 0.82f).sp else lyricsTextSize.sp, fontWeight = currentFontWeight, fontStyle = if (isAllBackground) FontStyle.Italic else FontStyle.Normal, lineHeight = (lyricsTextSize * lyricsLineSpacing).sp, fontFamily = lyricsFontFamily ?: MaterialTheme.typography.headlineMedium.fontFamily, letterSpacing = (-0.5).sp, platformStyle = PlatformTextStyle(includeFontPadding = false), lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.None)),
-                                    color = textColor, textAlign = textAlign, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                                )
                             }
                         }
                     }
@@ -617,36 +644,101 @@ fun LyricsV2(
             }
         }
 
-        if (isSelectionModeActive) {
-            mediaMetadata?.let { metadata ->
-                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier.size(48.dp).background(color = Color.Black.copy(alpha = 0.3f), shape = CircleShape).clickable { isSelectionModeActive = false; selectedIndices.clear() },
-                            contentAlignment = Alignment.Center
-                        ) { Icon(painter = painterResource(id = R.drawable.close), contentDescription = stringResource(R.string.cancel), tint = Color.White, modifier = Modifier.size(20.dp)) }
+        AnimatedVisibility(
+            visible = isManualScrolling && !isSelectionModeActive,
+            enter = slideInVertically(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing), initialOffsetY = { it * 2 }) + fadeIn(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)),
+            exit = slideOutVertically(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing), targetOffsetY = { it * 2 }) + fadeOut(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .background(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(24.dp))
+                    .clickable { isManualScrolling = false; isAutoScrollEnabled = true }
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(painter = painterResource(id = R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                Text(text = stringResource(R.string.resume_autoscroll), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
 
-                        Row(
-                            modifier = Modifier
-                                .background(color = if (selectedIndices.isNotEmpty()) Color.White.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.5f), shape = RoundedCornerShape(24.dp))
-                                .clickable(enabled = selectedIndices.isNotEmpty()) {
-                                    if (selectedIndices.isNotEmpty()) {
-                                        val sortedIndices = selectedIndices.sorted()
-                                        val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
-                                        if (selectedLyricsText.isNotBlank()) {
-                                            shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
-                                            showShareDialog = true
-                                        }
-                                        isSelectionModeActive = false
-                                        selectedIndices.clear()
-                                    }
-                                }
-                                .padding(horizontal = 24.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+    
+    if (isSelectionModeActive && selectedIndices.isNotEmpty()) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val selectedCount = selectedIndices.size
+        
+        ModalBottomSheet(
+            onDismissRequest = { isSelectionModeActive = false; selectedIndices.clear() },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = stringResource(R.string.share_selected), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium)
+                        Text(text = "$selectedCount Selected", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    TextButton(onClick = { isSelectionModeActive = false; selectedIndices.clear() }) {
+                        Text(text = stringResource(R.string.close))
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    val sortedSelection = selectedIndices.sorted()
+                    items(sortedSelection) { index ->
+                        val lineText = entriesWithWords.getOrNull(index)?.text ?: ""
+                        Card(
+                            onClick = { selectedIndices.remove(index); if (selectedIndices.isEmpty()) isSelectionModeActive = false },
+                            shape = MaterialTheme.shapes.extraLarge,
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp)
                         ) {
-                            Icon(painter = painterResource(id = R.drawable.share), contentDescription = stringResource(R.string.share_selected), tint = Color.Black, modifier = Modifier.size(20.dp))
-                            Text(text = stringResource(R.string.share), color = Color.Black, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp), contentAlignment = Alignment.CenterStart) {
+                                Text(text = lineText, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                            }
                         }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { isSelectionModeActive = false; selectedIndices.clear() }) {
+                        Text(text = stringResource(R.string.cancel))
+                    }
+                    Button(
+                        onClick = {
+                            mediaMetadata?.let { metadata ->
+                                val sortedIndices = selectedIndices.sorted()
+                                val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
+                                if (selectedLyricsText.isNotBlank()) {
+                                    shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
+                                    showShareDialog = true
+                                }
+                                isSelectionModeActive = false
+                                selectedIndices.clear()
+                            }
+                        },
+                        enabled = selectedCount > 0,
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                    ) {
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = stringResource(R.string.share_selected))
                     }
                 }
             }
