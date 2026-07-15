@@ -171,15 +171,7 @@ object LyricsUtils {
         val isBackground = rawText.contains("{bg}")
         rawText = rawText.replace("{bg}", "")
 
-        // Agent tag check (Naya Logic)
-        var parsedAgent: String? = null
-        val agentRegex = "\\{agent:([^}]+)\\}".toRegex()
-        val agentMatch = agentRegex.find(rawText)
-        if (agentMatch != null) {
-            parsedAgent = agentMatch.groupValues[1] // Yeh "v1" ya "v2" nikal lega
-            rawText = rawText.replace(agentRegex, "") // Phir text se tag ko saaf kar dega
-        }
-
+        
         val wordMatches = RICH_SYNC_WORD_REGEX.findAll(rawText).toList()
         var cleanText = rawText
         var words: List<WordTimestamp>? = null
@@ -240,8 +232,7 @@ object LyricsUtils {
                 LyricsEntry(
                     time = time, 
                     text = cleanText,
-                    words = words,
-                    agent = parsedAgent // <--- Naya Agent pass kar diya yahan
+                    words = words 
                 )
             }.toList()
     }
