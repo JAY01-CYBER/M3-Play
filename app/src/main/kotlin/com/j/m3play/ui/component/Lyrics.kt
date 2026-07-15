@@ -473,11 +473,7 @@ fun Lyrics(
         if (darkTheme == DarkMode.AUTO) isSystemInDarkTheme else darkTheme == DarkMode.ON
     }
 
-    val lines = remember(lyrics, scope, mediaMetadata?.id, mediaMetadata?.duration, lyricsEntity?.provider) {
-        // 🔥 Provider ka custom line
-        val providerName = lyricsEntity?.provider?.uppercase() ?: "UNKNOWN"
-        val providerEntry = LyricsEntry(time = 0L, text = "✨ Provided by $providerName")
-
+    val lines = remember(lyrics, scope, mediaMetadata?.id, mediaMetadata?.duration) {
         if (lyrics == null || lyrics == LYRICS_NOT_FOUND) {
             emptyList()
         } else if (lyrics.startsWith("[")) {
@@ -508,8 +504,7 @@ fun Lyrics(
                 }
                 newEntry
             }.let {
-                // Spacer ke sath custom line add ki
-                listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + it
+                listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
             }
         } else if (isTtml(lyrics)) {
             val parsedLines = parseTtml(lyrics, mediaMetadata?.duration)
@@ -539,8 +534,7 @@ fun Lyrics(
                 }
                 newEntry
             }.let {
-                // Spacer ke sath custom line add ki
-                listOf(LyricsEntry.HEAD_LYRICS_ENTRY, providerEntry) + it
+                listOf(LyricsEntry.HEAD_LYRICS_ENTRY) + it
             }
         } else {
             lyrics.lines().mapIndexed { index, line ->
@@ -568,13 +562,10 @@ fun Lyrics(
                     }
                 }
                 newEntry
-            }.let {
-                listOf(providerEntry) + it
             }
         }
     }
-
-        val isSynced =
+    val isSynced =
         remember(lyrics) {
             !lyrics.isNullOrEmpty() && (lyrics.startsWith("[") || isTtml(lyrics))
         }
@@ -1406,8 +1397,7 @@ fun Lyrics(
                                 lineHeight = (lyricsTextSize * lyricsLineSpacing).sp
                             )
                             }
-
-                                                    } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.GLOW) {
+                        } else if (hasWordTimings && item.words != null && effectiveAnimationStyle == LyricsAnimationStyle.GLOW) {
                             if (!isActiveLine || reduceMotionDuringScroll) {
                                 Text(
                                     text = item.text,

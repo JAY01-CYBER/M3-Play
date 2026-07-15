@@ -161,6 +161,14 @@ fun LyricsScreen(
     val currentLyrics by playerConnection.currentLyrics.collectAsState(initial = null)
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
 
+    val providerBadgeText = remember(currentLyrics) {
+        if (currentLyrics == null) {
+            "LOADING LYRICS"
+        } else {
+            "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+        }
+    }
+
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
             delay(500)
@@ -389,9 +397,14 @@ fun LyricsScreen(
                                     .padding(horizontal = 16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // YAHAN SE PURANA BADGE UDA DIYA GAYA HAI
+                                PremiumProviderBadge(
+                                    text = providerBadgeText, 
+                                    textColor = textBackgroundColor,
+                                    modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+                                )
+                                
                                 Box(
-                                    modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (useLyricsV2) {
@@ -648,9 +661,14 @@ fun LyricsScreen(
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // YAHAN SE BHI PURANA BADGE UDA DIYA GAYA HAI
+                        PremiumProviderBadge(
+                            text = providerBadgeText, 
+                            textColor = textBackgroundColor,
+                            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+                        )
+                        
                         Box(
-                            modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
                             contentAlignment = Alignment.TopCenter
                         ) {
                             if (useLyricsV2) {
@@ -827,7 +845,38 @@ fun LyricsScreen(
     }
 }
 
-// INLINE LYRICS COMPONENT FOR PLAYER 
+
+@Composable
+fun PremiumProviderBadge(
+    text: String,
+    textColor: Color,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.foundation.layout.Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.lyrics), 
+            contentDescription = null,
+            tint = textColor.copy(alpha = 0.5f), // 50% opacity
+            modifier = Modifier.size(14.dp)
+        )
+        
+        Spacer(modifier = Modifier.width(6.dp))
+        
+        Text(
+            text = text,
+            color = textColor.copy(alpha = 0.5f), // 50% opacity
+            style = MaterialTheme.typography.labelMedium.copy(
+                letterSpacing = 1.5.sp, 
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+            )
+        )
+    }
+}
+
+// 🔥 INLINE LYRICS COMPONENT FOR PLAYER 🔥
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InlineLyricsView(
@@ -842,6 +891,11 @@ fun InlineLyricsView(
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
     val (useLyricsV2) = rememberPreference(UseLyricsV2Key, defaultValue = false)
+
+    val providerBadgeText = remember(currentLyrics) {
+        if (currentLyrics == null) "LOADING LYRICS"
+        else "PROVIDED BY ${currentLyrics?.provider?.uppercase() ?: "LOCAL"}"
+    }
 
     LaunchedEffect(mediaMetadata.id, currentLyrics) {
         if (currentLyrics == null) {
@@ -868,9 +922,14 @@ fun InlineLyricsView(
             .clip(RoundedCornerShape(12.dp)),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-    
+        PremiumProviderBadge(
+            text = providerBadgeText, 
+            textColor = textBackgroundColor,
+            modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+        )
+        
         Box(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
             contentAlignment = Alignment.TopCenter
         ) {
             if (currentLyrics == null) {
