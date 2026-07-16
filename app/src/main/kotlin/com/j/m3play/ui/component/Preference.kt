@@ -80,7 +80,7 @@ fun PreferenceEntry(
                 .fillMaxWidth()
                 .clickable(
                     interactionSource = interactionSource,
-                    indication = LocalIndication.current, // Use standard ripple, no custom bounce
+                    indication = LocalIndication.current,
                     enabled = isEnabled && onClick != null,
                     onClick = onClick ?: {},
                 )
@@ -142,7 +142,6 @@ fun PreferenceEntry(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                // graphicsLayer se scale (bounce) hata diya gaya hai to standard M3 flat feel aaye
         ) {
             rowContent()
         }
@@ -156,7 +155,7 @@ fun <T> ListPreference(
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
-    valueText: (T) -> String, // Removed @Composable here
+    valueText: @Composable (T) -> String, // Added @Composable back
     onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true
 ) {
@@ -196,7 +195,7 @@ fun <T> M3SelectorDialog(
     title: @Composable () -> Unit,
     selectedValue: T,
     values: List<T>,
-    valueText: (T) -> String, // Removed @Composable here
+    valueText: @Composable (T) -> String, // Added @Composable back
     onValueSelected: (T) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -247,7 +246,7 @@ inline fun <reified T : Enum<T>> EnumListPreference(
     noinline title: @Composable () -> Unit,
     noinline icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
-    noinline valueText: (T) -> String, // Removed @Composable here
+    noinline valueText: @Composable (T) -> String, // Added @Composable back
     noinline onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
@@ -601,7 +600,7 @@ fun PreferenceGroup(
 @Composable
 fun PreferenceGroupDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
-        modifier = modifier.padding(start = 74.dp, end = 24.dp), // Matched padding with icon start
+        modifier = modifier.padding(start = 74.dp, end = 24.dp),
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant,
     )
