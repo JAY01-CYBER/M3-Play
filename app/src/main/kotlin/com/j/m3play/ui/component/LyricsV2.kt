@@ -344,7 +344,6 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var anchorPlayerPositionMs = player.currentPosition.coerceAtLeast(0L)
@@ -661,7 +660,7 @@ fun LyricsV2(
             }
         }
 
-
+        
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
                 Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
@@ -704,7 +703,7 @@ fun LyricsV2(
         }
     }
 
-
+    
     if (showShareDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!! 
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -779,6 +778,15 @@ fun LyricsV2(
         val (lyricsText, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
 
+        
+        var selectedAspectRatio by remember { mutableFloatStateOf(1f) } // 1f = Square, 0.5625f = Story
+        var selectedTextAlign by remember { mutableStateOf(TextAlign.Center) }
+        var customBlur by remember { mutableFloatStateOf(-1f) } // -1 = default
+        var customDarkness by remember { mutableFloatStateOf(-1f) } // -1 = default
+        var textScale by remember { mutableFloatStateOf(1f) }
+        var showWatermark by remember { mutableStateOf(true) }
+        var showTrackInfo by remember { mutableStateOf(true) } // Minimalist mode
+
         LaunchedEffect(coverUrl) {
             if (coverUrl != null) {
                 withContext(Dispatchers.IO) {
@@ -816,46 +824,112 @@ fun LyricsV2(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 24.dp, vertical = 12.dp)
-                    // Bottom padding taaki system navigation bar par share button overlap na ho
                     .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
             ) {
                 Text(
-                    text = stringResource(id = R.string.customize_colors),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.02).em
-                    ),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    text = "Customize Lyrics",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Box(modifier = Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(20.dp))) {
-                    LyricsImageCard(lyricText = lyricsText, mediaMetadata = mediaMetadata ?: return@Box, glassStyle = selectedGlassStyle)
+                
+                Box(modifier = Modifier.fillMaxWidth().height(380.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxHeight().aspectRatio(selectedAspectRatio)) {
+                        LyricsImageCard(
+                            lyricText = lyricsText,
+                            mediaMetadata = mediaMetadata ?: return@Box,
+                            glassStyle = selectedGlassStyle,
+                            aspectRatio = selectedAspectRatio,
+                            textAlign = selectedTextAlign,
+                            customBlur = if (customBlur < 0f) null else customBlur.toInt(),
+                            showWatermark = showWatermark,
+                            showTrackInfo = showTrackInfo,
+                            textScale = textScale,
+                            customDarkness = if (customDarkness < 0f) null else customDarkness
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = stringResource(id = R.string.customize_colors),
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    textAlign = TextAlign.Start
-                )
                 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    availableStyles.forEach { style ->
-                        val isSelected = selectedGlassStyle == style
-                        Box(
-                            modifier = Modifier.size(width = 72.dp, height = 72.dp).clip(RoundedCornerShape(16.dp)).then(if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))).clickable { selectedGlassStyle = style }, contentAlignment = Alignment.Center
-                        ) {
-                            Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(style.surfaceTint.copy(alpha = 0.6f), style.overlayColor.copy(alpha = 0.4f))), shape = RoundedCornerShape(16.dp)))
-                            Box(modifier = Modifier.padding(6.dp).fillMaxSize().background(style.surfaceTint.copy(alpha = style.surfaceAlpha), RoundedCornerShape(10.dp)).border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                                Text(text = "Aa", color = style.textColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    
+                    // 1. Aspect Ratio & Alignment
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        SingleChoiceSegmentedButtonRow {
+                            SegmentedButton(selected = selectedAspectRatio == 1f, onClick = { selectedAspectRatio = 1f }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) {
+                                Text("1:1")
+                            }
+                            SegmentedButton(selected = selectedAspectRatio == 9f/16f, onClick = { selectedAspectRatio = 9f/16f }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)) {
+                                Text("9:16")
+                            }
+                        }
+
+                        SingleChoiceSegmentedButtonRow {
+                            SegmentedButton(selected = selectedTextAlign == TextAlign.Start, onClick = { selectedTextAlign = TextAlign.Start }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)) { Text("L") }
+                            SegmentedButton(selected = selectedTextAlign == TextAlign.Center, onClick = { selectedTextAlign = TextAlign.Center }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)) { Text("C") }
+                            SegmentedButton(selected = selectedTextAlign == TextAlign.End, onClick = { selectedTextAlign = TextAlign.End }, shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)) { Text("R") }
+                        }
+                    }
+
+                    // 2. Text Zoom Slider
+                    Column {
+                        Text(text = "Text Size (Zoom)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = textScale,
+                            onValueChange = { textScale = it },
+                            valueRange = 0.5f..1.5f
+                        )
+                    }
+
+                    // 3. Blur Intensity Slider
+                    Column {
+                        Text(text = "Background Blur", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = if (customBlur < 0f) selectedGlassStyle.cloudyRadius.toFloat() else customBlur,
+                            onValueChange = { customBlur = it },
+                            valueRange = 0f..50f
+                        )
+                    }
+
+                    // 4. Background Darkness Slider
+                    Column {
+                        Text(text = "Darken Background", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = if (customDarkness < 0f) selectedGlassStyle.backgroundDimAlpha else customDarkness,
+                            onValueChange = { customDarkness = it },
+                            valueRange = 0f..1f
+                        )
+                    }
+
+                    // 5. Toggles (Watermark & Minimalist Mode)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Show Song Info", style = MaterialTheme.typography.titleMedium)
+                        Switch(checked = showTrackInfo, onCheckedChange = { showTrackInfo = it })
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Show Watermark", style = MaterialTheme.typography.titleMedium)
+                        Switch(checked = showWatermark, onCheckedChange = { showWatermark = it })
+                    }
+
+                    // 6. Styles Picker
+                    Text(text = "Glass Theme", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        availableStyles.forEach { style ->
+                            val isSelected = selectedGlassStyle == style
+                            Box(
+                                modifier = Modifier.size(72.dp).clip(RoundedCornerShape(16.dp)).then(if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))).clickable { 
+                                    selectedGlassStyle = style 
+                                    customBlur = -1f 
+                                    customDarkness = -1f
+                                }, contentAlignment = Alignment.Center
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(style.surfaceTint.copy(alpha = 0.6f), style.overlayColor.copy(alpha = 0.4f)))))
+                                Box(modifier = Modifier.padding(6.dp).fillMaxSize().background(style.surfaceTint.copy(alpha = style.surfaceAlpha), RoundedCornerShape(10.dp)).border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                                    Text(text = "Aa", color = style.textColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -863,14 +937,33 @@ fun LyricsV2(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+            
                 Button(
                     onClick = {
                         showColorPickerDialog = false
                         showProgressDialog = true
                         scope.launch {
                             try {
-                                val exportSize = 1080
-                                val image = ComposeToImage.createLyricsImage(context = context, coverArtUrl = coverUrl, songTitle = songTitle, artistName = artists, lyrics = lyricsText, width = exportSize, height = exportSize, glassStyle = selectedGlassStyle)
+                                val exportWidth = 1080
+                                val exportHeight = (exportWidth / selectedAspectRatio).toInt()
+                                
+                                val image = ComposeToImage.createLyricsImage(
+                                    context = context, 
+                                    coverArtUrl = coverUrl, 
+                                    songTitle = songTitle, 
+                                    artistName = artists, 
+                                    lyrics = lyricsText, 
+                                    width = exportWidth, 
+                                    height = exportHeight, 
+                                    glassStyle = selectedGlassStyle,
+                                    aspectRatio = selectedAspectRatio, 
+                                    textAlign = selectedTextAlign, 
+                                    customBlur = if (customBlur < 0f) null else customBlur.toInt(), 
+                                    showWatermark = showWatermark,
+                                    showTrackInfo = showTrackInfo,
+                                    textScale = textScale,
+                                    customDarkness = if (customDarkness < 0f) null else customDarkness
+                                )
                                 val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
                                 context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "image/png"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share Lyrics"))
                             } catch (e: Exception) { Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
