@@ -82,7 +82,7 @@ private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MANUAL_SCROLL_TIMEOUT_MS = 3000L
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
 
-// Playback Drift Correction Constants (ArchiveTune Logic)
+// Playback Drift Correction Constants
 private const val SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS = 80L
 private const val SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS = 180L
 private const val SMOOTH_PLAYBACK_DRIFT_CORRECTION = 0.55f
@@ -344,7 +344,6 @@ fun LyricsV2(
     var currentPositionMs by remember { mutableLongStateOf(0L) }
     var currentLineIndex by remember { mutableIntStateOf(0) }
 
-
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
         var anchorPlayerPositionMs = player.currentPosition.coerceAtLeast(0L)
@@ -542,7 +541,6 @@ fun LyricsV2(
                     val animatedBlur by animateFloatAsState(targetValue = targetBlur, animationSpec = tween(500, easing = AccordDecelerateEasing), label = "B")
                     val lineTransformOrigin = remember(item.agent) { when (item.agent?.lowercase()) { "v2" -> TransformOrigin(1f, 0.5f); "v1", null -> TransformOrigin(0f, 0.5f); else -> TransformOrigin(0.5f, 0.5f) } }
                     
-                    
                     val mainWords = remember(item.words) { item.words?.filter { !it.isBackground } ?: emptyList() }
                     val bgWords = remember(item.words) { item.words?.filter { it.isBackground } ?: emptyList() }
                     val isAllBackground = mainWords.isEmpty() && bgWords.isNotEmpty()
@@ -661,83 +659,36 @@ fun LyricsV2(
                 Text(text = stringResource(R.string.resume_autoscroll), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             }
         }
-    }
 
     
-    if (isSelectionModeActive && selectedIndices.isNotEmpty()) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        val selectedCount = selectedIndices.size
-        
-        ModalBottomSheet(
-            onDismissRequest = { isSelectionModeActive = false; selectedIndices.clear() },
-            sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-        ) {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.share_selected), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Medium)
-                        Text(text = "$selectedCount Selected", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    TextButton(onClick = { isSelectionModeActive = false; selectedIndices.clear() }) {
-                        Text(text = stringResource(R.string.close))
-                    }
-                }
+        if (isSelectionModeActive) {
+            mediaMetadata?.let { metadata ->
+                Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier.size(48.dp).background(color = Color.Black.copy(alpha = 0.3f), shape = CircleShape).clickable { isSelectionModeActive = false; selectedIndices.clear() },
+                            contentAlignment = Alignment.Center
+                        ) { Icon(painter = painterResource(id = R.drawable.close), contentDescription = stringResource(R.string.cancel), tint = Color.White, modifier = Modifier.size(20.dp)) }
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false).padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    val sortedSelection = selectedIndices.sorted()
-                    items(sortedSelection) { index ->
-                        val lineText = entriesWithWords.getOrNull(index)?.text ?: ""
-                        Card(
-                            onClick = { selectedIndices.remove(index); if (selectedIndices.isEmpty()) isSelectionModeActive = false },
-                            shape = MaterialTheme.shapes.extraLarge,
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp), contentAlignment = Alignment.CenterStart) {
-                                Text(text = lineText, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { isSelectionModeActive = false; selectedIndices.clear() }) {
-                        Text(text = stringResource(R.string.cancel))
-                    }
-                    Button(
-                        onClick = {
-                            mediaMetadata?.let { metadata ->
-                                val sortedIndices = selectedIndices.sorted()
-                                val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
-                                if (selectedLyricsText.isNotBlank()) {
-                                    shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
-                                    showShareDialog = true
+                        Row(
+                            modifier = Modifier
+                                .background(color = if (selectedIndices.isNotEmpty()) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.5f), shape = RoundedCornerShape(24.dp))
+                                .clickable(enabled = selectedIndices.isNotEmpty()) {
+                                    if (selectedIndices.isNotEmpty()) {
+                                        val sortedIndices = selectedIndices.sorted()
+                                        val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
+                                        if (selectedLyricsText.isNotBlank()) {
+                                            shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
+                                            showShareDialog = true
+                                        }
+                                    }
                                 }
-                                isSelectionModeActive = false
-                                selectedIndices.clear()
-                            }
-                        },
-                        enabled = selectedCount > 0,
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
-                    ) {
-                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = stringResource(R.string.share_selected))
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(painter = painterResource(id = R.drawable.share), contentDescription = stringResource(R.string.share_selected), tint = Color.Black, modifier = Modifier.size(20.dp))
+                            Text(text = "Share (${selectedIndices.size})", color = Color.Black, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }
@@ -752,42 +703,70 @@ fun LyricsV2(
         }
     }
 
+
     if (showShareDialog && shareDialogData != null) {
         val (lyricsText, songTitle, artists) = shareDialogData!! 
-        BasicAlertDialog(onDismissRequest = { showShareDialog = false }) {
-            Card(shape = MaterialTheme.shapes.medium, elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.padding(16.dp).fillMaxWidth(0.85f)) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(text = stringResource(R.string.share_lyrics), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            val shareIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
-                                putExtra(Intent.EXTRA_TEXT, "\"$lyricsText\"\n\n$songTitle - $artists\n$songLink")
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
-                            showShareDialog = false
-                        }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = stringResource(R.string.share_as_text), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        
+        ModalBottomSheet(
+            onDismissRequest = { showShareDialog = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.share_lyrics),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                Card(
+                    onClick = {
+                        val shareIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            type = "text/plain"
+                            val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
+                            putExtra(Intent.EXTRA_TEXT, "\"$lyricsText\"\n\n$songTitle - $artists\n$songLink")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
+                        showShareDialog = false
+                        isSelectionModeActive = false
+                        selectedIndices.clear()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = stringResource(R.string.share_as_text), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.SemiBold)
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            shareDialogData = Triple(lyricsText, songTitle, artists)
-                            showColorPickerDialog = true
-                            showShareDialog = false
-                        }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = stringResource(R.string.share_as_image), fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.End) {
-                        Text(text = stringResource(R.string.cancel), fontSize = 16.sp, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Medium, modifier = Modifier.clickable { showShareDialog = false }.padding(vertical = 8.dp, horizontal = 12.dp))
+                }
+
+                Card(
+                    onClick = {
+                        shareDialogData = Triple(lyricsText, songTitle, artists)
+                        showColorPickerDialog = true
+                        showShareDialog = false
+                        isSelectionModeActive = false
+                        selectedIndices.clear()
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
