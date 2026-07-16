@@ -1,20 +1,9 @@
-/*
- * M3Play Component Module
- *
- * Reusable UI building block
- * Signature: M3PLAY::COMPONENT::V1
- */
-
 package com.j.m3play.ui.component
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -34,6 +22,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
@@ -55,7 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -64,8 +54,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.j.m3play.R
 import kotlin.math.roundToInt
 
@@ -84,27 +72,15 @@ fun PreferenceEntry(
 ) {
     val inGroup = LocalPreferenceInGroup.current
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && !inGroup) 0.98f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "prefScale",
-    )
-    val bgAlpha by animateFloatAsState(
-        targetValue = if (isPressed && inGroup) 0.08f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessHigh),
-        label = "rowBgAlpha",
-    )
 
     val rowContent: @Composable () -> Unit = {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = bgAlpha))
                 .clickable(
                     interactionSource = interactionSource,
-                    indication = null, // Custom indication color via bgAlpha
+                    indication = LocalIndication.current, // Use standard ripple, no custom bounce
                     enabled = isEnabled && onClick != null,
                     onClick = onClick ?: {},
                 )
@@ -158,7 +134,7 @@ fun PreferenceEntry(
         rowContent()
     } else {
         Card(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
@@ -166,7 +142,7 @@ fun PreferenceEntry(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                .graphicsLayer { scaleX = scale; scaleY = scale },
+                // graphicsLayer se scale (bounce) hata diya gaya hai to standard M3 flat feel aaye
         ) {
             rowContent()
         }
@@ -180,50 +156,88 @@ fun <T> ListPreference(
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
-    valueText: @Composable (T) -> String,
+    valueText: (T) -> String, // Removed @Composable here
     onValueSelected: (T) -> Unit,
-    isEnabled: Boolean = true,
+    isEnabled: Boolean = true
 ) {
-    var showDialog by remember {
-        mutableStateOf(false)
-    }
-    if (showDialog) {
-        ListDialog(
-            onDismiss = { showDialog = false },
-        ) {
-            items(values) { value ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showDialog = false
-                            onValueSelected(value)
-                        }
-                        .padding(horizontal = 24.dp, vertical = 14.dp),
-                ) {
-                    RadioButton(
-                        selected = value == selectedValue,
-                        onClick = null,
-                    )
+    var showDialog by remember { mutableStateOf(false) }
 
-                    Text(
-                        text = valueText(value),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(start = 16.dp),
-                    )
+    ListItem(
+        headlineContent = title,
+        supportingContent = {
+            Text(text = valueText(selectedValue))
+        },
+        leadingContent = icon,
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = isEnabled) { showDialog = true }
+    )
+
+    if (showDialog) {
+        M3SelectorDialog(
+            title = title,
+            selectedValue = selectedValue,
+            values = values,
+            valueText = valueText,
+            onValueSelected = {
+                onValueSelected(it)
+                showDialog = false
+            },
+            onDismiss = { showDialog = false }
+        )
+    }
+}
+
+@Composable
+fun <T> M3SelectorDialog(
+    title: @Composable () -> Unit,
+    selectedValue: T,
+    values: List<T>,
+    valueText: (T) -> String, // Removed @Composable here
+    onValueSelected: (T) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = title,
+        text = {
+            Column(
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                values.forEach { value ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onValueSelected(value)
+                            }
+                            .padding(vertical = 12.dp)
+                    ) {
+                        RadioButton(
+                            selected = (value == selectedValue),
+                            onClick = null
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = valueText(value),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
         }
-    }
-
-    PreferenceEntry(
-        modifier = modifier,
-        title = title,
-        description = valueText(selectedValue),
-        icon = icon,
-        onClick = { showDialog = true },
-        isEnabled = isEnabled,
     )
 }
 
@@ -231,9 +245,9 @@ fun <T> ListPreference(
 inline fun <reified T : Enum<T>> EnumListPreference(
     modifier: Modifier = Modifier,
     noinline title: @Composable () -> Unit,
-    noinline icon: (@Composable () -> Unit)?,
+    noinline icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
-    noinline valueText: @Composable (T) -> String,
+    noinline valueText: (T) -> String, // Removed @Composable here
     noinline onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
@@ -296,9 +310,7 @@ fun EditTextPreference(
     isInputValid: (String) -> Boolean = { it.isNotEmpty() },
     isEnabled: Boolean = true,
 ) {
-    var showDialog by remember {
-        mutableStateOf(false)
-    }
+    var showDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
         TextFieldDialog(
@@ -334,13 +346,8 @@ fun SliderPreference(
     onValueChange: (Float) -> Unit,
     isEnabled: Boolean = true,
 ) {
-    var showDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var sliderValue by remember {
-        mutableFloatStateOf(value)
-    }
+    var showDialog by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableFloatStateOf(value) }
 
     if (showDialog) {
         ActionPromptDialog(
@@ -366,9 +373,7 @@ fun SliderPreference(
                 sliderValue = value
                 showDialog = false
             },
-            onReset = {
-                sliderValue = 30f
-            },
+            onReset = { sliderValue = 30f },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -411,13 +416,8 @@ fun CrossfadeSliderPreference(
     onValueChange: (Int) -> Unit,
     isEnabled: Boolean = true,
 ) {
-    var showDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var sliderValue by remember {
-        mutableFloatStateOf(value.toFloat())
-    }
+    var showDialog by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableFloatStateOf(value.toFloat()) }
 
     if (showDialog) {
         ActionPromptDialog(
@@ -445,22 +445,15 @@ fun CrossfadeSliderPreference(
                 sliderValue = value.toFloat()
                 showDialog = false
             },
-            onReset = {
-                sliderValue = 0f
-            },
+            onReset = { sliderValue = 0f },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val rounded = sliderValue.roundToInt().coerceIn(0, 10)
                     Text(
-                        text =
-                        if (rounded == 0) {
+                        text = if (rounded == 0) {
                             stringResource(R.string.dark_theme_off)
                         } else {
-                            pluralStringResource(
-                                R.plurals.seconds,
-                                rounded,
-                                rounded
-                            )
+                            pluralStringResource(R.plurals.seconds, rounded, rounded)
                         },
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -516,13 +509,8 @@ fun NumberPickerPreference(
     valueText: (Int) -> String = { it.toString() },
     isEnabled: Boolean = true,
 ) {
-    var showDialog by remember {
-        mutableStateOf(false)
-    }
-
-    var sliderValue by remember {
-        mutableFloatStateOf(value.toFloat())
-    }
+    var showDialog by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableFloatStateOf(value.toFloat()) }
 
     if (showDialog) {
         ActionPromptDialog(
@@ -545,9 +533,7 @@ fun NumberPickerPreference(
                 sliderValue = value.toFloat()
                 showDialog = false
             },
-            onReset = {
-                sliderValue = minValue.toFloat()
-            },
+            onReset = { sliderValue = minValue.toFloat() },
             content = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val rounded = sliderValue.roundToInt().coerceIn(minValue, maxValue)
@@ -598,7 +584,7 @@ fun PreferenceGroup(
             )
         }
         Card(
-            shape = RoundedCornerShape(32.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
