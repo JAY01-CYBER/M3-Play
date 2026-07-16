@@ -188,7 +188,8 @@ fun AdaptiveSettingsLayout(
                 item(key = "permission") {
                     SettingsPermissionBanner(
                         onRequestPermission = state.onRequestPermission,
-                        modifier = Modifier.padding(horizontal = 16.dp, bottom = 8.dp)
+                        // Padding chained instead of passing together
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
                     )
                 }
             }
@@ -197,7 +198,8 @@ fun AdaptiveSettingsLayout(
                     SettingsUpdateBanner(
                         latestVersion = state.latestVersion,
                         onClick = state.onUpdateClick,
-                        modifier = Modifier.padding(horizontal = 16.dp, bottom = 8.dp)
+                        // Padding chained instead of passing together
+                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
                     )
                 }
             }
