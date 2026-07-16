@@ -26,12 +26,14 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun <T> ListPreference(
+    modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
+    icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
-    valueText: (T) -> String,
+    valueText: @Composable (T) -> String,
     onValueSelected: (T) -> Unit,
-    modifier: Modifier = Modifier,
+    isEnabled: Boolean = true
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -40,17 +42,18 @@ fun <T> ListPreference(
         supportingContent = {
             Text(text = valueText(selectedValue))
         },
+        leadingContent = icon,
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent
         ),
         modifier = modifier
             .fillMaxWidth()
-            .clickable { showDialog = true }
+            .clickable(enabled = isEnabled) { showDialog = true }
     )
 
     if (showDialog) {
         M3SelectorDialog(
-            title = { title() },
+            title = title,
             selectedValue = selectedValue,
             values = values,
             valueText = valueText,
@@ -68,7 +71,7 @@ fun <T> M3SelectorDialog(
     title: @Composable () -> Unit,
     selectedValue: T,
     values: List<T>,
-    valueText: (T) -> String,
+    valueText: @Composable (T) -> String,
     onValueSelected: (T) -> Unit,
     onDismiss: () -> Unit
 ) {
