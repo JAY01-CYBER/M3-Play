@@ -34,6 +34,7 @@ import coil3.toBitmap
 import android.view.View
 import android.view.PixelCopy
 import androidx.core.view.drawToBitmap
+import androidx.compose.ui.graphics.toArgb 
 import com.j.m3play.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -139,6 +140,36 @@ object ComposeToImage {
         return ensureSoftwareBitmap(Bitmap.createBitmap(safeSource, safeLeft, safeTop, safeWidth, safeHeight))
     }
 
+    // 
+    fun fitBitmap(
+        source: Bitmap,
+        targetWidth: Int,
+        targetHeight: Int,
+        backgroundColor: Int,
+    ): Bitmap {
+        val safeSource = ensureSoftwareBitmap(source)
+        val out = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        canvas.drawColor(backgroundColor)
+
+        val scale = minOf(
+            targetWidth.toFloat() / safeSource.width.coerceAtLeast(1),
+            targetHeight.toFloat() / safeSource.height.coerceAtLeast(1),
+        )
+        val scaledW = (safeSource.width * scale).toInt().coerceAtLeast(1)
+        val scaledH = (safeSource.height * scale).toInt().coerceAtLeast(1)
+        val scaled = if (scaledW != safeSource.width || scaledH != safeSource.height) {
+            ensureSoftwareBitmap(Bitmap.createScaledBitmap(safeSource, scaledW, scaledH, true))
+        } else {
+            safeSource
+        }
+
+        val dx = ((targetWidth - scaled.width) / 2f)
+        val dy = ((targetHeight - scaled.height) / 2f)
+        canvas.drawBitmap(scaled, dx, dy, null)
+        return out
+    }
+
     @RequiresApi(Build.VERSION_CODES.M)
     suspend fun createLyricsImage(
         context: Context,
@@ -159,10 +190,10 @@ object ComposeToImage {
         showTrackInfo: Boolean = true, 
         textScale: Float = 1f, 
         customDarkness: Float? = null,
-        fontStyle: Int = 0, // NAYA: 0=Modern, 1=Serif, 2=Monospace, 3=Cursive
-        bgMode: Int = 0,    //  NAYA: 0=Glass, 1=Gradient
-        textGlow: Boolean = false, //  NAYA: Glow
-        showBarcode: Boolean = true //  NAYA: Barcode
+        fontStyle: Int = 0, 
+        bgMode: Int = 0,    
+        textGlow: Boolean = false, 
+        showBarcode: Boolean = true 
     ): Bitmap = withContext(Dispatchers.Default) {
         val style = glassStyle ?: com.j.m3play.ui.component.LyricsGlassStyle.FrostedDark
         val baseSize = minOf(width, height)
@@ -207,7 +238,7 @@ object ComposeToImage {
             addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), outerCornerRadius, outerCornerRadius, Path.Direction.CW)
         }
 
-        // 🔥 Background Rendering (Glass vs Gradient)
+        // Background Rendering
         if (bgMode == 1) {
             val gradient = LinearGradient(
                 0f, 0f, width.toFloat(), height.toFloat(),
@@ -326,7 +357,6 @@ object ComposeToImage {
             }
         }
 
-    
         val customTypeface = when(fontStyle) {
             1 -> Typeface.create(Typeface.SERIF, Typeface.BOLD)
             2 -> Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
@@ -336,12 +366,11 @@ object ComposeToImage {
 
         val lyricsPaint = TextPaint().apply {
             color = mainTextColor
-            typeface = customTypeface // Applied Font
+            typeface = customTypeface 
             isAntiAlias = true
             letterSpacing = -0.01f
         }
 
-        
         if (textGlow) {
             lyricsPaint.setShadowLayer(25f, 0f, 0f, mainTextColor)
         }
@@ -395,7 +424,7 @@ object ComposeToImage {
     }
 
     private fun AppLogo(
-        context: Context, canvas: Canvas, canvasWidth: Int, canvasHeight: Int, padding: Float, bottomPadding: Float = canvasHeight - padding, circleColor: Int, logoTint: Int, textColor: Int, showBarcode: Boolean = true // 🔥 Barcode Added
+        context: Context, canvas: Canvas, canvasWidth: Int, canvasHeight: Int, padding: Float, bottomPadding: Float = canvasHeight - padding, circleColor: Int, logoTint: Int, textColor: Int, showBarcode: Boolean = true 
     ) {
         val baseSize = minOf(canvasWidth, canvasHeight).toFloat()
         val logoSize = (baseSize * 0.045f).toInt()
@@ -425,7 +454,6 @@ object ComposeToImage {
         logo?.let { canvas.drawBitmap(it, logoX, logoY, null) }
         canvas.drawText(appName, textX, textY, appNamePaint)
 
-        
         if (showBarcode) {
             val wavePaint = Paint().apply {
                 color = textColor
@@ -443,6 +471,39 @@ object ComposeToImage {
                 canvas.drawLine(currentX, topY, currentX, botY, wavePaint)
                 currentX += baseSize * 0.012f
             }
+        }
+    }
+
+    
+    fun saveBitmapAsFile(context: Context, bitmap: Bitmap, fileName: String): Uri {
+        val safeBitmap = ensureSoftwareBitmap(bitmap)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "$fileName.png")
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/M3Play")
+            }
+            val uri = context.contentResolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentValues
+            ) ?: throw IllegalStateException("Failed to create new MediaStore record")
+
+            context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                safeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+            uri
+        } else {
+            val cachePath = File(context.cacheDir, "images")
+            cachePath.mkdirs()
+            val imageFile = File(cachePath, "$fileName.png")
+            FileOutputStream(imageFile).use { outputStream ->
+                safeBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.FileProvider",
+                imageFile
+            )
         }
     }
 }
