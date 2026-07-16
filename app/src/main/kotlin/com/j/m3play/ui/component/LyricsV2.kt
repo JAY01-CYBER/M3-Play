@@ -161,10 +161,8 @@ private fun KaraokeWord(
         val effectiveFontSize = if (isBackground) fontSize * 0.7f else fontSize
         val effectiveAlpha = if (isBackground) 0.6f else 1f
         
-        // 1. Inactive (unfilled) layer
         Text(text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = inactiveAlpha * effectiveAlpha), fontWeight = fontWeight, modifier = Modifier.padding(glowPadding))
 
-        // 2. Completed (filled) layer
         Text(
             text = text, fontSize = effectiveFontSize, color = textColor.copy(alpha = effectiveAlpha), fontWeight = fontWeight,
             modifier = Modifier.padding(glowPadding).drawWithContent {
@@ -172,7 +170,6 @@ private fun KaraokeWord(
             }
         )
 
-        // 3. Active (filling) layer - SOFT MASK with FADE OUT
         Box(
             modifier = Modifier
                 .graphicsLayer {
@@ -660,7 +657,6 @@ fun LyricsV2(
             }
         }
 
-        
         if (isSelectionModeActive) {
             mediaMetadata?.let { metadata ->
                 Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp), contentAlignment = Alignment.Center) {
@@ -675,12 +671,8 @@ fun LyricsV2(
                                 .background(color = if (selectedIndices.isNotEmpty()) Color.White.copy(alpha = 0.95f) else Color.White.copy(alpha = 0.5f), shape = RoundedCornerShape(24.dp))
                                 .clickable(enabled = selectedIndices.isNotEmpty()) {
                                     if (selectedIndices.isNotEmpty()) {
-                                        val sortedIndices = selectedIndices.sorted()
-                                        val selectedLyricsText = sortedIndices.mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
-                                        if (selectedLyricsText.isNotBlank()) {
-                                            shareDialogData = Triple(selectedLyricsText, metadata.title ?: "", metadata.artists.joinToString { it.name })
-                                            showShareDialog = true
-                                        }
+                                        shareDialogData = Triple("", metadata.title ?: "", metadata.artists.joinToString { it.name })
+                                        showShareDialog = true
                                     }
                                 }
                                 .padding(horizontal = 24.dp, vertical = 12.dp),
@@ -703,11 +695,15 @@ fun LyricsV2(
         }
     }
 
-    
     if (showShareDialog && shareDialogData != null) {
-        val (lyricsText, songTitle, artists) = shareDialogData!! 
+        val (_, songTitle, artists) = shareDialogData!! 
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         
+        // Simple plain text for normal intent sharing
+        val plainLyricsText = remember(selectedIndices) {
+            selectedIndices.sorted().mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
+        }
+
         ModalBottomSheet(
             onDismissRequest = { showShareDialog = false },
             sheetState = sheetState,
@@ -715,9 +711,7 @@ fun LyricsV2(
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp)
+                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp)
             ) {
                 Text(
                     text = stringResource(R.string.share_lyrics),
@@ -733,7 +727,7 @@ fun LyricsV2(
                             action = Intent.ACTION_SEND
                             type = "text/plain"
                             val songLink = "https://music.youtube.com/watch?v=${mediaMetadata?.id}"
-                            putExtra(Intent.EXTRA_TEXT, "\"$lyricsText\"\n\n$songTitle - $artists\n$songLink")
+                            putExtra(Intent.EXTRA_TEXT, "\"$plainLyricsText\"\n\n$songTitle - $artists\n$songLink")
                         }
                         context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_lyrics)))
                         showShareDialog = false
@@ -753,11 +747,8 @@ fun LyricsV2(
 
                 Card(
                     onClick = {
-                        shareDialogData = Triple(lyricsText, songTitle, artists)
                         showColorPickerDialog = true
                         showShareDialog = false
-                        isSelectionModeActive = false
-                        selectedIndices.clear()
                     },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -773,19 +764,33 @@ fun LyricsV2(
         }
     }
 
-    
     if (showColorPickerDialog && shareDialogData != null) {
-        val (lyricsText, songTitle, artists) = shareDialogData!!
+        val (_, songTitle, artists) = shareDialogData!!
         val coverUrl = mediaMetadata?.thumbnailUrl
 
         
-        var selectedAspectRatio by remember { mutableFloatStateOf(1f) } // 1f = Square, 0.5625f = Story
+        var selectedAspectRatio by remember { mutableFloatStateOf(1f) } 
         var selectedTextAlign by remember { mutableStateOf(TextAlign.Center) }
-        var customBlur by remember { mutableFloatStateOf(-1f) } // -1 = default
-        var customDarkness by remember { mutableFloatStateOf(-1f) } // -1 = default
+        var customBlur by remember { mutableFloatStateOf(-1f) } 
+        var customDarkness by remember { mutableFloatStateOf(-1f) } 
         var textScale by remember { mutableFloatStateOf(1f) }
+        var fontStyle by remember { mutableIntStateOf(0) }
+        var bgMode by remember { mutableIntStateOf(0) }
+        var textGlow by remember { mutableStateOf(false) }
         var showWatermark by remember { mutableStateOf(true) }
-        var showTrackInfo by remember { mutableStateOf(true) } // Minimalist mode
+        var showBarcode by remember { mutableStateOf(true) }
+        var showTrackInfo by remember { mutableStateOf(true) } 
+        var showRomanized by remember { mutableStateOf(false) }
+
+        
+        val displayLyricsText = remember(selectedIndices.toList(), showRomanized) {
+            selectedIndices.sorted().mapNotNull { i ->
+                val entry = entriesWithWords.getOrNull(i)
+                val text = entry?.text ?: ""
+                val rom = entry?.romanizedTextFlow?.value
+                if (showRomanized && !rom.isNullOrBlank()) "$text\n$rom" else text
+            }.joinToString("\n")
+        }
 
         LaunchedEffect(coverUrl) {
             if (coverUrl != null) {
@@ -827,16 +832,16 @@ fun LyricsV2(
                     .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
             ) {
                 Text(
-                    text = "Customize Lyrics",
+                    text = "Design Options",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
 
-                
+            
                 Box(modifier = Modifier.fillMaxWidth().height(380.dp), contentAlignment = Alignment.Center) {
                     Box(modifier = Modifier.fillMaxHeight().aspectRatio(selectedAspectRatio)) {
                         LyricsImageCard(
-                            lyricText = lyricsText,
+                            lyricText = displayLyricsText,
                             mediaMetadata = mediaMetadata ?: return@Box,
                             glassStyle = selectedGlassStyle,
                             aspectRatio = selectedAspectRatio,
@@ -845,85 +850,90 @@ fun LyricsV2(
                             showWatermark = showWatermark,
                             showTrackInfo = showTrackInfo,
                             textScale = textScale,
-                            customDarkness = if (customDarkness < 0f) null else customDarkness
+                            customDarkness = if (customDarkness < 0f) null else customDarkness,
+                            fontStyle = fontStyle,
+                            bgMode = bgMode,
+                            textGlow = textGlow,
+                            showBarcode = showBarcode
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(text = "Format & Style", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
                     
-                    // 1. Aspect Ratio & Alignment
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        SingleChoiceSegmentedButtonRow {
-                            SegmentedButton(selected = selectedAspectRatio == 1f, onClick = { selectedAspectRatio = 1f }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) {
-                                Text("1:1")
-                            }
-                            SegmentedButton(selected = selectedAspectRatio == 9f/16f, onClick = { selectedAspectRatio = 9f/16f }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)) {
-                                Text("9:16")
-                            }
-                        }
-
-                        SingleChoiceSegmentedButtonRow {
-                            SegmentedButton(selected = selectedTextAlign == TextAlign.Start, onClick = { selectedTextAlign = TextAlign.Start }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)) { Text("L") }
-                            SegmentedButton(selected = selectedTextAlign == TextAlign.Center, onClick = { selectedTextAlign = TextAlign.Center }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)) { Text("C") }
-                            SegmentedButton(selected = selectedTextAlign == TextAlign.End, onClick = { selectedTextAlign = TextAlign.End }, shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)) { Text("R") }
-                        }
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(selected = selectedAspectRatio == 1f, onClick = { selectedAspectRatio = 1f }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) { Text("1:1") }
+                        SegmentedButton(selected = selectedAspectRatio == 9f/16f, onClick = { selectedAspectRatio = 9f/16f }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)) { Text("9:16") }
                     }
 
-                    // 2. Text Zoom Slider
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(selected = fontStyle == 0, onClick = { fontStyle = 0 }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4)) { Text("Mod") }
+                        SegmentedButton(selected = fontStyle == 1, onClick = { fontStyle = 1 }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4)) { Text("Serif") }
+                        SegmentedButton(selected = fontStyle == 2, onClick = { fontStyle = 2 }, shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4)) { Text("Mono") }
+                        SegmentedButton(selected = fontStyle == 3, onClick = { fontStyle = 3 }, shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4)) { Text("Hand") }
+                    }
+
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(selected = bgMode == 0, onClick = { bgMode = 0 }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)) { Text("Glass Blur") }
+                        SegmentedButton(selected = bgMode == 1, onClick = { bgMode = 1 }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)) { Text("Gradient") }
+                    }
+
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                        SegmentedButton(selected = selectedTextAlign == TextAlign.Start, onClick = { selectedTextAlign = TextAlign.Start }, shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)) { Text("Left") }
+                        SegmentedButton(selected = selectedTextAlign == TextAlign.Center, onClick = { selectedTextAlign = TextAlign.Center }, shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)) { Text("Center") }
+                        SegmentedButton(selected = selectedTextAlign == TextAlign.End, onClick = { selectedTextAlign = TextAlign.End }, shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)) { Text("Right") }
+                    }
+
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text(text = "Adjustments", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
                     Column {
-                        Text(text = "Text Size (Zoom)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = textScale,
-                            onValueChange = { textScale = it },
-                            valueRange = 0.5f..1.5f
-                        )
+                        Text(text = "Text Zoom", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(value = textScale, onValueChange = { textScale = it }, valueRange = 0.5f..1.5f)
                     }
 
-                    // 3. Blur Intensity Slider
                     Column {
-                        Text(text = "Background Blur", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = if (customBlur < 0f) selectedGlassStyle.cloudyRadius.toFloat() else customBlur,
-                            onValueChange = { customBlur = it },
-                            valueRange = 0f..50f
-                        )
+                        Text(text = "Blur Intensity", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(value = if (customBlur < 0f) selectedGlassStyle.cloudyRadius.toFloat() else customBlur, onValueChange = { customBlur = it }, valueRange = 0f..50f)
                     }
 
-                    // 4. Background Darkness Slider
                     Column {
-                        Text(text = "Darken Background", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = if (customDarkness < 0f) selectedGlassStyle.backgroundDimAlpha else customDarkness,
-                            onValueChange = { customDarkness = it },
-                            valueRange = 0f..1f
-                        )
+                        Text(text = "Darkness", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(value = if (customDarkness < 0f) selectedGlassStyle.backgroundDimAlpha else customDarkness, onValueChange = { customDarkness = it }, valueRange = 0f..1f)
                     }
 
-                    // 5. Toggles (Watermark & Minimalist Mode)
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text(text = "Elements", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Show Romanization", style = MaterialTheme.typography.titleMedium)
+                        Switch(checked = showRomanized, onCheckedChange = { showRomanized = it })
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Neon Text Glow", style = MaterialTheme.typography.titleMedium)
+                        Switch(checked = textGlow, onCheckedChange = { textGlow = it })
+                    }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "Show Song Info", style = MaterialTheme.typography.titleMedium)
                         Switch(checked = showTrackInfo, onCheckedChange = { showTrackInfo = it })
                     }
-                    
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Show Watermark", style = MaterialTheme.typography.titleMedium)
-                        Switch(checked = showWatermark, onCheckedChange = { showWatermark = it })
+                        Text(text = "Show Aesthetic Barcode", style = MaterialTheme.typography.titleMedium)
+                        Switch(checked = showBarcode, onCheckedChange = { showBarcode = it })
                     }
 
-                    // 6. Styles Picker
-                    Text(text = "Glass Theme", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Text(text = "Glass Theme", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                         availableStyles.forEach { style ->
                             val isSelected = selectedGlassStyle == style
                             Box(
                                 modifier = Modifier.size(72.dp).clip(RoundedCornerShape(16.dp)).then(if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))).clickable { 
-                                    selectedGlassStyle = style 
-                                    customBlur = -1f 
-                                    customDarkness = -1f
+                                    selectedGlassStyle = style; customBlur = -1f; customDarkness = -1f
                                 }, contentAlignment = Alignment.Center
                             ) {
                                 Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(colors = listOf(style.surfaceTint.copy(alpha = 0.6f), style.overlayColor.copy(alpha = 0.4f)))))
@@ -937,7 +947,6 @@ fun LyricsV2(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-            
                 Button(
                     onClick = {
                         showColorPickerDialog = false
@@ -952,7 +961,7 @@ fun LyricsV2(
                                     coverArtUrl = coverUrl, 
                                     songTitle = songTitle, 
                                     artistName = artists, 
-                                    lyrics = lyricsText, 
+                                    lyrics = displayLyricsText, 
                                     width = exportWidth, 
                                     height = exportHeight, 
                                     glassStyle = selectedGlassStyle,
@@ -962,10 +971,16 @@ fun LyricsV2(
                                     showWatermark = showWatermark,
                                     showTrackInfo = showTrackInfo,
                                     textScale = textScale,
-                                    customDarkness = if (customDarkness < 0f) null else customDarkness
+                                    customDarkness = if (customDarkness < 0f) null else customDarkness,
+                                    fontStyle = fontStyle,
+                                    bgMode = bgMode,
+                                    textGlow = textGlow,
+                                    showBarcode = showBarcode
                                 )
                                 val uri = ComposeToImage.saveBitmapAsFile(context, image, "lyrics_${System.currentTimeMillis()}")
                                 context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "image/png"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Share Lyrics"))
+                                isSelectionModeActive = false
+                                selectedIndices.clear()
                             } catch (e: Exception) { Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_SHORT).show() } finally { showProgressDialog = false }
                         }
                     },
