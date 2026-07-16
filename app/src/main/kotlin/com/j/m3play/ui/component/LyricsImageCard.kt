@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -112,10 +113,8 @@ fun rememberAdjustedFontSize(
                 maxSize = midSize - 0.5f
             }
         }
-
         calculatedFontSize = if (bestFit < minFontSize.value) minFontSize else bestFit.sp
     }
-
     return calculatedFontSize
 }
 
@@ -129,9 +128,13 @@ fun LyricsImageCard(
     textAlign: TextAlign = TextAlign.Center,
     customBlur: Int? = null,
     showWatermark: Boolean = true,
-    showTrackInfo: Boolean = true, // Minimalist mode
-    textScale: Float = 1f,         // Text zoom multiplier
-    customDarkness: Float? = null, // Background dimness
+    showTrackInfo: Boolean = true,
+    textScale: Float = 1f,
+    customDarkness: Float? = null,
+    fontStyle: Int = 0, // 0=Modern, 1=Serif, 2=Monospace, 3=Cursive
+    bgMode: Int = 0,    //  0=Glass, 1=Gradient
+    textGlow: Boolean = false, //  Neon Glow
+    showBarcode: Boolean = true, //  Waveform Barcode
     darkBackground: Boolean = true,
     backgroundColor: Color? = null,
     textColor: Color? = null,
@@ -140,8 +143,15 @@ fun LyricsImageCard(
     val context = LocalContext.current
     val density = LocalDensity.current
     val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
-    val lyricsFontFamily = remember(useSystemFont) {
-        if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold))
+    
+    val baseFontFamily = remember(useSystemFont) { if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold)) }
+    
+    
+    val activeFontFamily = when(fontStyle) {
+        1 -> FontFamily.Serif
+        2 -> FontFamily.Monospace
+        3 -> FontFamily.Cursive
+        else -> baseFontFamily
     }
 
     val glassCornerRadius = 24.dp
@@ -161,46 +171,40 @@ fun LyricsImageCard(
     )
 
     var glassComponentSize by remember { mutableStateOf(Size.Zero) }
-    val lensCenter = remember(glassComponentSize) {
-        Offset(glassComponentSize.width / 2f, glassComponentSize.height / 2f)
-    }
-    val lensSize = remember(glassComponentSize) {
-        Size(glassComponentSize.width, glassComponentSize.height)
-    }
+    val lensCenter = remember(glassComponentSize) { Offset(glassComponentSize.width / 2f, glassComponentSize.height / 2f) }
+    val lensSize = remember(glassComponentSize) { Size(glassComponentSize.width, glassComponentSize.height) }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(aspectRatio) 
+                .aspectRatio(aspectRatio)
                 .clip(RoundedCornerShape(glassCornerRadius)),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = artworkPainter,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .cloudy(radius = activeBlurRadius) 
-            )
+        
+            if (bgMode == 1) {
+                Box(modifier = Modifier.fillMaxSize().background(
+                    Brush.linearGradient(listOf(glassStyle.surfaceTint, Color.Black, glassStyle.overlayColor))
+                ))
+            } else {
+                Image(
+                    painter = artworkPainter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().cloudy(radius = activeBlurRadius)
+                )
+            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = darknessAlpha * 0.8f),
-                                Color.Black.copy(alpha = darknessAlpha),
-                                Color.Black.copy(alpha = darknessAlpha * 1.2f),
-                            )
-                        )
+            Box(modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = darknessAlpha * 0.8f),
+                        Color.Black.copy(alpha = darknessAlpha),
+                        Color.Black.copy(alpha = darknessAlpha * 1.2f),
                     )
-            )
+                )
+            ))
 
             val glassShape = RoundedCornerShape(20.dp)
 
@@ -208,9 +212,7 @@ fun LyricsImageCard(
                 modifier = Modifier
                     .padding(14.dp)
                     .fillMaxSize()
-                    .onSizeChanged { size ->
-                        glassComponentSize = Size(size.width.toFloat(), size.height.toFloat())
-                    }
+                    .onSizeChanged { size -> glassComponentSize = Size(size.width.toFloat(), size.height.toFloat()) }
                     .clip(glassShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -221,16 +223,11 @@ fun LyricsImageCard(
                         .then(
                             if (glassComponentSize.width > 0f && glassComponentSize.height > 0f) {
                                 Modifier.liquidGlass(
-                                    lensCenter = lensCenter,
-                                    lensSize = lensSize,
-                                    cornerRadius = glassStyle.glassCornerRadius,
-                                    refraction = glassStyle.refraction,
-                                    curve = glassStyle.curve,
-                                    dispersion = glassStyle.dispersion,
-                                    saturation = glassStyle.glassSaturation,
-                                    contrast = glassStyle.glassContrast,
-                                    tint = glassStyle.glassTint,
-                                    edge = glassStyle.glassEdge,
+                                    lensCenter = lensCenter, lensSize = lensSize,
+                                    cornerRadius = glassStyle.glassCornerRadius, refraction = glassStyle.refraction,
+                                    curve = glassStyle.curve, dispersion = glassStyle.dispersion,
+                                    saturation = glassStyle.glassSaturation, contrast = glassStyle.glassContrast,
+                                    tint = glassStyle.glassTint, edge = glassStyle.glassEdge,
                                 )
                             } else Modifier
                         )
@@ -242,84 +239,47 @@ fun LyricsImageCard(
                 )
 
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(glassPadding),
+                    modifier = Modifier.fillMaxSize().padding(glassPadding),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    
-            
                     if (showTrackInfo) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 10.dp)
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                             Image(
-                                painter = artworkPainter,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(coverArtSize)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .border(
-                                        1.dp,
-                                        Color.White.copy(alpha = 0.15f),
-                                        RoundedCornerShape(14.dp)
-                                    )
+                                painter = artworkPainter, contentDescription = null, contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(coverArtSize).clip(RoundedCornerShape(14.dp)).border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
                             )
                             Spacer(modifier = Modifier.width(14.dp))
-                            Column(
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.Start,
-                                modifier = Modifier.weight(1f)
-                            ) {
+                            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.Start, modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = mediaMetadata.title,
-                                    color = mainTextColor,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(bottom = 2.dp),
-                                    style = TextStyle(
-                                        letterSpacing = (-0.02).em
-                                    )
+                                    text = mediaMetadata.title, color = mainTextColor, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 2.dp),
+                                    style = TextStyle(letterSpacing = (-0.02).em)
                                 )
-                                Text(
-                                    text = mediaMetadata.artists.joinToString { it.name },
-                                    color = secondaryColor,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Text(text = mediaMetadata.artists.joinToString { it.name }, color = secondaryColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     } else {
-                        Spacer(modifier = Modifier.height(1.dp)) // Maintain spacing if hidden
+                        Spacer(modifier = Modifier.height(1.dp)) 
                     }
 
                     BoxWithConstraints(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                        modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp),
                         contentAlignment = when (textAlign) {
                             TextAlign.Start -> Alignment.CenterStart
                             TextAlign.End -> Alignment.CenterEnd
                             else -> Alignment.Center
                         }
                     ) {
-                        val availableWidth = maxWidth
-                        val availableHeight = maxHeight
+                
+                        val textShadow = if(textGlow) Shadow(color = mainTextColor.copy(alpha = 0.7f), blurRadius = 20f) else null
+                        
                         val textStyle = TextStyle(
                             color = mainTextColor,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = textAlign, 
                             letterSpacing = (-0.01).em,
-                            fontFamily = lyricsFontFamily,
+                            fontFamily = activeFontFamily, // Updated Font
+                            shadow = textShadow // Updated Glow
                         )
 
                         val textMeasurer = rememberTextMeasurer()
@@ -332,59 +292,35 @@ fun LyricsImageCard(
                         }
 
                         val dynamicFontSize = rememberAdjustedFontSize(
-                            text = lyricText,
-                            maxWidth = availableWidth - 6.dp,
-                            maxHeight = availableHeight - 6.dp,
-                            density = density,
-                            initialFontSize = initialSize,
-                            minFontSize = 11.sp,
-                            style = textStyle,
-                            textMeasurer = textMeasurer
+                            text = lyricText, maxWidth = maxWidth - 6.dp, maxHeight = maxHeight - 6.dp,
+                            density = density, initialFontSize = initialSize, minFontSize = 11.sp,
+                            style = textStyle, textMeasurer = textMeasurer
                         )
 
                         Text(
                             text = lyricText,
-                            style = textStyle.copy(
-                            
-                                fontSize = dynamicFontSize * textScale,
-                                lineHeight = (dynamicFontSize.value * textScale).sp * 1.35f
-                            ),
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = textAlign, 
-                            modifier = Modifier.fillMaxWidth()
+                            style = textStyle.copy(fontSize = dynamicFontSize * textScale, lineHeight = (dynamicFontSize.value * textScale).sp * 1.35f),
+                            overflow = TextOverflow.Ellipsis, textAlign = textAlign, modifier = Modifier.fillMaxWidth()
                         )
                     }
 
                     if (showWatermark) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(secondaryColor.copy(alpha = 0.9f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.small_icon),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(15.dp),
-                                    colorFilter = ColorFilter.tint(
-                                        if (glassStyle.isDark) Color.Black.copy(alpha = 0.85f)
-                                        else Color.White.copy(alpha = 0.9f)
-                                    )
-                                )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Box(modifier = Modifier.size(22.dp).clip(RoundedCornerShape(50)).background(secondaryColor.copy(alpha = 0.9f)), contentAlignment = Alignment.Center) {
+                                Image(painter = painterResource(id = R.drawable.small_icon), contentDescription = null, modifier = Modifier.size(15.dp), colorFilter = ColorFilter.tint(if (glassStyle.isDark) Color.Black.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.9f)))
                             }
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = context.getString(R.string.app_name),
-                                color = secondaryColor,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.02.em
-                            )
+                            Text(text = context.getString(R.string.app_name), color = secondaryColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.02.em)
+                            
+                            
+                            if (showBarcode) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    listOf(0.4f, 0.8f, 0.5f, 1f, 0.6f, 0.3f, 0.9f, 0.5f).forEach { scale ->
+                                        Box(modifier = Modifier.width(2.dp).height(14.dp * scale).background(secondaryColor, RoundedCornerShape(50)))
+                                    }
+                                }
+                            }
                         }
                     } else {
                         Spacer(modifier = Modifier.height(1.dp))
