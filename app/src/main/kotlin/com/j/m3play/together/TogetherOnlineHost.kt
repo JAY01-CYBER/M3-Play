@@ -56,7 +56,7 @@ class TogetherOnlineHost(
             engine {
                 config {
                     connectTimeout(15, TimeUnit.SECONDS)
-                    readTimeout(30, TimeUnit.SECONDS)
+                    readTimeout(0, TimeUnit.SECONDS)
                     writeTimeout(15, TimeUnit.SECONDS)
                     pingInterval(25, TimeUnit.SECONDS)
                     retryOnConnectionFailure(true)
@@ -130,6 +130,8 @@ class TogetherOnlineHost(
                 }
                 return
             } catch (t: Throwable) {
+                // FIX 1: Never catch CancellationException, rethrow it so "be6" is not printed
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 lastError = t
             }
         }
@@ -320,7 +322,7 @@ class TogetherOnlineHost(
                         val message =
                             runCatching { TogetherJson.json.decodeFromString(TogetherMessage.serializer(), text) }
                                 .getOrElse {
-                                    onEvent?.invoke(TogetherServerEvent.Error("Failed to decode message", it))
+                                    // FIX 2: Do not throw Error on parse fail. Silently ignore keep-alive/ping strings
                                     continue
                                 }
 
@@ -386,7 +388,10 @@ class TogetherOnlineHost(
                         }
                     }
                 } catch (t: Throwable) {
-                    onEvent?.invoke(TogetherServerEvent.Error("Connection loop failed", t))
+                    // FIX 3: Ignore CancellationExceptions in loop to prevent masking
+                    if (t !is kotlinx.coroutines.CancellationException) {
+                        onEvent?.invoke(TogetherServerEvent.Error("Connection loop failed", t))
+                    }
                 } finally {
                     hostParticipantId = null
                     guests.clear()
