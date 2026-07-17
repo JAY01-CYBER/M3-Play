@@ -509,7 +509,7 @@ fun PreferenceGroup(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 24.dp, top = 16.dp, bottom = 8.dp),
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
             )
         }
         CompositionLocalProvider(LocalPreferenceInGroup provides true) {
@@ -537,6 +537,6 @@ fun PreferenceGroupTitle(
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(horizontal = 24.dp, top = 16.dp, bottom = 8.dp),
+        modifier = modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
     )
 }
