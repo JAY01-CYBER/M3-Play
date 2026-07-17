@@ -11,7 +11,7 @@ import com.j.m3play.lrclib.models.Track
 import com.j.m3play.lrclib.models.bestMatchingFor
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.HttpTimeout
@@ -25,7 +25,7 @@ import kotlin.math.abs
 
 object LrcLib {
     private val client by lazy {
-        HttpClient(CIO) {
+        HttpClient(OkHttp) {
             install(ContentNegotiation) {
                 json(
                     Json {
