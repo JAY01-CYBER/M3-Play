@@ -89,9 +89,9 @@ class TogetherClient(
             engine {
                 config {
                     connectTimeout(15, TimeUnit.SECONDS)
-                    readTimeout(30, TimeUnit.SECONDS)
+                    readTimeout(0, TimeUnit.SECONDS) 
                     writeTimeout(15, TimeUnit.SECONDS)
-                    pingInterval(25, TimeUnit.SECONDS)
+                    
                     retryOnConnectionFailure(true)
                 }
             }
