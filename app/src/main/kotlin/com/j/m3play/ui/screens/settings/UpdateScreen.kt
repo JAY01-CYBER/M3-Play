@@ -210,12 +210,13 @@ fun UpdateScreen(
         ) {
             item {
                 ListItem(
-                    headlineContent = { Text("Current Version", fontWeight = FontWeight.SemiBold) },
+                    headlineContent = { Text("Current Version", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
                     supportingContent = {
                         Column {
                             Text(
                                 text = BuildConfig.VERSION_NAME,
                                 style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             latestVersion?.let { latest ->
                                 if (!Updater.isSameVersion(latest, BuildConfig.VERSION_NAME)) {
@@ -241,16 +242,12 @@ fun UpdateScreen(
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
             }
-            
-            item {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            }
 
             item {
                 ListItem(
-                    headlineContent = { Text("Update Source Notice", fontWeight = FontWeight.SemiBold) },
+                    headlineContent = { Text("Update Source Notice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
                     supportingContent = {
-                        Text("Updates are fetched from GitHub and may bypass store review.")
+                        Text("Updates are fetched from GitHub and may bypass store review.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
@@ -259,14 +256,15 @@ fun UpdateScreen(
             item {
                 PreferenceGroupTitle(
                     title = "Notification Settings",
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 0.dp, top = 8.dp, bottom = 0.dp)
                 )
                 
                 ListItem(
-                    headlineContent = { Text("Enable Update Notification") },
+                    headlineContent = { Text("Enable Update Notification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
                     supportingContent = {
                         Text(
-                            if (enableUpdateNotification) "GitHub update checks are enabled" else "Disabled by default for privacy"
+                            text = if (enableUpdateNotification) "GitHub update checks are enabled" else "Disabled by default for privacy",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     trailingContent = {
@@ -292,12 +290,12 @@ fun UpdateScreen(
                     text = "GitHub requests are only made here when update notifications are enabled.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
             }
 
             item {
-                Box(modifier = Modifier.padding(16.dp)) {
+                Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
                     Button(
                         onClick = { navController.navigate("settings/changelog") },
                         modifier = Modifier.fillMaxWidth().height(50.dp)
