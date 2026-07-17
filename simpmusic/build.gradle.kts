@@ -12,4 +12,5 @@ dependencies {
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
