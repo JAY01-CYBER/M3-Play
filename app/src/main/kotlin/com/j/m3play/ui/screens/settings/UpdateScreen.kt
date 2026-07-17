@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +22,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
@@ -45,6 +48,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -209,80 +213,109 @@ fun UpdateScreen(
             contentPadding = PaddingValues(bottom = 40.dp)
         ) {
             item {
-                ListItem(
-                    headlineContent = { Text("Current Version", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                    supportingContent = {
-                        Column {
-                            Text(
-                                text = BuildConfig.VERSION_NAME,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            latestVersion?.let { latest ->
-                                if (!Updater.isSameVersion(latest, BuildConfig.VERSION_NAME)) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Latest available: $latest",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    ListItem(
+                        headlineContent = { Text("Current Version", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            Column {
+                                Text(
+                                    text = BuildConfig.VERSION_NAME,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                latestVersion?.let { latest ->
+                                    if (!Updater.isSameVersion(latest, BuildConfig.VERSION_NAME)) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Latest available: $latest",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    },
-                    leadingContent = {
-                        Icon(
-                            painter = painterResource(R.drawable.update),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
+                        },
+                        leadingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.update),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text("Update Source Notice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                    supportingContent = {
-                        Text("Updates are fetched from GitHub and may bypass store review.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    ListItem(
+                        headlineContent = { Text("Update Source Notice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            Text("Updates are fetched from GitHub and may bypass store review.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
             }
 
             item {
                 PreferenceGroupTitle(
                     title = "Notification Settings",
-                    modifier = Modifier.padding(start = 0.dp, top = 8.dp, bottom = 0.dp)
+                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 0.dp)
                 )
                 
-                ListItem(
-                    headlineContent = { Text("Enable Update Notification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                    supportingContent = {
-                        Text(
-                            text = if (enableUpdateNotification) "GitHub update checks are enabled" else "Disabled by default for privacy",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = enableUpdateNotification,
-                            onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    showDialog = true
-                                } else {
-                                    onEnableUpdateNotificationChange(false)
-                                    latestVersion = null
-                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    ListItem(
+                        headlineContent = { Text("Enable Update Notification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
+                        supportingContent = {
+                            Text(
+                                text = if (enableUpdateNotification) "GitHub update checks are enabled" else "Disabled by default for privacy",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = enableUpdateNotification,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        showDialog = true
+                                    } else {
+                                        onEnableUpdateNotificationChange(false)
+                                        latestVersion = null
+                                        UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
+                                    }
                                 }
-                            }
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
             }
             
             item {
@@ -295,7 +328,7 @@ fun UpdateScreen(
             }
 
             item {
-                Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
                     Button(
                         onClick = { navController.navigate("settings/changelog") },
                         modifier = Modifier.fillMaxWidth().height(50.dp)
