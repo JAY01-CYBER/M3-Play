@@ -101,13 +101,13 @@ fun StandardSettingsSearchBar(
 
 @Composable
 fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Text(
             text = group.title,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp)
+            modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 8.dp)
         )
 
         Column {
@@ -120,13 +120,14 @@ fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) 
 
 @Composable
 fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
-    val iconTint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconTint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.primary
 
     ListItem(
         headlineContent = {
             Text(
                 text = item.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface
             )
         },
@@ -188,8 +189,7 @@ fun AdaptiveSettingsLayout(
                 item(key = "permission") {
                     SettingsPermissionBanner(
                         onRequestPermission = state.onRequestPermission,
-                        // Padding chained instead of passing together
-                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
             }
@@ -198,8 +198,7 @@ fun AdaptiveSettingsLayout(
                     SettingsUpdateBanner(
                         latestVersion = state.latestVersion,
                         onClick = state.onUpdateClick,
-                        // Padding chained instead of passing together
-                        modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
             }
