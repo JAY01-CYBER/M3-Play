@@ -1,3 +1,13 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │                                            │
+ * │  Signature: M3PLAY::UI::EXPRESSIVE::V2     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.animation.core.Spring
@@ -47,15 +57,12 @@ object SettingsDimensions {
     val ExpandedListPaneWidth = 380.dp
 }
 
-// Bouncy aur "boosted" animations ko completely normal (1.0f) kar diya hai.
-// Taki agar app ke kisi aur hisse me ye use ho raha ho toh crash na ho, 
-// par Material 3 jaisa normal feel aaye (no extra bounce).
 object SettingsAnimations {
-    val PressScale = 1.0f
-    val TilePressScale = 1.0f
-    val PillPressScale = 1.0f
-    val IconPressRotation = 0f
-    val PillPressLift = 0.dp
+    val PressScale = 0.96f
+    val TilePressScale = 0.92f
+    val PillPressScale = 0.95f
+    val IconPressRotation = 8f
+    val PillPressLift = (-3).dp
 
     val EntranceFadeDuration = 300
     val EntranceSlideDuration = 350

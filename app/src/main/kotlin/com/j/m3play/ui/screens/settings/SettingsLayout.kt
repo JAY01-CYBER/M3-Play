@@ -1,6 +1,8 @@
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -8,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,32 +19,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.j.m3play.R
 import com.j.m3play.LocalPlayerAwareWindowInsets
 
@@ -57,8 +59,9 @@ data class SettingsContentState(
     val onUpdateClick: () -> Unit,
 )
 
+// MD3 प्रीमियम इनलाइन सर्च बार (गोल पिल-शेप)
 @Composable
-fun StandardSettingsSearchBar(
+fun PixelSettingsSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -69,14 +72,16 @@ fun StandardSettingsSearchBar(
         placeholder = { 
             Text(
                 text = stringResource(R.string.search), 
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             ) 
         },
         leadingIcon = {
             Icon(
                 painter = painterResource(R.drawable.search), 
                 contentDescription = null, 
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
             )
         },
         trailingIcon = {
@@ -90,12 +95,15 @@ fun StandardSettingsSearchBar(
                 }
             }
         },
-        shape = CircleShape,
+        shape = RoundedCornerShape(50), // Fully rounded like a pill
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            cursorColor = MaterialTheme.colorScheme.primary
         ),
         singleLine = true,
         modifier = modifier
@@ -107,18 +115,34 @@ fun StandardSettingsSearchBar(
 
 @Composable
 fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Text(
-            text = group.title,
+            text = group.title.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 32.dp, top = 16.dp, bottom = 8.dp)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.padding(start = 16.dp, top = 28.dp, bottom = 10.dp)
         )
 
-        Column {
-            group.items.forEach { item ->
-                PixelSettingsListItem(item = item)
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            // animateContentSize() से सर्च करने पर कार्ड्स झटके से नहीं बल्कि बहुत स्मूदली सिकुड़ेंगे
+            modifier = Modifier.fillMaxWidth().animateContentSize(animationSpec = tween(400))
+        ) {
+            Column {
+                group.items.forEachIndexed { index, item ->
+                    PixelSettingsListItem(item = item)
+
+                    if (index < group.items.size - 1) {
+                        HorizontalDivider(
+                            thickness = 0.8.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(start = 76.dp, end = 16.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -126,56 +150,48 @@ fun PixelSettingsGroupCard(group: SettingsGroup, modifier: Modifier = Modifier) 
 
 @Composable
 fun PixelSettingsListItem(item: SettingsItem, modifier: Modifier = Modifier) {
-    val iconTint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.onSurfaceVariant
-    val iconBg = iconTint.copy(alpha = 0.15f)
+    val iconTint = if (item.accentColor != Color.Unspecified) item.accentColor else MaterialTheme.colorScheme.primary
+    val iconBackground = iconTint.copy(alpha = 0.15f)
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        elevation = CardDefaults.cardElevation(0.dp),
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = item.onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        ListItem(
-            headlineContent = {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            supportingContent = item.subtitle?.let {
-                {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            leadingContent = {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(iconBg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = item.icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            },
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent
-            ),
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = item.onClick)
-        )
+                .size(44.dp)
+                .background(color = iconBackground, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = item.icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (item.subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = item.subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+        }
     }
 }
 
@@ -188,6 +204,8 @@ fun AdaptiveSettingsLayout(
     listState: LazyListState = rememberLazyListState(),
     topPadding: Dp = 0.dp,
 ) {
+    // पुराना LaunchedEffect और AnimatedVisibility (खराब एनिमेशन) हटा दिया गया है!
+
     LazyColumn(
         state = listState,
         modifier = modifier
@@ -200,9 +218,10 @@ fun AdaptiveSettingsLayout(
         contentPadding = PaddingValues(top = topPadding, bottom = 48.dp),
     ) {
         
+        // 1. सबसे ऊपर सर्च बार
         item(key = "search_bar") {
             Spacer(modifier = Modifier.height(8.dp))
-            StandardSettingsSearchBar(query = query, onQueryChange = onQueryChange)
+            PixelSettingsSearchBar(query = query, onQueryChange = onQueryChange)
             Spacer(modifier = Modifier.height(16.dp))
         }
 

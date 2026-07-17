@@ -1,3 +1,12 @@
+/*
+ * ╭────────────────────────────────────────────╮
+ * │             M3Play UI System               │
+ * │--------------------------------------------│
+ * │  Crafted for expressive music experience   │
+ * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
+ * ╰────────────────────────────────────────────╯
+ */
+
 package com.j.m3play.ui.screens.settings
 
 import android.Manifest
@@ -22,18 +31,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,7 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -113,6 +123,7 @@ fun UpdateScreen(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
+            shape = RoundedCornerShape(32.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
                 Text(
@@ -210,27 +221,70 @@ fun UpdateScreen(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                     )
                 ),
-            contentPadding = PaddingValues(bottom = 40.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    ListItem(
-                        headlineContent = { Text("Current Version", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                        supportingContent = {
-                            Column {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    )
+                                )
+                            )
+                            .padding(20.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(56.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.update),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = BuildConfig.VERSION_NAME,
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    text = "Current Version",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = BuildConfig.VERSION_NAME,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+
                                 latestVersion?.let { latest ->
                                     if (!Updater.isSameVersion(latest, BuildConfig.VERSION_NAME)) {
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = "Latest available: $latest",
                                             style = MaterialTheme.typography.bodyMedium,
@@ -240,108 +294,123 @@ fun UpdateScreen(
                                     }
                                 }
                             }
-                        },
-                        leadingContent = {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.update),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                    )
+                        }
+                    }
                 }
             }
 
             item {
                 Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
-                ) {
-                    ListItem(
-                        headlineContent = { Text("Update Source Notice", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                        supportingContent = {
-                            Text("Updates are fetched from GitHub and may bypass store review.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
                     )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = "Update Source Notice",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Updates are fetched from GitHub and may bypass store review.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
             item {
                 PreferenceGroupTitle(
                     title = "Notification Settings",
-                    modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 0.dp)
+                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
                 )
-                
                 Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    ListItem(
-                        headlineContent = { Text("Enable Update Notification", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium) },
-                        supportingContent = {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (enableUpdateNotification) "GitHub update checks are enabled" else "Disabled by default for privacy",
+                                text = "Enable Update Notification",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (enableUpdateNotification) {
+                                    "GitHub update checks are enabled"
+                                } else {
+                                    "Disabled by default for privacy"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        },
-                        trailingContent = {
-                            Switch(
-                                checked = enableUpdateNotification,
-                                onCheckedChange = { enabled ->
-                                    if (enabled) {
-                                        showDialog = true
-                                    } else {
-                                        onEnableUpdateNotificationChange(false)
-                                        latestVersion = null
-                                        UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
-                                    }
+                        }
+
+                        Switch(
+                            checked = enableUpdateNotification,
+                            onCheckedChange = { enabled ->
+                                if (enabled) {
+                                    showDialog = true
+                                } else {
+                                    onEnableUpdateNotificationChange(false)
+                                    latestVersion = null
+                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
                                 }
-                            )
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                    )
+                            }
+                        )
+                    }
                 }
-            }
-            
-            item {
-                 Text(
-                    text = "GitHub requests are only made here when update notifications are enabled.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                )
             }
 
             item {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    Button(
-                        onClick = { navController.navigate("settings/changelog") },
-                        modifier = Modifier.fillMaxWidth().height(50.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.update),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text("View Changelog")
-                    }
+                Button(
+                    onClick = { navController.navigate("settings/changelog") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.update),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "View Changelog",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            }
+
+            item {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                Text(
+                    text = "GitHub requests are only made here when update notifications are enabled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         }
     }
