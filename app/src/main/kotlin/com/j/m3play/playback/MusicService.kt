@@ -269,7 +269,7 @@ class MusicService :
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakelockEnabled = false
 
-    private var scopeJob = Job()
+    private var scopeJob: kotlinx.coroutines.Job = kotlinx.coroutines.SupervisorJob()
     private var scope = CoroutineScope(Dispatchers.Main + scopeJob)
     private var ioScope = CoroutineScope(Dispatchers.IO + scopeJob)
     private val binder = MusicBinder()
@@ -1094,9 +1094,9 @@ class MusicService :
     }
 
 
-         private fun ensureScopesActive() {
+    private fun ensureScopesActive() {
         if (!scopeJob.isActive) {
-            scopeJob = Job()
+            scopeJob = kotlinx.coroutines.SupervisorJob()
         }
         if (!scope.isActive) {
             scope = CoroutineScope(Dispatchers.Main + scopeJob)
@@ -5026,7 +5026,3 @@ class MusicService :
         const val MIN_PRESENCE_UPDATE_INTERVAL = 20_000L
     }
 }
-
-    
-    
-    
