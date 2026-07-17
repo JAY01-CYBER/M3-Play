@@ -89,9 +89,9 @@ class TogetherClient(
             engine {
                 config {
                     connectTimeout(15, TimeUnit.SECONDS)
-                    readTimeout(0, TimeUnit.SECONDS) 
+                    readTimeout(0, TimeUnit.SECONDS)
                     writeTimeout(15, TimeUnit.SECONDS)
-                    
+                    pingInterval(25, TimeUnit.SECONDS)
                     retryOnConnectionFailure(true)
                 }
             }
@@ -148,6 +148,8 @@ class TogetherClient(
                     }
                     return@launch
                 } catch (t: Throwable) {
+                    // FIX 1: Never catch CancellationException
+                    if (t is kotlinx.coroutines.CancellationException) throw t
                     lastError = t
                 }
             }
@@ -195,6 +197,8 @@ class TogetherClient(
                     }
                     return@launch
                 } catch (t: Throwable) {
+                    // FIX 1: Never catch CancellationException
+                    if (t is kotlinx.coroutines.CancellationException) throw t
                     lastError = t
                 }
             }
@@ -302,7 +306,7 @@ class TogetherClient(
                         val message =
                             runCatching { TogetherJson.json.decodeFromString(TogetherMessage.serializer(), text) }
                                 .getOrElse {
-                                    _events.tryEmit(TogetherClientEvent.Error("Failed to decode message", it))
+                                    // FIX 2: Silently ignore non-JSON pings from the server to prevent crash
                                     continue
                                 }
 
@@ -361,7 +365,10 @@ class TogetherClient(
                         }
                     }
                 } catch (t: Throwable) {
-                    _events.tryEmit(TogetherClientEvent.Error("Connection loop failed", t))
+                    // FIX 3: Don't catch CancellationException
+                    if (t !is kotlinx.coroutines.CancellationException) {
+                        _events.tryEmit(TogetherClientEvent.Error("Connection loop failed", t))
+                    }
                 } finally {
                     _events.tryEmit(TogetherClientEvent.Disconnected)
                     _state.value = TogetherClientState.Idle
