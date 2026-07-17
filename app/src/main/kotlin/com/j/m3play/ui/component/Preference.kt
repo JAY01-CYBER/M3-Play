@@ -1,11 +1,9 @@
 package com.j.m3play.ui.component
 
 import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -13,24 +11,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -70,48 +60,13 @@ fun PreferenceEntry(
     onClick: (() -> Unit)? = null,
     isEnabled: Boolean = true,
 ) {
-    val inGroup = LocalPreferenceInGroup.current
     val interactionSource = remember { MutableInteractionSource() }
 
-    val rowContent: @Composable () -> Unit = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
-                    enabled = isEnabled && onClick != null,
-                    onClick = onClick ?: {},
-                )
-                .alpha(if (isEnabled) 1f else 0.5f)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-        ) {
-            if (icon != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary)) {
-                        icon()
-                    }
-                }
-                Spacer(Modifier.width(16.dp))
-            }
-
-            Column(
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f),
-            ) {
-                ProvideTextStyle(MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) {
-                    title()
-                }
+    ListItem(
+        headlineContent = title,
+        supportingContent = {
+            Column {
                 if (description != null) {
-                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodyMedium,
@@ -120,32 +75,22 @@ fun PreferenceEntry(
                 }
                 content?.invoke()
             }
-
-            if (trailingContent != null) {
-                Spacer(Modifier.width(12.dp))
-                Box(modifier = Modifier.align(Alignment.CenterVertically)) {
-                    trailingContent()
-                }
-            }
-        }
-    }
-
-    if (inGroup) {
-        rowContent()
-    } else {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-        ) {
-            rowContent()
-        }
-    }
+        },
+        leadingContent = icon,
+        trailingContent = trailingContent,
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .alpha(if (isEnabled) 1f else 0.5f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                enabled = isEnabled && onClick != null,
+                onClick = onClick ?: {},
+            )
+    )
 }
 
 @Composable
@@ -155,24 +100,19 @@ fun <T> ListPreference(
     icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
     values: List<T>,
-    valueText: @Composable (T) -> String, // Added @Composable back
+    valueText: @Composable (T) -> String,
     onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    ListItem(
-        headlineContent = title,
-        supportingContent = {
-            Text(text = valueText(selectedValue))
-        },
-        leadingContent = icon,
-        colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = isEnabled) { showDialog = true }
+    PreferenceEntry(
+        modifier = modifier,
+        title = title,
+        content = { Text(text = valueText(selectedValue), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+        icon = icon,
+        onClick = { showDialog = true },
+        isEnabled = isEnabled,
     )
 
     if (showDialog) {
@@ -195,7 +135,7 @@ fun <T> M3SelectorDialog(
     title: @Composable () -> Unit,
     selectedValue: T,
     values: List<T>,
-    valueText: @Composable (T) -> String, // Added @Composable back
+    valueText: @Composable (T) -> String,
     onValueSelected: (T) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -246,7 +186,7 @@ inline fun <reified T : Enum<T>> EnumListPreference(
     noinline title: @Composable () -> Unit,
     noinline icon: (@Composable () -> Unit)? = null,
     selectedValue: T,
-    noinline valueText: @Composable (T) -> String, // Added @Composable back
+    noinline valueText: @Composable (T) -> String,
     noinline onValueSelected: (T) -> Unit,
     isEnabled: Boolean = true,
 ) {
@@ -281,16 +221,7 @@ fun SwitchPreference(
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                enabled = isEnabled,
-                thumbContent = {
-                    Icon(
-                        painter = painterResource(
-                            id = if (checked) R.drawable.check else R.drawable.close
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
+                enabled = isEnabled
             )
         },
         onClick = { onCheckedChange(!checked) },
@@ -490,7 +421,7 @@ fun CrossfadeSliderPreference(
         modifier = modifier,
         title = { Text(stringResource(R.string.audio_crossfade_title)) },
         description = descriptionText,
-        icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
+        icon = { Icon(painterResource(R.drawable.graphic_eq), null, tint = MaterialTheme.colorScheme.primary) },
         onClick = { if (isEnabled) showDialog = true },
         isEnabled = isEnabled,
     )
@@ -571,28 +502,18 @@ fun PreferenceGroup(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+    Column(modifier = modifier.padding(bottom = 8.dp)) {
         if (title != null) {
             Text(
-                text = title.uppercase(),
+                text = title,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
-                letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            CompositionLocalProvider(LocalPreferenceInGroup provides true) {
-                Column(content = content)
-            }
+        CompositionLocalProvider(LocalPreferenceInGroup provides true) {
+            Column(content = content)
         }
     }
 }
@@ -600,7 +521,7 @@ fun PreferenceGroup(
 @Composable
 fun PreferenceGroupDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(
-        modifier = modifier.padding(start = 74.dp, end = 24.dp),
+        modifier = modifier.padding(start = 72.dp, end = 24.dp),
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant,
     )
@@ -612,11 +533,10 @@ fun PreferenceGroupTitle(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = title.uppercase(),
+        text = title,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
-        letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing * 1.5f,
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+        modifier = modifier.padding(horizontal = 24.dp, top = 16.dp, bottom = 8.dp),
     )
 }
