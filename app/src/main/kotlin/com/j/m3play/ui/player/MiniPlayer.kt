@@ -95,7 +95,8 @@ import com.j.m3play.R
 import com.j.m3play.constants.MiniPlayerHeight
 import com.j.m3play.constants.SwipeSensitivityKey
 import com.j.m3play.constants.ThumbnailCornerRadius
-import com.j.m3play.constants.UseNewMiniPlayerDesignKey
+import com.j.m3play.constants.MiniPlayerStyle
+import com.j.m3play.constants.MiniPlayerStyleKey
 import com.j.m3play.constants.CropThumbnailToSquareKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.db.entities.ArtistEntity
@@ -114,22 +115,13 @@ fun MiniPlayer(
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
 ) {
-    val useNewMiniPlayerDesign by rememberPreference(UseNewMiniPlayerDesignKey, true)
+    val miniPlayerStyle by rememberEnumPreference(MiniPlayerStyleKey, MiniPlayerStyle.MODERN)
 
-    if (useNewMiniPlayerDesign) {
-        NewMiniPlayer(
-            position = position,
-            duration = duration,
-            modifier = modifier,
-            pureBlack = pureBlack
-        )
-    } else {
-        LegacyMiniPlayer(
-            position = position,
-            duration = duration,
-            modifier = modifier,
-            pureBlack = pureBlack
-        )
+    when (miniPlayerStyle) {
+        MiniPlayerStyle.MODERN -> NewMiniPlayer(position, duration, modifier, pureBlack)
+        MiniPlayerStyle.LEGACY -> LegacyMiniPlayer(position, duration, modifier, pureBlack)
+        MiniPlayerStyle.MINIMAL -> MinimalMiniPlayer(position, duration, modifier, pureBlack)
+        MiniPlayerStyle.FLOATING -> FloatingPillMiniPlayer(position, duration, modifier, pureBlack)
     }
 }
 
@@ -432,6 +424,190 @@ private fun LegacyMiniPlayer(
                     modifier = Modifier.size(24.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MinimalMiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
+    val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
+    
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val haptic = LocalHapticFeedback.current
+
+    SwipeableMiniPlayerBox(
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .border(
+                    width = 0.5.dp,
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)
+            ) {
+                AsyncImage(
+                    model = mediaMetadata?.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = mediaMetadata?.title ?: "Unknown",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    Text(
+                        text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (playbackState == Player.STATE_ENDED) {
+                            playerConnection.player.seekTo(0, 0)
+                            playerConnection.player.playWhenReady = true
+                        } else {
+                            playerConnection.player.togglePlayPause()
+                        }
+                    }
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            painter = painterResource(
+                                if (playbackState == Player.STATE_ENDED) R.drawable.replay
+                                else if (isPlaying) R.drawable.pause
+                                else R.drawable.play
+                            ),
+                            contentDescription = "Play/Pause",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+            LinearProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = Color.Transparent,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatingPillMiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
+    val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
+    
+    val miniPlayerBackground by rememberEnumPreference(
+        stringPreferencesKey("mini_player_background_style"), 
+        defaultValue = PlayerBackgroundStyle.DEFAULT
+    )
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
+
+    MiniPlayerColorExtractor(
+        mediaMetadata = mediaMetadata,
+        miniPlayerBackground = miniPlayerBackground,
+        onGradientColorsChange = onGradientColorsChange
+    )
+
+    SwipeableMiniPlayerBox(
+        modifier = modifier.padding(bottom = 12.dp, start = 16.dp, end = 16.dp),
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .border(
+                    width = 0.5.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.02f))
+                    ),
+                    shape = CircleShape
+                )
+                .clip(CircleShape)
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
+        ) {
+            MiniPlayerBackgroundLayer(
+                style = miniPlayerBackground,
+                mediaMetadata = mediaMetadata,
+                gradientColors = gradientColors
+            )
+            
+            LinearProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = Color.Transparent
+            )
+
+            NewMiniPlayerContent(
+                pureBlack = pureBlack,
+                position = position,
+                duration = duration,
+                playerConnection = playerConnection
+            )
         }
     }
 }
