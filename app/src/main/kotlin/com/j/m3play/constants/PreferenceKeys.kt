@@ -31,7 +31,16 @@ val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
 val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
 val UseNewLibraryDesignKey = booleanPreferencesKey("useNewLibraryDesign")
-val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
+
+// Naya Mini Player Style Key aur Enum yahan par add ho gaya hai
+val MiniPlayerStyleKey = stringPreferencesKey("miniPlayerStyle")
+enum class MiniPlayerStyle {
+    MODERN,
+    LEGACY,
+    MINIMAL,
+    FLOATING
+}
+
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
 val M3PlayCanvasKey = booleanPreferencesKey("archiveTuneCanvas")
 val ThumbnailCornerRadiusKey = floatPreferencesKey("thumbnailCornerRadius")
@@ -90,7 +99,7 @@ val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
 // ====================================================
-// 🔥 SPOTIFY INTEGRATION KEYS 🔥
+//  SPOTIFY INTEGRATION KEYS 
 // ====================================================
 
 // M3Play Original Keys
