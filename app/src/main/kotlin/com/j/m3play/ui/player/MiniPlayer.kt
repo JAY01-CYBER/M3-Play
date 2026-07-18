@@ -177,8 +177,13 @@ private fun NewMiniPlayer(
                 .height(68.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
                 .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.15f),
+                    width = 0.5.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.12f),
+                            Color.White.copy(alpha = 0.02f)
+                        )
+                    ),
                     shape = RoundedCornerShape(34.dp)
                 )
                 .clip(RoundedCornerShape(34.dp))
