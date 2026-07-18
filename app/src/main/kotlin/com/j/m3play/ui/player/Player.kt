@@ -709,7 +709,7 @@ fun BottomSheetPlayer(
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
                 } else 0f
-                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
+                val fadeProgress = if (progress < 0.05f) { ((0.05f - progress) / 0.05f).coerceIn(0f, 1f) } else { 0f }
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
@@ -717,7 +717,7 @@ fun BottomSheetPlayer(
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
                 } else 0f
-                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
+                val fadeProgress = if (progress < 0.05f) { ((0.05f - progress) / 0.05f).coerceIn(0f, 1f) } else { 0f }
                 if (useBlackBackground) {
                     Color.Black.copy(alpha = 1f - fadeProgress)
                 } else {
@@ -856,7 +856,9 @@ fun BottomSheetPlayer(
             label = "landscapeBottomPadding"
         )
 
-        when (LocalConfiguration.current.orientation) {
+        val configuration = LocalConfiguration.current
+
+        when (configuration.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
@@ -956,7 +958,7 @@ fun BottomSheetPlayer(
                                     alpha = expandProgressSafeAlpha
                                 },
                         ) {
-                            val screenWidth = LocalConfiguration.current.screenWidthDp
+                            val screenWidth = configuration.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
                             AnimatedContent(
                                 targetState = showInlineLyrics,
@@ -1095,16 +1097,13 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    val miniArtworkSize = 54.dp.toPx()
-                                    val minScale = miniArtworkSize / size.width
-                                    val scale = minScale + ((1f - minScale) * expandProgressRaw)
+                                    val scale = 0.75f + (0.25f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    val leftOffset = -(size.width / 2f) + (miniArtworkSize / 2f) + 20.dp.toPx()
-                                    translationX = leftOffset * (1f - expandProgressRaw)
-                                    val bottomOffset = 340.dp.toPx()
-                                    translationY = bottomOffset * (1f - expandProgressRaw)
-                                    alpha = 1f
+                                    
+                                    translationY = (1f - expandProgressRaw) * 80.dp.toPx()
+                                    
+                                    alpha = expandProgressSafeAlpha
                                 },
                         ) {
                             AnimatedContent(
@@ -1134,8 +1133,8 @@ fun BottomSheetPlayer(
 
                         Column(
                             modifier = Modifier.graphicsLayer {
-                                translationY = (1f - expandProgressRaw) * 80.dp.toPx()
-                                val controlsAlpha = ((expandProgressRaw - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                                translationY = (1f - expandProgressRaw) * 280.dp.toPx()
+                                val controlsAlpha = ((expandProgressRaw - 0.15f) / 0.85f).coerceIn(0f, 1f)
                                 alpha = controlsAlpha 
                             }
                         ) {
