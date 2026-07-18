@@ -176,6 +176,11 @@ private fun NewMiniPlayer(
                 .fillMaxWidth()
                 .height(68.dp)
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(34.dp)
+                )
                 .clip(RoundedCornerShape(34.dp))
                 .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
         ) {
