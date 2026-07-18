@@ -31,8 +31,9 @@ val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SwipeToSongKey = booleanPreferencesKey("SwipeToSong")
 val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
 val UseNewLibraryDesignKey = booleanPreferencesKey("useNewLibraryDesign")
+val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 
-// Naya Mini Player Style Key aur Enum yahan par add ho gaya hai
+// Naya Mini Player Style Key aur Enum
 val MiniPlayerStyleKey = stringPreferencesKey("miniPlayerStyle")
 enum class MiniPlayerStyle {
     MODERN,
