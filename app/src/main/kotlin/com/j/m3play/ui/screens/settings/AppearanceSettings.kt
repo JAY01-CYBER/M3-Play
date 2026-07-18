@@ -361,6 +361,7 @@ fun AppearanceSettings(
                                     MiniPlayerStyle.LEGACY -> "Legacy Classic"
                                     MiniPlayerStyle.MINIMAL -> "Minimal Clean"
                                     MiniPlayerStyle.FLOATING -> "Floating Pill"
+                                    MiniPlayerStyle.APPLE_MUSIC -> "Apple Music"
                                 }
                             }
                         )
@@ -373,7 +374,7 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        //  Main Player Background (List Restricted to only allow 6 options without blur ones)
+                        // 🔥 Main Player Background
                         ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -400,7 +401,7 @@ fun AppearanceSettings(
                             onValueSelected = onPlayerBackgroundChange,
                         )
 
-                        //  Mini Player Background (All Options Available including Blur and Apple Music)
+                        // 🔥 Mini Player Background
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
