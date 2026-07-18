@@ -735,10 +735,25 @@ fun BottomSheetPlayer(
                     val expandProgressRaw = if (range.value != 0f) {
                         (state.value - state.collapsedBound) / range
                     } else 0f
-                    val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
-                    val scale = 0.85f + (0.15f * collapseProgress)
+                    
+                    // Mini Player Fade Out & Shrink
+                    val scale = 1f - (0.2f * expandProgressRaw)
                     scaleX = scale
                     scaleY = scale
+                    alpha = 1f - (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
+                    
+                    // Deep Push Down Parallax for Mini Player
+                    translationY = expandProgressRaw * 80.dp.toPx()
+
+                    // FLUID BLUR OUT ANIMATION
+                    val blurAmount = expandProgressRaw * 40f
+                    if (blurAmount > 0.1f) {
+                        renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                            radiusX = blurAmount,
+                            radiusY = blurAmount,
+                            edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
+                        )
+                    }
                 }
             ) {
                 MiniPlayer(
@@ -951,11 +966,11 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    val scale = 0.8f + (0.2f * expandProgressRaw)
+                                    val scale = 0.6f + (0.4f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
                                     translationY = -(1f - expandProgressRaw) * 50.dp.toPx()
-                                    alpha = expandProgressSafeAlpha
+                                    alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
                                 },
                         ) {
                             val screenWidth = configuration.screenWidthDp
@@ -990,8 +1005,9 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
                                 .graphicsLayer {
-                                    translationX = (1f - expandProgressRaw) * 50.dp.toPx()
-                                    alpha = expandProgressSafeAlpha
+                                    translationX = (1f - expandProgressRaw) * 100.dp.toPx()
+                                    val controlsAlpha = ((expandProgressRaw - 0.15f) / 0.85f).coerceIn(0f, 1f)
+                                    alpha = controlsAlpha
                                 },
                         ) {
                             Spacer(Modifier.weight(1f))
@@ -1097,13 +1113,25 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    val scale = 0.75f + (0.25f * expandProgressRaw)
+                                    // SPRING BOUNCE ARTWORK SCALE
+                                    val scale = 0.5f + (0.5f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
                                     
-                                    translationY = (1f - expandProgressRaw) * 80.dp.toPx()
+                                    // DEEP PARALLAX Y-AXIS PUSH
+                                    translationY = (1f - expandProgressRaw) * 200.dp.toPx()
                                     
-                                    alpha = expandProgressSafeAlpha
+                                    alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
+
+                                    // FLUID BLUR IN ANIMATION
+                                    val blurAmount = (1f - expandProgressRaw) * 50f
+                                    if (blurAmount > 0.1f) {
+                                        renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                            radiusX = blurAmount,
+                                            radiusY = blurAmount,
+                                            edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
+                                        )
+                                    }
                                 },
                         ) {
                             AnimatedContent(
@@ -1133,9 +1161,25 @@ fun BottomSheetPlayer(
 
                         Column(
                             modifier = Modifier.graphicsLayer {
-                                translationY = (1f - expandProgressRaw) * 280.dp.toPx()
-                                val controlsAlpha = ((expandProgressRaw - 0.15f) / 0.85f).coerceIn(0f, 1f)
+                                // STAGGERED DEEP PARALLAX FOR CONTROLS (Heavier Bounce Feel)
+                                translationY = (1f - expandProgressRaw) * 350.dp.toPx()
+                                
+                                val controlsAlpha = ((expandProgressRaw - 0.2f) / 0.8f).coerceIn(0f, 1f)
                                 alpha = controlsAlpha 
+                                
+                                val controlsScale = 0.8f + (0.2f * controlsAlpha)
+                                scaleX = controlsScale
+                                scaleY = controlsScale
+
+                                // CONTROLS FLUID BLUR
+                                val blurAmount = (1f - controlsAlpha) * 30f
+                                if (blurAmount > 0.1f) {
+                                    renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                        radiusX = blurAmount,
+                                        radiusY = blurAmount,
+                                        edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
+                                    )
+                                }
                             }
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
