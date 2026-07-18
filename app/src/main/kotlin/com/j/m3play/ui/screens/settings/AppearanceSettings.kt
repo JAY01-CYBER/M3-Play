@@ -75,7 +75,8 @@ import com.j.m3play.constants.LyricsScrollKey
 import com.j.m3play.constants.LyricsTextPositionKey
 import com.j.m3play.constants.PlayerDesignStyle
 import com.j.m3play.constants.PlayerDesignStyleKey
-import com.j.m3play.constants.UseNewMiniPlayerDesignKey
+import com.j.m3play.constants.MiniPlayerStyle
+import com.j.m3play.constants.MiniPlayerStyleKey
 import com.j.m3play.constants.PlayerBackgroundStyle
 import com.j.m3play.constants.PlayerBackgroundStyleKey
 import com.j.m3play.constants.MiniPlayerBackgroundStyleKey
@@ -131,7 +132,7 @@ fun AppearanceSettings(
     val (randomThemeOnStartup, onRandomThemeOnStartupChange) = rememberPreference(RandomThemeOnStartupKey, false)
     val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
     val (playerDesignStyle, onPlayerDesignStyleChange) = rememberEnumPreference(PlayerDesignStyleKey, PlayerDesignStyle.V4)
-    val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(UseNewMiniPlayerDesignKey, true)
+    val (miniPlayerStyle, onMiniPlayerStyleChange) = rememberEnumPreference(MiniPlayerStyleKey, MiniPlayerStyle.MODERN)
     val (useNewLibraryDesign, onUseNewLibraryDesignChange) = rememberPreference(com.j.m3play.constants.UseNewLibraryDesignKey, false)
     val (hidePlayerThumbnail, onHidePlayerThumbnailChange) = rememberPreference(HidePlayerThumbnailKey, false)
     val (archiveTuneCanvasEnabled, onM3PlayCanvasEnabledChange) = rememberPreference(M3PlayCanvasKey, false)
@@ -349,11 +350,19 @@ fun AppearanceSettings(
                             },
                         )
 
-                        SwitchPreference(
-                            title = { Text(stringResource(R.string.new_mini_player_design)) },
+                        EnumListPreference(
+                            title = { Text("Mini player style") },
                             icon = { Icon(painterResource(R.drawable.nav_bar), null) },
-                            checked = useNewMiniPlayerDesign,
-                            onCheckedChange = onUseNewMiniPlayerDesignChange,
+                            selectedValue = miniPlayerStyle,
+                            onValueSelected = onMiniPlayerStyleChange,
+                            valueText = {
+                                when (it) {
+                                    MiniPlayerStyle.MODERN -> "Modern Glass"
+                                    MiniPlayerStyle.LEGACY -> "Legacy Classic"
+                                    MiniPlayerStyle.MINIMAL -> "Minimal Clean"
+                                    MiniPlayerStyle.FLOATING -> "Floating Pill"
+                                }
+                            }
                         )
 
                         SwitchPreference(
@@ -364,7 +373,7 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        // 🔥 Main Player Background (List Restricted to only allow 6 options without blur ones)
+                        //  Main Player Background (List Restricted to only allow 6 options without blur ones)
                         ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -391,7 +400,7 @@ fun AppearanceSettings(
                             onValueSelected = onPlayerBackgroundChange,
                         )
 
-                        // 🔥 Mini Player Background (All Options Available including Blur and Apple Music)
+                        //  Mini Player Background (All Options Available including Blur and Apple Music)
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
