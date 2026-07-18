@@ -13,11 +13,14 @@ package com.j.m3play.ui.player
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -134,7 +137,6 @@ fun MiniPlayer(
     }
 }
 
-//  ULTIMATE APPLE MUSIC REAL-GLASS EXPERIENCE 
 @Composable
 private fun AppleMusicMiniPlayer(
     position: Long,
@@ -167,10 +169,8 @@ private fun AppleMusicMiniPlayer(
         onGradientColorsChange = onGradientColorsChange
     )
 
-    // 3. Dynamic Album Color Tinting
     val dominantColor = gradientColors.firstOrNull() ?: MaterialTheme.colorScheme.surfaceVariant
 
-    // 10. Moving Reflection
     val infiniteTransition = rememberInfiniteTransition(label = "reflection")
     val reflectionOffset by infiniteTransition.animateFloat(
         initialValue = -500f,
@@ -182,7 +182,6 @@ private fun AppleMusicMiniPlayer(
         label = "reflectionOffset"
     )
 
-    // 7. Smooth Animations for Play button
     val playInteractionSource = remember { MutableInteractionSource() }
     val isPlayPressed by playInteractionSource.collectIsPressedAsState()
     val playScale by animateFloatAsState(
@@ -191,8 +190,14 @@ private fun AppleMusicMiniPlayer(
         label = "playScaleAnim"
     )
 
+    val rawProgress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = rawProgress,
+        animationSpec = tween(500, easing = LinearEasing),
+        label = "progressAnim"
+    )
+
     SwipeableMiniPlayerBox(
-        // 6. Floating Effect: 16dp margins everywhere at bottom
         modifier = modifier.padding(bottom = 16.dp, start = 16.dp, end = 16.dp),
         swipeSensitivity = swipeSensitivity,
         swipeThumbnail = swipeThumbnail,
@@ -205,58 +210,72 @@ private fun AppleMusicMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(76.dp) // 6. Height 70-80dp range
+                .height(72.dp) 
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                // 5. Soft colored glow shadow
                 .shadow(
-                    elevation = 18.dp, 
-                    shape = RoundedCornerShape(30.dp), 
+                    elevation = 20.dp, 
+                    shape = RoundedCornerShape(32.dp), 
                     spotColor = dominantColor.copy(alpha = 0.5f),
                     ambientColor = dominantColor.copy(alpha = 0.2f)
                 )
-                .clip(RoundedCornerShape(30.dp))
-                // 1. REAL BLUR BACKGROUND (Android 12+ safe implementation)
-                .graphicsLayer {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        renderEffect = android.graphics.RenderEffect
-                            .createBlurEffect(40f, 40f, android.graphics.Shader.TileMode.CLAMP)
-                            .asComposeRenderEffect()
-                    }
-                }
-                // 2. Glass Card & 3. Dynamic Tint
-                .background(Color.White.copy(alpha = if (pureBlack) 0.05f else 0.18f))
-                .background(dominantColor.copy(alpha = 0.12f))
-                // 2. Glass Border
+                .clip(RoundedCornerShape(32.dp))
                 .border(
                     width = 1.dp,
                     color = Color.White.copy(alpha = 0.35f),
-                    shape = RoundedCornerShape(30.dp)
+                    shape = RoundedCornerShape(32.dp)
                 )
-                .drawBehind {
-                    // 4. Top Highlight
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
-                            startY = 0f,
-                            endY = size.height * 0.5f
-                        )
-                    )
-                    // 10. Reflection Gradient
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.15f), Color.Transparent),
-                            start = Offset(reflectionOffset, reflectionOffset),
-                            end = Offset(reflectionOffset + 400f, reflectionOffset + 400f)
-                        )
-                    )
-                    // 9. Fake Noise overlay
-                    drawRect(Color.Black.copy(alpha = 0.02f)) 
-                }
         ) {
+            // BACKGROUND LAYER
+            Box(modifier = Modifier.matchParentSize()) {
+                // Background image blur (Android 12+)
+                AsyncImage(
+                    model = mediaMetadata?.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                renderEffect = android.graphics.RenderEffect
+                                    .createBlurEffect(50f, 50f, android.graphics.Shader.TileMode.CLAMP)
+                                    .asComposeRenderEffect()
+                            }
+                        }
+                )
+                
+                // GLASS TINT AND REFLECTIONS OVERLAY
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(if (pureBlack) Color(0xFF1C1C1E).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.5f))
+                        .background(dominantColor.copy(alpha = 0.15f)) 
+                        .drawBehind {
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(Color.White.copy(alpha = 0.4f), Color.Transparent),
+                                    startY = 0f,
+                                    endY = size.height * 0.4f
+                                )
+                            )
+                            drawRect(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.2f), Color.Transparent),
+                                    start = Offset(reflectionOffset, reflectionOffset),
+                                    end = Offset(reflectionOffset + 400f, reflectionOffset + 400f)
+                                )
+                            )
+                            drawRect(Color.Black.copy(alpha = 0.03f)) 
+                        }
+                )
+            }
+
+            // FOREGROUND LAYER
+            
+    
             LinearProgressIndicator(
-                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                progress = { animatedProgress },
                 modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter).alpha(0.5f),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (pureBlack) Color.White else Color.Black,
                 trackColor = Color.Transparent,
             )
 
@@ -264,40 +283,54 @@ private fun AppleMusicMiniPlayer(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)
             ) {
-                // 8. Album Art: Rounded Corners (18dp) and Light Shadow
+    
                 AsyncImage(
-                    model = mediaMetadata?.thumbnailUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(mediaMetadata?.thumbnailUrl)
+                        .crossfade(500)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(54.dp)
-                        .shadow(4.dp, RoundedCornerShape(18.dp), spotColor = Color.Black.copy(alpha = 0.25f))
-                        .clip(RoundedCornerShape(18.dp))
+                        .size(50.dp)
+                        .shadow(4.dp, RoundedCornerShape(14.dp), spotColor = Color.Black.copy(alpha = 0.3f))
+                        .clip(RoundedCornerShape(14.dp))
                 )
                 
                 Spacer(modifier = Modifier.width(14.dp))
                 
-                // Track Info
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                    Text(
-                        text = mediaMetadata?.title ?: "Unknown",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
-                    Text(
-                        text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
+            
+                AnimatedContent(
+                    targetState = mediaMetadata,
+                    transitionSpec = {
+                        (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
+                            slideOutHorizontally { width -> -width } + fadeOut()
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    label = "trackInfoAnimation"
+                ) { metadata ->
+                    Column(verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = metadata?.title ?: "Unknown",
+                            color = if (pureBlack) Color.White else Color.Black,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
+                        )
+                        Text(
+                            text = metadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
+                            color = if (pureBlack) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
                 }
 
-                // 7. Play/Pause Button with Morph Scale Animation
+            
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -317,23 +350,39 @@ private fun AppleMusicMiniPlayer(
                             }
                         }
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
-                    } else {
-                        Icon(
-                            painter = painterResource(
-                                if (playbackState == Player.STATE_ENDED) R.drawable.replay
-                                else if (isPlaying) R.drawable.pause
-                                else R.drawable.play
-                            ),
-                            contentDescription = "Play/Pause",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(32.dp)
-                        )
+                    Crossfade(targetState = isLoading, label = "playPauseCrossfade") { loading ->
+                        if (loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = if (pureBlack) Color.White else Color.Black, strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                painter = painterResource(
+                                    if (playbackState == Player.STATE_ENDED) R.drawable.replay
+                                    else if (isPlaying) R.drawable.pause
+                                    else R.drawable.play
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = if (pureBlack) Color.White else Color.Black,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
                 }
-                
-                Spacer(modifier = Modifier.width(4.dp))
+
+                IconButton(
+                    enabled = canSkipNext,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playerConnection.player.seekToNext()
+                    },
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.skip_next),
+                        contentDescription = "Next",
+                        tint = if (pureBlack) Color.White.copy(alpha = if (canSkipNext) 1f else 0.4f) else Color.Black.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }
