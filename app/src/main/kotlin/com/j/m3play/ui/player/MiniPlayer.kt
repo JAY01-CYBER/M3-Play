@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
@@ -197,6 +198,7 @@ private fun NewMiniPlayer(
     }
 }
 
+// 🔥 EXACT APPLE MUSIC STYLE REPLICATION 🔥
 @Composable
 private fun AppleMusicMiniPlayer(
     position: Long,
@@ -210,19 +212,7 @@ private fun AppleMusicMiniPlayer(
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
     
-    val miniPlayerBackground by rememberEnumPreference(
-        stringPreferencesKey("mini_player_background_style"), 
-        defaultValue = PlayerBackgroundStyle.DEFAULT
-    )
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
-
-    MiniPlayerColorExtractor(
-        mediaMetadata = mediaMetadata,
-        miniPlayerBackground = miniPlayerBackground,
-        onGradientColorsChange = onGradientColorsChange
-    )
-
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
     val isLoading = playbackState == Player.STATE_BUFFERING
@@ -230,7 +220,8 @@ private fun AppleMusicMiniPlayer(
     val canSkipNext by playerConnection.canSkipNext.collectAsState()
 
     SwipeableMiniPlayerBox(
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+        // iOS style: tight margins on sides and bottom
+        modifier = modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         swipeSensitivity = swipeSensitivity,
         swipeThumbnail = swipeThumbnail,
         playerConnection = playerConnection,
@@ -242,44 +233,43 @@ private fun AppleMusicMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(58.dp) // Very slim, exactly like Apple Music
                 .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .border(
-                    width = 0.5.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.2f), Color.White.copy(alpha = 0.05f))
-                    ),
-                    shape = RoundedCornerShape(14.dp)
+                .shadow(
+                    elevation = 12.dp, // Smooth shadow for floating effect
+                    shape = RoundedCornerShape(14.dp),
+                    spotColor = Color.Black.copy(alpha = 0.15f),
+                    ambientColor = Color.Black.copy(alpha = 0.1f)
                 )
                 .clip(RoundedCornerShape(14.dp))
-                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f))
+                // Frosted glass effect
+                .background(
+                    if (pureBlack) Color(0xFF1C1C1E).copy(alpha = 0.95f) 
+                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                )
         ) {
-            MiniPlayerBackgroundLayer(
-                style = miniPlayerBackground,
-                mediaMetadata = mediaMetadata,
-                gradientColors = gradientColors
-            )
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)
             ) {
+                // Square Artwork (Slightly rounded corners)
                 AsyncImage(
                     model = mediaMetadata?.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(6.dp))
                 )
                 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 
+                // Track Info Left Aligned
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                     Text(
                         text = mediaMetadata?.title ?: "Unknown",
                         color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600, fontSize = 16.sp),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600, fontSize = 14.sp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.basicMarquee()
@@ -287,27 +277,25 @@ private fun AppleMusicMiniPlayer(
                     Text(
                         text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.basicMarquee()
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (playbackState == Player.STATE_ENDED) {
-                                playerConnection.player.seekTo(0, 0)
-                                playerConnection.player.playWhenReady = true
-                            } else {
-                                playerConnection.player.togglePlayPause()
-                            }
-                        },
-                    contentAlignment = Alignment.Center
+                // Clean Play/Pause Button
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (playbackState == Player.STATE_ENDED) {
+                            playerConnection.player.seekTo(0, 0)
+                            playerConnection.player.playWhenReady = true
+                        } else {
+                            playerConnection.player.togglePlayPause()
+                        }
+                    },
+                    modifier = Modifier.size(36.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
@@ -320,40 +308,30 @@ private fun AppleMusicMiniPlayer(
                             ),
                             contentDescription = "Play/Pause",
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
-
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .clickable(enabled = canSkipNext) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            playerConnection.player.seekToNext()
-                        },
-                    contentAlignment = Alignment.Center
+                // Clean Next Button
+                IconButton(
+                    enabled = canSkipNext,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playerConnection.player.seekToNext()
+                    },
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.skip_next),
                         contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.4f),
-                        modifier = Modifier.size(28.dp)
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.3f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(2.dp))
             }
-            
-            LinearProgressIndicator(
-                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
-                modifier = Modifier.fillMaxWidth().height(1.5.dp).align(Alignment.BottomCenter).alpha(0.6f),
-                color = MaterialTheme.colorScheme.onSurface,
-                trackColor = Color.Transparent,
-            )
         }
     }
 }
