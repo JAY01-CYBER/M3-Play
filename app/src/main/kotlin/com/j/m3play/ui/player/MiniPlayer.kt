@@ -128,6 +128,158 @@ fun MiniPlayer(
     }
 }
 
+// 🔥 EXACT APPLE MUSIC LIQUID GLASS PILL STYLE 🔥
+@Composable
+private fun AppleMusicMiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
+    val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
+    
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val haptic = LocalHapticFeedback.current
+    val canSkipNext by playerConnection.canSkipNext.collectAsState()
+
+    SwipeableMiniPlayerBox(
+        // iOS style margins
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp) 
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .shadow(
+                    elevation = 12.dp, 
+                    shape = CircleShape, // PILL SHAPE
+                    spotColor = Color.Black.copy(alpha = 0.15f),
+                    ambientColor = Color.Black.copy(alpha = 0.1f)
+                )
+                .clip(CircleShape) // PILL SHAPE CLIP
+                // 🔥 LIQUID GLASS EFFECT (TRANSLUCENT) 🔥
+                .background(
+                    if (pureBlack) Color.DarkGray.copy(alpha = 0.4f) 
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f) 
+                )
+                // Faint border edge reflection
+                .border(
+                    width = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    shape = CircleShape
+                )
+        ) {
+            // Subtle progress bar
+            LinearProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter).alpha(0.6f),
+                color = MaterialTheme.colorScheme.onSurface,
+                trackColor = Color.Transparent,
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)
+            ) {
+                // Square Artwork with rounded corners
+                AsyncImage(
+                    model = mediaMetadata?.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // Track Info Left Aligned
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = mediaMetadata?.title ?: "Unknown",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600, fontSize = 15.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    Text(
+                        text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
+
+                // Clean Play/Pause Button
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (playbackState == Player.STATE_ENDED) {
+                            playerConnection.player.seekTo(0, 0)
+                            playerConnection.player.playWhenReady = true
+                        } else {
+                            playerConnection.player.togglePlayPause()
+                        }
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            painter = painterResource(
+                                if (playbackState == Player.STATE_ENDED) R.drawable.replay
+                                else if (isPlaying) R.drawable.pause
+                                else R.drawable.play
+                            ),
+                            contentDescription = "Play/Pause",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+
+                // Clean Next Button
+                IconButton(
+                    enabled = canSkipNext,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playerConnection.player.seekToNext()
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.skip_next),
+                        contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.3f),
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+        }
+    }
+}
+
 @Composable
 private fun NewMiniPlayer(
     position: Long,
@@ -194,144 +346,6 @@ private fun NewMiniPlayer(
                 duration = duration,
                 playerConnection = playerConnection
             )
-        }
-    }
-}
-
-// 🔥 EXACT APPLE MUSIC STYLE REPLICATION 🔥
-@Composable
-private fun AppleMusicMiniPlayer(
-    position: Long,
-    duration: Long,
-    modifier: Modifier = Modifier,
-    pureBlack: Boolean,
-) {
-    val playerConnection = LocalPlayerConnection.current ?: return
-    val layoutDirection = LocalLayoutDirection.current
-    val coroutineScope = rememberCoroutineScope()
-    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
-    val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
-    
-    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
-    val isPlaying by playerConnection.isPlaying.collectAsState()
-    val playbackState by playerConnection.playbackState.collectAsState()
-    val isLoading = playbackState == Player.STATE_BUFFERING
-    val haptic = LocalHapticFeedback.current
-    val canSkipNext by playerConnection.canSkipNext.collectAsState()
-
-    SwipeableMiniPlayerBox(
-        // iOS style: tight margins on sides and bottom
-        modifier = modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-        swipeSensitivity = swipeSensitivity,
-        swipeThumbnail = swipeThumbnail,
-        playerConnection = playerConnection,
-        layoutDirection = layoutDirection,
-        coroutineScope = coroutineScope,
-        pureBlack = pureBlack,
-        useLegacyBackground = false
-    ) { offsetX ->
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(58.dp) // Very slim, exactly like Apple Music
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .shadow(
-                    elevation = 12.dp, // Smooth shadow for floating effect
-                    shape = RoundedCornerShape(14.dp),
-                    spotColor = Color.Black.copy(alpha = 0.15f),
-                    ambientColor = Color.Black.copy(alpha = 0.1f)
-                )
-                .clip(RoundedCornerShape(14.dp))
-                // Frosted glass effect
-                .background(
-                    if (pureBlack) Color(0xFF1C1C1E).copy(alpha = 0.95f) 
-                    else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)
-            ) {
-                // Square Artwork (Slightly rounded corners)
-                AsyncImage(
-                    model = mediaMetadata?.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                )
-                
-                Spacer(modifier = Modifier.width(10.dp))
-                
-                // Track Info Left Aligned
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                    Text(
-                        text = mediaMetadata?.title ?: "Unknown",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600, fontSize = 14.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
-                    Text(
-                        text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.basicMarquee()
-                    )
-                }
-
-                // Clean Play/Pause Button
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (playbackState == Player.STATE_ENDED) {
-                            playerConnection.player.seekTo(0, 0)
-                            playerConnection.player.playWhenReady = true
-                        } else {
-                            playerConnection.player.togglePlayPause()
-                        }
-                    },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
-                    } else {
-                        Icon(
-                            painter = painterResource(
-                                if (playbackState == Player.STATE_ENDED) R.drawable.replay
-                                else if (isPlaying) R.drawable.pause
-                                else R.drawable.play
-                            ),
-                            contentDescription = "Play/Pause",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                // Clean Next Button
-                IconButton(
-                    enabled = canSkipNext,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        playerConnection.player.seekToNext()
-                    },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.skip_next),
-                        contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.3f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(2.dp))
-            }
         }
     }
 }
