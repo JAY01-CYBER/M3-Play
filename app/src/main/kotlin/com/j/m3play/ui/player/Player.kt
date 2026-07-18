@@ -1095,11 +1095,16 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    val scale = 0.75f + (0.25f * expandProgressRaw)
+                                    val miniArtworkSize = 54.dp.toPx()
+                                    val minScale = miniArtworkSize / size.width
+                                    val scale = minScale + ((1f - minScale) * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    translationY = (1f - expandProgressRaw) * 60.dp.toPx()
-                                    alpha = expandProgressSafeAlpha
+                                    val leftOffset = -(size.width / 2f) + (miniArtworkSize / 2f) + 20.dp.toPx()
+                                    translationX = leftOffset * (1f - expandProgressRaw)
+                                    val bottomOffset = 340.dp.toPx()
+                                    translationY = bottomOffset * (1f - expandProgressRaw)
+                                    alpha = 1f
                                 },
                         ) {
                             AnimatedContent(
@@ -1130,7 +1135,8 @@ fun BottomSheetPlayer(
                         Column(
                             modifier = Modifier.graphicsLayer {
                                 translationY = (1f - expandProgressRaw) * 80.dp.toPx()
-                                alpha = expandProgressSafeAlpha
+                                val controlsAlpha = ((expandProgressRaw - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                                alpha = controlsAlpha 
                             }
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
