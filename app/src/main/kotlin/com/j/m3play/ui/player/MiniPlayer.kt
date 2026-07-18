@@ -27,6 +27,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -122,6 +123,7 @@ fun MiniPlayer(
         MiniPlayerStyle.LEGACY -> LegacyMiniPlayer(position, duration, modifier, pureBlack)
         MiniPlayerStyle.MINIMAL -> MinimalMiniPlayer(position, duration, modifier, pureBlack)
         MiniPlayerStyle.FLOATING -> FloatingPillMiniPlayer(position, duration, modifier, pureBlack)
+        MiniPlayerStyle.APPLE_MUSIC -> AppleMusicMiniPlayer(position, duration, modifier, pureBlack)
     }
 }
 
@@ -138,7 +140,6 @@ private fun NewMiniPlayer(
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
     
-    // Background style state
     val miniPlayerBackground by rememberEnumPreference(
         stringPreferencesKey("mini_player_background_style"), 
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -146,7 +147,6 @@ private fun NewMiniPlayer(
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
     val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
 
-    // Color extractor call
     MiniPlayerColorExtractor(
         mediaMetadata = mediaMetadata,
         miniPlayerBackground = miniPlayerBackground,
@@ -181,19 +181,178 @@ private fun NewMiniPlayer(
                 .clip(RoundedCornerShape(34.dp))
                 .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHighest)
         ) {
-            // Animated Background Layer
             MiniPlayerBackgroundLayer(
                 style = miniPlayerBackground,
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors
             )
 
-            // Foreground Content
             NewMiniPlayerContent(
                 pureBlack = pureBlack,
                 position = position,
                 duration = duration,
                 playerConnection = playerConnection
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppleMusicMiniPlayer(
+    position: Long,
+    duration: Long,
+    modifier: Modifier = Modifier,
+    pureBlack: Boolean,
+) {
+    val playerConnection = LocalPlayerConnection.current ?: return
+    val layoutDirection = LocalLayoutDirection.current
+    val coroutineScope = rememberCoroutineScope()
+    val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
+    val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
+    
+    val miniPlayerBackground by rememberEnumPreference(
+        stringPreferencesKey("mini_player_background_style"), 
+        defaultValue = PlayerBackgroundStyle.DEFAULT
+    )
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+    val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
+
+    MiniPlayerColorExtractor(
+        mediaMetadata = mediaMetadata,
+        miniPlayerBackground = miniPlayerBackground,
+        onGradientColorsChange = onGradientColorsChange
+    )
+
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val playbackState by playerConnection.playbackState.collectAsState()
+    val isLoading = playbackState == Player.STATE_BUFFERING
+    val haptic = LocalHapticFeedback.current
+    val canSkipNext by playerConnection.canSkipNext.collectAsState()
+
+    SwipeableMiniPlayerBox(
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+        swipeSensitivity = swipeSensitivity,
+        swipeThumbnail = swipeThumbnail,
+        playerConnection = playerConnection,
+        layoutDirection = layoutDirection,
+        coroutineScope = coroutineScope,
+        pureBlack = pureBlack,
+        useLegacyBackground = false
+    ) { offsetX ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .offset { IntOffset(offsetX.roundToInt(), 0) }
+                .border(
+                    width = 0.5.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.2f), Color.White.copy(alpha = 0.05f))
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                .clip(RoundedCornerShape(14.dp))
+                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f))
+        ) {
+            MiniPlayerBackgroundLayer(
+                style = miniPlayerBackground,
+                mediaMetadata = mediaMetadata,
+                gradientColors = gradientColors
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp)
+            ) {
+                AsyncImage(
+                    model = mediaMetadata?.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(
+                        text = mediaMetadata?.title ?: "Unknown",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600, fontSize = 16.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                    Text(
+                        text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.basicMarquee()
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (playbackState == Player.STATE_ENDED) {
+                                playerConnection.player.seekTo(0, 0)
+                                playerConnection.player.playWhenReady = true
+                            } else {
+                                playerConnection.player.togglePlayPause()
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onSurface, strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            painter = painterResource(
+                                if (playbackState == Player.STATE_ENDED) R.drawable.replay
+                                else if (isPlaying) R.drawable.pause
+                                else R.drawable.play
+                            ),
+                            contentDescription = "Play/Pause",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable(enabled = canSkipNext) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            playerConnection.player.seekToNext()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.skip_next),
+                        contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            
+            LinearProgressIndicator(
+                progress = { if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f },
+                modifier = Modifier.fillMaxWidth().height(1.5.dp).align(Alignment.BottomCenter).alpha(0.6f),
+                color = MaterialTheme.colorScheme.onSurface,
+                trackColor = Color.Transparent,
             )
         }
     }
@@ -224,14 +383,12 @@ private fun LegacyMiniPlayer(
     val swipeSensitivity by rememberPreference(SwipeSensitivityKey, 0.73f)
     val swipeThumbnail by rememberPreference(com.j.m3play.constants.SwipeThumbnailKey, true)
     
-    // Background style state
     val miniPlayerBackground by rememberEnumPreference(
         stringPreferencesKey("mini_player_background_style"), 
         defaultValue = PlayerBackgroundStyle.DEFAULT
     )
     val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
 
-    // Color extractor call
     MiniPlayerColorExtractor(
         mediaMetadata = mediaMetadata,
         miniPlayerBackground = miniPlayerBackground,
@@ -330,7 +487,6 @@ private fun LegacyMiniPlayer(
                 }
             }
     ) {
-        // Animated Background Layer
         MiniPlayerBackgroundLayer(
             style = miniPlayerBackground,
             mediaMetadata = mediaMetadata,
