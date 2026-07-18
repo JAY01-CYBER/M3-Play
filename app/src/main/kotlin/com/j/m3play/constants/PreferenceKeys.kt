@@ -33,13 +33,14 @@ val PlayerDesignStyleKey = stringPreferencesKey("playerDesignStyle")
 val UseNewLibraryDesignKey = booleanPreferencesKey("useNewLibraryDesign")
 val UseNewMiniPlayerDesignKey = booleanPreferencesKey("useNewMiniPlayerDesign")
 
-// Naya Mini Player Style Key aur Enum
+// Mini Player Style Key aur Enum with APPLE_MUSIC
 val MiniPlayerStyleKey = stringPreferencesKey("miniPlayerStyle")
 enum class MiniPlayerStyle {
     MODERN,
     LEGACY,
     MINIMAL,
-    FLOATING
+    FLOATING,
+    APPLE_MUSIC
 }
 
 val HidePlayerThumbnailKey = booleanPreferencesKey("hidePlayerThumbnail")
@@ -100,7 +101,7 @@ val ScrobbleMinSongDurationKey = intPreferencesKey("scrobbleMinSongDuration")
 val ScrobbleDelaySecondsKey = intPreferencesKey("scrobbleDelaySeconds")
 
 // ====================================================
-//  SPOTIFY INTEGRATION KEYS 
+// 🔥 SPOTIFY INTEGRATION KEYS 🔥
 // ====================================================
 
 // M3Play Original Keys
