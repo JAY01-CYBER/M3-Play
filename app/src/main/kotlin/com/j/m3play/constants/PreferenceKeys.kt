@@ -434,6 +434,7 @@ enum class PlayerBackgroundStyle {
     GRADIENT,
     CUSTOM,
     BLUR,
+    BREATHING_BLUR,
     COLORING,
     BLUR_GRADIENT,
     GLOW,
