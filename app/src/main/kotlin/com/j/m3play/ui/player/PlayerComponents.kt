@@ -1762,22 +1762,68 @@ fun PlayerBackground(
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
                                     .data(thumbnailUrl)
-                                    .size(100, 100) // Glossy wala memory optimization trick
+                                    .size(100, 100) 
                                     .allowHardware(false)
                                     .build(),
                                 contentDescription = "Blur Background",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    // Teri 'disableBlur' preference ka logic
                                     .let { if (disableBlur) it else it.blur(radius = 120.dp) }
                             )
                             
-                            // Black Overlay taki controls aur text easily readable rahein
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(Color.Black.copy(alpha = 0.4f)) 
+                            )
+                        }
+                    }
+                }
+            }
+            
+            PlayerBackgroundStyle.BREATHING_BLUR -> {
+                AnimatedContent(
+                    targetState = mediaMetadata?.thumbnailUrl,
+                    transitionSpec = {
+                        fadeIn(tween(1000)) togetherWith fadeOut(tween(1000))
+                    },
+                    label = "BreathingBlur"
+                ) { thumbnailUrl ->
+                    if (thumbnailUrl != null) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "breathe")
+                        val scale by infiniteTransition.animateFloat(
+                            initialValue = 1.0f,
+                            targetValue = 1.25f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(10000, easing = LinearEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "scale_anim"
+                        )
+
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(thumbnailUrl)
+                                    .size(100, 100)
+                                    .allowHardware(false)
+                                    .build(),
+                                contentDescription = "Breathing Blur Background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { 
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                                    .let { if (disableBlur) it else it.blur(radius = 100.dp) }
+                            )
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.4f))
                             )
                         }
                     }
