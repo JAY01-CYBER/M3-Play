@@ -745,15 +745,7 @@ fun BottomSheetPlayer(
                     // Deep Push Down Parallax for Mini Player
                     translationY = expandProgressRaw * 80.dp.toPx()
 
-                    // FLUID BLUR OUT ANIMATION
-                    val blurAmount = expandProgressRaw * 40f
-                    if (blurAmount > 0.1f) {
-                        renderEffect = androidx.compose.ui.graphics.BlurEffect(
-                            radiusX = blurAmount,
-                            radiusY = blurAmount,
-                            edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
-                        )
-                    }
+                    // HATA DIYA: BlurEffect jo lag kar raha tha
                 }
             ) {
                 MiniPlayer(
@@ -970,6 +962,7 @@ fun BottomSheetPlayer(
                                     scaleX = scale
                                     scaleY = scale
                                     translationY = -(1f - expandProgressRaw) * 50.dp.toPx()
+                                    // Crossfade with Mini Player
                                     alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
                                 },
                         ) {
@@ -1123,15 +1116,7 @@ fun BottomSheetPlayer(
                                     
                                     alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
 
-                                    // FLUID BLUR IN ANIMATION
-                                    val blurAmount = (1f - expandProgressRaw) * 50f
-                                    if (blurAmount > 0.1f) {
-                                        renderEffect = androidx.compose.ui.graphics.BlurEffect(
-                                            radiusX = blurAmount,
-                                            radiusY = blurAmount,
-                                            edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
-                                        )
-                                    }
+                                    // HATA DIYA: BlurEffect jo lag kar raha tha
                                 },
                         ) {
                             AnimatedContent(
@@ -1171,15 +1156,7 @@ fun BottomSheetPlayer(
                                 scaleX = controlsScale
                                 scaleY = controlsScale
 
-                                // CONTROLS FLUID BLUR
-                                val blurAmount = (1f - controlsAlpha) * 30f
-                                if (blurAmount > 0.1f) {
-                                    renderEffect = androidx.compose.ui.graphics.BlurEffect(
-                                        radiusX = blurAmount,
-                                        radiusY = blurAmount,
-                                        edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
-                                    )
-                                }
+                                // HATA DIYA: BlurEffect jo lag kar raha tha
                             }
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
