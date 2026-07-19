@@ -441,7 +441,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM -> Color.White
+            PlayerBackgroundStyle.CUSTOM,
+            PlayerBackgroundStyle.BLUR -> Color.White
             else -> Color.White
         }
 
@@ -452,7 +453,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.COLORING,
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM -> Color.Black
+            PlayerBackgroundStyle.CUSTOM,
+            PlayerBackgroundStyle.BLUR -> Color.Black
             else -> Color.Black
         }
 
@@ -709,7 +711,7 @@ fun BottomSheetPlayer(
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
                 } else 0f
-                val fadeProgress = if (progress < 0.05f) { ((0.05f - progress) / 0.05f).coerceIn(0f, 1f) } else { 0f }
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 MaterialTheme.colorScheme.surface.copy(alpha = 1f - fadeProgress)
             }
             else -> {
@@ -717,7 +719,7 @@ fun BottomSheetPlayer(
                 val progress = if (bgRange.value != 0f) {
                     ((state.value - state.collapsedBound) / bgRange).coerceIn(0f, 1f)
                 } else 0f
-                val fadeProgress = if (progress < 0.05f) { ((0.05f - progress) / 0.05f).coerceIn(0f, 1f) } else { 0f }
+                val fadeProgress = if (progress < 0.2f) { ((0.2f - progress) / 0.2f).coerceIn(0f, 1f) } else { 0f }
                 if (useBlackBackground) {
                     Color.Black.copy(alpha = 1f - fadeProgress)
                 } else {
@@ -735,17 +737,10 @@ fun BottomSheetPlayer(
                     val expandProgressRaw = if (range.value != 0f) {
                         (state.value - state.collapsedBound) / range
                     } else 0f
-                    
-                    // Mini Player Fade Out & Shrink
-                    val scale = 1f - (0.2f * expandProgressRaw)
+                    val collapseProgress = (1f - expandProgressRaw).coerceIn(0f, 1f)
+                    val scale = 0.85f + (0.15f * collapseProgress)
                     scaleX = scale
                     scaleY = scale
-                    alpha = 1f - (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
-                    
-                    // Deep Push Down Parallax for Mini Player
-                    translationY = expandProgressRaw * 80.dp.toPx()
-
-                    // HATA DIYA: BlurEffect jo lag kar raha tha
                 }
             ) {
                 MiniPlayer(
@@ -863,9 +858,7 @@ fun BottomSheetPlayer(
             label = "landscapeBottomPadding"
         )
 
-        val configuration = LocalConfiguration.current
-
-        when (configuration.orientation) {
+        when (LocalConfiguration.current.orientation) {
             Configuration.ORIENTATION_LANDSCAPE -> {
                 if (playerDesignStyle == PlayerDesignStyle.V5) {
                     val littleBackground = MaterialTheme.colorScheme.primaryContainer
@@ -958,15 +951,14 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    val scale = 0.6f + (0.4f * expandProgressRaw)
+                                    val scale = 0.8f + (0.2f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
                                     translationY = -(1f - expandProgressRaw) * 50.dp.toPx()
-                                    // Crossfade with Mini Player
-                                    alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
+                                    alpha = expandProgressSafeAlpha
                                 },
                         ) {
-                            val screenWidth = configuration.screenWidthDp
+                            val screenWidth = LocalConfiguration.current.screenWidthDp
                             val thumbnailSize = (screenWidth * 0.4).dp
                             AnimatedContent(
                                 targetState = showInlineLyrics,
@@ -998,9 +990,8 @@ fun BottomSheetPlayer(
                                 .weight(1f)
                                 .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
                                 .graphicsLayer {
-                                    translationX = (1f - expandProgressRaw) * 100.dp.toPx()
-                                    val controlsAlpha = ((expandProgressRaw - 0.15f) / 0.85f).coerceIn(0f, 1f)
-                                    alpha = controlsAlpha
+                                    translationX = (1f - expandProgressRaw) * 50.dp.toPx()
+                                    alpha = expandProgressSafeAlpha
                                 },
                         ) {
                             Spacer(Modifier.weight(1f))
@@ -1106,17 +1097,11 @@ fun BottomSheetPlayer(
                             modifier = Modifier
                                 .weight(1f)
                                 .graphicsLayer {
-                                    // SPRING BOUNCE ARTWORK SCALE
-                                    val scale = 0.5f + (0.5f * expandProgressRaw)
+                                    val scale = 0.75f + (0.25f * expandProgressRaw)
                                     scaleX = scale
                                     scaleY = scale
-                                    
-                                    // DEEP PARALLAX Y-AXIS PUSH
-                                    translationY = (1f - expandProgressRaw) * 200.dp.toPx()
-                                    
-                                    alpha = (expandProgressRaw * 2.5f).coerceIn(0f, 1f)
-
-                                    // HATA DIYA: BlurEffect jo lag kar raha tha
+                                    translationY = (1f - expandProgressRaw) * 60.dp.toPx()
+                                    alpha = expandProgressSafeAlpha
                                 },
                         ) {
                             AnimatedContent(
@@ -1146,17 +1131,8 @@ fun BottomSheetPlayer(
 
                         Column(
                             modifier = Modifier.graphicsLayer {
-                                // STAGGERED DEEP PARALLAX FOR CONTROLS (Heavier Bounce Feel)
-                                translationY = (1f - expandProgressRaw) * 350.dp.toPx()
-                                
-                                val controlsAlpha = ((expandProgressRaw - 0.2f) / 0.8f).coerceIn(0f, 1f)
-                                alpha = controlsAlpha 
-                                
-                                val controlsScale = 0.8f + (0.2f * controlsAlpha)
-                                scaleX = controlsScale
-                                scaleY = controlsScale
-
-                                // HATA DIYA: BlurEffect jo lag kar raha tha
+                                translationY = (1f - expandProgressRaw) * 80.dp.toPx()
+                                alpha = expandProgressSafeAlpha
                             }
                         ) {
                             enrichedMetadata?.let { controlsContent(it) }
