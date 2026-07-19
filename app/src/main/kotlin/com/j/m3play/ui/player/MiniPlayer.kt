@@ -125,7 +125,7 @@ fun MiniPlayer(
     duration: Long,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
-    expandProgress: Float = 0f // Naya Parameter Added
+    expandProgress: Float = 0f // Transition ke liye progress parameter
 ) {
     val miniPlayerStyle by rememberEnumPreference(MiniPlayerStyleKey, MiniPlayerStyle.MODERN)
 
@@ -227,7 +227,7 @@ private fun AppleMusicMiniPlayer(
                     shape = RoundedCornerShape(32.dp)
                 )
                 .graphicsLayer {
-                    // Background fade out
+                    // Background fade out on drag
                     alpha = 1f - (expandProgress * 2f).coerceIn(0f, 1f)
                 }
         ) {
@@ -240,6 +240,8 @@ private fun AppleMusicMiniPlayer(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
+                            // Only apply background blur for older static state, 
+                            // not animated blur to avoid lag.
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 renderEffect = android.graphics.RenderEffect
                                     .createBlurEffect(50f, 50f, android.graphics.Shader.TileMode.CLAMP)
@@ -273,7 +275,7 @@ private fun AppleMusicMiniPlayer(
                 )
             }
 
-            // FOREGROUND LAYER - Slide and Fade independently
+            // FOREGROUND LAYER - Hardware Accelerated Animation (No lag)
             Box(modifier = Modifier.fillMaxSize().graphicsLayer {
                 translationY = expandProgress * 50.dp.toPx()
                 alpha = 1f - (expandProgress * 3f).coerceIn(0f, 1f)
@@ -460,6 +462,7 @@ private fun NewMiniPlayer(
                 gradientColors = gradientColors
             )
 
+            // Hardware Accelerated Animation Layer
             Box(modifier = Modifier.fillMaxSize().graphicsLayer {
                 translationY = expandProgress * 50.dp.toPx()
                 alpha = 1f - (expandProgress * 3f).coerceIn(0f, 1f)
@@ -617,6 +620,7 @@ private fun LegacyMiniPlayer(
             gradientColors = gradientColors
         )
 
+        // Hardware Accelerated Animation Layer
         Box(modifier = Modifier.fillMaxSize().graphicsLayer {
             translationY = expandProgress * 50.dp.toPx()
             alpha = 1f - (expandProgress * 3f).coerceIn(0f, 1f)
@@ -762,6 +766,7 @@ private fun MinimalMiniPlayer(
                     alpha = 1f - (expandProgress * 2f).coerceIn(0f, 1f)
                 }
         ) {
+            // Hardware Accelerated Animation Layer
             Box(modifier = Modifier.fillMaxSize().graphicsLayer {
                 translationY = expandProgress * 50.dp.toPx()
                 alpha = 1f - (expandProgress * 3f).coerceIn(0f, 1f)
@@ -899,6 +904,7 @@ private fun FloatingPillMiniPlayer(
                 gradientColors = gradientColors
             )
             
+            // Hardware Accelerated Animation Layer
             Box(modifier = Modifier.fillMaxSize().graphicsLayer {
                 translationY = expandProgress * 50.dp.toPx()
                 alpha = 1f - (expandProgress * 3f).coerceIn(0f, 1f)
@@ -950,6 +956,7 @@ private fun LegacyMiniMediaInfo(
                     .fillMaxSize()
                     .let { if (cropThumbnailToSquare) it.aspectRatio(1f) else it }
                     .graphicsLayer(
+                        // Keeping static blur for the background part of legacy layout
                         renderEffect = BlurEffect(
                             radiusX = 75f,
                             radiusY = 75f
