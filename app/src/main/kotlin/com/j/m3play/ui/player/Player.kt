@@ -442,7 +442,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
             PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.BLUR -> Color.White
+            PlayerBackgroundStyle.BLUR,
+            PlayerBackgroundStyle.BREATHING_BLUR -> Color.White
             else -> Color.White
         }
 
@@ -454,7 +455,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.GLOW,
             PlayerBackgroundStyle.GLOW_ANIMATED,
             PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.BLUR -> Color.Black
+            PlayerBackgroundStyle.BLUR,
+            PlayerBackgroundStyle.BREATHING_BLUR -> Color.Black
             else -> Color.Black
         }
 
