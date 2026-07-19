@@ -374,7 +374,7 @@ fun AppearanceSettings(
                             onCheckedChange = onUseNewLibraryDesignChange,
                         )
 
-                        // 🔥 Main Player Background
+                        //  Main Player Background (Updated with BLUR)
                         ListPreference(
                             title = { Text(stringResource(R.string.player_background_style)) },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -383,6 +383,7 @@ fun AppearanceSettings(
                                 PlayerBackgroundStyle.DEFAULT,
                                 PlayerBackgroundStyle.GRADIENT,
                                 PlayerBackgroundStyle.CUSTOM,
+                                PlayerBackgroundStyle.BLUR, // <-- BLUR OPTION ADDED HERE
                                 PlayerBackgroundStyle.COLORING,
                                 PlayerBackgroundStyle.GLOW,
                                 PlayerBackgroundStyle.GLOW_ANIMATED
@@ -392,6 +393,7 @@ fun AppearanceSettings(
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                                     PlayerBackgroundStyle.CUSTOM -> stringResource(R.string.custom)
+                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) ?: "Blur"
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> "Glow Animated"
@@ -401,7 +403,7 @@ fun AppearanceSettings(
                             onValueSelected = onPlayerBackgroundChange,
                         )
 
-                        // 🔥 Mini Player Background
+                        //  Mini Player Background
                         ListPreference(
                             title = { Text("Mini player background style") },
                             icon = { Icon(painterResource(R.drawable.gradient), null) },
@@ -421,7 +423,7 @@ fun AppearanceSettings(
                                 when (it) {
                                     PlayerBackgroundStyle.DEFAULT -> stringResource(R.string.follow_theme)
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
+                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur) ?: "Blur"
                                     PlayerBackgroundStyle.BLUR_GRADIENT -> "Blur Gradient"
                                     PlayerBackgroundStyle.COLORING -> stringResource(R.string.coloring)
                                     PlayerBackgroundStyle.GLOW -> stringResource(R.string.glow)
