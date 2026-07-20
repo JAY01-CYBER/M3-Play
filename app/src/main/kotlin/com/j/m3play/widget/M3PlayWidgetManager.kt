@@ -35,11 +35,13 @@ class M3PlayWidgetManager @Inject constructor(
     private var cachedArtworkUri: String? = null
     private var cachedAlbumArt: Bitmap? = null
 
+    // Yahan isLiked parameter add kiya hai
     suspend fun updateWidget(
         title: String,
         artist: String,
         artworkUri: String?,
-        isPlaying: Boolean
+        isPlaying: Boolean,
+        isLiked: Boolean = false
     ) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
 
@@ -47,8 +49,7 @@ class M3PlayWidgetManager @Inject constructor(
         if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
             albumArt = cachedAlbumArt
         } else {
-            // Yahan size 600 kar diya gaya hai sharp quality ke liye
-            albumArt = artworkUri?.let { loadAlbumArt(it, 600) }
+            albumArt = artworkUri?.let { loadAlbumArt(it, 600) } // Thumbnail Blur fix (600px)
             cachedArtworkUri = artworkUri
             cachedAlbumArt = albumArt
         }
@@ -64,7 +65,7 @@ class M3PlayWidgetManager @Inject constructor(
             }
         }
 
-        // 2. Update Vinyl/Turntable Style Widget (GLOSSY CONTAINER METHOD)
+        // 2. Update Vinyl/Turntable Style Widget
         val vinylComponentName = ComponentName(context, M3VinylWidgetReceiver::class.java)
         val vinylWidgetIds = appWidgetManager.getAppWidgetIds(vinylComponentName)
 
@@ -72,10 +73,8 @@ class M3PlayWidgetManager @Inject constructor(
             vinylWidgetIds.forEach { widgetId ->
                 val views = RemoteViews(context.packageName, R.layout.widget_vinyl)
                 
-                // Song Title Set Karein
                 views.setTextViewText(R.id.widget_vinyl_title, title)
                 
-                // Album Art Set Karein
                 if (albumArt != null) {
                     views.setImageViewBitmap(R.id.widget_vinyl_art, getCircularBitmap(albumArt))
                 } else {
@@ -84,7 +83,10 @@ class M3PlayWidgetManager @Inject constructor(
 
                 val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
                 views.setImageViewResource(R.id.widget_vinyl_play_icon, playPauseIcon)
-                views.setImageViewResource(R.id.widget_vinyl_like_icon, R.drawable.ic_widget_heart_outline_nav)
+                
+                // Like / Unlike icon logic
+                val likeIcon = if (isLiked) R.drawable.favorite else R.drawable.ic_widget_heart_outline_nav
+                views.setImageViewResource(R.id.widget_vinyl_like_icon, likeIcon)
 
                 views.setOnClickPendingIntent(R.id.widget_vinyl_art, getOpenAppIntent())
                 views.setOnClickPendingIntent(R.id.widget_vinyl_play_container, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
@@ -107,7 +109,7 @@ class M3PlayWidgetManager @Inject constructor(
         views.setTextViewText(R.id.widget_artist_name, artist)
 
         if (albumArt != null) {
-            val circularAlbumArt = getCircularBitmap(albumArt) // Done circle
+            val circularAlbumArt = getCircularBitmap(albumArt) 
             views.setImageViewBitmap(R.id.widget_album_art, circularAlbumArt)
         } else {
             views.setImageViewResource(R.id.widget_album_art, R.drawable.default_album_art)
