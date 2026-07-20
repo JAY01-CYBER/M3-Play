@@ -173,6 +173,11 @@ private fun AppleMusicMiniPlayer(
 
     val dominantColor = gradientColors.firstOrNull() ?: MaterialTheme.colorScheme.surfaceVariant
 
+    // Text color logic based on background style
+    val isDarkBg = miniPlayerBackground != PlayerBackgroundStyle.DEFAULT || pureBlack
+    val textColor = if (isDarkBg) Color.White else Color.Black
+    val secondaryTextColor = if (isDarkBg) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.7f)
+
     val infiniteTransition = rememberInfiniteTransition(label = "reflection")
     val reflectionOffset by infiniteTransition.animateFloat(
         initialValue = -500f,
@@ -286,7 +291,7 @@ private fun AppleMusicMiniPlayer(
                 LinearProgressIndicator(
                     progress = { animatedProgress },
                     modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter).alpha(0.5f),
-                    color = if (pureBlack) Color.White else Color.Black,
+                    color = textColor,
                     trackColor = Color.Transparent,
                 )
 
@@ -323,7 +328,7 @@ private fun AppleMusicMiniPlayer(
                         Column(verticalArrangement = Arrangement.Center) {
                             Text(
                                 text = metadata?.title ?: "Unknown",
-                                color = if (pureBlack) Color.White else Color.Black,
+                                color = textColor,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -331,7 +336,7 @@ private fun AppleMusicMiniPlayer(
                             )
                             Text(
                                 text = metadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
-                                color = if (pureBlack) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.7f),
+                                color = secondaryTextColor,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, fontWeight = FontWeight.Medium),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -361,7 +366,7 @@ private fun AppleMusicMiniPlayer(
                     ) {
                         Crossfade(targetState = isLoading, label = "playPauseCrossfade") { loading ->
                             if (loading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = if (pureBlack) Color.White else Color.Black, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = textColor, strokeWidth = 2.dp)
                             } else {
                                 Icon(
                                     painter = painterResource(
@@ -370,7 +375,7 @@ private fun AppleMusicMiniPlayer(
                                         else R.drawable.play
                                     ),
                                     contentDescription = "Play/Pause",
-                                    tint = if (pureBlack) Color.White else Color.Black,
+                                    tint = textColor,
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
@@ -388,7 +393,7 @@ private fun AppleMusicMiniPlayer(
                         Icon(
                             painter = painterResource(R.drawable.skip_next),
                             contentDescription = "Next",
-                            tint = if (pureBlack) Color.White.copy(alpha = if (canSkipNext) 1f else 0.4f) else Color.Black.copy(alpha = if (canSkipNext) 1f else 0.4f),
+                            tint = textColor.copy(alpha = if (canSkipNext) 1f else 0.4f),
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -424,6 +429,13 @@ private fun NewMiniPlayer(
         miniPlayerBackground = miniPlayerBackground,
         onGradientColorsChange = onGradientColorsChange
     )
+
+    // Text color logic based on background style
+    val textColor = if (miniPlayerBackground != PlayerBackgroundStyle.DEFAULT) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     SwipeableMiniPlayerBox(
         modifier = modifier.padding(bottom = 8.dp),
@@ -474,7 +486,8 @@ private fun NewMiniPlayer(
                     pureBlack = pureBlack,
                     position = position,
                     duration = duration,
-                    playerConnection = playerConnection
+                    playerConnection = playerConnection,
+                    textColor = textColor // <-- PASSING UPDATED TEXT COLOR
                 )
             }
         }
@@ -518,6 +531,13 @@ private fun LegacyMiniPlayer(
         miniPlayerBackground = miniPlayerBackground,
         onGradientColorsChange = onGradientColorsChange
     )
+
+    // Text color logic based on background style
+    val textColor = if (miniPlayerBackground != PlayerBackgroundStyle.DEFAULT) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     val offsetXAnimatable = remember { Animatable(0f) }
     var dragStartTime by remember { mutableStateOf(0L) }
@@ -634,6 +654,8 @@ private fun LegacyMiniPlayer(
                     .fillMaxWidth()
                     .height(2.dp)
                     .align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.primary, // optional contrast tweak
+                trackColor = Color.Transparent
             )
             
             Row(
@@ -649,6 +671,7 @@ private fun LegacyMiniPlayer(
                             mediaMetadata = it,
                             error = error,
                             pureBlack = pureBlack,
+                            textColor = textColor, // <-- PASSING UPDATED TEXT COLOR
                             modifier = Modifier.padding(horizontal = 6.dp),
                         )
                     }
@@ -668,7 +691,7 @@ private fun LegacyMiniPlayer(
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = textColor,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -682,6 +705,7 @@ private fun LegacyMiniPlayer(
                                     R.drawable.play
                                 },
                             ),
+                            tint = textColor, // <-- PASSING UPDATED TEXT COLOR
                             contentDescription = null,
                         )
                     }
@@ -693,6 +717,7 @@ private fun LegacyMiniPlayer(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.skip_next),
+                        tint = textColor.copy(alpha = if (canSkipNext) 1f else 0.5f), // <-- PASSING UPDATED TEXT COLOR
                         contentDescription = null,
                     )
                 }
@@ -710,7 +735,7 @@ private fun LegacyMiniPlayer(
                         if (offsetXAnimatable.value > 0) R.drawable.skip_previous else R.drawable.skip_next
                     ),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(
+                    tint = textColor.copy(
                         alpha = (offsetXAnimatable.value.absoluteValue / autoSwipeThreshold).coerceIn(0f, 1f)
                     ),
                     modifier = Modifier.size(24.dp)
@@ -740,6 +765,23 @@ private fun MinimalMiniPlayer(
     val isLoading = playbackState == Player.STATE_BUFFERING
     val haptic = LocalHapticFeedback.current
 
+    val miniPlayerBackground by rememberEnumPreference(
+        stringPreferencesKey("mini_player_background_style"), 
+        defaultValue = PlayerBackgroundStyle.DEFAULT
+    )
+
+    // Text color logic based on background style
+    val textColor = if (miniPlayerBackground != PlayerBackgroundStyle.DEFAULT) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val secondaryTextColor = if (miniPlayerBackground != PlayerBackgroundStyle.DEFAULT) {
+        Color.White.copy(alpha = 0.7f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     SwipeableMiniPlayerBox(
         modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         swipeSensitivity = swipeSensitivity,
@@ -766,6 +808,11 @@ private fun MinimalMiniPlayer(
                     alpha = 1f - (expandProgress * 2f).coerceIn(0f, 1f)
                 }
         ) {
+            // (If you want background extractor here in Minimal, you can call it, but original code didn't have it explicitly painted inside the box. I'll add the background layer just in case)
+            val (gradientColors, onGradientColorsChange) = remember { mutableStateOf<List<Color>>(emptyList()) }
+            MiniPlayerColorExtractor(mediaMetadata, miniPlayerBackground, onGradientColorsChange)
+            MiniPlayerBackgroundLayer(miniPlayerBackground, mediaMetadata, gradientColors)
+
             // Hardware Accelerated Animation Layer
             Box(modifier = Modifier.fillMaxSize().graphicsLayer {
                 translationY = expandProgress * 50.dp.toPx()
@@ -790,7 +837,7 @@ private fun MinimalMiniPlayer(
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                         Text(
                             text = mediaMetadata?.title ?: "Unknown",
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = textColor, // <-- PASSING UPDATED TEXT COLOR
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -798,7 +845,7 @@ private fun MinimalMiniPlayer(
                         )
                         Text(
                             text = mediaMetadata?.artists?.joinToString { it.name } ?: "Unknown Artist",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = secondaryTextColor, // <-- PASSING UPDATED TEXT COLOR
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -818,7 +865,7 @@ private fun MinimalMiniPlayer(
                         }
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = textColor, strokeWidth = 2.dp)
                         } else {
                             Icon(
                                 painter = painterResource(
@@ -826,6 +873,7 @@ private fun MinimalMiniPlayer(
                                     else if (isPlaying) R.drawable.pause
                                     else R.drawable.play
                                 ),
+                                tint = textColor, // <-- PASSING UPDATED TEXT COLOR
                                 contentDescription = "Play/Pause",
                                 modifier = Modifier.size(28.dp)
                             )
@@ -869,6 +917,13 @@ private fun FloatingPillMiniPlayer(
         miniPlayerBackground = miniPlayerBackground,
         onGradientColorsChange = onGradientColorsChange
     )
+
+    // Text color logic based on background style
+    val textColor = if (miniPlayerBackground != PlayerBackgroundStyle.DEFAULT) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     SwipeableMiniPlayerBox(
         modifier = modifier.padding(bottom = 12.dp, start = 16.dp, end = 16.dp),
@@ -923,7 +978,8 @@ private fun FloatingPillMiniPlayer(
                     pureBlack = pureBlack,
                     position = position,
                     duration = duration,
-                    playerConnection = playerConnection
+                    playerConnection = playerConnection,
+                    textColor = textColor // <-- PASSING UPDATED TEXT COLOR
                 )
             }
         }
@@ -935,6 +991,7 @@ private fun LegacyMiniMediaInfo(
     mediaMetadata: MediaMetadata,
     error: PlaybackException?,
     pureBlack: Boolean,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
 ) {
     val cropThumbnailToSquare by rememberPreference(CropThumbnailToSquareKey, false)
@@ -1010,7 +1067,7 @@ private fun LegacyMiniMediaInfo(
             ) { title ->
                 Text(
                     text = title,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = textColor, // <-- PASSING UPDATED TEXT COLOR
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -1026,7 +1083,7 @@ private fun LegacyMiniMediaInfo(
             ) { artists ->
                 Text(
                     text = artists,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = textColor.copy(alpha = 0.7f), // <-- PASSING UPDATED TEXT COLOR
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
