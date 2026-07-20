@@ -619,7 +619,7 @@ class MusicService :
             }
     }
 
-    override fun onCreate() {
+        override fun onCreate() {
         super.onCreate()
         ensureScopesActive()
 
@@ -1093,8 +1093,7 @@ class MusicService :
         }
     }
 
-
-    private fun ensureScopesActive() {
+            private fun ensureScopesActive() {
         if (!scopeJob.isActive) {
             scopeJob = kotlinx.coroutines.SupervisorJob()
         }
@@ -1857,7 +1856,7 @@ class MusicService :
                                         .getOrNull()
                                         ?.songs
                                         .orEmpty()
-                                }
+                                    }
                                 .orEmpty()
 
                         val related =
@@ -3227,7 +3226,7 @@ class MusicService :
         togetherServer = null
     }
 
-    private fun com.j.m3play.together.TogetherTrack.toMediaMetadata(): com.j.m3play.models.MediaMetadata {
+        private fun com.j.m3play.together.TogetherTrack.toMediaMetadata(): com.j.m3play.models.MediaMetadata {
         return com.j.m3play.models.MediaMetadata(
             id = id,
             title = title,
@@ -3500,10 +3499,10 @@ class MusicService :
         )
     }
 
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
-    // 👇 DISCORD RPC FIX: Naya gaana aate hi timer reset kar do 👇
+    
     lastPresenceUpdateTime = 0L
 
     clearStreamRefreshGuards(
@@ -3789,8 +3788,7 @@ class MusicService :
     }
 }
 
-
-        override fun onEvents(player: Player, events: Player.Events) {
+            override fun onEvents(player: Player, events: Player.Events) {
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             if (crossfadeAudio?.isCrossfading() != true) {
                 currentMediaMetadata.value = player.currentMetadata
@@ -4478,7 +4476,7 @@ class MusicService :
                 ).build()
         }
 
-    override fun onPlaybackStatsReady(
+            override fun onPlaybackStatsReady(
         eventTime: AnalyticsListener.EventTime,
         playbackStats: PlaybackStats,
     ) {
@@ -4969,7 +4967,8 @@ class MusicService :
         super.onStartCommand(intent, flags, startId)
         
         when (intent?.action) {
-            com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_PLAY_PAUSE -> {
+            com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_PLAY_PAUSE,
+            com.j.m3play.widget.M3VinylWidgetReceiver.ACTION_PLAY_PAUSE -> {
                 if (player.isPlaying) player.pause() else player.play()
             }
             com.j.m3play.widget.M3PlayWidgetReceiver.ACTION_NEXT -> {
@@ -4985,6 +4984,9 @@ class MusicService :
                     player.prepare()
                     player.playWhenReady = true
                 }
+            }
+            com.j.m3play.widget.M3VinylWidgetReceiver.ACTION_LIKE -> {
+                toggleLike()
             }
         }
         
