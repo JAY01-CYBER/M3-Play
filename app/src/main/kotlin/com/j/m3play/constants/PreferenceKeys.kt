@@ -428,13 +428,13 @@ enum class PlayerDesignStyle {
     V6,
 }
 
-
 enum class PlayerBackgroundStyle {
     DEFAULT,
     GRADIENT,
     CUSTOM,
     BLUR,
     BREATHING_BLUR,
+    GALAXY_BLUR,
     COLORING,
     BLUR_GRADIENT,
     GLOW,
