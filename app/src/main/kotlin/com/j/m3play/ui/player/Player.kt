@@ -357,10 +357,14 @@ fun BottomSheetPlayer(
     var gradientColors by remember {
         mutableStateOf<List<Color>>(emptyList())
     }
+    var galaxyColors by remember {
+        mutableStateOf<List<Color>>(emptyList())
+    }
     
     var previousThumbnailUrl by remember { mutableStateOf<String?>(null) }
     var previousGradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }
     val gradientColorsCache = remember { mutableMapOf<String, List<Color>>() }
+    val galaxyColorsCache = remember { mutableMapOf<String, List<Color>>() }
 
     if (!canSkipNext && automix.isNotEmpty()) {
         playerConnection.service.addToQueueAutomix(automix[0], 0)
@@ -381,12 +385,16 @@ fun BottomSheetPlayer(
         if (playerBackground == PlayerBackgroundStyle.GRADIENT ||
             playerBackground == PlayerBackgroundStyle.COLORING || 
             playerBackground == PlayerBackgroundStyle.GLOW ||
-            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED) {
+            playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
+            playerBackground == PlayerBackgroundStyle.GALAXY_BLUR) {
             val currentMetadata = mediaMetadata
             if (currentMetadata != null && currentMetadata.thumbnailUrl != null) {
-                val cachedColors = gradientColorsCache[currentMetadata.id]
-                if (cachedColors != null) {
-                    gradientColors = cachedColors
+                val cachedGradient = gradientColorsCache[currentMetadata.id]
+                val cachedGalaxy = galaxyColorsCache[currentMetadata.id]
+
+                if (cachedGradient != null && cachedGalaxy != null) {
+                    gradientColors = cachedGradient
+                    galaxyColors = cachedGalaxy
                 } else {
                     val request = ImageRequest.Builder(context)
                         .data(currentMetadata.thumbnailUrl)
@@ -410,25 +418,36 @@ fun BottomSheetPlayer(
                                     .generate()
                             }
 
-                            val extractedColors = PlayerColorExtractor.extractGradientColors(
+                            val extractedGradient = PlayerColorExtractor.extractGradientColors(
                                 palette = palette,
                                 fallbackColor = fallbackColor
                             )
 
-                            gradientColorsCache[currentMetadata.id] = extractedColors
-                            gradientColors = extractedColors
+                            // Safely extracting galaxy colors using same palette mechanism
+                            val extractedGalaxy = try {
+                                PlayerColorExtractor.extractGradientColors(palette, fallbackColor)
+                            } catch (e: Exception) { extractedGradient }
+
+                            gradientColorsCache[currentMetadata.id] = extractedGradient
+                            galaxyColorsCache[currentMetadata.id] = extractedGalaxy
+                            gradientColors = extractedGradient
+                            galaxyColors = extractedGalaxy
                         } else {
                             gradientColors = defaultGradientColors
+                            galaxyColors = defaultGradientColors
                         }
                     } else {
                         gradientColors = defaultGradientColors
+                        galaxyColors = defaultGradientColors
                     }
                 }
             } else {
                 gradientColors = emptyList()
+                galaxyColors = emptyList()
             }
         } else {
             gradientColors = emptyList()
+            galaxyColors = emptyList()
         }
     }
 
@@ -443,7 +462,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.GLOW_ANIMATED,
             PlayerBackgroundStyle.CUSTOM,
             PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.BREATHING_BLUR -> Color.White
+            PlayerBackgroundStyle.BREATHING_BLUR,
+            PlayerBackgroundStyle.GALAXY_BLUR -> Color.White
             else -> Color.White
         }
 
@@ -456,7 +476,8 @@ fun BottomSheetPlayer(
             PlayerBackgroundStyle.GLOW_ANIMATED,
             PlayerBackgroundStyle.CUSTOM,
             PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.BREATHING_BLUR -> Color.Black
+            PlayerBackgroundStyle.BREATHING_BLUR,
+            PlayerBackgroundStyle.GALAXY_BLUR -> Color.Black
             else -> Color.Black
         }
 
@@ -837,6 +858,7 @@ fun BottomSheetPlayer(
                 playerBackground = playerBackground,
                 mediaMetadata = mediaMetadata,
                 gradientColors = gradientColors,
+                galaxyColors = galaxyColors,
                 disableBlur = disableBlur,
                 playerCustomImageUri = playerCustomImageUri,
                 playerCustomBlur = playerCustomBlur,
