@@ -2,20 +2,11 @@
 
 package com.j.m3play.ui.component
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +15,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,17 +29,18 @@ import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.MenuItemColors
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -60,14 +51,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.j.m3play.ui.screens.Screens
 
 @Composable
@@ -89,15 +77,6 @@ fun FloatingNavigationToolbar(
     )
     
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
-    
-    // Double Toggle issue fix karne ke liye Time Lock
-    var lastToggleTime by remember { mutableLongStateOf(0L) }
-    
-    val transitionState = remember { MutableTransitionState(false) }
-    
-    LaunchedEffect(fabMenuExpanded) {
-        transitionState.targetState = fabMenuExpanded
-    }
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
@@ -108,22 +87,16 @@ fun FloatingNavigationToolbar(
             floatingActionButton = {
                 Box {
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
-                        onClick = { 
-                            // Anti-Bounce Lock: Agar X dabaye huye 300ms nahi huye, toh touch ignore karo
-                            val now = System.currentTimeMillis()
-                            if (now - lastToggleTime > 300) {
-                                fabMenuExpanded = !fabMenuExpanded 
-                                lastToggleTime = now
-                            }
-                        },
+                        onClick = { fabMenuExpanded = !fabMenuExpanded },
                         shape = CircleShape, 
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
                         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
                     ) {
+                        // Rotation + Icon Morphing Animation add kiya
                         val rotation by animateFloatAsState(
                             targetValue = if (fabMenuExpanded) 90f else 0f,
                             animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy, 
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessMedium
                             ),
                             label = "fab_rotation"
@@ -135,70 +108,48 @@ fun FloatingNavigationToolbar(
                         )
                     }
 
-                    if (transitionState.currentState || transitionState.targetState) {
-                        Popup(
-                            alignment = Alignment.BottomEnd, 
-                            onDismissRequest = { 
-                                // Popup se band hone par bhi debounce lock update karenge
-                                val now = System.currentTimeMillis()
-                                if (now - lastToggleTime > 300) {
-                                    fabMenuExpanded = false
-                                    lastToggleTime = now
-                                }
+                    DropdownMenu(
+                        expanded = fabMenuExpanded,
+                        onDismissRequest = { fabMenuExpanded = false },
+                        shape = RoundedCornerShape(16.dp), 
+                        containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 8.dp, 
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Identify Music") },
+                            onClick = { 
+                                fabMenuExpanded = false 
+                                onIdentifyClick() 
                             },
-                            properties = PopupProperties(focusable = true)
-                        ) {
-                            AnimatedVisibility(
-                                visibleState = transitionState,
-                                enter = slideInVertically(
-                                    initialOffsetY = { it / 2 },
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy, 
-                                        stiffness = Spring.StiffnessLow
-                                    )
-                                ) + fadeIn() + scaleIn(initialScale = 0.8f),
-                                exit = slideOutVertically(
-                                    targetOffsetY = { it / 2 },
-                                    animationSpec = tween(durationMillis = 150)
-                                ) + fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f)
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.End,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp), 
-                                    modifier = Modifier.padding(bottom = 80.dp) 
-                                ) {
-                                    SpeedDialItem(
-                                        text = "Identify Music",
-                                        icon = Icons.Rounded.Search,
-                                        pureBlack = pureBlack,
-                                        onClick = {
-                                            fabMenuExpanded = false
-                                            onIdentifyClick()
-                                        }
-                                    )
-                                    
-                                    SpeedDialItem(
-                                        text = "Mood & Genres",
-                                        icon = Icons.Rounded.List,
-                                        pureBlack = pureBlack,
-                                        onClick = {
-                                            fabMenuExpanded = false
-                                            onMoodClick()
-                                        }
-                                    )
-                                    
-                                    SpeedDialItem(
-                                        text = "Shuffle",
-                                        icon = Icons.Rounded.PlayArrow,
-                                        pureBlack = pureBlack,
-                                        onClick = {
-                                            fabMenuExpanded = false
-                                            onShuffleClick()
-                                        }
-                                    )
-                                }
-                            }
-                        }
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
+                            },
+                            colors = getMenuColors(pureBlack)
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Mood & Genres") },
+                            onClick = { 
+                                fabMenuExpanded = false 
+                                onMoodClick() 
+                            },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Rounded.List, contentDescription = null)
+                            },
+                            colors = getMenuColors(pureBlack)
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Shuffle") },
+                            onClick = { 
+                                fabMenuExpanded = false 
+                                onShuffleClick() 
+                            },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
+                            },
+                            colors = getMenuColors(pureBlack)
+                        )
                     }
                 }
             },
@@ -221,38 +172,11 @@ fun FloatingNavigationToolbar(
 }
 
 @Composable
-private fun SpeedDialItem(
-    text: String,
-    icon: ImageVector,
-    pureBlack: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(percent = 50), 
-        color = if (pureBlack) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
-        tonalElevation = 6.dp,
-        shadowElevation = 4.dp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(percent = 50))
-            .clickable { onClick() }
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Icon(
-                imageVector = icon, 
-                contentDescription = text, 
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.size(12.dp))
-            Text(
-                text = text, 
-                style = MaterialTheme.typography.labelLarge
-            )
-        }
-    }
+private fun getMenuColors(pureBlack: Boolean): MenuItemColors {
+    return MenuDefaults.itemColors(
+        textColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface,
+        leadingIconColor = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
