@@ -69,6 +69,7 @@ import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import com.j.m3play.LocalDatabase
 import com.j.m3play.db.entities.ArtistEntity
+import com.j.m3play.constants.PlayerBackgroundStyle
 
 @Composable
 fun SwipeableMiniPlayerBox(
