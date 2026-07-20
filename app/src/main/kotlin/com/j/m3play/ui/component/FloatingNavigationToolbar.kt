@@ -47,7 +47,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -88,9 +90,14 @@ fun FloatingNavigationToolbar(
     
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
     
-    // Animation state ko manage karne ke liye naya MutableTransitionState
+    // Double Toggle issue fix karne ke liye Time Lock
+    var lastToggleTime by remember { mutableLongStateOf(0L) }
+    
     val transitionState = remember { MutableTransitionState(false) }
-    transitionState.targetState = fabMenuExpanded
+    
+    LaunchedEffect(fabMenuExpanded) {
+        transitionState.targetState = fabMenuExpanded
+    }
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
@@ -101,12 +108,18 @@ fun FloatingNavigationToolbar(
             floatingActionButton = {
                 Box {
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
-                        onClick = { fabMenuExpanded = !fabMenuExpanded },
+                        onClick = { 
+                            // Anti-Bounce Lock: Agar X dabaye huye 300ms nahi huye, toh touch ignore karo
+                            val now = System.currentTimeMillis()
+                            if (now - lastToggleTime > 300) {
+                                fabMenuExpanded = !fabMenuExpanded 
+                                lastToggleTime = now
+                            }
+                        },
                         shape = CircleShape, 
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
                         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
                     ) {
-                        // Rotation animation taaki X smootly ghum ke aaye
                         val rotation by animateFloatAsState(
                             targetValue = if (fabMenuExpanded) 90f else 0f,
                             animationSpec = spring(
@@ -122,14 +135,19 @@ fun FloatingNavigationToolbar(
                         )
                     }
 
-                    // Popup ab tab tak visible rahega jab tak animation chal raha hai
                     if (transitionState.currentState || transitionState.targetState) {
                         Popup(
                             alignment = Alignment.BottomEnd, 
-                            onDismissRequest = { fabMenuExpanded = false },
+                            onDismissRequest = { 
+                                // Popup se band hone par bhi debounce lock update karenge
+                                val now = System.currentTimeMillis()
+                                if (now - lastToggleTime > 300) {
+                                    fabMenuExpanded = false
+                                    lastToggleTime = now
+                                }
+                            },
                             properties = PopupProperties(focusable = true)
                         ) {
-                            // Google Keep jesa mast Slide aur Bounce Animation
                             AnimatedVisibility(
                                 visibleState = transitionState,
                                 enter = slideInVertically(
