@@ -217,7 +217,8 @@ fun NewMiniPlayerContent(
     pureBlack: Boolean,
     position: Long,
     duration: Long,
-    playerConnection: PlayerConnection
+    playerConnection: PlayerConnection,
+    textColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     val isPlaying by playerConnection.isPlaying.collectAsState()
     val playbackState by playerConnection.playbackState.collectAsState()
@@ -245,7 +246,7 @@ fun NewMiniPlayerContent(
             Spacer(modifier = Modifier.width(12.dp))
 
             mediaMetadata?.let {
-                ModernMiniPlayerInfo(mediaMetadata = it)
+                ModernMiniPlayerInfo(mediaMetadata = it, textColor = textColor)
             } ?: Spacer(Modifier.weight(1f))
 
             if (togetherSessionState !is TogetherSessionState.Idle) {
@@ -400,7 +401,10 @@ private fun ModernNextButton(
 }
 
 @Composable
-private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
+private fun RowScope.ModernMiniPlayerInfo(
+    mediaMetadata: MediaMetadata,
+    textColor: Color
+) {
     Column(
         modifier = Modifier
             .weight(1f)
@@ -415,7 +419,7 @@ private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = textColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.basicMarquee()
@@ -430,7 +434,7 @@ private fun RowScope.ModernMiniPlayerInfo(mediaMetadata: MediaMetadata) {
             Text(
                 text = artists.joinToString { it.name },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = textColor.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.basicMarquee()
@@ -497,7 +501,8 @@ fun MiniPlayerPlayPauseButton(
 
 @Composable
 fun RowScope.MiniPlayerInfo(
-    mediaMetadata: MediaMetadata
+    mediaMetadata: MediaMetadata,
+    textColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Column(
         modifier = Modifier
@@ -513,7 +518,7 @@ fun RowScope.MiniPlayerInfo(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = textColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.basicMarquee()
@@ -528,7 +533,7 @@ fun RowScope.MiniPlayerInfo(
             Text(
                 text = artists.joinToString { it.name },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = textColor.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.basicMarquee()
