@@ -1052,7 +1052,8 @@ fun MiniPlayerColorExtractor(
     LaunchedEffect(mediaMetadata?.id, miniPlayerBackground) {
         if (miniPlayerBackground == PlayerBackgroundStyle.GRADIENT || 
             miniPlayerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
-            miniPlayerBackground == PlayerBackgroundStyle.GLOW) {
+            miniPlayerBackground == PlayerBackgroundStyle.GLOW ||
+            miniPlayerBackground == PlayerBackgroundStyle.GALAXY_BLUR) {
             
             val currentMetadata = mediaMetadata
             if (currentMetadata?.thumbnailUrl != null) {
@@ -1108,6 +1109,63 @@ fun MiniPlayerBackgroundLayer(
     val context = LocalContext.current
     
     when (style) {
+        PlayerBackgroundStyle.GALAXY_BLUR -> {
+            val nightSkyColors = if (gradientColors.isNotEmpty()) {
+                listOf(
+                    Color(0xFF050505),
+                    Color(0xFF000000),
+                    gradientColors.first().copy(alpha = 0.15f),
+                    Color.White
+                )
+            } else {
+                listOf(Color.Black, Color.Black, Color.Black, Color.White)
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+                GalaxyStarOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    intensity = 1.3f,
+                    skyColors = nightSkyColors,
+                )
+            }
+        }
+        PlayerBackgroundStyle.BREATHING_BLUR -> {
+            val infiniteTransition = rememberInfiniteTransition(label = "breathe")
+            val scale by infiniteTransition.animateFloat(
+                initialValue = 1.0f,
+                targetValue = 1.25f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(10000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "scale_anim"
+            )
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(mediaMetadata?.thumbnailUrl)
+                        .size(100, 100)
+                        .allowHardware(false)
+                        .build(),
+                    contentDescription = "Breathing Blur Background",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .blur(radius = 100.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                )
+            }
+        }
         PlayerBackgroundStyle.BLUR -> {
             AsyncImage(
                 model = ImageRequest.Builder(context)
