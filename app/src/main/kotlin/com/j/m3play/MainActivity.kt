@@ -97,7 +97,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState // FIXED IMPORT
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -1040,10 +1040,15 @@ class MainActivity : ComponentActivity() {
                                                     navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
                                                     coroutineScope.launch { searchBarScrollBehavior.state.resetHeightOffset() }
                                                 } else {
-                                                    navController.navigate(screen.route) {
-                                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                                        launchSingleTop = true
-                                                        restoreState = true
+                                                    // FIX FOR HOME BUTTON IN RAIL NAV
+                                                    if (screen.route == Screens.Home.route) {
+                                                        navController.popBackStack(navController.graph.startDestinationId, inclusive = false)
+                                                    } else {
+                                                        navController.navigate(screen.route) {
+                                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                            launchSingleTop = true
+                                                            restoreState = true
+                                                        }
                                                     }
                                                 }
                                             },
@@ -1100,7 +1105,12 @@ class MainActivity : ComponentActivity() {
                                                 text = { Text("Mood & Genres") },
                                                 onClick = {
                                                     railMenuExpanded = false
-                                                    navController.navigate(Screens.MoodAndGenres.route)
+                                                    // FIX FOR MOOD & GENRES IN RAIL NAV
+                                                    navController.navigate(Screens.MoodAndGenres.route) {
+                                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
                                                 },
                                                 leadingIcon = {
                                                     Icon(
@@ -1355,10 +1365,15 @@ class MainActivity : ComponentActivity() {
                                                         navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
                                                         coroutineScope.launch { searchBarScrollBehavior.state.resetHeightOffset() }
                                                     } else {
-                                                        navController.navigate(screen.route) {
-                                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                                            launchSingleTop = true
-                                                            restoreState = true
+                                                        // FIX FOR HOME BUTTON IN BOTTOM NAV
+                                                        if (screen.route == Screens.Home.route) {
+                                                            navController.popBackStack(navController.graph.startDestinationId, inclusive = false)
+                                                        } else {
+                                                            navController.navigate(screen.route) {
+                                                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                                launchSingleTop = true
+                                                                restoreState = true
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -1366,7 +1381,12 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate(com.j.m3play.ui.screens.musicrecognition.MusicRecognitionRoute)
                                                 },
                                                 onMoodClick = {
-                                                    navController.navigate(Screens.MoodAndGenres.route)
+                                                    // FIX FOR MOOD & GENRES IN BOTTOM NAV FAB
+                                                    navController.navigate(Screens.MoodAndGenres.route) {
+                                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
                                                 },
                                                 onShuffleClick = {
                                                     if (allLocalItems.isEmpty() && allYtItems.isEmpty()) return@FloatingNavigationToolbar
