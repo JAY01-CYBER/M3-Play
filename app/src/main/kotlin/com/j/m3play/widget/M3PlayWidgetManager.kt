@@ -47,7 +47,8 @@ class M3PlayWidgetManager @Inject constructor(
         if (artworkUri != null && artworkUri == cachedArtworkUri && cachedAlbumArt != null) {
             albumArt = cachedAlbumArt
         } else {
-            albumArt = artworkUri?.let { loadAlbumArt(it, 300) }
+            // Yahan size 600 kar diya gaya hai sharp quality ke liye
+            albumArt = artworkUri?.let { loadAlbumArt(it, 600) }
             cachedArtworkUri = artworkUri
             cachedAlbumArt = albumArt
         }
@@ -81,12 +82,10 @@ class M3PlayWidgetManager @Inject constructor(
                     views.setImageViewResource(R.id.widget_vinyl_art, R.drawable.default_album_art)
                 }
 
-                
                 val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
                 views.setImageViewResource(R.id.widget_vinyl_play_icon, playPauseIcon)
                 views.setImageViewResource(R.id.widget_vinyl_like_icon, R.drawable.ic_widget_heart_outline_nav)
 
-                
                 views.setOnClickPendingIntent(R.id.widget_vinyl_art, getOpenAppIntent())
                 views.setOnClickPendingIntent(R.id.widget_vinyl_play_container, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_PLAY_PAUSE))
                 views.setOnClickPendingIntent(R.id.widget_vinyl_like_container, getActionIntent(M3VinylWidgetReceiver::class.java, M3VinylWidgetReceiver.ACTION_LIKE))
