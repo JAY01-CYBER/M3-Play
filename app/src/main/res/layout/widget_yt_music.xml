@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/widget_bg_rounded"
+    android:backgroundTint="@android:color/system_neutral1_800"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:padding="12dp">
@@ -54,7 +55,7 @@
             android:layout_height="32dp"
             android:layout_marginEnd="8dp"
             android:padding="4dp"
-            android:src="@drawable/ic_previous" /> <!-- Apna previous icon dalein -->
+            android:src="@drawable/ic_previous" /> 
 
         <FrameLayout
             android:id="@+id/widget_play_pause_container"
@@ -65,7 +66,7 @@
                 android:id="@+id/widget_play_pause"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_play" /> <!-- Apna play icon dalein -->
+                android:src="@drawable/ic_play" /> 
         </FrameLayout>
 
         <ImageView
@@ -74,6 +75,6 @@
             android:layout_height="32dp"
             android:layout_marginStart="8dp"
             android:padding="4dp"
-            android:src="@drawable/ic_next" /> <!-- Apna next icon dalein -->
+            android:src="@drawable/ic_next" /> 
     </LinearLayout>
 </LinearLayout>
