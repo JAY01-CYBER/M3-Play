@@ -15,6 +15,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,19 +25,17 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuItemColors
-import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -47,13 +46,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.j.m3play.ui.screens.Screens
 
 @Composable
@@ -86,60 +89,65 @@ fun FloatingNavigationToolbar(
                 Box {
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
                         onClick = { fabMenuExpanded = !fabMenuExpanded },
-                        shape = CircleShape, // FAB ko perfect circle banane ke liye add kiya
+                        shape = CircleShape, 
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
                         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
                     ) {
+                        // Icon rotation animation (MoreVert se Close tak ghumega)
+                        val rotation by animateFloatAsState(
+                            targetValue = if (fabMenuExpanded) 90f else 0f, 
+                            label = "fab_rotation"
+                        )
                         Icon(
-                            imageVector = Icons.Rounded.MoreVert, 
-                            contentDescription = "More Options"
+                            imageVector = if (fabMenuExpanded) Icons.Rounded.Close else Icons.Rounded.MoreVert, 
+                            contentDescription = "More Options",
+                            modifier = Modifier.rotate(rotation)
                         )
                     }
 
-                    DropdownMenu(
-                        expanded = fabMenuExpanded,
-                        onDismissRequest = { fabMenuExpanded = false },
-                        // Naya Material 3 Google Apps jesa clean Pop-up look
-                        shape = RoundedCornerShape(16.dp), 
-                        containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 8.dp, 
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Identify Music") },
-                            onClick = { 
-                                fabMenuExpanded = false 
-                                onIdentifyClick() 
-                            },
-                            // Bubble background hata diya, ab icon natural lagega
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
-                            },
-                            colors = getMenuColors(pureBlack)
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Mood & Genres") },
-                            onClick = { 
-                                fabMenuExpanded = false 
-                                onMoodClick() 
-                            },
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Rounded.List, contentDescription = null)
-                            },
-                            colors = getMenuColors(pureBlack)
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Shuffle") },
-                            onClick = { 
-                                fabMenuExpanded = false 
-                                onShuffleClick() 
-                            },
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
-                            },
-                            colors = getMenuColors(pureBlack)
-                        )
+                    // Naya Google Keep jesa Speed Dial Popup menu
+                    if (fabMenuExpanded) {
+                        Popup(
+                            alignment = Alignment.BottomEnd, // Button ke upar align karega
+                            onDismissRequest = { fabMenuExpanded = false },
+                            properties = PopupProperties(focusable = true)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(16.dp), // Buttons ke bich gap
+                                modifier = Modifier.padding(bottom = 80.dp) // Main FAB ke upar jagah chhodne ke liye
+                            ) {
+                                SpeedDialItem(
+                                    text = "Identify Music",
+                                    icon = Icons.Rounded.Search,
+                                    pureBlack = pureBlack,
+                                    onClick = {
+                                        fabMenuExpanded = false
+                                        onIdentifyClick()
+                                    }
+                                )
+                                
+                                SpeedDialItem(
+                                    text = "Mood & Genres",
+                                    icon = Icons.Rounded.List,
+                                    pureBlack = pureBlack,
+                                    onClick = {
+                                        fabMenuExpanded = false
+                                        onMoodClick()
+                                    }
+                                )
+                                
+                                SpeedDialItem(
+                                    text = "Shuffle",
+                                    icon = Icons.Rounded.PlayArrow,
+                                    pureBlack = pureBlack,
+                                    onClick = {
+                                        fabMenuExpanded = false
+                                        onShuffleClick()
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -161,12 +169,40 @@ fun FloatingNavigationToolbar(
     }
 }
 
+// Naya Custom Speed Dial Item Component (Pill Shape)
 @Composable
-private fun getMenuColors(pureBlack: Boolean): MenuItemColors {
-    return MenuDefaults.itemColors(
-        textColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurface,
-        leadingIconColor = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun SpeedDialItem(
+    text: String,
+    icon: ImageVector,
+    pureBlack: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(percent = 50), // Pill Shape
+        color = if (pureBlack) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
+        tonalElevation = 6.dp,
+        shadowElevation = 4.dp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .clickable { onClick() }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = icon, 
+                contentDescription = text, 
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            Text(
+                text = text, 
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
 }
 
 @Composable
