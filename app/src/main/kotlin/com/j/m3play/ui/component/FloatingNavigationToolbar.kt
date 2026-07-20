@@ -37,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,7 +65,6 @@ fun FloatingNavigationToolbar(
     accentColor: Color = MaterialTheme.colorScheme.primary, 
     isSelected: (Screens) -> Boolean,
     onItemClick: (Screens, Boolean) -> Unit,
-    // NEW DETACHED ACTIONS
     onIdentifyClick: () -> Unit,
     onMoodClick: () -> Unit,
     onShuffleClick: () -> Unit,
@@ -88,6 +86,7 @@ fun FloatingNavigationToolbar(
                 Box {
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
                         onClick = { fabMenuExpanded = !fabMenuExpanded },
+                        shape = CircleShape, // FAB ko perfect circle banane ke liye add kiya
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
                         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
                     ) {
@@ -100,9 +99,10 @@ fun FloatingNavigationToolbar(
                     DropdownMenu(
                         expanded = fabMenuExpanded,
                         onDismissRequest = { fabMenuExpanded = false },
-                        shape = RoundedCornerShape(24.dp),
-                        containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        tonalElevation = 6.dp,
+                        // Naya Material 3 Google Apps jesa clean Pop-up look
+                        shape = RoundedCornerShape(16.dp), 
+                        containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 8.dp, 
                     ) {
                         DropdownMenuItem(
                             text = { Text("Identify Music") },
@@ -110,10 +110,9 @@ fun FloatingNavigationToolbar(
                                 fabMenuExpanded = false 
                                 onIdentifyClick() 
                             },
+                            // Bubble background hata diya, ab icon natural lagega
                             leadingIcon = {
-                                MenuIconContainer(pureBlack) {
-                                    Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
-                                }
+                                Icon(imageVector = Icons.Rounded.Search, contentDescription = null)
                             },
                             colors = getMenuColors(pureBlack)
                         )
@@ -125,9 +124,7 @@ fun FloatingNavigationToolbar(
                                 onMoodClick() 
                             },
                             leadingIcon = {
-                                MenuIconContainer(pureBlack) {
-                                    Icon(imageVector = Icons.Rounded.List, contentDescription = null)
-                                }
+                                Icon(imageVector = Icons.Rounded.List, contentDescription = null)
                             },
                             colors = getMenuColors(pureBlack)
                         )
@@ -139,9 +136,7 @@ fun FloatingNavigationToolbar(
                                 onShuffleClick() 
                             },
                             leadingIcon = {
-                                MenuIconContainer(pureBlack) {
-                                    Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
-                                }
+                                Icon(imageVector = Icons.Rounded.PlayArrow, contentDescription = null)
                             },
                             colors = getMenuColors(pureBlack)
                         )
@@ -163,18 +158,6 @@ fun FloatingNavigationToolbar(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun MenuIconContainer(pureBlack: Boolean, content: @Composable () -> Unit) {
-    Surface(
-        modifier = Modifier.size(40.dp),
-        shape = CircleShape,
-        color = floatingToolbarMenuIconContainerColor(pureBlack = pureBlack),
-        contentColor = floatingToolbarMenuIconContentColor(pureBlack = pureBlack),
-    ) {
-        Box(contentAlignment = Alignment.Center) { content() }
     }
 }
 
@@ -274,7 +257,3 @@ private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color
 private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
 @Composable
 private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.82f) else MaterialTheme.colorScheme.onSurfaceVariant
-@Composable
-private fun floatingToolbarMenuIconContainerColor(pureBlack: Boolean): Color = if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.secondaryContainer
-@Composable
-private fun floatingToolbarMenuIconContentColor(pureBlack: Boolean): Color = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
