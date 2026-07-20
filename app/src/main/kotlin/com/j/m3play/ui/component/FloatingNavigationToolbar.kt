@@ -2,11 +2,20 @@
 
 package com.j.m3play.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -78,6 +87,10 @@ fun FloatingNavigationToolbar(
     )
     
     var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    
+    // Animation state ko manage karne ke liye naya MutableTransitionState
+    val transitionState = remember { MutableTransitionState(false) }
+    transitionState.targetState = fabMenuExpanded
 
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
@@ -93,9 +106,13 @@ fun FloatingNavigationToolbar(
                         containerColor = floatingToolbarFabContainerColor(pureBlack = pureBlack),
                         contentColor = floatingToolbarFabContentColor(pureBlack = pureBlack),
                     ) {
-                        // Icon rotation animation (MoreVert se Close tak ghumega)
+                        // Rotation animation taaki X smootly ghum ke aaye
                         val rotation by animateFloatAsState(
-                            targetValue = if (fabMenuExpanded) 90f else 0f, 
+                            targetValue = if (fabMenuExpanded) 90f else 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy, 
+                                stiffness = Spring.StiffnessMedium
+                            ),
                             label = "fab_rotation"
                         )
                         Icon(
@@ -105,47 +122,63 @@ fun FloatingNavigationToolbar(
                         )
                     }
 
-                    // Naya Google Keep jesa Speed Dial Popup menu
-                    if (fabMenuExpanded) {
+                    // Popup ab tab tak visible rahega jab tak animation chal raha hai
+                    if (transitionState.currentState || transitionState.targetState) {
                         Popup(
-                            alignment = Alignment.BottomEnd, // Button ke upar align karega
+                            alignment = Alignment.BottomEnd, 
                             onDismissRequest = { fabMenuExpanded = false },
                             properties = PopupProperties(focusable = true)
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(16.dp), // Buttons ke bich gap
-                                modifier = Modifier.padding(bottom = 80.dp) // Main FAB ke upar jagah chhodne ke liye
+                            // Google Keep jesa mast Slide aur Bounce Animation
+                            AnimatedVisibility(
+                                visibleState = transitionState,
+                                enter = slideInVertically(
+                                    initialOffsetY = { it / 2 },
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy, 
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                ) + fadeIn() + scaleIn(initialScale = 0.8f),
+                                exit = slideOutVertically(
+                                    targetOffsetY = { it / 2 },
+                                    animationSpec = tween(durationMillis = 150)
+                                ) + fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f)
                             ) {
-                                SpeedDialItem(
-                                    text = "Identify Music",
-                                    icon = Icons.Rounded.Search,
-                                    pureBlack = pureBlack,
-                                    onClick = {
-                                        fabMenuExpanded = false
-                                        onIdentifyClick()
-                                    }
-                                )
-                                
-                                SpeedDialItem(
-                                    text = "Mood & Genres",
-                                    icon = Icons.Rounded.List,
-                                    pureBlack = pureBlack,
-                                    onClick = {
-                                        fabMenuExpanded = false
-                                        onMoodClick()
-                                    }
-                                )
-                                
-                                SpeedDialItem(
-                                    text = "Shuffle",
-                                    icon = Icons.Rounded.PlayArrow,
-                                    pureBlack = pureBlack,
-                                    onClick = {
-                                        fabMenuExpanded = false
-                                        onShuffleClick()
-                                    }
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp), 
+                                    modifier = Modifier.padding(bottom = 80.dp) 
+                                ) {
+                                    SpeedDialItem(
+                                        text = "Identify Music",
+                                        icon = Icons.Rounded.Search,
+                                        pureBlack = pureBlack,
+                                        onClick = {
+                                            fabMenuExpanded = false
+                                            onIdentifyClick()
+                                        }
+                                    )
+                                    
+                                    SpeedDialItem(
+                                        text = "Mood & Genres",
+                                        icon = Icons.Rounded.List,
+                                        pureBlack = pureBlack,
+                                        onClick = {
+                                            fabMenuExpanded = false
+                                            onMoodClick()
+                                        }
+                                    )
+                                    
+                                    SpeedDialItem(
+                                        text = "Shuffle",
+                                        icon = Icons.Rounded.PlayArrow,
+                                        pureBlack = pureBlack,
+                                        onClick = {
+                                            fabMenuExpanded = false
+                                            onShuffleClick()
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -169,7 +202,6 @@ fun FloatingNavigationToolbar(
     }
 }
 
-// Naya Custom Speed Dial Item Component (Pill Shape)
 @Composable
 private fun SpeedDialItem(
     text: String,
@@ -178,7 +210,7 @@ private fun SpeedDialItem(
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(percent = 50), // Pill Shape
+        shape = RoundedCornerShape(percent = 50), 
         color = if (pureBlack) Color(0xFF1A1A1A) else MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer,
         tonalElevation = 6.dp,
