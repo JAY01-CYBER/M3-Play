@@ -619,7 +619,7 @@ class MusicService :
             }
     }
 
-        override fun onCreate() {
+    override fun onCreate() {
         super.onCreate()
         ensureScopesActive()
 
@@ -670,7 +670,7 @@ class MusicService :
             .also { it.setReferenceCounted(false) }
         setupAudioFocusRequest()
 
-        mediaLibrarySessionCallback.apply {
+                mediaLibrarySessionCallback.apply {
             toggleLike = ::toggleLike
             toggleStartRadio = ::toggleStartRadio
             toggleLibrary = ::toggleLibrary
@@ -746,8 +746,21 @@ class MusicService :
             }
         }
 
+        // 🟢 FIX FOR WIDGET LIKE ICON UPDATES REALTIME 🟢
         currentSong.debounce(300).collect(scope) { song ->
             updateNotification()
+            
+            scope.launch {
+                val meta = currentMediaMetadata.value
+                widgetManager.updateWidget(
+                    title = meta?.title ?: getString(R.string.app_name),
+                    artist = meta?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
+                    artworkUri = meta?.thumbnailUrl,
+                    isPlaying = player.isPlaying,
+                    isLiked = song?.song?.liked == true
+                )
+            }
+
             if (song != null && player.playWhenReady && player.playbackState == Player.STATE_READY) {
                 ensurePresenceManager()
             } else {
@@ -989,7 +1002,7 @@ class MusicService :
                 trimPlayerCacheToBytes(limitBytes)
             }
 
-        dataStore.data
+                    dataStore.data
             .map { it[EnableLastFMScrobblingKey] ?: false }
             .debounce(300)
             .distinctUntilChanged()
@@ -1093,7 +1106,8 @@ class MusicService :
         }
     }
 
-            private fun ensureScopesActive() {
+
+    private fun ensureScopesActive() {
         if (!scopeJob.isActive) {
             scopeJob = kotlinx.coroutines.SupervisorJob()
         }
@@ -1688,7 +1702,8 @@ class MusicService :
         player.setShuffleOrder(androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder(shuffledIndices, System.currentTimeMillis()))
     }
 
-    fun startRadioSeamlessly() {
+    
+            fun startRadioSeamlessly() {
         val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
         if (!isTogetherApplyingRemote() && joined?.role is com.j.m3play.together.TogetherRole.Guest) {
             if (!joined.roomState.settings.allowGuestsToControlPlayback) {
@@ -1856,7 +1871,7 @@ class MusicService :
                                         .getOrNull()
                                         ?.songs
                                         .orEmpty()
-                                    }
+                                }
                                 .orEmpty()
 
                         val related =
@@ -2231,7 +2246,7 @@ class MusicService :
         }
     }
 
-    fun startTogetherOnlineHost(
+        fun startTogetherOnlineHost(
         displayName: String,
         settings: com.j.m3play.together.TogetherRoomSettings,
     ) {
@@ -2373,7 +2388,7 @@ class MusicService :
         }
     }
 
-        fun joinTogether(
+    fun joinTogether(
         rawLink: String,
         displayName: String,
     ) {
@@ -3226,7 +3241,7 @@ class MusicService :
         togetherServer = null
     }
 
-        private fun com.j.m3play.together.TogetherTrack.toMediaMetadata(): com.j.m3play.models.MediaMetadata {
+    private fun com.j.m3play.together.TogetherTrack.toMediaMetadata(): com.j.m3play.models.MediaMetadata {
         return com.j.m3play.models.MediaMetadata(
             id = id,
             title = title,
@@ -3502,7 +3517,7 @@ class MusicService :
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
     super.onMediaItemTransition(mediaItem, reason)
 
-    
+    //  DISCORD RPC FIX: Naya gaana aate hi timer reset kar do 
     lastPresenceUpdateTime = 0L
 
     clearStreamRefreshGuards(
@@ -3788,97 +3803,98 @@ class MusicService :
     }
 }
 
-            override fun onEvents(player: Player, events: Player.Events) {
+
+    override fun onEvents(player: Player, events: Player.Events) {
         if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
             if (crossfadeAudio?.isCrossfading() != true) {
                 currentMediaMetadata.value = player.currentMetadata
             }
         }
-    val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
-    if (joined?.role is com.j.m3play.together.TogetherRole.Guest &&
-        events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
-    ) {
-        if (!joined.roomState.settings.allowGuestsToControlPlayback) {
-            scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
-        } else {
-            val now = android.os.SystemClock.elapsedRealtime()
-            val playWhenReady = this.player.playWhenReady
-            val isEcho =
-                isTogetherApplyingRemote() ||
-                (now < togetherSuppressEchoUntilElapsedMs &&
-                        togetherLastRemoteAppliedPlayWhenReady != null &&
-                        togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
-            if (!isEcho) {
-                val action =
-                    if (playWhenReady) {
-                        com.j.m3play.together.ControlAction.Play
-                    } else {
-                        com.j.m3play.together.ControlAction.Pause
-                    }
-                requestTogetherControl(action)
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest &&
+            events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
+        ) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+            } else {
+                val now = android.os.SystemClock.elapsedRealtime()
+                val playWhenReady = this.player.playWhenReady
+                val isEcho =
+                    isTogetherApplyingRemote() ||
+                    (now < togetherSuppressEchoUntilElapsedMs &&
+                            togetherLastRemoteAppliedPlayWhenReady != null &&
+                            togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
+                if (!isEcho) {
+                    val action =
+                        if (playWhenReady) {
+                            com.j.m3play.together.ControlAction.Play
+                        } else {
+                            com.j.m3play.together.ControlAction.Pause
+                        }
+                    requestTogetherControl(action)
+                }
             }
         }
-    }
-    if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
-        handleDeviceMuteStateChanged()
-    }
-    if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
-        handleDeviceMuteStateChanged()
-    }
-    if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
-        (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
-    ) {
-        wasAutoPausedByDeviceMute = false
-    }
-    if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
-        val newSessionId = this.player.audioSessionId
-        val oldSessionId = openedAudioSessionId
-        if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
-            sendBroadcast(
-                Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, oldSessionId)
-                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                },
+        if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
+            handleDeviceMuteStateChanged()
+        }
+        if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
+            handleDeviceMuteStateChanged()
+        }
+        if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+            (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
+        ) {
+            wasAutoPausedByDeviceMute = false
+        }
+        if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
+            val newSessionId = this.player.audioSessionId
+            val oldSessionId = openedAudioSessionId
+            if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
+                sendBroadcast(
+                    Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                        putExtra(AudioEffect.EXTRA_AUDIO_SESSION, oldSessionId)
+                        putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                    },
+                )
+                openedAudioSessionId = newSessionId
+                ensureAudioEffects(newSessionId)
+                sendBroadcast(
+                    Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                        putExtra(AudioEffect.EXTRA_AUDIO_SESSION, newSessionId)
+                        putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                        putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                    },
+                )
+            }
+        }
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED
             )
-            openedAudioSessionId = newSessionId
-            ensureAudioEffects(newSessionId)
-            sendBroadcast(
-                Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
-                    putExtra(AudioEffect.EXTRA_AUDIO_SESSION, newSessionId)
-                    putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
-                    putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
-                },
-            )
+        ) {
+            val playbackState = player.playbackState
+            val keepAudioEffectSessionOpen =
+                playbackState == Player.STATE_BUFFERING ||
+                playbackState == Player.STATE_READY
+            if (player.playWhenReady && keepAudioEffectSessionOpen) {
+                requestAudioFocus()
+            }
+            if (keepAudioEffectSessionOpen) {
+                openAudioEffectSession()
+            } else {
+                closeAudioEffectSession()
+            }
+            updateWakeLock()
+            if (player.playWhenReady && keepAudioEffectSessionOpen) {
+                cancelIdleStop()
+                promoteToStartedService()
+                ensureStartedAsForeground()
+            } else {
+                scheduleStopIfIdle()
+            }
         }
-    }
-    if (events.containsAny(
-            Player.EVENT_PLAYBACK_STATE_CHANGED,
-            Player.EVENT_PLAY_WHEN_READY_CHANGED
-        )
-    ) {
-        val playbackState = player.playbackState
-        val keepAudioEffectSessionOpen =
-            playbackState == Player.STATE_BUFFERING ||
-            playbackState == Player.STATE_READY
-        if (player.playWhenReady && keepAudioEffectSessionOpen) {
-            requestAudioFocus()
-        }
-        if (keepAudioEffectSessionOpen) {
-            openAudioEffectSession()
-        } else {
-            closeAudioEffectSession()
-        }
-        updateWakeLock()
-        if (player.playWhenReady && keepAudioEffectSessionOpen) {
-            cancelIdleStop()
-            promoteToStartedService()
-            ensureStartedAsForeground()
-        } else {
-            scheduleStopIfIdle()
-        }
-    }
 
-       if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             if (crossfadeAudio?.isCrossfading() != true) {
                 currentMediaMetadata.value = player.currentMetadata
             }
@@ -3924,47 +3940,630 @@ class MusicService :
             }
         }
 
-        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-            if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                currentMediaMetadata.value = player.currentMetadata
-            }
-            val currentMediaId = player.currentMediaItem?.mediaId
-            val currentMetadata = player.currentMetadata
-            val currentPosition = player.currentPosition
-            val isPlaying = player.isPlaying
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            ensurePresenceManager()
+            scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
+        } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            ensurePresenceManager()
+        } else {
+            ensurePresenceManager()
+        }
 
+        //  FIX FOR WIDGET LIKE ICON UPDATES REALTIME 
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            scope.launch {
+                val meta = currentMediaMetadata.value
+                widgetManager.updateWidget(
+                    title = meta?.title ?: getString(R.string.app_name),
+                    artist = meta?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
+                    artworkUri = meta?.thumbnailUrl,
+                    isPlaying = player.isPlaying,
+                    isLiked = currentSong.value?.song?.liked == true // Yeh like flag add kiya gaya hai
+                )
+            }
+        }
+    }
+
+
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        updateNotification()
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    com.j.m3play.together.ControlAction.SetShuffleEnabled(
+                        shuffleEnabled = shuffleModeEnabled,
+                    ),
+                )
+            }
+            return
+        }
+        if (shuffleModeEnabled) {
+            applyCurrentFirstShuffleOrder()
+        }
+        
+        scope.launch {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
+        }
+    }
+
+    override fun onRepeatModeChanged(repeatMode: Int) {
+        updateNotification()
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest) {
+            if (!isTogetherApplyingRemote()) {
+                if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                    scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+                    return
+                }
+                requestTogetherControl(
+                    com.j.m3play.together.ControlAction.SetRepeatMode(
+                        repeatMode = repeatMode,
+                    ),
+                )
+            }
+            return
+        }
+        scope.launch {
+            dataStore.edit { settings ->
+                settings[RepeatModeKey] = repeatMode
+            }
+        }
+        
+        scope.launch {
+            if (dataStore.get(PersistentQueueKey, true)) {
+                saveQueueToDisk()
+            }
+        }
+    }
+
+    override fun onPlayerError(error: PlaybackException) {
+        super.onPlayerError(error)
+        val isConnectionError = (error.cause?.cause is PlaybackException) &&
+            (error.cause?.cause as PlaybackException).errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+
+        if (!isNetworkConnected.value || isConnectionError) {
+            waitOnNetworkError()
+            return
+        }
+
+        val currentMediaId = player.currentMediaItem?.mediaId
+        val httpStatusCode = error.httpStatusCodeOrNull()
+
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
+
+        if (currentMediaId != null && YTPlayerUtils.isBotDetectionException(error)) {
+            if (markAndCheckRecoveryAllowance(currentMediaId)) {
+                Timber.tag("MusicService").w("Bot detection error for $currentMediaId")
+                YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+                playbackUrlCache.remove(currentMediaId)
+                pendingStreamRefreshValidationMediaId = currentMediaId
+                
+                player.seekTo(savedIndex, savedPosition)
+                player.prepare()
+                player.playWhenReady = true
+                return
+            }
+        }
+
+        val shouldAttemptStreamRefresh =
+            currentMediaId != null && (
+                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ||
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
+                    httpStatusCode in setOf(403, 404, 410, 416, 429, 500, 502, 503)
+                )
+
+        if (currentMediaId != null && error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) {
+            scope.launch(Dispatchers.IO) {
+                runCatching { downloadCache.removeResource(currentMediaId) }
+                runCatching { playerCache.removeResource(currentMediaId) }
+            }
+        }
+
+        if (shouldAttemptStreamRefresh && currentMediaId != null && shouldSkipRedundantStreamRefresh(currentMediaId)) {
+            Timber.tag("MusicService").w("Skipping redundant stream refresh for $currentMediaId")
+            refreshValidatedPlayingMediaId = null
+            
+            player.seekTo(savedIndex, savedPosition)
+            player.prepare()
+            player.playWhenReady = true
+            return
+        }
+
+        if (shouldAttemptStreamRefresh && currentMediaId != null && markAndCheckRecoveryAllowance(currentMediaId)) {
+            val failingStreamClientKey =
+                playbackUrlCache[currentMediaId]
+                    ?.first
+                    ?.toHttpUrlOrNull()
+                    ?.queryParameter("c")
+                    ?.trim()
+            Timber.tag("MusicService").w("Attempting stream refresh for $currentMediaId")
+            YTPlayerUtils.markStreamClientFailed(currentMediaId, failingStreamClientKey, httpStatusCode)
+            YTPlayerUtils.markPreferredClientFailed(currentMediaId, preferredStreamClient, httpStatusCode)
+            YTPlayerUtils.invalidateCachedStreamUrls(currentMediaId)
+            playbackUrlCache.remove(currentMediaId)
+            pendingStreamRefreshValidationMediaId = currentMediaId
+            
+            player.seekTo(savedIndex, savedPosition)
+            player.prepare()
+            player.playWhenReady = true
+            return
+        }
+
+        val skipSilenceCurrentlyEnabled = dataStore.get(SkipSilenceKey, false)
+        val causeText = (error.cause?.stackTraceToString() ?: error.stackTraceToString()).lowercase()
+        val looksLikeSilenceProcessor = skipSilenceCurrentlyEnabled && (
+            "silenceskippingaudioprocessor" in causeText || "silence" in causeText
+        )
+
+        if (looksLikeSilenceProcessor) {
             scope.launch {
                 try {
-                    val token = withContext(Dispatchers.IO) { dataStore.get(DiscordTokenKey, "") }
+                    dataStore.edit { settings ->
+                        settings[SkipSilenceKey] = false
+                    }
+                    player.skipSilenceEnabled = false
+                    val targetPos = min(savedPosition + 1500L, if (player.duration > 0) player.duration - 1000L else savedPosition + 1500L)
+                    player.seekTo(savedIndex, targetPos)
+                    player.prepare()
+                    player.play()
+                    return@launch
+                } catch (t: Throwable) {}
+                if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+                    skipOnError()
+                } else {
+                    stopOnError()
+                }
+            }
+            return
+        }
+
+        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
+            skipOnError()
+        } else {
+            stopOnError()
+        }
+    }
+
+    private suspend fun trimPlayerCacheToBytes(limitBytes: Long) {
+        if (limitBytes <= 0L) return
+
+        withContext(Dispatchers.IO) {
+            val cacheDir = filesDir.resolve("exoplayer")
+            val currentSpace = runCatching { playerCache.cacheSpace }.getOrNull() ?: 0L
+            var totalBytes = if (currentSpace > 0L) currentSpace else cacheDir.directorySizeBytes()
+            if (totalBytes <= limitBytes) return@withContext
+
+            data class Candidate(
+                val key: String,
+                val lastTouchTimestamp: Long,
+                val sizeBytes: Long,
+            )
+
+            val candidates =
+                runCatching {
+                    playerCache.keys.mapNotNull { key ->
+                        runCatching {
+                            val spans = playerCache.getCachedSpans(key)
+                            if (spans.isEmpty()) return@runCatching null
+                            val oldestTouch = spans.minOf { it.lastTouchTimestamp }
+                            val sizeBytes = spans.sumOf { it.length }
+                            Candidate(key = key, lastTouchTimestamp = oldestTouch, sizeBytes = sizeBytes)
+                        }.getOrNull()
+                    }.sortedBy { it.lastTouchTimestamp }
+                }.getOrNull().orEmpty()
+
+            for (candidate in candidates) {
+                if (totalBytes <= limitBytes) break
+                val removedSize = candidate.sizeBytes.coerceAtLeast(0L)
+                runCatching { playerCache.removeResource(candidate.key) }
+                totalBytes -= removedSize
+            }
+        }
+    }
+
+    private fun createCacheDataSource(): CacheDataSource.Factory =
+        CacheDataSource
+            .Factory()
+            .setCache(downloadCache)
+            .setUpstreamDataSourceFactory(
+                CacheDataSource
+                    .Factory()
+                    .setCache(playerCache)
+                    .setUpstreamDataSourceFactory(
+                        DefaultDataSource.Factory(
+                            this,
+                            OkHttpDataSource.Factory(
+                                mediaOkHttpClient,
+                            ),
+                        ),
+                    )
+                    .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+            ).setCacheWriteDataSinkFactory(null)
+            .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+
+    private fun createDataSourceFactory(): DataSource.Factory {
+        return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
+            val mediaId = dataSpec.key ?: error("No media id")
+
+            val requiredCachedLength =
+                if (dataSpec.length >= 0) {
+                    dataSpec.length
+                } else {
+                    val contentLength =
+                        runBlocking(Dispatchers.IO) {
+                            database.format(mediaId).first()?.contentLength
+                        } ?: runCatching {
+                            downloadCache
+                                .getContentMetadata(mediaId)
+                                .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L } ?: runCatching {
+                            playerCache
+                                .getContentMetadata(mediaId)
+                                 .get(ContentMetadata.KEY_CONTENT_LENGTH, -1L)
+                        }.getOrNull()?.takeIf { it > 0L }
+
+                    contentLength?.let { nonNullContentLength ->
+                        (nonNullContentLength - dataSpec.position).takeIf { it > 0L }
+                    }
+                }
+
+            if (requiredCachedLength != null) {
+                val isFullyCached =
+                    downloadCache.isCached(mediaId, dataSpec.position, requiredCachedLength) || playerCache.isCached(mediaId, dataSpec.position, requiredCachedLength)
+                if (isFullyCached) {
+                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    return@Factory dataSpec
+                }
+            }
+
+            playbackUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(it.first.toUri()).subrange(dataSpec.uriPositionOffset, length)
+            }
+
+            val playbackData = runBlocking(Dispatchers.IO) {
+                YTPlayerUtils.playerResponseForPlayback(
+                    mediaId,
+                    audioQuality = audioQuality,
+                    connectivityManager = connectivityManager,
+                    preferredStreamClient = preferredStreamClient,
+                    avoidCodecs = avoidStreamCodecs,
+                )
+            }.getOrElse { throwable ->
+                when (throwable) {
+                    is YTPlayerUtils.LoginRequiredForPlaybackException -> {
+                        promptLoginRecovery(mediaId, throwable.targetUrl)
+                        throw PlaybackException(
+                            getString(R.string.playback_requires_youtube_music_confirmation),
+                            throwable,
+                            PlaybackException.ERROR_CODE_REMOTE_ERROR
+                        )
+                    }
+
+                    is PlaybackException -> throw throwable
+
+                    is java.net.ConnectException, is java.net.UnknownHostException -> {
+                        throw PlaybackException(
+                            getString(R.string.error_no_internet),
+                            throwable,
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+                        )
+                    }
+
+                    is java.net.SocketTimeoutException -> {
+                        throw PlaybackException(
+                            getString(R.string.error_timeout),
+                            throwable,
+                            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
+                        )
+                    }
+
+                    else -> throw PlaybackException(
+                        getString(R.string.error_unknown),
+                        throwable,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR
+                    )
+                }
+            }
+
+            val nonNullPlayback = requireNotNull(playbackData) {
+                getString(R.string.error_unknown)
+            }
+            run {
+                val format = nonNullPlayback.format
+                val loudnessDb = nonNullPlayback.audioConfig?.loudnessDb
+                val perceptualLoudnessDb = nonNullPlayback.audioConfig?.perceptualLoudnessDb
+
+                database.query {
+                    upsert(
+                        FormatEntity(
+                            id = mediaId,
+                            itag = format.itag,
+                            mimeType = format.mimeType.split(";")[0],
+                            codecs = format.mimeType.split("codecs=")[1].removeSurrounding("\""),
+                            bitrate = format.bitrate,
+                            sampleRate = format.audioSampleRate,
+                            contentLength = format.contentLength!!,
+                            loudnessDb = loudnessDb,
+                            perceptualLoudnessDb = perceptualLoudnessDb,
+                            playbackUrl = nonNullPlayback.playbackTracking?.videostatsPlaybackUrl?.baseUrl
+                        )
+                    )
+                }
+                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+
+                val streamUrl = nonNullPlayback.streamUrl
+
+                playbackUrlCache[mediaId] =
+                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                val length = if (dataSpec.length >= 0) minOf(dataSpec.length, CHUNK_LENGTH) else CHUNK_LENGTH
+                return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, length)
+            }
+        }
+    }
+
+    fun retryCurrentFromFreshStream() {
+        val mediaId = player.currentMediaItem?.mediaId ?: return
+        clearStreamRefreshGuards(mediaId)
+        YTPlayerUtils.invalidateCachedStreamUrls(mediaId)
+        playbackUrlCache.remove(mediaId)
+        pendingStreamRefreshValidationMediaId = mediaId
+        
+        val savedIndex = player.currentMediaItemIndex
+        val savedPosition = player.currentPosition
+        
+        player.seekTo(savedIndex, savedPosition)
+        player.prepare()
+        player.playWhenReady = true
+    }
+
+    private fun PlaybackException.httpStatusCodeOrNull(): Int? {
+        var t: Throwable? = cause
+        while (t != null) {
+            if (t is HttpDataSource.InvalidResponseCodeException) return t.responseCode
+            t = t.cause
+        }
+        return null
+    }
+
+    private fun markAndCheckRecoveryAllowance(mediaId: String): Boolean {
+        val now = System.currentTimeMillis()
+        val (count, lastAt) = streamRecoveryState[mediaId] ?: (0 to 0L)
+        val nextCount = if (now - lastAt > 45_000L) 1 else count + 1
+        if (nextCount > 2) return false
+        streamRecoveryState[mediaId] = nextCount to now
+        return true
+    }
+
+    private fun shouldSkipRedundantStreamRefresh(mediaId: String): Boolean {
+        if (refreshValidatedPlayingMediaId != mediaId) return false
+        val expiresAt = playbackUrlCache[mediaId]?.second ?: return false
+        if (expiresAt <= System.currentTimeMillis()) {
+            refreshValidatedPlayingMediaId = null
+            return false
+        }
+        return true
+    }
+
+    private fun clearStreamRefreshGuards(activeMediaId: String? = null) {
+        val normalizedActiveMediaId = activeMediaId?.trim()?.takeIf { it.isNotBlank() }
+        if (normalizedActiveMediaId == null || refreshValidatedPlayingMediaId != normalizedActiveMediaId) {
+            refreshValidatedPlayingMediaId = null
+        }
+        if (normalizedActiveMediaId == null || pendingStreamRefreshValidationMediaId != normalizedActiveMediaId) {
+            pendingStreamRefreshValidationMediaId = null
+        }
+    }
+
+    private fun deviceSupportsMimeType(mimeType: String): Boolean {
+        return runCatching {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            codecList.codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun createMediaSourceFactory() =
+        DefaultMediaSourceFactory(
+            createDataSourceFactory(),
+            ExtractorsFactory {
+                arrayOf(Mp4Extractor(), FragmentedMp4Extractor(), MatroskaExtractor())
+            },
+        )
+
+    private fun updateAudioOffload(enabled: Boolean) {
+        runCatching {
+            val builder = player.trackSelectionParameters.buildUpon()
+            val audioOffloadPrefsClass = Class.forName("androidx.media3.common.AudioOffloadPreferences")
+            val audioOffloadPrefsBuilderClass = Class.forName("androidx.media3.common.AudioOffloadPreferences\$Builder")
+
+            val modeFieldName = if (enabled) "AUDIO_OFFLOAD_MODE_ENABLED" else "AUDIO_OFFLOAD_MODE_DISABLED"
+            val mode = audioOffloadPrefsClass.getField(modeFieldName).getInt(null)
+
+            val prefsBuilder = audioOffloadPrefsBuilderClass.getDeclaredConstructor().newInstance()
+            audioOffloadPrefsBuilderClass.getMethod("setAudioOffloadMode", Int::class.javaPrimitiveType).invoke(prefsBuilder, mode)
+            val prefs = audioOffloadPrefsBuilderClass.getMethod("build").invoke(prefsBuilder)
+
+            val setMethod =
+                builder.javaClass.methods.firstOrNull { method ->
+                    method.name == "setAudioOffloadPreferences" && method.parameterTypes.size == 1
+                }
+            if (setMethod != null) {
+                setMethod.invoke(builder, prefs)
+                player.trackSelectionParameters = builder.build()
+            }
+        }
+        player.setOffloadEnabled(enabled)
+    }
+
+    private fun updateWakeLock() {
+        val wl = wakeLock ?: return
+        val shouldHold = wakelockEnabled && player.isPlaying
+        if (shouldHold && !wl.isHeld) {
+            wl.acquire()
+        } else if (!shouldHold && wl.isHeld) {
+            wl.release()
+        }
+    }
+
+    private fun createRenderersFactory() =
+        object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ) = DefaultAudioSink
+                .Builder(this@MusicService)
+                .setEnableFloatOutput(enableFloatOutput)
+                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                .setAudioProcessorChain(
+                    DefaultAudioSink.DefaultAudioProcessorChain(
+                        SilenceSkippingAudioProcessor(
+                            1_500_000L,
+                            0.35f,
+                            500_000L,
+                            10,
+                            150.toShort(),
+                        ),
+                        SonicAudioProcessor(),
+                    ),
+                ).build()
+        }
+
+            override fun onEvents(player: Player, events: Player.Events) {
+        if (events.contains(Player.EVENT_MEDIA_METADATA_CHANGED)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+        }
+        val joined = togetherSessionState.value as? com.j.m3play.together.TogetherSessionState.Joined
+        if (joined?.role is com.j.m3play.together.TogetherRole.Guest &&
+            events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED)
+        ) {
+            if (!joined.roomState.settings.allowGuestsToControlPlayback) {
+                scope.launch(SilentHandler) { applyRemoteRoomState(joined.roomState) }
+            } else {
+                val now = android.os.SystemClock.elapsedRealtime()
+                val playWhenReady = this.player.playWhenReady
+                val isEcho =
+                    isTogetherApplyingRemote() ||
+                    (now < togetherSuppressEchoUntilElapsedMs &&
+                            togetherLastRemoteAppliedPlayWhenReady != null &&
+                            togetherLastRemoteAppliedPlayWhenReady == playWhenReady)
+                if (!isEcho) {
+                    val action =
+                        if (playWhenReady) {
+                            com.j.m3play.together.ControlAction.Play
+                        } else {
+                            com.j.m3play.together.ControlAction.Pause
+                        }
+                    requestTogetherControl(action)
+                }
+            }
+        }
+        if (events.contains(Player.EVENT_DEVICE_VOLUME_CHANGED)) {
+            handleDeviceMuteStateChanged()
+        }
+        if (events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) && isDeviceMutedNow() && this.player.playWhenReady) {
+            handleDeviceMuteStateChanged()
+        }
+        if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) &&
+            (this.player.playbackState == Player.STATE_IDLE || this.player.playbackState == Player.STATE_ENDED)
+        ) {
+            wasAutoPausedByDeviceMute = false
+        }
+        if (events.contains(Player.EVENT_AUDIO_SESSION_ID)) {
+            val newSessionId = this.player.audioSessionId
+            val oldSessionId = openedAudioSessionId
+            if (isAudioEffectSessionOpened && newSessionId > 0 && oldSessionId != null && oldSessionId > 0 && oldSessionId != newSessionId) {
+                sendBroadcast(
+                    Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                        putExtra(AudioEffect.EXTRA_AUDIO_SESSION, oldSessionId)
+                        putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                    },
+                )
+                openedAudioSessionId = newSessionId
+                ensureAudioEffects(newSessionId)
+                sendBroadcast(
+                    Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                        putExtra(AudioEffect.EXTRA_AUDIO_SESSION, newSessionId)
+                        putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                        putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                    },
+                )
+            }
+        }
+        if (events.containsAny(
+                Player.EVENT_PLAYBACK_STATE_CHANGED,
+                Player.EVENT_PLAY_WHEN_READY_CHANGED
+            )
+        ) {
+            val playbackState = player.playbackState
+            val keepAudioEffectSessionOpen =
+                playbackState == Player.STATE_BUFFERING ||
+                playbackState == Player.STATE_READY
+            if (player.playWhenReady && keepAudioEffectSessionOpen) {
+                requestAudioFocus()
+            }
+            if (keepAudioEffectSessionOpen) {
+                openAudioEffectSession()
+            } else {
+                closeAudioEffectSession()
+            }
+            updateWakeLock()
+            if (player.playWhenReady && keepAudioEffectSessionOpen) {
+                cancelIdleStop()
+                promoteToStartedService()
+                ensureStartedAsForeground()
+            } else {
+                scheduleStopIfIdle()
+            }
+        }
+
+        if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
+            if (crossfadeAudio?.isCrossfading() != true) {
+                currentMediaMetadata.value = player.currentMetadata
+            }
+            scope.launch {
+                try {
+                    val token = dataStore.get(DiscordTokenKey, "")
                     if (token.isNotBlank() && DiscordPresenceManager.isRunning()) {
-                        val song = if (currentMediaId != null) withContext(Dispatchers.IO) { database.song(currentMediaId).first() } else null
-                        val finalSong = song ?: currentMetadata?.let { createTransientSongFromMedia(it) }
+                        val mediaId = player.currentMediaItem?.mediaId
+                        val song = if (mediaId != null) withContext(Dispatchers.IO) { database.song(mediaId).first() } else null
+                        val finalSong = song ?: player.currentMetadata?.let { createTransientSongFromMedia(it) }
 
                         if (canUpdatePresence()) {
-                            val success = withContext(Dispatchers.IO) {
-                                DiscordPresenceManager.updateNow(
-                                    context = this@MusicService,
-                                    token = token,
-                                    song = finalSong,
-                                    positionMs = currentPosition,
-                                    isPaused = !isPlaying,
-                                )
-                            }
+                            val success = DiscordPresenceManager.updateNow(
+                                context = this@MusicService,
+                                token = token,
+                                song = finalSong,
+                                positionMs = player.currentPosition,
+                                isPaused = !player.isPlaying,
+                            )
                             if (!success) {
-                                Timber.tag("MusicService").w("isPlaying/mediaTransition immediate presence update failed — restarting manager")
-                                if (DiscordPresenceManager.isRunning()) {
-                                    try { DiscordPresenceManager.stop(); DiscordPresenceManager.restart() } catch (_: Exception) {}
-                                }
+                                Timber.tag("MusicService").w("transition immediate presence update failed — attempting restart")
+                                try { DiscordPresenceManager.stop(); DiscordPresenceManager.start(this@MusicService, dataStore.get(DiscordTokenKey, ""), { song }, { player.currentPosition }, { !player.isPlaying }, { getPresenceIntervalMillis(this@MusicService) }) } catch (_: Exception) {}
                             }
                             try {
-                                val lbEnabled = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzEnabledKey, false) }
-                                val lbToken = withContext(Dispatchers.IO) { dataStore.get(ListenBrainzTokenKey, "") }
+                                val lbEnabled = dataStore.get(ListenBrainzEnabledKey, false)
+                                val lbToken = dataStore.get(ListenBrainzTokenKey, "")
                                 if (lbEnabled && !lbToken.isNullOrBlank()) {
                                     scope.launch(Dispatchers.IO) {
                                         try {
-                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, currentPosition)
+                                            ListenBrainzManager.submitPlayingNow(this@MusicService, lbToken, finalSong, player.currentPosition)
                                         } catch (ie: Exception) {
-                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed for isPlaying/mediaTransition")
+                                            Timber.tag("MusicService").v(ie, "ListenBrainz playing_now submit failed on transition")
                                         }
                                     }
                                 }
@@ -3972,32 +4571,34 @@ class MusicService :
                         }
                     }
                 } catch (e: Exception) {
-                    Timber.tag("MusicService").v(e, "immediate presence update failed for isPlaying/mediaTransition")
+                    Timber.tag("MusicService").v(e, "immediate presence update failed on transition")
                 }
             }
         }
 
-    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
-        ensurePresenceManager()
-        scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
-    } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-        ensurePresenceManager()
-    } else {
-        ensurePresenceManager()
-    }
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED)) {
+            ensurePresenceManager()
+            scrobbleManager?.onPlayerStateChanged(player.isPlaying, player.currentMetadata, duration = player.duration)
+        } else if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            ensurePresenceManager()
+        } else {
+            ensurePresenceManager()
+        }
 
-    if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-        scope.launch {
-            val meta = currentMediaMetadata.value
-            widgetManager.updateWidget(
-                title = meta?.title ?: getString(R.string.app_name),
-                artist = meta?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
-                artworkUri = meta?.thumbnailUrl,
-                isPlaying = player.isPlaying
-            )
+        // 🟢 FIX FOR WIDGET LIKE ICON UPDATES REALTIME 🟢
+        if (events.containsAny(Player.EVENT_IS_PLAYING_CHANGED, Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+            scope.launch {
+                val meta = currentMediaMetadata.value
+                widgetManager.updateWidget(
+                    title = meta?.title ?: getString(R.string.app_name),
+                    artist = meta?.artists?.joinToString(", ") { it.name } ?: "Unknown Artist",
+                    artworkUri = meta?.thumbnailUrl,
+                    isPlaying = player.isPlaying,
+                    isLiked = currentSong.value?.song?.liked == true // Yeh like flag add kiya gaya hai
+                )
+            }
         }
     }
-  }
 
 
     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
@@ -4962,6 +5563,7 @@ class MusicService :
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
