@@ -1746,7 +1746,7 @@ fun PlayerBackground(
     playerBackground: PlayerBackgroundStyle,
     mediaMetadata: MediaMetadata?,
     gradientColors: List<Color>,
-    galaxyColors: List<Color> = emptyList(), // NAYA ADD KIYA GALAXY COLORS KE LIYE
+    galaxyColors: List<Color> = emptyList(), 
     disableBlur: Boolean,
     playerCustomImageUri: String,
     playerCustomBlur: Float,
@@ -1839,13 +1839,25 @@ fun PlayerBackground(
                 }
             }
 
-            // GALAXY WALA BACKGROUND YAHAN ADD HUA HAI
             PlayerBackgroundStyle.GALAXY_BLUR -> {
+                val nightSkyColors = if (galaxyColors.isNotEmpty()) {
+                    listOf(
+                        Color(0xFF050505),
+                        Color(0xFF000000), 
+                        galaxyColors.first().copy(alpha = 0.15f), 
+                        Color.White 
+                    )
+                } else {
+                    listOf(Color.Black, Color.Black, Color.Black, Color.White)
+                }
+
                 Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+
                     GalaxyStarOverlay(
                         modifier = Modifier.fillMaxSize(),
-                        intensity = 1f,
-                        skyColors = galaxyColors,
+                        intensity = 1.3f, 
+                        skyColors = nightSkyColors,
                     )
                 }
             }
@@ -2187,11 +2199,11 @@ fun PlayerBackground(
 }
 
 // ==========================================
-// GALAXY STAR OVERLAY & HELPERS (YAHAN SE START)
+// GALAXY STAR OVERLAY & HELPERS 
 // ==========================================
 
-private const val StarPoolSize = 260
-private const val ShootingStarCount = 2
+private const val StarPoolSize = 500 
+private const val ShootingStarCount = 3 
 private const val TwinkleCycleSeconds = 6.5f
 private const val FrameIntervalMs = 33L
 
@@ -2221,8 +2233,8 @@ fun GalaxyStarOverlay(
             StarryNightStar(
                 x = seededUnit(index, 29, 7),
                 y = seededUnit(index, 47, 13),
-                sizePx = if (seededUnit(index, 17, 3) < 0.58f) 1f else 2f,
-                opacity = 0.42f + seededUnit(index, 71, 19) * 0.48f,
+                sizePx = if (seededUnit(index, 17, 3) < 0.58f) 1.5f else 2.5f, 
+                opacity = 0.5f + seededUnit(index, 71, 19) * 0.5f,
                 twinklePattern = (index * 11 + 5) % 4,
                 twinkles = (index * 23 + 3) % 5 == 0,
             )
@@ -2271,7 +2283,7 @@ fun GalaxyStarOverlay(
     }
 
     Canvas(modifier = modifier) {
-        val alphaScale = intensity.coerceIn(0f, 1f)
+        val alphaScale = intensity.coerceIn(0f, 2f) 
         val timeSeconds = frameMillis / 1000f
 
         drawRect(
@@ -2283,15 +2295,15 @@ fun GalaxyStarOverlay(
             size = size,
         )
 
-        val starCount = ((size.width * size.height) / 9500f)
+        val starCount = ((size.width * size.height) / 4500f) 
             .roundToInt()
-            .coerceIn(16, stars.size)
+            .coerceIn(50, stars.size)
 
         for (index in 0 until starCount) {
             val star = stars[index]
             val center = Offset(size.width * star.x, size.height * star.y)
             val coreRadius = star.sizePx / 2f
-            val coreAlpha = star.opacity * alphaScale
+            val coreAlpha = (star.opacity * alphaScale).coerceIn(0f, 1f)
             val glowAlpha =
                 if (star.twinkles) {
                     coreAlpha * twinkleGlow(star.twinklePattern, timeSeconds)
@@ -2301,13 +2313,13 @@ fun GalaxyStarOverlay(
 
             if (glowAlpha > 0.02f) {
                 drawCircle(
-                    color = glowColor.copy(alpha = glowAlpha * 0.08f),
-                    radius = coreRadius + 6f,
+                    color = glowColor.copy(alpha = glowAlpha * 0.15f), 
+                    radius = coreRadius + 8f,
                     center = center,
                 )
                 drawCircle(
-                    color = glowColor.copy(alpha = glowAlpha * 0.14f),
-                    radius = coreRadius + 3f,
+                    color = glowColor.copy(alpha = glowAlpha * 0.25f),
+                    radius = coreRadius + 4f,
                     center = center,
                 )
             }
