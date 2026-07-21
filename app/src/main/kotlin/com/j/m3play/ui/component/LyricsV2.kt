@@ -2,13 +2,11 @@
  * M3Play Component Module 
  * Signature: M3PLAY::COMPONENT
  *
- * Credits: 
- * Accompanist Lyrics Library  Integration.
+ * Integration: Official Accompanist Lyrics Library (v1.0.15)
  */
 
 package com.j.m3play.ui.component
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.WindowManager
 import android.widget.Toast
@@ -34,11 +32,9 @@ import androidx.compose.ui.unit.*
 import androidx.palette.graphics.Palette
 import coil3.ImageLoader
 import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import coil3.toBitmap
 import kotlinx.coroutines.*
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 // Accompanist Library Imports
 import com.mocharealm.accompanist.lyrics.core.model.ISyncedLine
@@ -54,7 +50,6 @@ import com.j.m3play.R
 import com.j.m3play.constants.*
 import com.j.m3play.db.entities.LyricsEntity.Companion.LYRICS_NOT_FOUND
 import com.j.m3play.lyrics.*
-import com.j.m3play.lyrics.LyricsUtils.findCurrentLineIndex
 import com.j.m3play.lyrics.LyricsUtils.isChinese
 import com.j.m3play.lyrics.LyricsUtils.isJapanese
 import com.j.m3play.lyrics.LyricsUtils.isKorean
@@ -72,10 +67,6 @@ private const val TTML_LEAD_MS = 0L
 private const val LYRIC_VISUAL_TUNING_OFFSET_MS = 150L
 private const val MIN_KARAOKE_SYLLABLE_DURATION_MS = 1
 private val HEAD_LYRICS_ENTRY = LyricsEntry(time = 0L, text = "")
-
-private const val SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS = 80L
-private const val SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS = 180L
-private const val SMOOTH_PLAYBACK_DRIFT_CORRECTION = 0.55f
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -107,8 +98,6 @@ fun LyricsV2(
     var showShareDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     var showColorPickerDialog by remember { mutableStateOf(false) }
-    var selectedGlassStyle by remember { mutableStateOf(LyricsGlassStyle.FrostedDark) }
-    var paletteGlassStyle by remember { mutableStateOf<LyricsGlassStyle?>(null) }
     var showProgressDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showMaxSelectionToast) {
@@ -181,76 +170,28 @@ fun LyricsV2(
         }
     }
 
-    LaunchedEffect(entriesWithWords, romanizeJapanese, romanizeKorean) {
-        if (romanizeJapanese || romanizeKorean) {
-            entriesWithWords.forEach { entry ->
-                if (entry.text.isNotBlank() && entry.romanizedTextFlow.value == null) {
-                    scope.launch(Dispatchers.Default) {
-                        val romanized = when {
-                            romanizeJapanese && isJapanese(entry.text) -> romanizeJapanese(entry.text)
-                            romanizeKorean && isKorean(entry.text) -> romanizeKorean(entry.text)
-                            else -> null
-                        }
-                        if (romanized != null) entry.romanizedTextFlow.value = romanized
-                    }
-                }
-            }
-        }
-    }
-
     val leadMs = if (isTtmlFormat) TTML_LEAD_MS else LRC_LEAD_MS
     var currentPositionMs by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(entriesWithWords, isSynced) {
         if (!isSynced || entriesWithWords.isEmpty()) return@LaunchedEffect
-        var anchorPlayerPositionMs = player.currentPosition.coerceAtLeast(0L)
-        var anchorFrameNanos = 0L
-
         while (isActive) {
             val sliderPos = sliderPositionProvider()
             val rawPos = (sliderPos ?: player.currentPosition).coerceAtLeast(0L)
-
-            if (sliderPos != null || !player.isPlaying) {
-                anchorPlayerPositionMs = rawPos
-                anchorFrameNanos = 0L
-                currentPositionMs = (rawPos + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
-                if (sliderPos == null) delay(100L) else withFrameNanos { }
+            currentPositionMs = (rawPos + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+            if (sliderPos == null && player.isPlaying) {
+                delay(50L)
             } else {
-                val frameNanos = withFrameNanos { it }
-                if (anchorFrameNanos == 0L) {
-                    anchorFrameNanos = frameNanos
-                    anchorPlayerPositionMs = rawPos
-                }
-
-                val elapsedMs = ((frameNanos - anchorFrameNanos) / 1_000_000f) 
-                val projectedPosition = anchorPlayerPositionMs + elapsedMs.roundToLong()
-                val driftMs = rawPos - projectedPosition
-                
-                val nextPosition = when {
-                    driftMs > SMOOTH_PLAYBACK_MAX_FORWARD_DRIFT_MS || driftMs < -SMOOTH_PLAYBACK_MAX_BACKWARD_DRIFT_MS -> {
-                        anchorPlayerPositionMs = rawPos; anchorFrameNanos = frameNanos; rawPos
-                    }
-                    driftMs != 0L -> projectedPosition + (driftMs * SMOOTH_PLAYBACK_DRIFT_CORRECTION).roundToLong()
-                    else -> projectedPosition
-                }.coerceAtLeast(0L)
-                
-                currentPositionMs = (nextPosition + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS).coerceAtLeast(0L)
+                delay(100L)
             }
         }
     }
 
-    // Clean SyncedLyrics conversion for Accompanist Library
     val syncedLyrics = remember(entriesWithWords, isTtmlFormat) {
         buildSyncedLyrics(entriesWithWords, isTtmlFormat)
     }
 
     BackHandler(enabled = isSelectionModeActive) { isSelectionModeActive = false; selectedIndices.clear() }
-
-    val activity = context as? android.app.Activity
-    DisposableEffect(Unit) {
-        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-    }
 
     BoxWithConstraints(contentAlignment = Alignment.TopCenter, modifier = modifier.fillMaxSize().padding(bottom = 12.dp)) {
         if (lyrics == LYRICS_NOT_FOUND || entriesWithWords.isEmpty()) {
@@ -263,21 +204,18 @@ fun LyricsV2(
         }
 
         val listState = rememberLazyListState()
-        val lyricsViewportOffset = remember(constraints.maxHeight) { constraints.maxHeight * 0.38f }
 
         if (isSynced && syncedLyrics.lines.isNotEmpty()) {
-            // Accompanist Library Karaoke View matching ArchiveTune signatures
+            // Official KaraokeLyricsView implementation matching v1.0.15 parameters[span_3](start_span)[span_3](end_span)
             KaraokeLyricsView(
                 listState = listState,
                 lyrics = syncedLyrics,
                 currentPosition = { 
-                    (currentPositionMs + leadMs + LYRIC_VISUAL_TUNING_OFFSET_MS)
-                        .coerceIn(0L, Int.MAX_VALUE.toLong())
-                        .toInt() 
+                    currentPositionMs.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() 
                 },
                 onLineClicked = { line ->
+                    val index = syncedLyrics.lines.indexOf(line)
                     if (isSelectionModeActive) {
-                        val index = syncedLyrics.lines.indexOf(line)
                         if (index >= 0) {
                             if (selectedIndices.contains(index)) {
                                 selectedIndices.remove(index)
@@ -303,7 +241,6 @@ fun LyricsV2(
                         }
                     }
                 },
-                textColor = textColor,
                 normalLineTextStyle = MaterialTheme.typography.headlineMedium.copy(
                     fontSize = lyricsTextSize.sp,
                     fontWeight = FontWeight.Bold,
@@ -317,16 +254,17 @@ fun LyricsV2(
                 phoneticTextStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = (lyricsTextSize * 0.55f).sp
                 ),
+                textColor = textColor,
                 blendMode = BlendMode.SrcOver,
                 useBlurEffect = true,
                 showTranslation = false,
                 showPhonetic = romanizeJapanese || romanizeKorean,
-                offset = lyricsViewportOffset,
-                keepAliveZone = 72.dp,
-                modifier = Modifier.fillMaxSize().smoothFadingEdge(vertical = 80.dp)
+                offset = 32.dp,
+                keepAliveZone = 100.dp,
+                blurDelta = 3f,
+                modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Fallback for Plain Lyrics
             LazyColumn(
                 modifier = Modifier.fillMaxSize().smoothFadingEdge(vertical = 80.dp),
                 contentPadding = PaddingValues(top = 100.dp, bottom = 150.dp)
@@ -398,18 +336,9 @@ fun LyricsV2(
         }
     }
 
-    if (showProgressDialog) {
-        BasicAlertDialog(onDismissRequest = {  }) {
-            Card(shape = MaterialTheme.shapes.medium, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)) {
-                Box(modifier = Modifier.padding(32.dp)) { Text(text = stringResource(R.string.generating_image) + "\n" + stringResource(R.string.please_wait), color = MaterialTheme.colorScheme.onSurface) }
-            }
-        }
-    }
-
     if (showShareDialog && shareDialogData != null) {
         val (_, songTitle, artists) = shareDialogData!! 
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        
         val plainLyricsText = remember(selectedIndices) {
             selectedIndices.sorted().mapNotNull { entriesWithWords.getOrNull(it)?.text }.joinToString("\n")
         }
@@ -452,28 +381,12 @@ fun LyricsV2(
                         Text(text = stringResource(R.string.share_as_text), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                Card(
-                    onClick = {
-                        showColorPickerDialog = true
-                        showShareDialog = false
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painter = painterResource(id = R.drawable.share), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(text = stringResource(R.string.share_as_image), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.SemiBold)
-                    }
-                }
             }
         }
     }
 }
 
-// Helper Converter for Accompanist Library Sync
+// Accompanist Library Syllables Converter
 private fun List<WordTimestamp>.toKaraokeSyllables(): List<KaraokeSyllable> =
     mapIndexed { index, word ->
         val start = (word.startTime * 1000.0).roundToInt().coerceAtLeast(0)
@@ -499,7 +412,7 @@ private fun buildSyncedLyrics(entries: List<LyricsEntry>, isTtml: Boolean): Sync
 
         if (isTtml && entry.words != null) {
             val mainWords = entry.words!!.filter { !it.isBackground }
-            val bgWords = entry.words!!.filter { it.isBackground }
+            val bgWords = entry.words!!.filter { t -> t.isBackground }
             val alignment =
                 when (entry.agent?.lowercase()) {
                     "v2" -> KaraokeAlignment.End
