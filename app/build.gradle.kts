@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.j.m3play"
-        minSdk = 26
+        minSdk = 29
         targetSdk = 36
         versionCode = 142
         versionName = "3.0.9"
