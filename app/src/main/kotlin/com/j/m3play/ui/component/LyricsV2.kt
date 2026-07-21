@@ -25,6 +25,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
+import androidx.compose.foundation.interaction.collectIsDraggedAsState // FIX: Import for detecting touch drag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
@@ -418,9 +419,10 @@ fun LyricsV2(
             }
         }
         
-        // Detect manual scrolling to disable auto-scroll
-        LaunchedEffect(listState.isScrollInProgress) {
-            if (listState.isScrollInProgress) {
+        // FIX: Detect user touch dragging instead of programmatic scroll
+        val isDragged by listState.interactionSource.collectIsDraggedAsState()
+        LaunchedEffect(isDragged) {
+            if (isDragged) {
                 isAutoScrollEnabled = false
                 isManualScrolling = true
             }
@@ -566,7 +568,7 @@ fun LyricsV2(
             visible = isManualScrolling && !isSelectionModeActive,
             enter = slideInVertically(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing), initialOffsetY = { it * 2 }) + fadeIn(animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)),
             exit = slideOutVertically(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing), targetOffsetY = { it * 2 }) + fadeOut(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)),
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 32.dp) // FIX: Increased padding to avoid player overlap
         ) {
             Row(
                 modifier = Modifier
