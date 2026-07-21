@@ -2,7 +2,7 @@
  * M3Play Component Module 
  * Signature: M3PLAY::COMPONENT
  *
- * Integration: Official Accompanist Lyrics Library (v1.0.15)
+ * Integration: Official Accompanist Lyrics Library (v1.0.15) - Cleaned Parameters
  */
 
 package com.j.m3play.ui.component
@@ -56,8 +56,6 @@ import com.j.m3play.lyrics.LyricsUtils.isKorean
 import com.j.m3play.lyrics.LyricsUtils.isTtml
 import com.j.m3play.lyrics.LyricsUtils.parseLyrics
 import com.j.m3play.lyrics.LyricsUtils.parseTtml
-import com.j.m3play.lyrics.LyricsUtils.romanizeJapanese
-import com.j.m3play.lyrics.LyricsUtils.romanizeKorean
 import com.j.m3play.ui.component.shimmer.*
 import com.j.m3play.ui.utils.smoothFadingEdge
 import com.j.m3play.utils.*
@@ -82,8 +80,6 @@ fun LyricsV2(
     val (lyricsClick) = rememberPreference(LyricsClickKey, defaultValue = true)
     val (lyricsTextSize) = rememberPreference(LyricsTextSizeKey, defaultValue = 34f)
     val (lyricsLineSpacing) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
-    val (romanizeJapanese) = rememberPreference(LyricsRomanizeJapaneseKey, defaultValue = true)
-    val (romanizeKorean) = rememberPreference(LyricsRomanizeKoreanKey, defaultValue = true)
     val (useSystemFont) = rememberPreference(UseSystemFontKey, defaultValue = false)
 
     val lyricsFontFamily = remember(useSystemFont) { if (useSystemFont) null else FontFamily(Font(R.font.sfprodisplaybold)) }
@@ -97,8 +93,6 @@ fun LyricsV2(
     var showMaxSelectionToast by remember { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     var shareDialogData by remember { mutableStateOf<Triple<String, String, String>?>(null) }
-    var showColorPickerDialog by remember { mutableStateOf(false) }
-    var showProgressDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showMaxSelectionToast) {
         if (showMaxSelectionToast) {
@@ -206,7 +200,7 @@ fun LyricsV2(
         val listState = rememberLazyListState()
 
         if (isSynced && syncedLyrics.lines.isNotEmpty()) {
-            // Official KaraokeLyricsView implementation matching v1.0.15 parameters[span_3](start_span)[span_3](end_span)
+            // Official KaraokeLyricsView implementation matching exact v1.0.15 parameters from codebase[span_3](start_span)[span_3](end_span)
             KaraokeLyricsView(
                 listState = listState,
                 lyrics = syncedLyrics,
@@ -251,17 +245,10 @@ fun LyricsV2(
                     fontSize = (lyricsTextSize * 0.82f).sp,
                     fontFamily = lyricsFontFamily ?: MaterialTheme.typography.titleLarge.fontFamily
                 ),
-                phoneticTextStyle = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = (lyricsTextSize * 0.55f).sp
-                ),
                 textColor = textColor,
                 blendMode = BlendMode.SrcOver,
                 useBlurEffect = true,
-                showTranslation = false,
-                showPhonetic = romanizeJapanese || romanizeKorean,
                 offset = 32.dp,
-                keepAliveZone = 100.dp,
-                blurDelta = 3f,
                 modifier = Modifier.fillMaxSize()
             )
         } else {
@@ -386,7 +373,6 @@ fun LyricsV2(
     }
 }
 
-// Accompanist Library Syllables Converter
 private fun List<WordTimestamp>.toKaraokeSyllables(): List<KaraokeSyllable> =
     mapIndexed { index, word ->
         val start = (word.startTime * 1000.0).roundToInt().coerceAtLeast(0)
