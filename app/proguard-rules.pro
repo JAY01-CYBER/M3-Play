@@ -154,9 +154,3 @@
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keep class META-INF.services.** { *; }
-
-# Keep Accompanist Lyrics Library safe from R8 obfuscation crashes
--keep class com.mocharealm.accompanist.** { *; }
--dontwarn com.mocharealm.accompanist.**
-
-

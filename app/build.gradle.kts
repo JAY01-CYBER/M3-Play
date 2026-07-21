@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.j.m3play"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 36
         versionCode = 142
         versionName = "3.0.9"
@@ -212,6 +212,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+
+
     implementation(libs.shimmer)
 
     implementation(libs.media3)
@@ -267,11 +269,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.10.0")
     implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
     implementation("androidx.compose.animation:animation:1.7.5")
-
-    // === Accompanist Lyrics Library for Smooth Animations ===
-        implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
-        implementation("com.mocharealm.accompanist:lyrics-ui:1.0.15") 
-
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
