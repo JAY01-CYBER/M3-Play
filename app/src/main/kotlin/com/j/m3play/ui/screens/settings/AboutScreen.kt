@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -71,6 +72,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.ui.component.IconButton
@@ -89,35 +91,31 @@ private fun SectionTitle(title: String, modifier: Modifier = Modifier) {
     )
 }
 
+// Ye update ho gaya hai actual profile photo load karne ke liye
 @Composable
 private fun PremiumAvatar(
-    initial: String,
+    imageUrl: String,
     shape: Shape,
     modifier: Modifier = Modifier
 ) {
-    // Screenshot style soft avatar (Light purple background, dark purple text)
-    Box(
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Profile Photo",
+        contentScale = ContentScale.Crop,
         modifier = modifier
             .size(56.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = initial,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+    )
 }
 
+// Initial parameter ki jagah ab imageUrl lega
 @Composable
 private fun UserListItemCard(
     name: String,
     role: String,
     subRole: String? = null,
-    initial: String,
+    imageUrl: String,
     avatarShape: Shape,
     onClick: () -> Unit
 ) {
@@ -136,7 +134,8 @@ private fun UserListItemCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PremiumAvatar(initial = initial, shape = avatarShape)
+            // Updated to pass imageUrl
+            PremiumAvatar(imageUrl = imageUrl, shape = avatarShape)
             
             Spacer(modifier = Modifier.width(16.dp))
             
@@ -192,7 +191,6 @@ private fun ConnectCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon in a soft circle
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -336,7 +334,6 @@ fun AboutScreen(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     
-    // Dynamically getting the App Version Name
     val versionName = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
@@ -356,7 +353,6 @@ fun AboutScreen(
         label = "about_logo_scale",
     )
 
-    // Using a subtle light background for the whole screen to make white cards pop
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -392,7 +388,7 @@ fun AboutScreen(
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) // Slight off-white/gray background
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -412,7 +408,6 @@ fun AboutScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Large soft circle background behind logo
                 Box(
                     modifier = Modifier
                         .size(160.dp)
@@ -440,7 +435,6 @@ fun AboutScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Modern Pill Badge for Version
                 Text(
                     text = "v$versionName 🚀",
                     style = MaterialTheme.typography.labelLarge,
@@ -470,7 +464,7 @@ fun AboutScreen(
                 name = "Jay Chaudhary ⚡",
                 role = "Creator of M3Play",
                 subRole = "Android Developer",
-                initial = "JC",
+                imageUrl = "https://github.com/JAY01-CYBER.png", // Direct photo fetch
                 avatarShape = CircleShape,
                 onClick = { uriHandler.openUri("https://github.com/JAY01-CYBER") }
             )
@@ -485,7 +479,6 @@ fun AboutScreen(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Row 1
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -505,7 +498,6 @@ fun AboutScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                // Row 2
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -513,7 +505,7 @@ fun AboutScreen(
                     ConnectCard(
                         title = "Discord",
                         subtitle = "Chat with community",
-                        iconRes = R.drawable.alternate_email, // Replace with your actual discord drawable if available
+                        iconRes = R.drawable.alternate_email,
                         onClick = { uriHandler.openUri("https://discord.gg/zdbAuRpVt") },
                         modifier = Modifier.weight(1f)
                     )
@@ -535,7 +527,7 @@ fun AboutScreen(
             UserListItemCard(
                 name = "Prince Raj",
                 role = "Contributor",
-                initial = "PR",
+                imageUrl = "https://github.com/pr13260.png",
                 avatarShape = CutCornerShape(12.dp),
                 onClick = { uriHandler.openUri("https://github.com/pr13260") }
             )
@@ -544,7 +536,7 @@ fun AboutScreen(
             UserListItemCard(
                 name = "vivi",
                 role = "Contributor",
-                initial = "V",
+                imageUrl = "https://github.com/vivizzz007.png",
                 avatarShape = RoundedCornerShape(12.dp),
                 onClick = { uriHandler.openUri("https://github.com/vivizzz007") }
             )
@@ -553,7 +545,7 @@ fun AboutScreen(
             UserListItemCard(
                 name = "Jay Chaudhary",
                 role = "Contributor",
-                initial = "JC",
+                imageUrl = "https://github.com/fluxx-pro.png",
                 avatarShape = RoundedCornerShape(topStart = 20.dp, bottomEnd = 20.dp), // Leaf Shape
                 onClick = { uriHandler.openUri("https://github.com/fluxx-pro") }
             )
@@ -565,9 +557,9 @@ fun AboutScreen(
             UserListItemCard(
                 name = "M4TRX",
                 role = "Special Helper",
-                initial = "MX",
+                imageUrl = "https://github.com/M4TRX.png",
                 avatarShape = CutCornerShape(percent = 25), // Diamond Shape
-                onClick = { uriHandler.openUri("https://github.com/M4TRX") } // Adjust link if needed
+                onClick = { uriHandler.openUri("https://github.com/M4TRX") }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -604,34 +596,31 @@ fun AboutScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Note: You can replace these iconRes with appropriate drawable IDs if you have them.
-                    // Using R.drawable.ic_app_logo or generic icons as fallbacks for now.
                     CreditItemRow(
                         title = "ArchiveTune",
                         subtitle = "Base project and foundation\nfor this app.",
-                        iconRes = R.drawable.ic_app_logo, // Use a folder icon if you have one
+                        iconRes = R.drawable.ic_app_logo,
                         iconBgColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     )
                     
                     CreditItemRow(
                         title = "Lyrics & metadata services",
                         subtitle = "Used for lyrics, track information,\nand related music data.",
-                        iconRes = R.drawable.ic_app_logo, // Use a music note icon if you have one
+                        iconRes = R.drawable.ic_app_logo,
                         iconBgColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
                     )
                     
                     CreditItemRow(
                         title = "Open-source community",
                         subtitle = "Special thanks to all upstream\ncontributors and maintainers.",
-                        iconRes = R.drawable.ic_app_logo, // Use a group/people icon if you have one
-                        iconBgColor = Color(0xFF4CAF50).copy(alpha = 0.1f) // Soft green like the screenshot
+                        iconRes = R.drawable.ic_app_logo,
+                        iconBgColor = Color(0xFF4CAF50).copy(alpha = 0.1f)
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Open Source Info Pill
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -647,7 +636,7 @@ fun AboutScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_app_logo), // Ideally use a shield icon here
+                        painter = painterResource(R.drawable.ic_app_logo),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
