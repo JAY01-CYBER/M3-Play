@@ -156,6 +156,7 @@
 -keep class META-INF.services.** { *; }
 
 # Keep Accompanist Lyrics Library safe from R8 obfuscation crashes
--keep class com.mocharealm.accompanist.** { * }
+-keep class com.mocharealm.accompanist.** { *; }
 -dontwarn com.mocharealm.accompanist.**
+
 
