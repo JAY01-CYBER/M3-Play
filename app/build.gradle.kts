@@ -269,8 +269,9 @@ dependencies {
     implementation("androidx.compose.animation:animation:1.7.5")
 
     // === Accompanist Lyrics Library for Smooth Animations ===
-    implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
-    implementation("com.mocharealm.accompanist:lyrics-ui:0.4.7")
+        implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
+        implementation("com.mocharealm.accompanist:lyrics-ui:1.0.10") 
+
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
