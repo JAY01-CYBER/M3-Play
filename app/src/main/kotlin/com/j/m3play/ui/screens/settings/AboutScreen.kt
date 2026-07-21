@@ -9,17 +9,17 @@
 
 package com.j.m3play.ui.screens.settings
 
+import android.content.pm.PackageManager
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -36,283 +36,296 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.utils.backToMain
 
+// --- REUSABLE COMPONENTS ---
+
 @Composable
-private fun OutlinedIconChip(
-    iconRes: Int,
-    text: String,
-    onClick: () -> Unit,
+private fun SectionTitle(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+    )
+}
+
+@Composable
+private fun PremiumAvatar(
+    initial: String,
+    shape: Shape,
+    modifier: Modifier = Modifier
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = CircleShape,
-        contentPadding = PaddingValues(
-            horizontal = 16.dp,
-            vertical = 8.dp,
-        ),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f)
-        ),
-        border = ButtonDefaults.outlinedButtonBorder.copy(
-            brush = Brush.linearGradient(
-                listOf(
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                )
-            )
-        )
+    // Screenshot style soft avatar (Light purple background, dark purple text)
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            painter = painterResource(id = iconRes),
-            contentDescription = text,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
+            text = initial,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
 
 @Composable
-private fun SectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
+private fun UserListItemCard(
+    name: String,
+    role: String,
+    subRole: String? = null,
+    initial: String,
+    avatarShape: Shape,
+    onClick: () -> Unit
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        HorizontalDivider(
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun DeveloperCard() {
-    val uriHandler = LocalUriHandler.current
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(32.dp),
+            .padding(horizontal = 20.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f),
-                            Color.Transparent,
-                        )
-                    )
-                )
-                .padding(horizontal = 24.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Jay Chaudhary ⚡",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Creator of M3Play • Android Developer",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Crafting smooth, expressive and premium music experiences 🎧",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedIconChip(
-                    iconRes = R.drawable.github,
-                    text = "GitHub",
-                    onClick = { uriHandler.openUri("https://github.com/JAY01-CYBER") },
+            PremiumAvatar(initial = initial, shape = avatarShape)
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-
-                OutlinedIconChip(
-                    iconRes = R.drawable.telegram,
-                    text = "Telegram",
-                    onClick = { uriHandler.openUri("https://t.me/M3Play_updates") },
+                Text(
+                    text = role,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (subRole != null) {
+                    Text(
+                        text = subRole,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedIconChip(
-                    iconRes = R.drawable.alternate_email,
-                    text = "Discord",
-                    onClick = { uriHandler.openUri("https://discord.gg/zdbAuRpVt") },
-                )
-
-                OutlinedIconChip(
-                    iconRes = R.drawable.website,
-                    text = "Website",
-                    onClick = { uriHandler.openUri("https://jay01-cyber.github.io/M3Play-Website/") },
-                )
-            }
+            
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
 @Composable
-private fun CreditLine(
+private fun ConnectCard(
     title: String,
     subtitle: String,
-    modifier: Modifier = Modifier,
+    iconRes: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun CreditsCard() {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(32.dp),
+        modifier = modifier
+            .height(84.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(20.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Open-source acknowledgements ❤️",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "M3Play is based on ArchiveTune.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            Spacer(modifier = Modifier.height(20.dp))
-
-            CreditLine(
-                title = "ArchiveTune",
-                subtitle = "Base project and foundation for this app.",
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            CreditLine(
-                title = "Lyrics & metadata services",
-                subtitle = "Used for lyrics, track information, and related music data.",
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            CreditLine(
-                title = "Open-source community",
-                subtitle = "Special thanks to all upstream contributors and maintainers.",
+            // Icon in a soft circle
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
+@Composable
+private fun CreditItemRow(
+    title: String,
+    subtitle: String,
+    iconRes: Int,
+    iconBgColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(iconBgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun SupportFooterBanner() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                    )
+                )
+            )
+            .padding(20.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("❤️", fontSize = 20.sp)
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Text(
+                text = "Thanks to everyone who supports and contributes to M3Play.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.surface,
+                lineHeight = 20.sp
+            )
+        }
+    }
+}
+
+// --- MAIN SCREEN ---
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -320,24 +333,47 @@ fun AboutScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    
+    // Dynamically getting the App Version Name
+    val versionName = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "Unknown"
+        }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "about_logo")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.08f,
+        targetValue = 1.03f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200),
+            animation = tween(durationMillis = 2000),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "about_logo_scale",
     )
 
+    // Using a subtle light background for the whole screen to make white cards pop
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text(stringResource(R.string.about), fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text("About", fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            text = "Learn more about M3Play", 
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
@@ -351,12 +387,12 @@ fun AboutScreen(
                 },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) // Slight off-white/gray background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -368,76 +404,269 @@ fun AboutScreen(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
                     ),
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(
-                modifier = Modifier
-                    .windowInsetsPadding(
-                        WindowInsets.systemBars.only(WindowInsetsSides.Top),
-                    )
-                    .heightIn(max = 16.dp),
-            )
-
-            Icon(
-                painter = painterResource(R.drawable.ic_app_logo),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier
-                    .size(110.dp)
-                    .scale(scale)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .padding(16.dp)
-                    .clickable { },
-            )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "M3Play",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "v4.0.0 🚀",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                        shape = CircleShape,
+            // --- HEADER SECTION ---
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Large soft circle background behind logo
+                Box(
+                    modifier = Modifier
+                        .size(160.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                        .scale(scale),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_app_logo),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(80.dp)
                     )
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            )
+                }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            SectionHeader(
-                title = "Developer",
-                modifier = Modifier.padding(horizontal = 24.dp),
-            )
+                Text(
+                    text = "M3Play",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            DeveloperCard()
+                // Modern Pill Badge for Version
+                Text(
+                    text = "v$versionName 🚀",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            SectionHeader(
-                title = "Credits",
-                modifier = Modifier.padding(horizontal = 24.dp),
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            CreditsCard()
+                Text(
+                    text = "Crafting smooth, expressive and\npremium music experiences 🎧",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(40.dp))
+
+            // --- LEAD DEVELOPER SECTION ---
+            SectionTitle("Developer")
+            UserListItemCard(
+                name = "Jay Chaudhary ⚡",
+                role = "Creator of M3Play",
+                subRole = "Android Developer",
+                initial = "JC",
+                avatarShape = CircleShape,
+                onClick = { uriHandler.openUri("https://github.com/JAY01-CYBER") }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- CONNECT SECTION (GRID) ---
+            SectionTitle("Connect")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Row 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ConnectCard(
+                        title = "GitHub",
+                        subtitle = "View source code",
+                        iconRes = R.drawable.github,
+                        onClick = { uriHandler.openUri("https://github.com/JAY01-CYBER") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ConnectCard(
+                        title = "Telegram",
+                        subtitle = "Updates & news",
+                        iconRes = R.drawable.telegram,
+                        onClick = { uriHandler.openUri("https://t.me/M3Play_updates") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Row 2
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ConnectCard(
+                        title = "Discord",
+                        subtitle = "Chat with community",
+                        iconRes = R.drawable.alternate_email, // Replace with your actual discord drawable if available
+                        onClick = { uriHandler.openUri("https://discord.gg/zdbAuRpVt") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ConnectCard(
+                        title = "Website",
+                        subtitle = "m3play.app",
+                        iconRes = R.drawable.website,
+                        onClick = { uriHandler.openUri("https://jay01-cyber.github.io/M3Play-Website/") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- THE TEAM SECTION ---
+            SectionTitle("The Team")
+            
+            UserListItemCard(
+                name = "Prince Raj",
+                role = "Contributor",
+                initial = "PR",
+                avatarShape = CutCornerShape(12.dp),
+                onClick = { uriHandler.openUri("https://github.com/pr13260") }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            UserListItemCard(
+                name = "vivi",
+                role = "Contributor",
+                initial = "V",
+                avatarShape = RoundedCornerShape(12.dp),
+                onClick = { uriHandler.openUri("https://github.com/vivizzz007") }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            UserListItemCard(
+                name = "Jay Chaudhary",
+                role = "Contributor",
+                initial = "JC",
+                avatarShape = RoundedCornerShape(topStart = 20.dp, bottomEnd = 20.dp), // Leaf Shape
+                onClick = { uriHandler.openUri("https://github.com/fluxx-pro") }
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- HELPER SECTION ---
+            SectionTitle("Helper")
+            UserListItemCard(
+                name = "M4TRX",
+                role = "Special Helper",
+                initial = "MX",
+                avatarShape = CutCornerShape(percent = 25), // Diamond Shape
+                onClick = { uriHandler.openUri("https://github.com/M4TRX") } // Adjust link if needed
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- CREDITS SECTION ---
+            SectionTitle("Credits")
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = "Open-source acknowledgements",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "M3Play is based on ArchiveTune.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Note: You can replace these iconRes with appropriate drawable IDs if you have them.
+                    // Using R.drawable.ic_app_logo or generic icons as fallbacks for now.
+                    CreditItemRow(
+                        title = "ArchiveTune",
+                        subtitle = "Base project and foundation\nfor this app.",
+                        iconRes = R.drawable.ic_app_logo, // Use a folder icon if you have one
+                        iconBgColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    )
+                    
+                    CreditItemRow(
+                        title = "Lyrics & metadata services",
+                        subtitle = "Used for lyrics, track information,\nand related music data.",
+                        iconRes = R.drawable.ic_app_logo, // Use a music note icon if you have one
+                        iconBgColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                    )
+                    
+                    CreditItemRow(
+                        title = "Open-source community",
+                        subtitle = "Special thanks to all upstream\ncontributors and maintainers.",
+                        iconRes = R.drawable.ic_app_logo, // Use a group/people icon if you have one
+                        iconBgColor = Color(0xFF4CAF50).copy(alpha = 0.1f) // Soft green like the screenshot
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Open Source Info Pill
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_app_logo), // Ideally use a shield icon here
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "M3Play is and always will be open-source and community driven.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- SUPPORT FOOTER BANNER ---
+            SupportFooterBanner()
+
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
