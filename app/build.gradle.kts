@@ -270,7 +270,7 @@ dependencies {
 
     // === Accompanist Lyrics Library for Smooth Animations ===
         implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
-        implementation("com.mocharealm.accompanist:lyrics-ui:1.0.10") 
+        implementation("com.mocharealm.accompanist:lyrics-ui:1.0.15") 
 
 }
 
