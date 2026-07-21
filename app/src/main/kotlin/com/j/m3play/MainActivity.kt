@@ -397,6 +397,9 @@ class MainActivity : ComponentActivity() {
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_LTR
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
+        // NAYA CODE: App start hote hi update manager ko initialize karein
+        com.j.m3play.utils.UpdateNotificationManager.checkForUpdates(this)
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             val initialLocale = PreferenceStore.get(AppLanguageKey)
                 ?.takeUnless { it == SYSTEM_DEFAULT }
@@ -904,6 +907,12 @@ class MainActivity : ComponentActivity() {
                     var sharedSong: SongItem? by remember { mutableStateOf(null) }
 
                     LaunchedEffect(Unit) {
+                        // NAYA CODE: Notification click se aane wale navigation route ko handle karein
+                        intent?.getStringExtra("navigate_to")?.let { route ->
+                            navController.navigate(route)
+                            intent?.removeExtra("navigate_to") // Ek baar use hone ke baad clear kar dein
+                        }
+                        
                         if (pendingIntent != null) {
                             handleDeepLinkIntent(pendingIntent!!, navController)
                             pendingIntent = null
