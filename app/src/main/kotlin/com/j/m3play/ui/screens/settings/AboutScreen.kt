@@ -91,7 +91,6 @@ private fun SectionTitle(title: String, modifier: Modifier = Modifier) {
     )
 }
 
-// Ye update ho gaya hai actual profile photo load karne ke liye
 @Composable
 private fun PremiumAvatar(
     imageUrl: String,
@@ -109,7 +108,6 @@ private fun PremiumAvatar(
     )
 }
 
-// Initial parameter ki jagah ab imageUrl lega
 @Composable
 private fun UserListItemCard(
     name: String,
@@ -134,7 +132,6 @@ private fun UserListItemCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Updated to pass imageUrl
             PremiumAvatar(imageUrl = imageUrl, shape = avatarShape)
             
             Spacer(modifier = Modifier.width(16.dp))
@@ -557,9 +554,9 @@ fun AboutScreen(
             UserListItemCard(
                 name = "M4TRX",
                 role = "Special Helper",
-                imageUrl = "https://github.com/M4TRX.png",
+                imageUrl = "https://github.com/m4trxx.png",
                 avatarShape = CutCornerShape(percent = 25), // Diamond Shape
-                onClick = { uriHandler.openUri("https://github.com/M4TRX") }
+                onClick = { uriHandler.openUri("https://github.com/m4trxx") }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
