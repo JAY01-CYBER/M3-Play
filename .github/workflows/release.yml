@@ -27,7 +27,7 @@ jobs:
             exit 1
           fi
 
-          # 1. Extract the version from Gradle (using your regex)[span_0](start_span)[span_0](end_span)
+          # Extract the version from Gradle
           NEW_VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "")
           
           if [ -z "$NEW_VERSION" ]; then
@@ -35,11 +35,11 @@ jobs:
             exit 1
           fi
 
-          # 2. ALWAYS Output the detected version (Fixes the missing output bug)[span_1](start_span)[span_1](end_span)
+          # ALWAYS Output the detected version
           echo "Detected version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          # 3. Check if this version is already released (Tag Existence Check)[span_2](start_span)[span_2](end_span)
+          # Check if this version is already released
           if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
             echo "Tag v$NEW_VERSION already exists. Skipping release."
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -222,11 +222,12 @@ jobs:
           find app/build/outputs/apk -maxdepth 6 -type d -print || true
           exit 1
 
+      # YAHAN MANE build.yml WALI SIGNING KEY UPDATE KAR DI HAI
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
         with:
           releaseDir: ${{ steps.release_dir.outputs.release_dir }}/
-          signingKey: ${{ secrets.KEYSTORE }}
+          signingKey: ${{ secrets.KEYSTORE_BASE64 }}
           keyAlias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
@@ -268,15 +269,11 @@ jobs:
         id: extract_changelog
         shell: bash
         run: |
-          # Naya version nikal rahe hain
           VERSION="v${{ needs.check-version.outputs.new_version }}"
-          
-          # Screenshot ke hisab se exact folder path aur filename!
           FILE_PATH="app/src/main/assets/CHANGELOG.md"
           
           echo "Extracting release notes for $VERSION from $FILE_PATH..."
           
-          # Agar file exist karti hai tabhi extract hoga
           if [ -f "$FILE_PATH" ]; then
             awk -v ver="---$VERSION" '
               $0 == ver { flag=1; next } 
@@ -287,7 +284,6 @@ jobs:
             echo "Error: File $FILE_PATH not found!"
           fi
           
-          # Agar file empty reh gayi toh fallback text daal dega
           if [ ! -s release_notes.md ]; then
             echo "Release notes for $VERSION" > release_notes.md
             echo "*(Changelog not found or extraction failed)*" >> release_notes.md
@@ -303,7 +299,6 @@ jobs:
           UNIVERSAL_APK=$(find downloaded_artifacts/M3Play -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
 
-          # Yahan apni extracted file release_notes.md use ho rahi hai
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
             --notes-file release_notes.md \
