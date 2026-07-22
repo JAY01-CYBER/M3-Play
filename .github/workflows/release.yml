@@ -27,7 +27,7 @@ jobs:
             exit 1
           fi
 
-          # 1. Extract the version from Gradle (using your regex)
+          # 1. Extract the version from Gradle (using your regex)[span_0](start_span)[span_0](end_span)
           NEW_VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "")
           
           if [ -z "$NEW_VERSION" ]; then
@@ -35,11 +35,11 @@ jobs:
             exit 1
           fi
 
-          # 2. ALWAYS Output the detected version (Fixes the missing output bug)
+          # 2. ALWAYS Output the detected version (Fixes the missing output bug)[span_1](start_span)[span_1](end_span)
           echo "Detected version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          # 3. Check if this version is already released (Tag Existence Check)
+          # 3. Check if this version is already released (Tag Existence Check)[span_2](start_span)[span_2](end_span)
           if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
             echo "Tag v$NEW_VERSION already exists. Skipping release."
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
@@ -154,7 +154,6 @@ jobs:
 
   build:
     needs: [check-version, reproducibility]
-    # Removed '|| workflow_dispatch' so it respects the version check
     if: needs.check-version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -251,7 +250,6 @@ jobs:
 
   create-release:
     needs: [check-version, build]
-    # Removed '|| workflow_dispatch' so it respects the version check
     if: needs.check-version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -266,49 +264,38 @@ jobs:
         with:
           path: downloaded_artifacts/
 
-      - name: Resolve changelog range
-        id: changelog_range
+      - name: Extract Changelog from CHANGELOG.md
+        id: extract_changelog
         shell: bash
         run: |
-          LAST_TAG="$(git describe --tags --abbrev=0 --match "v*" 2>/dev/null || true)"
-          if [ -n "$LAST_TAG" ]; then
-            FROM_REF="$LAST_TAG"
-          else
-            FROM_REF="$(git rev-list --max-parents=0 HEAD | tail -n 1)"
-          fi
-
-          echo "from_ref=$FROM_REF" >> "$GITHUB_OUTPUT"
-          echo "to_ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v6
-        with:
-          mode: "COMMIT"
-          fromTag: ${{ steps.changelog_range.outputs.from_ref }}
-          toTag: ${{ steps.changelog_range.outputs.to_ref }}
-          configurationJson: |
-            {
-              "template": "# Changelog\n\n#{{CHANGELOG}}\n\n<details>\n<summary>Other changes</summary>\n\n#{{UNCATEGORIZED}}\n</details>\n",
-              "categories": [
-                { "title": "## Features", "labels": ["feat", "feature"] },
-                { "title": "## Fixes", "labels": ["fix", "bug"] },
-                { "title": "## Performance", "labels": ["perf"] },
-                { "title": "## Refactors", "labels": ["refactor"] },
-                { "title": "## Documentation", "labels": ["docs"] },
-                { "title": "## Build / CI", "labels": ["build", "ci"] }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?:\\s+.*$",
-                  "on_property": "title",
-                  "target": "$1"
-                }
-              ]
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Naya version nikal rahe hain
+          VERSION="v${{ needs.check-version.outputs.new_version }}"
           
+          # Screenshot ke hisab se exact folder path aur filename!
+          FILE_PATH="app/src/main/assets/CHANGELOG.md"
+          
+          echo "Extracting release notes for $VERSION from $FILE_PATH..."
+          
+          # Agar file exist karti hai tabhi extract hoga
+          if [ -f "$FILE_PATH" ]; then
+            awk -v ver="---$VERSION" '
+              $0 == ver { flag=1; next } 
+              /^---v[0-9]+/ { if(flag) flag=0 } 
+              flag { print }
+            ' "$FILE_PATH" > release_notes.md
+          else
+            echo "Error: File $FILE_PATH not found!"
+          fi
+          
+          # Agar file empty reh gayi toh fallback text daal dega
+          if [ ! -s release_notes.md ]; then
+            echo "Release notes for $VERSION" > release_notes.md
+            echo "*(Changelog not found or extraction failed)*" >> release_notes.md
+          fi
+          
+          echo "Extracted Notes:"
+          cat release_notes.md
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -316,14 +303,9 @@ jobs:
           UNIVERSAL_APK=$(find downloaded_artifacts/M3Play -name "*.apk")
           ABI_APKS=$(find downloaded_artifacts -path "*/app-*-release/*.apk")
 
-          # Cleaned up heredoc for safety
-          cat > release_notes.md <<EOF
-          ${{ steps.build_changelog.outputs.changelog }}
-          EOF
-          
+          # Yahan apni extracted file release_notes.md use ho rahi hai
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
             --notes-file release_notes.md \
             "$UNIVERSAL_APK" \
             $ABI_APKS
-            
