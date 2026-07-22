@@ -2,6 +2,27 @@
 
 All notable changes to the M3-Play project will be documented in this file.
 
+---v3.1.0
+# Major changes
+- Completely redesigned Search Page and improved Search Results interface (@JAY01-CYBER)
+- Brand-new Library design, including redesigned Artist and Album pages (@JAY01-CYBER)
+- Completely redesigned Settings interface with updated button styles (@JAY01-CYBER)
+- Redesigned Moods & Genres section and added new content Cards in Discover (@JAY01-CYBER)
+
+## Notable new features
+- Integrated Paxsenix Lyrics engine (@JAY01-CYBER)
+- Introduced basic Widgets support (@JAY01-CYBER)
+- Added Mini Player Background styling (@JAY01-CYBER)
+- Full-screen lyrics now provide a more immersive experience by hiding the status bar (@JAY01-CYBER)
+
+## Other improvements
+- Redesigned Home Screen Greeting Panel with an improved layout (@JAY01-CYBER)
+- Updated Top Action Buttons and refreshed Quick Access Buttons (@JAY01-CYBER)
+- New Mini Player design (@JAY01-CYBER)
+- Removed Apple Music and Live Mesh player background styles (@JAY01-CYBER)
+- Cleaner and more consistent UI across the app (@JAY01-CYBER)
+- Performance optimizations and various UI refinements (@JAY01-CYBER)
+
 ---v3.0.9
 # Major changes
 - Integrated the lyrics view directly into the active screen instead of opening a separate screen (@JAY01-CYBER)
