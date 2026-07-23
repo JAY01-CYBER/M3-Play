@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │  YT Music Premium Home Components          │
- * │  Signature: M3PLAY::UI::YTM_PREMIUM_V3     │
+ * │  Signature: M3PLAY::UI::YTM_PREMIUM_V4     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -52,7 +52,6 @@ import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.SongItem
-import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.pages.HomePage
@@ -138,7 +137,6 @@ fun YTPremiumDiscoverCard(
                     val subtitle = when(item) {
                         is SongItem -> item.artists.joinToString(", ") { it.name }
                         is PlaylistItem -> item.author?.name ?: "Auto Playlist"
-                        is PodcastItem -> item.publisher
                         else -> "YouTube Music"
                     }
 
@@ -206,13 +204,11 @@ fun YTMSquareGridItem(
             overflow = TextOverflow.Ellipsis
         )
         
-    
         val subtitle = when (item) {
             is SongItem -> item.artists.joinToString(", ") { it.name }
             is PlaylistItem -> item.songCountText ?: item.author?.name ?: "" 
-            is AlbumItem -> if (!item.year.isNullOrEmpty()) "Album • ${item.year}" else "Album"
+            is AlbumItem -> if (item.year != null) "Album • ${item.year}" else "Album"
             is ArtistItem -> "Artist"
-            is PodcastItem -> item.publisher
             else -> ""
         }
         
@@ -476,7 +472,6 @@ fun YTMLargeVideoCard(
                 val subtitle = when (item) {
                     is SongItem -> item.artists.joinToString(", ") { it.name }
                     is PlaylistItem -> item.author?.name ?: ""
-                    is PodcastItem -> item.publisher
                     else -> ""
                 }
                 Text(
@@ -878,7 +873,6 @@ private fun YouTubeGridItemWrapper(
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is ArtistItem -> navController.navigate("artist/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                    is PodcastItem -> {} 
                     else -> {}
                 }
             },
@@ -890,7 +884,6 @@ private fun YouTubeGridItemWrapper(
                         is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                         is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                         is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
-                        is PodcastItem -> {} //  Podcast menu handler
                         else -> {}
                     }
                 }
@@ -1374,7 +1367,7 @@ fun HomePageSectionContent(
     
     val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
-    val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar") || sectionTitle.contains("podcast") // 🚀 Podcast grids
+    val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar") 
     
     when {
         isSquareGridSection -> {
@@ -1394,7 +1387,6 @@ fun HomePageSectionContent(
                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                 is ArtistItem -> navController.navigate("artist/${item.id}")
                                 is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
-                                is PodcastItem -> {} // Future podcast nav
                                 else -> {}
                             }
                         },
@@ -1406,7 +1398,6 @@ fun HomePageSectionContent(
                                     is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                                     is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                                     is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
-                                    is PodcastItem -> {} // Podcast menu
                                     else -> {}
                                 }
                             }
