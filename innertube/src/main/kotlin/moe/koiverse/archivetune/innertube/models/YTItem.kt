@@ -2,7 +2,7 @@
  * M3Play Data Layer
  *
  * Handles data, network & storage
- * Signature: M3PLAY::DATA::CORE::V2 (Updated)
+ * Signature: M3PLAY::DATA::CORE::V2 (Fixed)
  */
 
 package com.j.m3play.innertube.models
@@ -40,7 +40,7 @@ data class SongItem(
     override val explicit: Boolean = false,
     val endpoint: WatchEndpoint? = null,
     val setVideoId: String? = null,
-    val syncSessionId: String? = null //  Ktor Sync ID ke liye
+    val syncSessionId: String? = null // Sync Support
 ) : YTItem() {
     override val shareLink: String
         get() = "https://music.youtube.com/watch?v=$id"
@@ -52,7 +52,7 @@ data class AlbumItem(
     override val id: String = browseId,
     override val title: String,
     val artists: List<Artist>?,
-    val year: String? = null, // API string bhejti hai, isliye ise String kiya
+    val year: Int? = null, 
     override val thumbnail: String,
     override val explicit: Boolean = false,
 ) : YTItem() {
@@ -90,18 +90,6 @@ data class ArtistItem(
         get() = false
     override val shareLink: String
         get() = "https://music.youtube.com/channel/$id"
-}
-
-// Naya Podcast Model
-data class PodcastItem(
-    override val id: String,
-    override val title: String,
-    val publisher: String,
-    override val thumbnail: String,
-    override val explicit: Boolean = false
-) : YTItem() {
-    override val shareLink: String
-        get() = "https://music.youtube.com/podcast/$id"
 }
 
 fun <T : YTItem> List<T>.filterExplicit(enabled: Boolean = true) =
