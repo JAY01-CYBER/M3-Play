@@ -4,7 +4,7 @@
  * │--------------------------------------------│
  * │  Crafted for expressive music experience   │
  * │  YT Music Premium Home Components          │
- * │  Signature: M3PLAY::UI::YTM_PREMIUM_V2     │
+ * │  Signature: M3PLAY::UI::YTM_PREMIUM_V3     │
  * ╰────────────────────────────────────────────╯
  */
 
@@ -52,6 +52,7 @@ import com.j.m3play.innertube.models.AlbumItem
 import com.j.m3play.innertube.models.ArtistItem
 import com.j.m3play.innertube.models.PlaylistItem
 import com.j.m3play.innertube.models.SongItem
+import com.j.m3play.innertube.models.PodcastItem
 import com.j.m3play.innertube.models.WatchEndpoint
 import com.j.m3play.innertube.models.YTItem
 import com.j.m3play.innertube.pages.HomePage
@@ -137,6 +138,7 @@ fun YTPremiumDiscoverCard(
                     val subtitle = when(item) {
                         is SongItem -> item.artists.joinToString(", ") { it.name }
                         is PlaylistItem -> item.author?.name ?: "Auto Playlist"
+                        is PodcastItem -> item.publisher
                         else -> "YouTube Music"
                     }
 
@@ -204,11 +206,13 @@ fun YTMSquareGridItem(
             overflow = TextOverflow.Ellipsis
         )
         
+    
         val subtitle = when (item) {
             is SongItem -> item.artists.joinToString(", ") { it.name }
-            is PlaylistItem -> item.author?.name ?: ""
-            is AlbumItem -> "Album"
+            is PlaylistItem -> item.songCountText ?: item.author?.name ?: "" 
+            is AlbumItem -> if (!item.year.isNullOrEmpty()) "Album • ${item.year}" else "Album"
             is ArtistItem -> "Artist"
+            is PodcastItem -> item.publisher
             else -> ""
         }
         
@@ -273,8 +277,8 @@ fun CommunityPlaylistCard(
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF6D4C41),
-                                Color(0xFF3E2723)
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.secondaryContainer
                             )
                         )
                     )
@@ -297,15 +301,15 @@ fun CommunityPlaylistCard(
                             Icon(
                                 painter = painterResource(R.drawable.favorite),
                                 contentDescription = null, 
-                                tint = Color(0xFFFF5252),
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Most loved", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            Text("Most loved", color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.labelSmall)
                         }
                         Text(
                             text = item.playlist.title,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
@@ -313,7 +317,7 @@ fun CommunityPlaylistCard(
                         )
                         Text(
                             text = item.playlist.author?.name ?: "Community",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -321,7 +325,7 @@ fun CommunityPlaylistCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = item.playlist.songCountText ?: "${item.songs.size} tracks", 
-                            color = Color.White.copy(alpha = 0.5f), 
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f), 
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -472,6 +476,7 @@ fun YTMLargeVideoCard(
                 val subtitle = when (item) {
                     is SongItem -> item.artists.joinToString(", ") { it.name }
                     is PlaylistItem -> item.author?.name ?: ""
+                    is PodcastItem -> item.publisher
                     else -> ""
                 }
                 Text(
@@ -873,6 +878,7 @@ private fun YouTubeGridItemWrapper(
                     is AlbumItem -> navController.navigate("album/${item.id}")
                     is ArtistItem -> navController.navigate("artist/${item.id}")
                     is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                    is PodcastItem -> {} 
                     else -> {}
                 }
             },
@@ -884,6 +890,7 @@ private fun YouTubeGridItemWrapper(
                         is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                         is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                         is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                        is PodcastItem -> {} //  Podcast menu handler
                         else -> {}
                     }
                 }
@@ -1367,7 +1374,7 @@ fun HomePageSectionContent(
     
     val isVideoSection = sectionTitle.contains("video") || sectionTitle.contains("music videos")
     
-    val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar")
+    val isSquareGridSection = sectionTitle.contains("discover") || sectionTitle.contains("mix") || sectionTitle.contains("listen again") || sectionTitle.contains("similar") || sectionTitle.contains("podcast") // 🚀 Podcast grids
     
     when {
         isSquareGridSection -> {
@@ -1387,6 +1394,7 @@ fun HomePageSectionContent(
                                 is AlbumItem -> navController.navigate("album/${item.id}")
                                 is ArtistItem -> navController.navigate("artist/${item.id}")
                                 is PlaylistItem -> navController.navigate("online_playlist/${item.id}")
+                                is PodcastItem -> {} // Future podcast nav
                                 else -> {}
                             }
                         },
@@ -1398,6 +1406,7 @@ fun HomePageSectionContent(
                                     is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = menuState::dismiss)
                                     is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = menuState::dismiss)
                                     is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = menuState::dismiss)
+                                    is PodcastItem -> {} // Podcast menu
                                     else -> {}
                                 }
                             }
