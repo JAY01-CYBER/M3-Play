@@ -2,7 +2,7 @@
  * M3Play - Modern Music Player
  *
  * Copyright (c) 2026 JAY01-CYBER
- * Signature: M3PLAY::GENERAL::V1
+ * Signature: M3PLAY::GENERAL::V2_FIXED_PLAYLISTS
  */
 
 package com.j.m3play.viewmodels
@@ -280,7 +280,6 @@ if (filled.size < targetSize) {
     }
 
     private suspend fun getCommunityPlaylists() {
-
         val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
         val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
             .filter { it.artist.isYouTubeArtist }
@@ -298,12 +297,9 @@ if (filled.size < targetSize) {
                     YouTube.artist(seed.id).onSuccess { page ->
                         page.sections.forEach { section ->
                             section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
-                                if (playlist.author?.name != "YouTube Music" &&
-                                    playlist.author?.name != "YouTube" &&
-                                    playlist.author?.name != "Playlist" &&
-                                    playlist.author?.name != seed.artist.name &&
-                                    !playlist.id.startsWith("RD") &&
-                                    !playlist.id.startsWith("OLAK")
+                                // 🚀 FIX: Removed YouTube Music, YouTube, RD, and OLAK filters!
+                                if (playlist.author?.name != "Playlist" &&
+                                    playlist.author?.name != seed.artist.name
                                 ) {
                                     candidatePlaylists.add(playlist)
                                 }
@@ -319,12 +315,8 @@ if (filled.size < targetSize) {
                     if (endpoint != null) {
                         YouTube.related(endpoint).onSuccess { page ->
                             page.playlists.forEach { playlist ->
-                                if (playlist.author?.name != "YouTube Music" &&
-                                    playlist.author?.name != "YouTube" &&
-                                    playlist.author?.name != "Playlist" &&
-                                    !playlist.id.startsWith("RD") &&
-                                    !playlist.id.startsWith("OLAK")
-                                ) {
+                                // 🚀 FIX: Removed YouTube Music, YouTube, RD, and OLAK filters!
+                                if (playlist.author?.name != "Playlist") {
                                     candidatePlaylists.add(playlist)
                                 }
                             }
