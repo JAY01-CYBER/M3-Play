@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="home">Home</string>
-    <string name="songs">Songs</string>
-    <string name="artists">Artists</string>
+    <string name="home">Trang chủ</string>
+    <string name="songs">Bài hát</string>
+    <string name="artists">Nghệ sĩ</string>
     <string name="albums">Albums</string>
-    <string name="playlists">Playlists</string>
+    <string name="playlists">Danh sách phát</string>
     <plurals name="n_selected">
-        <item quantity="other">%d selected</item>
+        <item quantity="other">Đã chọn %d</item>
     </plurals>
-    <string name="greeting_morning">Good Morning</string>
-    <string name="greeting_afternoon">Good Afternoon</string>
-    <string name="greeting_evening">Good Evening</string>
-    <string name="greeting_night">Good Night</string>
-    <string name="subtitle_morning">Start your day with music</string>
-    <string name="subtitle_afternoon">Enjoy your day with music</string>
+    <string name="greeting_morning">Chào buổi sáng</string>
+    <string name="greeting_afternoon">Chào buổi chiều</string>
+    <string name="greeting_evening">Chào buổi tối</string>
+    <string name="greeting_night">Chúc ngủ ngon</string>
+    <string name="subtitle_morning">Bắt đầu ngày mới với âm nhạc</string>
+    <string name="subtitle_afternoon">Tận hưởng ngày mới cùng âm nhạc</string>
     <string name="subtitle_evening">Relax with evening tunes</string>
     <string name="subtitle_night">Slow down with night vibes</string>
     <string name="history">History</string>
