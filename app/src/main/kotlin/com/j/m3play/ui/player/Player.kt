@@ -454,16 +454,23 @@ fun BottomSheetPlayer(
     val changeBound = state.expandedBound / 3
 
     val TextBackgroundColor =
-        when (playerBackground) {
-            PlayerBackgroundStyle.DEFAULT -> MaterialTheme.colorScheme.onBackground
-            PlayerBackgroundStyle.GRADIENT,
-            PlayerBackgroundStyle.COLORING,
-            PlayerBackgroundStyle.GLOW,
-            PlayerBackgroundStyle.GLOW_ANIMATED,
-            PlayerBackgroundStyle.CUSTOM,
-            PlayerBackgroundStyle.BLUR,
-            PlayerBackgroundStyle.BREATHING_BLUR,
-            PlayerBackgroundStyle.GALAXY_BLUR -> Color.White
+    when (playerBackground) {
+        PlayerBackgroundStyle.DEFAULT ->
+            MaterialTheme.colorScheme.onBackground
+
+        PlayerBackgroundStyle.GRADIENT,
+        PlayerBackgroundStyle.COLORING,
+        PlayerBackgroundStyle.GLOW,
+        PlayerBackgroundStyle.GLOW_ANIMATED,
+        PlayerBackgroundStyle.CUSTOM,
+        PlayerBackgroundStyle.BLUR,
+        PlayerBackgroundStyle.BREATHING_BLUR,
+        PlayerBackgroundStyle.GALAXY_BLUR ->
+            MaterialTheme.colorScheme.onBackground
+
+        else ->
+            MaterialTheme.colorScheme.onBackground
+    }
             else -> Color.White
         }
 
