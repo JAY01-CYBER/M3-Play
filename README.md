@@ -135,7 +135,7 @@ If you like M3 Play:
 - ⭐ Star the repo  
 - 🍴 Fork it  
 - 🔥 Share it  
-
+- I stop updating M3play bcoz I am working on my new app this is my new app link https://github.com/JAY01-CYBER/Glossy
 ---
 
 ## 🙏 Credits
