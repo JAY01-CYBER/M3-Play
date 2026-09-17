@@ -875,15 +875,22 @@ fun PlayerTimeLabel(
                 codec.contains("VORBIS") -> "VORBIS"
                 else -> codec
             }
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color.White.copy(alpha = 0.12f),
-                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.3f))
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Icon(painterResource(R.drawable.graphic_eq), null, modifier = Modifier.size(12.dp), tint = Color.White)
-                    Spacer(Modifier.width(4.dp))
-                    Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
+            color = MaterialTheme.colorScheme.surfaceVariant
+
+border = BorderStroke(
+    0.5.dp,
+    MaterialTheme.colorScheme.outline
+)
+
+Icon(
+    ...
+    tint = MaterialTheme.colorScheme.onSurfaceVariant
+)
+
+Text(
+    ...
+    color = MaterialTheme.colorScheme.onSurfaceVariant
+)
                 }
             }
         }
