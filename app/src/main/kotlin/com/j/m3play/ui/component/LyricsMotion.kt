@@ -55,7 +55,7 @@ internal fun Modifier.lyricsLineFocus(
         distance == 2 -> 5f
         else -> 12f
     }
-    val alpha by animateFloatAsState(
+    val animatedAlpha by animateFloatAsState(
         targetValue = lineAlpha,
         animationSpec = tween(if (isActive) 330 else 500, easing = FastOutSlowInEasing),
         label = "archiveLyricsLineAlpha",
@@ -80,7 +80,7 @@ internal fun Modifier.lyricsLineFocus(
     }
     return this
         .graphicsLayer {
-            alpha = alpha
+            alpha = animatedAlpha
             scaleX = scale
             scaleY = scale
             transformOrigin = TransformOrigin(pivot, 0.5f)
