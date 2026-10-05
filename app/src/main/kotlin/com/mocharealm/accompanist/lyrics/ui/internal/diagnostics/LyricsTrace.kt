@@ -1,10 +1,17 @@
 package com.mocharealm.accompanist.lyrics.ui.internal.diagnostics
 
-internal expect fun lyricsTraceEnabled(): Boolean
+/**
+ * Android/JVM implementation for the vendored Accompanist lyrics UI.
+ *
+ * The upstream source is Kotlin Multiplatform and declares these as expect
+ * functions. M3-Play is a regular Android module, so expect/actual cannot be
+ * compiled here. Diagnostics are intentionally no-op in the Android app.
+ */
+internal fun lyricsTraceEnabled(): Boolean = false
 
-internal expect fun beginLyricsTrace(name: String)
+internal fun beginLyricsTrace(name: String) = Unit
 
-internal expect fun endLyricsTrace()
+internal fun endLyricsTrace() = Unit
 
 internal inline fun <T> traceLyrics(name: String, block: () -> T): T {
     if (!lyricsTraceEnabled()) return block()
