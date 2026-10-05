@@ -243,8 +243,7 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
 
-    // Accompanist Lyrics Core: provides KaraokeSyllable, KaraokeLine, SyncedLyrics, etc.
-    // Required by the vendored Accompanist lyrics UI sources under com.mocharealm.accompanist.lyrics.ui.
+    // Accompanist lyrics core: models such as KaraokeSyllable used by the vendored lyrics UI.
     implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
