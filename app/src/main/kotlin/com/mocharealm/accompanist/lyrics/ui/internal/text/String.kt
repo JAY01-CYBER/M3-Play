@@ -1,6 +1,13 @@
 package com.mocharealm.accompanist.lyrics.ui.internal.text
 
-internal expect fun Char.isCjk(): Boolean
+internal fun Char.isCjk(): Boolean =
+    when (code) {
+        in 0x3400..0x4DBF,
+        in 0x4E00..0x9FFF,
+        in 0xF900..0xFAFF,
+        in 0x20000..0x2FA1F -> true
+        else -> false
+    }
 
 internal fun Char.isJapanese(): Boolean {
     return this.code in 0x3040..0x309F || this.code in 0x30A0..0x30FF || this.code in 0xFF66..0xFF9F
@@ -10,9 +17,12 @@ internal fun Char.isKorean(): Boolean {
     return this.code in 0xAC00..0xD7AF || this.code in 0x1100..0x11FF
 }
 
-internal expect fun Char.isArabic(): Boolean
+internal fun Char.isArabic(): Boolean =
+    code in 0x0600..0x06FF || code in 0x0750..0x077F ||
+        code in 0x08A0..0x08FF || code in 0xFB50..0xFDFF ||
+        code in 0xFE70..0xFEFF
 
-internal expect fun Char.isDevanagari(): Boolean
+internal fun Char.isDevanagari(): Boolean = code in 0x0900..0x097F
 
 internal fun String.isPureCjk(): Boolean {
     val cleanedStr = this.filter { it != ' ' && it != ',' && it != '\n' && it != '\r' }
