@@ -1,0 +1,115 @@
+name: Test Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "dev"]
+    paths-ignore:
+      - "README.md"
+      - "fastlane/**"
+      - "assets/**"
+      - ".github/**/*.md"
+      - ".github/FUNDING.yml"
+      - ".github/ISSUE_TEMPLATE/**"
+
+permissions:
+  contents: write
+
+jobs:
+  build_quick:
+    name: Quick Universal Release Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Prepare Gradle cache encryption key
+        shell: bash
+        env:
+          RAW_KEY: ${{ secrets.GRADLE_CACHE_KEY }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import os, base64, hashlib
+          raw = (os.environ.get("RAW_KEY") or "").strip()
+          if not raw:
+              raise SystemExit(0)
+          candidate = raw.replace("-", "+").replace("_", "/")
+          candidate += "=" * (-len(candidate) % 4)
+          decoded = None
+          try:
+              decoded = base64.b64decode(candidate, validate=True)
+          except Exception:
+              decoded = None
+
+          if decoded is not None and len(decoded) in (16, 24, 32):
+              out = base64.b64encode(decoded).decode("ascii")
+          else:
+              derived = hashlib.sha256(raw.encode("utf-8")).digest()
+              out = base64.b64encode(derived).decode("ascii")
+
+          print(f"GRADLE_CACHE_KEY_B64={out}")
+          PY
+
+      - name: Set Up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ env.GRADLE_CACHE_KEY_B64 }}
+          cache-cleanup: on-success
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Change Package Name for Test Build
+        run: |
+          sed -i 's/applicationId = "com.j.m3play"/applicationId = "com.j.m3play.test"/' app/build.gradle.kts
+
+      - name: Build Universal Release APK (No Lint)
+        run: ./gradlew --console=plain assembleUniversalRelease --warning-mode summary -x lint -x lintUniversalRelease -x lintVitalReportUniversalRelease -x lintVitalUniversalRelease
+        env:
+          PULL_REQUEST: "false"
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
+
+      - name: Decode keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
+          ls -lh keystore.jks
+
+      - name: Sign APK
+        shell: bash
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/universal/release -type f -name "*.apk" ! -name "*-signed.apk" | head -n 1)
+          echo "APK_PATH=$APK_PATH"
+          jarsigner \
+            -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore keystore.jks \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            "$APK_PATH" \
+            "${{ secrets.KEY_ALIAS }}"
+
+      - name: Move signed APK
+        shell: bash
+        run: |
+          OUTPUT_DIR="app/build/outputs/apk/universal/release"
+          mkdir -p "$OUTPUT_DIR/out"
+          SIGNED_APK=$(find "$OUTPUT_DIR" -type f -name "*.apk" | head -n 1)
+          cp "$SIGNED_APK" "$OUTPUT_DIR/out/app-universal-test-release.apk"
+          ls -lh "$OUTPUT_DIR/out"
+
+      - name: Upload Signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-universal-test-release
+          path: app/build/outputs/apk/universal/release/out/app-universal-test-release.apk

@@ -1,0 +1,41 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Data Layer
+ *
+ * Handles data, network & storage
+ * Signature: M3PLAY::DATA::CORE::V1
+ */
+
+package com.j.m3play.innertube.models
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class NavigationEndpoint(
+    val watchEndpoint: WatchEndpoint? = null,
+    val watchPlaylistEndpoint: WatchEndpoint? = null,
+    val browseEndpoint: BrowseEndpoint? = null,
+    val searchEndpoint: SearchEndpoint? = null,
+    val queueAddEndpoint: QueueAddEndpoint? = null,
+    val shareEntityEndpoint: ShareEntityEndpoint? = null,
+) {
+    val endpoint: Endpoint?
+        get() =
+            watchEndpoint
+                ?: watchPlaylistEndpoint
+                ?: browseEndpoint
+                ?: searchEndpoint
+                ?: queueAddEndpoint
+                ?: shareEntityEndpoint
+    
+    val anyWatchEndpoint: WatchEndpoint?
+        get() = watchEndpoint
+            ?: watchPlaylistEndpoint
+}

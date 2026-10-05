@@ -1,0 +1,43 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Data Layer
+ *
+ * Handles data, network & storage
+ * Signature: M3PLAY::DATA::CORE::V1
+ */
+
+package com.j.m3play.innertube.pages
+
+import com.j.m3play.innertube.models.AlbumItem
+import com.j.m3play.innertube.models.Artist
+import com.j.m3play.innertube.models.MusicTwoRowItemRenderer
+import com.j.m3play.innertube.models.oddElements
+import com.j.m3play.innertube.models.splitBySeparator
+
+object NewReleaseAlbumPage {
+    fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): AlbumItem? {
+        return AlbumItem(
+            browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
+            playlistId = renderer.thumbnailOverlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint?.playlistId ?: return null,
+            title = renderer.title.runs?.firstOrNull()?.text ?: return null,
+            artists = renderer.subtitle?.runs?.splitBySeparator()?.getOrNull(1)?.oddElements()?.map {
+                Artist(
+                    name = it.text,
+                    id = it.navigationEndpoint?.browseEndpoint?.browseId,
+                )
+            }.orEmpty(),
+            year = renderer.subtitle?.runs?.lastOrNull()?.text?.toIntOrNull(),
+            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+            explicit = renderer.subtitleBadges?.any {
+                it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
+            } == true,
+        )
+    }
+}

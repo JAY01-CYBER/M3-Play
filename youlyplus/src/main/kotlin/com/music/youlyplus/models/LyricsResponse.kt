@@ -1,0 +1,54 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+package com.music.youlyplus.models
+
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
+
+/**
+ * Response model for the LyricsPlus / KPoe API (/v2/lyrics/get).
+ * Fields mirror what YouLyPlus extension parses from the backend.
+ */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+@Serializable
+data class LyricsResponse(
+    // LRCLib style
+    val id: Int? = null,
+    val syncedLyrics: String? = null,
+    val plainLyrics: String? = null,
+
+    // KPoe style (array of lines)
+    val lyrics: List<LyricsItem>? = null,
+    val type: String? = null,
+
+    // Common metadata
+    val trackName: String? = null,
+    val artistName: String? = null,
+    val albumName: String? = null,
+    val duration: Double? = null,
+)
+
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+@Serializable
+data class LyricsItem(
+    val text: String? = null,
+    val time: Long? = null,         // milliseconds
+    val duration: Long? = null,     // milliseconds
+    @JsonNames("syllabus", "syllables")
+    val syllabus: List<Syllable>? = null,
+)
+
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+@Serializable
+data class Syllable(
+    val text: String? = null,
+    val time: Long? = null,         // milliseconds
+    val duration: Long? = null,     // milliseconds
+    val isBackground: Boolean? = null,
+)
