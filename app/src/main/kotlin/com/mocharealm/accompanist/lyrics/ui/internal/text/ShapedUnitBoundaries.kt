@@ -2,6 +2,9 @@ package com.mocharealm.accompanist.lyrics.ui.internal.text
 
 import com.mocharealm.accompanist.lyrics.ui.profile.*
 
+import android.icu.text.BreakIterator
+import java.util.Locale
+
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
@@ -14,7 +17,22 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.LayoutDirection
 import kotlin.math.floor
 
-internal expect fun graphemeBoundaries(text: String): BooleanArray
+internal fun graphemeBoundaries(text: String): BooleanArray {
+    val boundaries = BooleanArray(text.length + 1)
+    if (text.isEmpty()) {
+        boundaries[0] = true
+        return boundaries
+    }
+
+    val iterator = BreakIterator.getCharacterInstance(Locale.ROOT)
+    iterator.setText(text)
+    var boundary = iterator.first()
+    while (boundary != BreakIterator.DONE) {
+        if (boundary in boundaries.indices) boundaries[boundary] = true
+        boundary = iterator.next()
+    }
+    return boundaries
+}
 
 /**
  * Advance boxes are not ink bounds. Before allowing independent transforms, keep a grapheme
