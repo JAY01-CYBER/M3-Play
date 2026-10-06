@@ -1,25 +1,12 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import android.Manifest
+import android.app.DownloadManager
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -39,11 +26,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,7 +52,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -77,8 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.j.m3play.BuildConfig
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
@@ -86,10 +68,10 @@ import com.j.m3play.constants.EnableUpdateNotificationKey
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.PreferenceGroupTitle
 import com.j.m3play.ui.utils.backToMain
-import com.j.m3play.utils.UpdateDownloadProgress
 import com.j.m3play.utils.UpdateNotificationManager
 import com.j.m3play.utils.Updater
 import com.j.m3play.utils.rememberPreference
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,63 +80,88 @@ fun UpdateScreen(
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    val (enableUpdateNotification, onEnableUpdateNotificationChange) = rememberPreference(
+    val (notificationsEnabled, setNotificationsEnabled) = rememberPreference(
         EnableUpdateNotificationKey,
         defaultValue = false
     )
 
     var latestVersion by remember { mutableStateOf<String?>(null) }
-    var latestNotes by remember { mutableStateOf<String?>(null) }
-    var isChecking by remember { mutableStateOf(true) }
-    var downloadId by remember { mutableStateOf<Long?>(null) }
-    var downloadProgress by remember { mutableStateOf<UpdateDownloadProgress?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
+    var latestRelease by remember { mutableStateOf<com.j.m3play.utils.ReleaseInfo?>(null) }
+    var checkError by remember { mutableStateOf<String?>(null) }
+    var checking by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            onEnableUpdateNotificationChange(true)
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            setNotificationsEnabled(true)
             UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
         }
     }
 
-    fun checkForLatestUpdate() {
-        coroutineScope.launch {
-            isChecking = true
-            Updater.getLatestReleaseInfo()
-                .onSuccess { release ->
-                            latestVersion = release.tagName.ifBlank { release.name }
-                    latestNotes = release.body
-                }
-                .onFailure {
-                    latestVersion = null
-                    latestNotes = null
-                }
-            isChecking = false
+    fun checkForUpdate() {
+        if (checking) return
+        checking = true
+        checkError = null
+        scope.launch {
+            val result = Updater.getLatestReleaseInfo()
+            result.onSuccess { release ->
+                latestRelease = release
+                latestVersion = release.tagName.removePrefix("v").ifBlank { release.name }
+            }.onFailure {
+                latestRelease = null
+                latestVersion = null
+                checkError = it.message ?: "Unable to check for updates"
+            }
+            checking = false
         }
+    }
+
+    fun downloadUpdate() {
+        val release = latestRelease ?: return
+        val remoteVersion = latestVersion ?: return
+
+        if (!Updater.isUpdateAvailable(remoteVersion, BuildConfig.VERSION_NAME)) {
+            return
+        }
+
+        val url = Updater.getDownloadUrl(release) ?: run {
+            checkError = "No APK asset found for this device."
+            return
+        }
+
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setTitle("M3Play $remoteVersion")
+            .setDescription("Downloading M3Play update")
+            .setMimeType("application/vnd.android.package-archive")
+            .setNotificationVisibility(
+                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+            )
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
+            .setDestinationInExternalFilesDir(
+                context,
+                Environment.DIRECTORY_DOWNLOADS,
+                "M3Play-update.apk"
+            )
+
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        manager.enqueue(request)
+        downloading = true
     }
 
     LaunchedEffect(Unit) {
-        checkForLatestUpdate()
+        checkForUpdate()
     }
 
-    LaunchedEffect(downloadId) {
-        val id = downloadId ?: return@LaunchedEffect
-        while (true) {
-            val progress = Updater.queryUpdateDownload(context, id)
-            downloadProgress = progress
-            if (progress == null || progress.isComplete || progress.isFailed) break
-            delay(500)
-        }
-    }
-
-    if (showDialog) {
+    if (showNotificationDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
-            shape = RoundedCornerShape(32.dp),
+            onDismissRequest = { showNotificationDialog = false },
+            shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
                 Text(
@@ -163,27 +170,14 @@ fun UpdateScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "M3Play can check GitHub releases for updates when update notifications are enabled.",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "This may contact GitHub and can bypass store review processes.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Only enable this if you want update notifications.",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Text(
+                    "M3Play can periodically check GitHub for stable releases and notify you when a newer version exists."
+                )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showDialog = false
+                        showNotificationDialog = false
                         if (
                             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                             ContextCompat.checkSelfPermission(
@@ -191,25 +185,29 @@ fun UpdateScreen(
                                 Manifest.permission.POST_NOTIFICATIONS
                             ) != PackageManager.PERMISSION_GRANTED
                         ) {
-                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            notificationPermissionLauncher.launch(
+                                Manifest.permission.POST_NOTIFICATIONS
+                            )
                         } else {
-                            onEnableUpdateNotificationChange(true)
+                            setNotificationsEnabled(true)
                             UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
                         }
                     }
                 ) {
-                    Text(stringResource(android.R.string.ok), fontWeight = FontWeight.Bold)
+                    Text("Enable")
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDialog = false }
-                ) {
-                    Text(stringResource(android.R.string.cancel))
+                TextButton(onClick = { showNotificationDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )
     }
+
+    val hasUpdate = latestVersion?.let {
+        Updater.isUpdateAvailable(it, BuildConfig.VERSION_NAME)
+    } == true
 
     Scaffold(
         modifier = Modifier
@@ -217,11 +215,11 @@ fun UpdateScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { 
+                title = {
                     Text(
                         stringResource(R.string.updates),
                         fontWeight = FontWeight.Bold
-                    ) 
+                    )
                 },
                 navigationIcon = {
                     IconButton(
@@ -252,7 +250,12 @@ fun UpdateScreen(
                         WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
                     )
                 ),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 40.dp, top = 8.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 8.dp,
+                bottom = 40.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -277,9 +280,7 @@ fun UpdateScreen(
                             )
                             .padding(20.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -297,33 +298,38 @@ fun UpdateScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(Modifier.width(16.dp))
 
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(Modifier.weight(1f)) {
                                 Text(
-                                    text = "Current Version",
+                                    "Current Version",
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.SemiBold
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = BuildConfig.VERSION_NAME,
+                                    BuildConfig.VERSION_NAME,
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold
                                 )
-
-                                latestVersion?.let { latest ->
-                                    if (!Updater.isSameVersion(latest, BuildConfig.VERSION_NAME)) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Latest available: $latest",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    when {
+                                        checking -> "Checking GitHub releases…"
+                                        checkError != null -> checkError!!
+                                        hasUpdate -> "Update available: $latestVersion"
+                                        latestVersion != null -> "You're up to date"
+                                        else -> "Checking…"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (hasUpdate) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    fontWeight = if (hasUpdate) FontWeight.Bold else FontWeight.Normal
+                                )
                             }
                         }
                     }
@@ -331,111 +337,60 @@ fun UpdateScreen(
             }
 
             item {
-                val hasUpdate = latestVersion?.let { !Updater.isSameVersion(it, BuildConfig.VERSION_NAME) } == true
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                Button(
+                    onClick = { checkForUpdate() },
+                    enabled = !checking,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(20.dp)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (hasUpdate) "Update available" else "Software update",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                val statusText = when {
-                                    isChecking -> "Checking for the latest M3Play release…"
-                                    hasUpdate -> "M3Play ${latestVersion.orEmpty()} is ready to download"
-                                    else -> "You're up to date"
-                                }
-                                Text(
-                                    text = statusText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            if (isChecking) CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
-                        }
-
-                        if (hasUpdate) {
-                            latestNotes?.takeIf { it.isNotBlank() }?.let { notes ->
-                                Text(
-                                    text = notes.take(500),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-
-                            downloadProgress?.let { progress ->
-                                if (!progress.isComplete && !progress.isFailed) {
-                                    androidx.compose.material3.LinearProgressIndicator(
-                                        progress = { progress.progress / 100f },
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Text(
-                                        text = "Downloading ${progress.progress}%",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
-
-                            Button(
-                                onClick = {
-                                    if (downloadId == null || downloadProgress?.isFailed == true) {
-                                        downloadProgress = null
-                                        downloadId = Updater.startUpdateDownload(context, latestVersion ?: "update")
-                                    }
-                                },
-                                enabled = !isChecking && (downloadId == null || downloadProgress?.isFailed == true),
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(20.dp),
-                            ) {
-                                Text(
-                                    text = if (downloadProgress?.isFailed == true) "Retry download" else "Download and install",
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        } else {
-                            Button(
-                                onClick = { checkForLatestUpdate() },
-                                enabled = !isChecking,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(20.dp),
-                            ) {
-                                Text("Check for updates", fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
+                    Text(
+                        if (checking) "Checking…" else "Check for updates",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(32.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
+            if (hasUpdate) {
+                item {
+                    Button(
+                        onClick = { downloadUpdate() },
+                        enabled = !downloading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
                         Text(
-                            text = "Update Source Notice",
-                            style = MaterialTheme.typography.titleMedium,
+                            if (downloading) "Download started" else "Download update",
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Updates are fetched from GitHub and may bypass store review.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    }
+                }
+
+                latestRelease?.body?.takeIf { it.isNotBlank() }?.let { notes ->
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(28.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Text(
+                                    "What's new",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    notes,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -459,18 +414,18 @@ fun UpdateScreen(
                             .padding(horizontal = 20.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(Modifier.weight(1f)) {
                             Text(
-                                text = "Enable Update Notification",
+                                "Enable Update Notification",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(Modifier.height(6.dp))
                             Text(
-                                text = if (enableUpdateNotification) {
-                                    "GitHub update checks are enabled"
+                                if (notificationsEnabled) {
+                                    "Stable GitHub update checks are enabled"
                                 } else {
-                                    "Disabled by default for privacy"
+                                    "Disabled"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -478,15 +433,13 @@ fun UpdateScreen(
                         }
 
                         Switch(
-                            checked = enableUpdateNotification,
+                            checked = notificationsEnabled,
                             onCheckedChange = { enabled ->
                                 if (enabled) {
-                                    showDialog = true
+                                    showNotificationDialog = true
                                 } else {
-                                    onEnableUpdateNotificationChange(false)
-                                    latestVersion = null
-                                    latestNotes = null
-                                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
+                                    setNotificationsEnabled(false)
+                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
                                 }
                             }
                         )
@@ -507,22 +460,17 @@ fun UpdateScreen(
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "View Changelog",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text("View Changelog", fontWeight = FontWeight.Bold)
                 }
             }
 
             item {
                 HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = "GitHub requests are only made here when update notifications are enabled.",
+                    "Only a newer stable semantic version is offered. Older GitHub releases will never be downloaded as an update.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 8.dp)
