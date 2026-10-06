@@ -15,6 +15,11 @@
 
 package com.j.m3play.utils
 
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
+import android.os.Environment
+import java.io.File
 import androidx.datastore.preferences.core.edit
 import com.j.m3play.App
 import com.j.m3play.BuildConfig
@@ -52,11 +57,25 @@ private data class ReleasesNetworkResult(
     val etag: String?,
 )
 
+data class UpdateDownloadProgress(
+    val status: Int,
+    val progress: Int,
+    val totalBytes: Long,
+    val downloadedBytes: Long,
+    val localUri: Uri? = null,
+) {
+    val isComplete: Boolean
+        get() = status == DownloadManager.STATUS_SUCCESSFUL
+
+    val isFailed: Boolean
+        get() = status == DownloadManager.STATUS_FAILED
+}
+
 object Updater {
     private val client = HttpClient()
 
-    // Testing ke liye cache off rakha hai
-    private const val ReleaseCacheCheckIntervalMs: Long = 0L
+    // Avoid unnecessary GitHub API requests while keeping manual checks fresh.
+    private const val ReleaseCacheCheckIntervalMs: Long = 6 * 60 * 60 * 1000L
 
     var lastCheckTime = -1L
         private set
@@ -322,6 +341,87 @@ object Updater {
 
             commits
         }
+
+    fun startUpdateDownload(
+        context: Context,
+        versionName: String,
+    ): Long {
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val url = getLatestDownloadUrl()
+        val fileName = "M3Play-$versionName-${BuildConfig.ARCHITECTURE}.apk"
+
+        val request = DownloadManager.Request(Uri.parse(url))
+            .setTitle("M3Play $versionName")
+            .setDescription("Downloading update…")
+            .setMimeType("application/vnd.android.package-archive")
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(false)
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalFilesDir(
+                context,
+                Environment.DIRECTORY_DOWNLOADS,
+                fileName,
+            )
+
+        return manager.enqueue(request)
+    }
+
+    fun queryUpdateDownload(
+        context: Context,
+        downloadId: Long,
+    ): UpdateDownloadProgress? {
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val cursor = manager.query(DownloadManager.Query().setFilterById(downloadId)) ?: return null
+        cursor.use {
+            if (!it.moveToFirst()) return null
+            val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+            val downloaded = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            val total = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+            val uriString = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
+            val progress = if (total > 0L) ((downloaded * 100L) / total).toInt().coerceIn(0, 100) else 0
+            return UpdateDownloadProgress(
+                status = status,
+                progress = progress,
+                totalBytes = total,
+                downloadedBytes = downloaded,
+                localUri = uriString?.let(Uri::parse),
+            )
+        }
+    }
+
+    fun prepareDownloadedApk(context: Context, downloadId: Long): File? {
+        val progress = queryUpdateDownload(context, downloadId) ?: return null
+        val sourceUri = progress.localUri ?: return null
+        if (!progress.isComplete) return null
+
+        val cacheDir = File(context.cacheDir, "updates").apply { mkdirs() }
+        val apk = File(cacheDir, "M3Play-update.apk")
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            apk.outputStream().use { output -> input.copyTo(output) }
+        } ?: return null
+
+        val packageInfo = context.packageManager.getPackageArchiveInfo(
+            apk.absolutePath,
+            android.content.pm.PackageManager.GET_META_DATA,
+        ) ?: return null
+
+        if (packageInfo.packageName != context.packageName) {
+            apk.delete()
+            return null
+        }
+
+        val downloadedVersionCode = if (android.os.Build.VERSION.SDK_INT >= 28) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION") packageInfo.versionCode.toLong()
+        }
+        if (downloadedVersionCode <= BuildConfig.VERSION_CODE.toLong()) {
+            apk.delete()
+            return null
+        }
+
+        return apk
+    }
 
     fun getLatestDownloadUrl(): String {
         val baseUrl = "https://github.com/JAY01-CYBER/M3-Play/releases/latest/download/"
