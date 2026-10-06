@@ -1,25 +1,11 @@
 /*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
  * M3Play Utility Module
  *
- * Internal helper functions
- * Signature: M3PLAY::UTILITY::V1
+ * GitHub release updater
  */
 
 package com.j.m3play.utils
 
-import android.app.DownloadManager
-import android.content.Context
-import android.net.Uri
-import android.os.Environment
-import java.io.File
 import androidx.datastore.preferences.core.edit
 import com.j.m3play.App
 import com.j.m3play.BuildConfig
@@ -43,12 +29,18 @@ data class GitCommit(
     val url: String
 )
 
+data class ReleaseAsset(
+    val name: String,
+    val downloadUrl: String,
+)
+
 data class ReleaseInfo(
     val tagName: String,
     val name: String,
     val body: String?,
     val publishedAt: String,
-    val htmlUrl: String
+    val htmlUrl: String,
+    val assets: List<ReleaseAsset> = emptyList(),
 )
 
 private data class ReleasesNetworkResult(
@@ -57,25 +49,11 @@ private data class ReleasesNetworkResult(
     val etag: String?,
 )
 
-data class UpdateDownloadProgress(
-    val status: Int,
-    val progress: Int,
-    val totalBytes: Long,
-    val downloadedBytes: Long,
-    val localUri: Uri? = null,
-) {
-    val isComplete: Boolean
-        get() = status == DownloadManager.STATUS_SUCCESSFUL
-
-    val isFailed: Boolean
-        get() = status == DownloadManager.STATUS_FAILED
-}
-
 object Updater {
     private val client = HttpClient()
 
-    // Avoid unnecessary GitHub API requests while keeping manual checks fresh.
-    private const val ReleaseCacheCheckIntervalMs: Long = 6 * 60 * 60 * 1000L
+    // Force a fresh GitHub check when the updater is opened/checked.
+    private const val ReleaseCacheCheckIntervalMs = 0L
 
     var lastCheckTime = -1L
         private set
@@ -87,25 +65,22 @@ object Updater {
         val preRelease: List<PreReleaseIdentifier>,
     ) : Comparable<SemVer> {
         override fun compareTo(other: SemVer): Int {
-            val majorCompare = major.compareTo(other.major)
-            if (majorCompare != 0) return majorCompare
+            major.compareTo(other.major).let { if (it != 0) return it }
+            minor.compareTo(other.minor).let { if (it != 0) return it }
+            patch.compareTo(other.patch).let { if (it != 0) return it }
 
-            val minorCompare = minor.compareTo(other.minor)
-            if (minorCompare != 0) return minorCompare
+            val thisStable = preRelease.isEmpty()
+            val otherStable = other.preRelease.isEmpty()
 
-            val patchCompare = patch.compareTo(other.patch)
-            if (patchCompare != 0) return patchCompare
+            if (thisStable && !otherStable) return 1
+            if (!thisStable && otherStable) return -1
 
-            val thisIsStable = preRelease.isEmpty()
-            val otherIsStable = other.preRelease.isEmpty()
-            if (thisIsStable && !otherIsStable) return 1
-            if (!thisIsStable && otherIsStable) return -1
-
-            val maxIndex = minOf(preRelease.size, other.preRelease.size)
-            for (i in 0 until maxIndex) {
-                val c = preRelease[i].compareTo(other.preRelease[i])
-                if (c != 0) return c
+            val count = minOf(preRelease.size, other.preRelease.size)
+            for (i in 0 until count) {
+                val result = preRelease[i].compareTo(other.preRelease[i])
+                if (result != 0) return result
             }
+
             return preRelease.size.compareTo(other.preRelease.size)
         }
 
@@ -113,11 +88,13 @@ object Updater {
             if (preRelease.isEmpty()) {
                 "$major.$minor.$patch"
             } else {
-                "$major.$minor.$patch-" + preRelease.joinToString(".") { it.raw }
+                "$major.$minor.$patch-" +
+                    preRelease.joinToString(".") { it.raw }
             }
     }
 
-    private sealed interface PreReleaseIdentifier : Comparable<PreReleaseIdentifier> {
+    private sealed interface PreReleaseIdentifier :
+        Comparable<PreReleaseIdentifier> {
         val raw: String
     }
 
@@ -143,24 +120,30 @@ object Updater {
     }
 
     private val semVerRegex =
-        Regex("""(?i)\bv?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?\b""")
+        Regex(
+            """(?i)\bv?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?\b"""
+        )
 
     private fun parseSemVerOrNull(text: String): SemVer? {
         val match = semVerRegex.find(text) ?: return null
+
         val major = match.groupValues.getOrNull(1)?.toIntOrNull() ?: return null
         val minor = match.groupValues.getOrNull(2)?.toIntOrNull() ?: return null
         val patch = match.groupValues.getOrNull(3)?.toIntOrNull() ?: return null
 
-        val preReleaseText = match.groupValues.getOrNull(4)?.takeIf { it.isNotBlank() }
         val preRelease =
-            preReleaseText
-                ?.split('.')
+            match.groupValues.getOrNull(4)
+                ?.takeIf { it.isNotBlank() }
+                ?.split(".")
                 ?.filter { it.isNotBlank() }
                 ?.map { identifier ->
-                    if (identifier.all { it.isDigit() }) {
-                        NumericIdentifier(raw = identifier, value = identifier.toLong())
+                    if (identifier.all(Char::isDigit)) {
+                        NumericIdentifier(
+                            raw = identifier,
+                            value = identifier.toLongOrNull() ?: 0L,
+                        )
                     } else {
-                        AlphaIdentifier(raw = identifier)
+                        AlphaIdentifier(identifier)
                     }
                 }
                 ?: emptyList()
@@ -173,82 +156,149 @@ object Updater {
         )
     }
 
-    private fun parseReleaseSemVerOrNull(release: ReleaseInfo): SemVer? =
-        parseSemVerOrNull(release.tagName) ?: parseSemVerOrNull(release.name)
+    private fun parseReleaseSemVerOrNull(
+        release: ReleaseInfo,
+    ): SemVer? =
+        parseSemVerOrNull(release.tagName)
+            ?: parseSemVerOrNull(release.name)
 
-    internal fun isSameVersion(a: String, b: String): Boolean {
-        val aSemVer = parseSemVerOrNull(a)
-        val bSemVer = parseSemVerOrNull(b)
-        return if (aSemVer != null && bSemVer != null) {
-            aSemVer.major == bSemVer.major &&
-                aSemVer.minor == bSemVer.minor &&
-                aSemVer.patch == bSemVer.patch &&
-                aSemVer.preRelease == bSemVer.preRelease
+    internal fun isSameVersion(
+        a: String,
+        b: String,
+    ): Boolean {
+        val first = parseSemVerOrNull(a)
+        val second = parseSemVerOrNull(b)
+
+        return if (first != null && second != null) {
+            first.compareTo(second) == 0
         } else {
-            a.trim().removePrefix("v") == b.trim().removePrefix("v")
+            a.trim().removePrefix("v")
+                .equals(
+                    b.trim().removePrefix("v"),
+                    ignoreCase = true,
+                )
         }
     }
 
-    internal fun findLatestRelease(releases: List<ReleaseInfo>): ReleaseInfo? {
+    /**
+     * TRUE only when remoteVersion is newer than installedVersion.
+     *
+     * Example:
+     * installed 3.2.0 / remote 3.1.0 -> false
+     * installed 3.1.0 / remote 3.2.0 -> true
+     */
+    internal fun isUpdateAvailable(
+        remoteVersion: String,
+        installedVersion: String,
+    ): Boolean {
+        val remote = parseSemVerOrNull(remoteVersion)
+        val installed = parseSemVerOrNull(installedVersion)
+
+        // Never offer a downgrade if a version cannot be parsed safely.
+        if (remote == null || installed == null) return false
+
+        return remote > installed
+    }
+
+    internal fun findLatestRelease(
+        releases: List<ReleaseInfo>,
+    ): ReleaseInfo? {
         if (releases.isEmpty()) return null
 
-        val validReleases = releases.filter {
-            it.tagName.isNotBlank() || it.name.isNotBlank()
-        }
-
-        if (validReleases.isEmpty()) return null
-
         val parsed =
-            validReleases.mapNotNull { release ->
-                parseReleaseSemVerOrNull(release)?.let { version -> version to release }
-            }
+            releases
+                .filter { !it.tagName.isNullOrBlank() || !it.name.isNullOrBlank() }
+                .mapNotNull { release ->
+                    parseReleaseSemVerOrNull(release)
+                        ?.let { version -> version to release }
+                }
 
-        if (parsed.isEmpty()) {
-            return validReleases.firstOrNull()
-        }
+        if (parsed.isEmpty()) return null
 
+        // Prefer stable releases.
         val stable = parsed.filter { it.first.preRelease.isEmpty() }
         val candidates = stable.ifEmpty { parsed }
 
-        return candidates.maxWithOrNull(compareBy({ it.first }, { it.second.publishedAt }))?.second
+        return candidates
+            .maxWithOrNull(
+                compareBy<Pair<SemVer, ReleaseInfo>>(
+                    { it.first },
+                    { it.second.publishedAt },
+                )
+            )
+            ?.second
     }
 
-    private fun preferredReleaseVersionNameOrNull(release: ReleaseInfo): String? =
+    private fun preferredReleaseVersionNameOrNull(
+        release: ReleaseInfo,
+    ): String? =
         parseReleaseSemVerOrNull(release)?.normalizedName()
 
-    private fun parseReleasesJson(json: String): List<ReleaseInfo> {
+    private fun parseReleasesJson(
+        json: String,
+    ): List<ReleaseInfo> {
         val jsonArray = JSONArray(json)
         val releases = ArrayList<ReleaseInfo>(jsonArray.length())
 
         for (i in 0 until jsonArray.length()) {
             val item = jsonArray.getJSONObject(i)
 
-            val isDraft = item.optBoolean("draft", false)
-            val isPreRelease = item.optBoolean("prerelease", false)
-
-            if (!isDraft && !isPreRelease) {
-                releases.add(
-                    ReleaseInfo(
-                        tagName = item.optString("tag_name", ""),
-                        name = item.optString("name", ""),
-                        body = if (item.has("body")) item.optString("body") else null,
-                        publishedAt = item.optString("published_at", ""),
-                        htmlUrl = item.optString("html_url", "")
-                    )
-                )
+            if (
+                item.optBoolean("draft", false) ||
+                item.optBoolean("prerelease", false)
+            ) {
+                continue
             }
+
+            val assetsJson = item.optJSONArray("assets")
+            val assets = buildList {
+                if (assetsJson != null) {
+                    for (assetIndex in 0 until assetsJson.length()) {
+                        val asset = assetsJson.optJSONObject(assetIndex) ?: continue
+                        val name = asset.optString("name", "")
+                        val url = asset.optString("browser_download_url", "")
+
+                        if (name.isNotBlank() && url.isNotBlank()) {
+                            add(
+                                ReleaseAsset(
+                                    name = name,
+                                    downloadUrl = url,
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            releases.add(
+                ReleaseInfo(
+                    tagName = item.optString("tag_name", ""),
+                    name = item.optString("name", ""),
+                    body = if (item.has("body")) item.optString("body") else null,
+                    publishedAt = item.optString("published_at", ""),
+                    htmlUrl = item.optString("html_url", ""),
+                    assets = assets,
+                )
+            )
         }
+
         return releases
     }
 
-    private fun getTopReleaseFingerprint(releases: List<ReleaseInfo>): String {
+    private fun getTopReleaseFingerprint(
+        releases: List<ReleaseInfo>,
+    ): String {
         val latest = findLatestRelease(releases) ?: return ""
+
         return listOf(
             latest.tagName,
             latest.name,
             latest.publishedAt,
             latest.body.orEmpty(),
             latest.htmlUrl,
+            latest.assets.joinToString("|") {
+                "${it.name}:${it.downloadUrl}"
+            },
         ).joinToString("||")
     }
 
@@ -257,46 +307,60 @@ object Updater {
         cachedEtag: String?,
     ): ReleasesNetworkResult {
         val response: HttpResponse =
-            client.get("https://api.github.com/repos/JAY01-CYBER/M3-Play/releases?per_page=$perPage") {
+            client.get(
+                "https://api.github.com/repos/" +
+                    "JAY01-CYBER/M3-Play/releases?per_page=$perPage"
+            ) {
                 headers {
-                    append("Accept", "application/vnd.github+json")
-                    append("User-Agent", "M3Play")
+                    append(
+                        "Accept",
+                        "application/vnd.github+json",
+                    )
+                    append(
+                        "User-Agent",
+                        "M3Play",
+                    )
+
                     if (!cachedEtag.isNullOrBlank()) {
-                        append("If-None-Match", cachedEtag)
+                        append(
+                            "If-None-Match",
+                            cachedEtag,
+                        )
                     }
                 }
             }
 
-        val etag = response.headers["ETag"]
-
-        return when (response.status) {
-            HttpStatusCode.NotModified ->
-                ReleasesNetworkResult(
-                    status = response.status,
-                    body = null,
-                    etag = cachedEtag ?: etag,
-                )
-
-            else ->
-                ReleasesNetworkResult(
-                    status = response.status,
-                    body = response.bodyAsText(),
-                    etag = etag,
-                )
-        }
+        return ReleasesNetworkResult(
+            status = response.status,
+            body = if (response.status == HttpStatusCode.NotModified) {
+                null
+            } else {
+                response.bodyAsText()
+            },
+            etag = response.headers["ETag"],
+        )
     }
 
     suspend fun getCachedReleases(): List<ReleaseInfo> {
-        val cachedJson = App.instance.dataStore.getAsync(GitHubReleasesJsonKey)
+        val cachedJson =
+            App.instance.dataStore.getAsync(
+                GitHubReleasesJsonKey
+            )
+
         return cachedJson
             ?.takeIf { it.isNotBlank() }
-            ?.let { runCatching { parseReleasesJson(it) }.getOrNull() }
+            ?.let {
+                runCatching {
+                    parseReleasesJson(it)
+                }.getOrNull()
+            }
             ?: emptyList()
     }
 
     suspend fun getLatestVersionName(): Result<String> =
-        getLatestReleaseInfo().map { latest ->
-            preferredReleaseVersionNameOrNull(latest) ?: latest.name.ifBlank { latest.tagName }
+        getLatestReleaseInfo().map { release ->
+            preferredReleaseVersionNameOrNull(release)
+                ?: release.name.ifBlank { release.tagName }
         }
 
     suspend fun getLatestReleaseNotes(): Result<String?> =
@@ -304,12 +368,76 @@ object Updater {
 
     suspend fun getLatestReleaseInfo(): Result<ReleaseInfo> =
         runCatching {
-            val releases = getAllReleases(forceRefresh = true).getOrThrow()
-            val latest = findLatestRelease(releases)
-                ?: throw IllegalStateException("No releases found")
-            lastCheckTime = System.currentTimeMillis()
-            latest
+            val releases =
+                getAllReleases(
+                    forceRefresh = true
+                ).getOrThrow()
+
+            findLatestRelease(releases)
+                ?: throw IllegalStateException(
+                    "No stable GitHub releases found"
+                )
         }
+
+    /**
+     * Exact APK names produced by .github/workflows/release.yml:
+     *
+     * Universal: M3Play.apk
+     * ARM64:     app-arm64-release.apk
+     * ARM:       app-armeabi-release.apk
+     * x86:       app-x86-release.apk
+     * x86_64:    app-x86_64-release.apk
+     */
+    fun getAssetFileName(): String =
+        when (BuildConfig.ARCHITECTURE.lowercase()) {
+            "universal" -> "M3Play.apk"
+            "arm64" -> "app-arm64-release.apk"
+            "armeabi" -> "app-armeabi-release.apk"
+            "x86" -> "app-x86-release.apk"
+            "x86_64" -> "app-x86_64-release.apk"
+            else -> "M3Play.apk"
+        }
+
+    /**
+     * Keeps the existing non-suspend API used by AccountSettings and
+     * UpdateNotificationManager.
+     *
+     * /releases/latest/download/ resolves to GitHub's published latest
+     * release. The filename is now the real universal/ABI asset name.
+     */
+    fun getLatestDownloadUrl(): String {
+        val base =
+            "https://github.com/JAY01-CYBER/M3-Play/releases/latest/download/"
+
+        return base + getAssetFileName()
+    }
+
+    /**
+     * Returns the exact browser_download_url for a specific release.
+     * Useful when a caller already has ReleaseInfo from the API.
+     */
+    fun getDownloadUrl(
+        release: ReleaseInfo,
+    ): String? {
+        val expected = getAssetFileName()
+
+        return release.assets
+            .firstOrNull {
+                it.name.equals(
+                    expected,
+                    ignoreCase = true,
+                )
+            }
+            ?.downloadUrl
+            ?.takeIf { it.isNotBlank() }
+            ?: release.tagName
+                .takeIf { it.isNotBlank() }
+                ?.let { tag ->
+                    "https://github.com/" +
+                        "JAY01-CYBER/M3-Play/releases/download/" +
+                        "${tag.removePrefix("/")}/$expected"
+                }
+    }
 
     suspend fun getCommitHistory(
         count: Int = 20,
@@ -317,8 +445,11 @@ object Updater {
     ): Result<List<GitCommit>> =
         runCatching {
             val response =
-                client.get("https://api.github.com/repos/JAY01-CYBER/M3-Play/commits?sha=$branch&per_page=$count")
-                    .bodyAsText()
+                client.get(
+                    "https://api.github.com/repos/" +
+                        "JAY01-CYBER/M3-Play/commits" +
+                        "?sha=$branch&per_page=$count"
+                ).bodyAsText()
 
             val jsonArray = JSONArray(response)
             val commits = mutableListOf<GitCommit>()
@@ -331,10 +462,18 @@ object Updater {
                 commits.add(
                     GitCommit(
                         sha = commitObj.optString("sha", "").take(7),
-                        message = commit.optString("message", "").lines().firstOrNull() ?: "",
-                        author = authorObj?.optString("name", "Unknown") ?: "Unknown",
-                        date = authorObj?.optString("date", "") ?: "",
-                        url = commitObj.optString("html_url", "")
+                        message = commit
+                            .optString("message", "")
+                            .lines()
+                            .firstOrNull()
+                            ?: "",
+                        author = authorObj
+                            ?.optString("name", "Unknown")
+                            ?: "Unknown",
+                        date = authorObj
+                            ?.optString("date", "")
+                            ?: "",
+                        url = commitObj.optString("html_url", ""),
                     )
                 )
             }
@@ -342,168 +481,128 @@ object Updater {
             commits
         }
 
-    fun startUpdateDownload(
-        context: Context,
-        versionName: String,
-    ): Long {
-        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val url = getLatestDownloadUrl()
-        val fileName = "M3Play-$versionName-${BuildConfig.ARCHITECTURE}.apk"
-
-        val request = DownloadManager.Request(Uri.parse(url))
-            .setTitle("M3Play $versionName")
-            .setDescription("Downloading update…")
-            .setMimeType("application/vnd.android.package-archive")
-            .setAllowedOverMetered(true)
-            .setAllowedOverRoaming(false)
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalFilesDir(
-                context,
-                Environment.DIRECTORY_DOWNLOADS,
-                fileName,
-            )
-
-        return manager.enqueue(request)
-    }
-
-    fun queryUpdateDownload(
-        context: Context,
-        downloadId: Long,
-    ): UpdateDownloadProgress? {
-        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val cursor = manager.query(DownloadManager.Query().setFilterById(downloadId)) ?: return null
-        cursor.use {
-            if (!it.moveToFirst()) return null
-            val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-            val downloaded = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-            val total = it.getLong(it.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-            val uriString = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
-            val progress = if (total > 0L) ((downloaded * 100L) / total).toInt().coerceIn(0, 100) else 0
-            return UpdateDownloadProgress(
-                status = status,
-                progress = progress,
-                totalBytes = total,
-                downloadedBytes = downloaded,
-                localUri = uriString?.let(Uri::parse),
-            )
-        }
-    }
-
-    fun prepareDownloadedApk(context: Context, downloadId: Long): File? {
-        val progress = queryUpdateDownload(context, downloadId) ?: return null
-        val sourceUri = progress.localUri ?: return null
-        if (!progress.isComplete) return null
-
-        val cacheDir = File(context.cacheDir, "updates").apply { mkdirs() }
-        val apk = File(cacheDir, "M3Play-update.apk")
-        context.contentResolver.openInputStream(sourceUri)?.use { input ->
-            apk.outputStream().use { output -> input.copyTo(output) }
-        } ?: return null
-
-        val packageInfo = context.packageManager.getPackageArchiveInfo(
-            apk.absolutePath,
-            android.content.pm.PackageManager.GET_META_DATA,
-        ) ?: return null
-
-        if (packageInfo.packageName != context.packageName) {
-            apk.delete()
-            return null
-        }
-
-        val downloadedVersionCode = if (android.os.Build.VERSION.SDK_INT >= 28) {
-            packageInfo.longVersionCode
-        } else {
-            @Suppress("DEPRECATION") packageInfo.versionCode.toLong()
-        }
-        if (downloadedVersionCode <= BuildConfig.VERSION_CODE.toLong()) {
-            apk.delete()
-            return null
-        }
-
-        return apk
-    }
-
-    fun getLatestDownloadUrl(): String {
-        val baseUrl = "https://github.com/JAY01-CYBER/M3-Play/releases/latest/download/"
-        val architecture = BuildConfig.ARCHITECTURE.lowercase()
-
-        return if (architecture == "universal") {
-            baseUrl + "app-universal-release.apk"
-        } else {
-            baseUrl + "app-${architecture}-release.apk"
-        }
-    }
-
     suspend fun getAllReleases(
         perPage: Int = 30,
         forceRefresh: Boolean = false,
     ): Result<List<ReleaseInfo>> =
         runCatching {
             val now = System.currentTimeMillis()
-            val cachedJson = App.instance.dataStore.getAsync(GitHubReleasesJsonKey)
-            val cachedEtag = App.instance.dataStore.getAsync(GitHubReleasesEtagKey)
-            val lastCheckedAt = App.instance.dataStore.getAsync(GitHubReleasesLastCheckedAtKey, 0L)
-            val cachedFingerprint = App.instance.dataStore.getAsync(GitHubReleasesFingerprintKey)
+
+            val cachedJson =
+                App.instance.dataStore.getAsync(
+                    GitHubReleasesJsonKey
+                )
+
+            val cachedEtag =
+                App.instance.dataStore.getAsync(
+                    GitHubReleasesEtagKey
+                )
+
+            val lastCheckedAt =
+                App.instance.dataStore.getAsync(
+                    GitHubReleasesLastCheckedAtKey,
+                    0L,
+                )
+
+            val cachedFingerprint =
+                App.instance.dataStore.getAsync(
+                    GitHubReleasesFingerprintKey
+                )
 
             val cachedReleases =
                 cachedJson
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { runCatching { parseReleasesJson(it) }.getOrNull() }
+                    ?.let {
+                        runCatching {
+                            parseReleasesJson(it)
+                        }.getOrNull()
+                    }
 
             val shouldCheckNetwork =
-                forceRefresh || cachedJson.isNullOrBlank() || (now - lastCheckedAt) >= ReleaseCacheCheckIntervalMs
+                forceRefresh ||
+                    cachedJson.isNullOrBlank() ||
+                    now - lastCheckedAt >= ReleaseCacheCheckIntervalMs
 
             if (!shouldCheckNetwork) {
                 lastCheckTime = now
                 return@runCatching cachedReleases ?: emptyList()
             }
 
-            val networkResult = runCatching {
-                fetchReleasesNetwork(
-                    perPage = perPage,
-                    cachedEtag = cachedEtag,
-                )
-            }.getOrNull()
+            val networkResult =
+                runCatching {
+                    fetchReleasesNetwork(
+                        perPage = perPage,
+                        cachedEtag = cachedEtag,
+                    )
+                }.getOrNull()
 
             if (networkResult == null) {
-                val fallback = cachedReleases
-                if (fallback != null) {
+                cachedReleases?.let {
                     lastCheckTime = now
-                    return@runCatching fallback
+                    return@runCatching it
                 }
-                throw IllegalStateException("Failed to fetch releases")
+
+                throw IllegalStateException(
+                    "Failed to fetch GitHub releases"
+                )
             }
 
             when {
-                networkResult.status == HttpStatusCode.NotModified -> {
+                networkResult.status ==
+                    HttpStatusCode.NotModified -> {
+
                     App.instance.dataStore.edit { settings ->
-                        settings[GitHubReleasesLastCheckedAtKey] = now
-                        networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+                        settings[
+                            GitHubReleasesLastCheckedAtKey
+                        ] = now
+
+                        networkResult.etag?.let {
+                            settings[
+                                GitHubReleasesEtagKey
+                            ] = it
+                        }
                     }
 
-                    val fallback = cachedReleases
-                    if (fallback != null) {
+                    cachedReleases?.let {
                         lastCheckTime = now
-                        return@runCatching fallback
+                        return@runCatching it
                     }
 
-                    throw IllegalStateException("Release cache is empty")
+                    throw IllegalStateException(
+                        "GitHub release cache is empty"
+                    )
                 }
 
-                networkResult.status.value in 200..299 && !networkResult.body.isNullOrBlank() -> {
-                    val networkBody = networkResult.body
-                    val releases = parseReleasesJson(networkBody)
-                    val newFingerprint = getTopReleaseFingerprint(releases)
-                    val hasPayloadChanged = cachedJson != networkBody
-                    val hasTopReleaseChanged = cachedFingerprint != newFingerprint
+                networkResult.status.value in 200..299 &&
+                    !networkResult.body.isNullOrBlank() -> {
+
+                    val body = networkResult.body
+                    val releases = parseReleasesJson(body)
+                    val fingerprint = getTopReleaseFingerprint(releases)
 
                     App.instance.dataStore.edit { settings ->
-                        settings[GitHubReleasesLastCheckedAtKey] = now
-                        networkResult.etag?.let { settings[GitHubReleasesEtagKey] = it }
+                        settings[
+                            GitHubReleasesLastCheckedAtKey
+                        ] = now
 
-                        if (hasPayloadChanged || hasTopReleaseChanged || cachedJson.isNullOrBlank()) {
-                            settings[GitHubReleasesJsonKey] = networkBody
-                            settings[GitHubReleasesFingerprintKey] = newFingerprint
+                        networkResult.etag?.let {
+                            settings[
+                                GitHubReleasesEtagKey
+                            ] = it
+                        }
+
+                        if (
+                            cachedJson != body ||
+                            cachedFingerprint != fingerprint ||
+                            cachedJson.isNullOrBlank()
+                        ) {
+                            settings[
+                                GitHubReleasesJsonKey
+                            ] = body
+
+                            settings[
+                                GitHubReleasesFingerprintKey
+                            ] = fingerprint
                         }
                     }
 
@@ -512,13 +611,15 @@ object Updater {
                 }
 
                 else -> {
-                    val fallback = cachedReleases
-                    if (fallback != null) {
+                    cachedReleases?.let {
                         lastCheckTime = now
-                        fallback
-                    } else {
-                        throw IllegalStateException("Failed to fetch releases: HTTP ${networkResult.status.value}")
+                        return@runCatching it
                     }
+
+                    throw IllegalStateException(
+                        "GitHub releases request failed: HTTP " +
+                            networkResult.status.value
+                    )
                 }
             }
         }
