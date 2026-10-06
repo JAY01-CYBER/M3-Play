@@ -59,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -346,12 +347,13 @@ fun UpdateScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                 )
+                                val statusText = when {
+                                    isChecking -> "Checking for the latest M3Play release…"
+                                    hasUpdate -> "M3Play ${latestVersion.orEmpty()} is ready to download"
+                                    else -> "You're up to date"
+                                }
                                 Text(
-                                    text = when {
-                                        isChecking -> "Checking for the latest M3Play release…"
-                                        hasUpdate -> "M3Play ${latestVersion.orEmpty()} is ready to download"
-                                        else -> "You're up to date",
-                                    },
+                                    text = statusText,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
