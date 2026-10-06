@@ -26,7 +26,6 @@ hiltNavigation = "1.4.0"
 datastore = "1.2.1"
 workManager = "2.12.0"
 composeReorderable = "3.1.0"
-squigglyslider = "1.0.0"
 shimmer = "1.5.0"
 palette = "1.0.0"
 cloudy = "0.7.1"
@@ -79,7 +78,6 @@ compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = 
 compose-animation = { module = "androidx.compose.animation:animation-graphics", version.ref = "compose" }
 compose-reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "composeReorderable" }
 
-squigglyslider = { module = "me.saket.squigglyslider:squigglyslider", version.ref = "squigglyslider" }
 
 viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
