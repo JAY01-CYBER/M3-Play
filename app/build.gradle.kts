@@ -302,5 +302,9 @@ configurations.configureEach {
         "androidx.compose.ui:ui-util:${libs.versions.compose.get()}",
         "androidx.compose.ui:ui-tooling:${libs.versions.compose.get()}",
         "androidx.compose.animation:animation-graphics:${libs.versions.compose.get()}",
+        // Keep Material3 compile/runtime slider ABI on exactly the same release.
+        "androidx.compose.material3:material3:${libs.versions.material3.get()}",
+        "androidx.compose.material3:material3-android:${libs.versions.material3.get()}",
+        "androidx.compose.material3:material3-ripple:${libs.versions.material3.get()}",
     )
 }
