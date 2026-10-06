@@ -20,7 +20,6 @@ package com.j.m3play.ui.screens.settings
 import android.net.Uri
 import android.content.Intent
 import android.widget.Toast
-import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -46,7 +45,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -54,6 +52,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.j.m3play.ui.component.M3PlaySlider
 import com.j.m3play.ui.theme.appBlur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
