@@ -27,6 +27,7 @@ import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
 import android.os.SystemClock
 import android.widget.Toast
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -591,7 +592,7 @@ fun BottomSheetPlayer(
                         style = MaterialTheme.typography.bodyLarge,
                     )
 
-                    Slider(
+                    M3PlaySlider(
                         value = sleepTimerValue,
                         onValueChange = { sleepTimerValue = it },
                         valueRange = 5f..120f,

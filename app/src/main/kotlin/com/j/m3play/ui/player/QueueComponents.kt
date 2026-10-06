@@ -20,6 +20,7 @@ package com.j.m3play.ui.player
 
 import com.j.m3play.ui.theme.frostedControl
 
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -368,7 +369,7 @@ fun SleepTimerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                Slider(
+                M3PlaySlider(
                     value = sleepTimerValue,
                     onValueChange = { sleepTimerValue = it },
                     valueRange = 5f..120f,

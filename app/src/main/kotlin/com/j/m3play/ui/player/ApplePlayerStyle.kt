@@ -8,6 +8,7 @@
 
 package com.j.m3play.ui.player
 
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -179,7 +180,7 @@ fun ApplePlayerStyle(
             val safeDuration = if (duration > 0) duration.toFloat() else 1f
             val safePosition = position.toFloat().coerceIn(0f, safeDuration)
 
-            Slider(
+            M3PlaySlider(
                 value = safePosition,
                 valueRange = 0f..safeDuration,
                 onValueChange = { onSeekChange(it.toLong()) },
