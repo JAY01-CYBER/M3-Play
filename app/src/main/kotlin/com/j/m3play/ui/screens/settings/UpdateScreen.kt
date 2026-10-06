@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,7 +59,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.j.m3play.BuildConfig
 import com.j.m3play.LocalPlayerAwareWindowInsets
@@ -84,6 +85,7 @@ import com.j.m3play.constants.EnableUpdateNotificationKey
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.PreferenceGroupTitle
 import com.j.m3play.ui.utils.backToMain
+import com.j.m3play.utils.UpdateDownloadProgress
 import com.j.m3play.utils.UpdateNotificationManager
 import com.j.m3play.utils.Updater
 import com.j.m3play.utils.rememberPreference
@@ -103,6 +105,10 @@ fun UpdateScreen(
     )
 
     var latestVersion by remember { mutableStateOf<String?>(null) }
+    var latestNotes by remember { mutableStateOf<String?>(null) }
+    var isChecking by remember { mutableStateOf(true) }
+    var downloadId by remember { mutableStateOf<Long?>(null) }
+    var downloadProgress by remember { mutableStateOf<UpdateDownloadProgress?>(null) }
     var showDialog by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -114,17 +120,33 @@ fun UpdateScreen(
         }
     }
 
-    LaunchedEffect(enableUpdateNotification) {
+    fun checkForLatestUpdate() {
         coroutineScope.launch {
-            if (enableUpdateNotification) {
-                Updater.getLatestVersionName().onSuccess {
-                    latestVersion = it
-                }.onFailure {
-                    latestVersion = null
+            isChecking = true
+            Updater.getLatestReleaseInfo()
+                .onSuccess { release ->
+                            latestVersion = release.tagName.ifBlank { release.name }
+                    latestNotes = release.body
                 }
-            } else {
-                latestVersion = null
-            }
+                .onFailure {
+                    latestVersion = null
+                    latestNotes = null
+                }
+            isChecking = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        checkForLatestUpdate()
+    }
+
+    LaunchedEffect(downloadId) {
+        val id = downloadId ?: return@LaunchedEffect
+        while (true) {
+            val progress = Updater.queryUpdateDownload(context, id)
+            downloadProgress = progress
+            if (progress == null || progress.isComplete || progress.isFailed) break
+            delay(500)
         }
     }
 
@@ -308,6 +330,89 @@ fun UpdateScreen(
             }
 
             item {
+                val hasUpdate = latestVersion?.let { !Updater.isSameVersion(it, BuildConfig.VERSION_NAME) } == true
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (hasUpdate) "Update available" else "Software update",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = when {
+                                        isChecking -> "Checking for the latest M3Play release…"
+                                        hasUpdate -> "M3Play ${latestVersion.orEmpty()} is ready to download"
+                                        else -> "You're up to date",
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (isChecking) CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                        }
+
+                        if (hasUpdate) {
+                            latestNotes?.takeIf { it.isNotBlank() }?.let { notes ->
+                                Text(
+                                    text = notes.take(500),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+
+                            downloadProgress?.let { progress ->
+                                if (!progress.isComplete && !progress.isFailed) {
+                                    androidx.compose.material3.LinearProgressIndicator(
+                                        progress = { progress.progress / 100f },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Text(
+                                        text = "Downloading ${progress.progress}%",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (downloadId == null || downloadProgress?.isFailed == true) {
+                                        downloadProgress = null
+                                        downloadId = Updater.startUpdateDownload(context, latestVersion ?: "update")
+                                    }
+                                },
+                                enabled = !isChecking && (downloadId == null || downloadProgress?.isFailed == true),
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Text(
+                                    text = if (downloadProgress?.isFailed == true) "Retry download" else "Download and install",
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        } else {
+                            Button(
+                                onClick = { checkForLatestUpdate() },
+                                enabled = !isChecking,
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(20.dp),
+                            ) {
+                                Text("Check for updates", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(32.dp),
@@ -378,7 +483,8 @@ fun UpdateScreen(
                                 } else {
                                     onEnableUpdateNotificationChange(false)
                                     latestVersion = null
-                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
+                                    latestNotes = null
+                                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
                                 }
                             }
                         )
