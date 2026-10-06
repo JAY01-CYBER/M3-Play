@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.lerp
@@ -32,6 +35,49 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+
+
+/**
+ * M3Play compatibility wrapper for the Material 3 stateful Slider API.
+ *
+ * Material3 1.5.0-alpha29 removed the old stateless Slider ABI. Keeping all
+ * controlled sliders behind this wrapper prevents old Slider(value = ...)
+ * call sites from generating an incompatible runtime method call.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun M3PlaySlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+    colors: SliderColors = SliderDefaults.colors(),
+) {
+    val state = rememberSliderState(
+        value = value,
+        steps = steps,
+        trackRange = valueRange,
+    )
+
+    LaunchedEffect(value, valueRange, steps) {
+        state.value = value.coerceIn(valueRange.start, valueRange.endInclusive)
+    }
+
+    Slider(
+        state = state,
+        onValueChange = { updated ->
+            state.value = updated
+            onValueChange(updated)
+        },
+        onValueChangeFinished = onValueChangeFinished,
+        modifier = modifier,
+        enabled = enabled,
+        colors = colors,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

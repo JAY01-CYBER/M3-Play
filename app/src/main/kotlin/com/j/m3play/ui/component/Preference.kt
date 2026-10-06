@@ -15,6 +15,7 @@
 
 package com.j.m3play.ui.component
 
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -390,7 +391,7 @@ fun SliderPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    M3PlaySlider(
                         value = sliderValue,
                         onValueChange = { sliderValue = it },
                         valueRange = 15f..60f,
@@ -483,7 +484,7 @@ fun CrossfadeSliderPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    M3PlaySlider(
                         value = sliderValue,
                         onValueChange = { sliderValue = it.coerceIn(0f, 10f) },
                         valueRange = 0f..10f,
@@ -566,7 +567,7 @@ fun NumberPickerPreference(
 
                     Spacer(Modifier.height(16.dp))
 
-                    Slider(
+                    M3PlaySlider(
                         value = sliderValue,
                         onValueChange = { sliderValue = it.coerceIn(minValue.toFloat(), maxValue.toFloat()) },
                         valueRange = minValue.toFloat()..maxValue.toFloat(),

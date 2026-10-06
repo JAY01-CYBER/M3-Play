@@ -15,6 +15,7 @@
 
 package com.j.m3play.ui.component
 
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -292,7 +293,7 @@ fun ThumbnailCornerRadiusModal(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            Slider(
+                            M3PlaySlider(
                                 value = thumbnailCornerRadius,
                                 onValueChange = { newValue ->
                                     thumbnailCornerRadius = newValue
