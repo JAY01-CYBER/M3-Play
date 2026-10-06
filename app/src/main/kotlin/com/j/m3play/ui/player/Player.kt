@@ -27,7 +27,6 @@ import android.content.res.Configuration
 import android.graphics.drawable.BitmapDrawable
 import android.os.SystemClock
 import android.widget.Toast
-import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -65,6 +64,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.j.m3play.ui.component.M3PlaySlider
 import com.j.m3play.ui.theme.appBlur
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
@@ -80,7 +80,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -205,7 +204,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import me.saket.squiggles.SquigglySlider
 import com.j.m3play.playback.PlayerConnection
 import kotlin.math.abs
 import kotlin.math.roundToInt

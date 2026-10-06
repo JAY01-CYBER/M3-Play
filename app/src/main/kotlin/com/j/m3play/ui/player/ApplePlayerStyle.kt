@@ -8,7 +8,6 @@
 
 package com.j.m3play.ui.player
 
-import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -22,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.j.m3play.ui.component.M3PlaySlider
 import com.j.m3play.ui.theme.appBlur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale

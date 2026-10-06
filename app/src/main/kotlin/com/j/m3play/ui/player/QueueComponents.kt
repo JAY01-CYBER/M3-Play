@@ -18,9 +18,9 @@
 
 package com.j.m3play.ui.player
 
+import com.j.m3play.ui.component.M3PlaySlider
 import com.j.m3play.ui.theme.frostedControl
 
-import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -49,7 +49,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
