@@ -136,6 +136,7 @@ import com.j.m3play.ui.component.BottomSheetPageState
 import com.j.m3play.ui.component.BottomSheetState
 import com.j.m3play.ui.component.MenuState
 import com.j.m3play.ui.component.PlayerSliderTrack
+import com.j.m3play.ui.component.M3PlayCircularSlider
 import com.j.m3play.ui.component.M3PlayWavySlider
 import com.j.m3play.ui.component.ResizableIconButton
 import com.j.m3play.ui.menu.PlayerMenu
@@ -821,15 +822,14 @@ fun StyledPlaybackSlider(
         }
 
         SliderStyle.Circular -> {
-            M3PlayWavySlider(
+            M3PlayCircularSlider(
                 value = value,
                 valueRange = valueRange,
                 onValueChange = onValueChange,
                 onValueChangeFinished = onValueChangeFinished,
                 colors = PlayerSliderColors.circularSliderColors(activeColor),
                 modifier = modifier,
-                amplitude = if (isPlaying) 2.dp else 0.dp,
-                strokeWidth = 6.dp
+                animated = isPlaying,
             )
         }
 
