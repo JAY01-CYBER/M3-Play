@@ -18,6 +18,7 @@
 package com.j.m3play.ui.screens.settings
 
 import android.widget.Toast
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
@@ -1024,7 +1025,7 @@ private fun ThemeRichPreview(
                                 RadioButton(selected = radioSelected == 0, onClick = { radioSelected = 0 })
                                 RadioButton(selected = radioSelected == 1, onClick = { radioSelected = 1 })
                             }
-                            Slider(
+                            M3PlaySlider(
                                 value = sliderValue,
                                 onValueChange = { sliderValue = it },
                                 modifier = Modifier.fillMaxWidth(),
@@ -1449,7 +1450,7 @@ private fun RgbSlider(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             )
         }
-        Slider(
+        M3PlaySlider(
             value = value.toFloat(),
             onValueChange = { onValueChange(it.toInt().coerceIn(0, 255)) },
             valueRange = 0f..255f,

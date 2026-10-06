@@ -17,6 +17,7 @@
 
 package com.j.m3play.ui.screens.settings
 
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -381,7 +382,7 @@ fun LastFMSettings(
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
                                 Text(text = "${tempMinTrackDuration}s", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                                Slider(value = tempMinTrackDuration.toFloat(), onValueChange = { tempMinTrackDuration = it.toInt() }, valueRange = 10f..60f, modifier = Modifier.fillMaxWidth())
+                                M3PlaySlider(value = tempMinTrackDuration.toFloat(), onValueChange = { tempMinTrackDuration = it.toInt() }, valueRange = 10f..60f, modifier = Modifier.fillMaxWidth())
                             }
                         },
                         confirmButton = {
@@ -407,7 +408,7 @@ fun LastFMSettings(
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
                                 Text(text = "${(tempScrobbleDelayPercent * 100).roundToInt()}%", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                                Slider(value = tempScrobbleDelayPercent, onValueChange = { tempScrobbleDelayPercent = it }, valueRange = 0.3f..0.95f, modifier = Modifier.fillMaxWidth())
+                                M3PlaySlider(value = tempScrobbleDelayPercent, onValueChange = { tempScrobbleDelayPercent = it }, valueRange = 0.3f..0.95f, modifier = Modifier.fillMaxWidth())
                             }
                         },
                         confirmButton = {
@@ -433,7 +434,7 @@ fun LastFMSettings(
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
                                 Text(text = "${tempScrobbleDelaySeconds}s", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 16.dp))
-                                Slider(value = tempScrobbleDelaySeconds.toFloat(), onValueChange = { tempScrobbleDelaySeconds = it.toInt() }, valueRange = 30f..360f, modifier = Modifier.fillMaxWidth())
+                                M3PlaySlider(value = tempScrobbleDelaySeconds.toFloat(), onValueChange = { tempScrobbleDelaySeconds = it.toInt() }, valueRange = 30f..360f, modifier = Modifier.fillMaxWidth())
                             }
                         },
                         confirmButton = {

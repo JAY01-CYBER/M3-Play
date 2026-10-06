@@ -18,6 +18,7 @@
 package com.j.m3play.ui.screens.settings
 
 import android.os.Build
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -557,7 +558,7 @@ fun AppearanceSettings(
                                             style = MaterialTheme.typography.bodyLarge,
                                             modifier = Modifier.padding(bottom = 16.dp)
                                         )
-                                        Slider(
+                                        M3PlaySlider(
                                             value = tempSensitivity,
                                             onValueChange = { tempSensitivity = it },
                                             valueRange = 0f..1f,
@@ -688,7 +689,7 @@ fun AppearanceSettings(
                                         style = MaterialTheme.typography.bodyLarge,
                                         modifier = Modifier.padding(bottom = 16.dp)
                                     )
-                                    Slider(
+                                    M3PlaySlider(
                                         value = tempTextSize,
                                         onValueChange = { tempTextSize = it },
                                         valueRange = 16f..36f,
@@ -749,7 +750,7 @@ fun AppearanceSettings(
                                         style = MaterialTheme.typography.bodyLarge,
                                         modifier = Modifier.padding(bottom = 16.dp)
                                     )
-                                    Slider(
+                                    M3PlaySlider(
                                         value = tempLineSpacing,
                                         onValueChange = { tempLineSpacing = it },
                                         valueRange = 1.0f..2.0f,

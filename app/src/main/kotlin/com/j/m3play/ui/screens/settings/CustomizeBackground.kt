@@ -20,6 +20,7 @@ package com.j.m3play.ui.screens.settings
 import android.net.Uri
 import android.content.Intent
 import android.widget.Toast
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -238,7 +239,7 @@ fun CustomizeBackground(
             Spacer(Modifier.height(8.dp))
 
             Text(stringResource(R.string.blur), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Slider(
+            M3PlaySlider(
                 value = blur,
                 onValueChange = onBlurChange,
                 valueRange = 0f..50f,
@@ -246,7 +247,7 @@ fun CustomizeBackground(
             )
 
             Text(stringResource(R.string.contrast), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Slider(
+            M3PlaySlider(
                 value = contrast,
                 onValueChange = onContrastChange,
                 valueRange = 0.5f..2f,
@@ -254,7 +255,7 @@ fun CustomizeBackground(
             )
 
             Text(stringResource(R.string.brightness), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Slider(
+            M3PlaySlider(
                 value = brightness,
                 onValueChange = onBrightnessChange,
                 valueRange = 0.5f..2f,
