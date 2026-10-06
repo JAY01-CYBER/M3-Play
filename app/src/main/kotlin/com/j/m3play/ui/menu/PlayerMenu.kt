@@ -18,6 +18,7 @@ package com.j.m3play.ui.menu
 import android.content.Intent
 import android.content.res.Configuration
 import android.media.audiofx.AudioEffect
+import com.j.m3play.ui.component.M3PlaySlider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -1156,7 +1157,7 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                         )
                     }
 
-                    Slider(
+                    M3PlaySlider(
                         value = multiplierToSlider(tempo),
                         onValueChange = { slider ->
                             val updated = sliderToMultiplier(slider).quantize(0.01f)
@@ -1261,8 +1262,8 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                 when (pitchMode) {
                     PitchMode.Semitones -> {
                         val currentSemitones = pitchToSemitones(pitch)
-                        Slider(
-                            value = currentSemitones.toFloat(),
+                        M3PlaySlider(
+                        value = currentSemitones.toFloat(),
                             onValueChange = { slider ->
                                 val semitones = slider.roundToInt().coerceIn(-12, 12)
                                 val updated = semitonesToPitch(semitones)
@@ -1318,8 +1319,8 @@ fun TempoPitchDialog(onDismiss: () -> Unit) {
                                 )
                             }
 
-                            Slider(
-                                value = multiplierToSlider(pitch),
+                            M3PlaySlider(
+                        value = multiplierToSlider(pitch),
                                 onValueChange = { slider ->
                                     val updated = sliderToMultiplier(slider).quantize(0.01f)
                                     if (abs(updated - pitch) >= 0.005f) {
@@ -1877,8 +1878,8 @@ fun EqualizerDialog(
                                     modifier = Modifier.width(64.dp),
                                 )
 
-                                Slider(
-                                    value = value.toFloat().coerceIn(minMb.toFloat(), maxMb.toFloat()),
+                                M3PlaySlider(
+                        value = value.toFloat().coerceIn(minMb.toFloat(), maxMb.toFloat()),
                                     onValueChange = { newValue ->
                                         val coerced = newValue.toInt().coerceIn(minMb, maxMb)
                                         bandLevelsMb =
@@ -2035,8 +2036,8 @@ private fun EqToggleSliderRow(
 
         Spacer(Modifier.width(12.dp))
 
-        Slider(
-            value = value.toFloat().coerceIn(valueRange.first.toFloat(), valueRange.last.toFloat()),
+        M3PlaySlider(
+                        value = value.toFloat().coerceIn(valueRange.first.toFloat(), valueRange.last.toFloat()),
             onValueChange = { onValueChange(it.toInt().coerceIn(valueRange.first, valueRange.last)) },
             onValueChangeFinished = { onValueChangeFinished?.invoke() },
             valueRange = valueRange.first.toFloat()..valueRange.last.toFloat(),
