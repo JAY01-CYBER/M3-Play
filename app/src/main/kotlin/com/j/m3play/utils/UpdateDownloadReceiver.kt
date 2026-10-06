@@ -1,30 +1,42 @@
 package com.j.m3play.utils
 
+import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.core.content.FileProvider
 
 class UpdateDownloadReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
-        val id = intent.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-        if (id == -1L) return
+        if (intent.action != DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
 
-        val apk = runCatching { Updater.prepareDownloadedApk(context, id) }.getOrNull() ?: return
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.FileProvider",
-            apk,
-        )
+        val downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+        if (downloadId == -1L) return
 
-        val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            clipData = android.content.ClipData.newRawUri("M3Play update", uri)
+        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+            ?: return
+
+        val query = DownloadManager.Query().setFilterById(downloadId)
+
+        manager.query(query)?.use { cursor ->
+            if (!cursor.moveToFirst()) return
+            val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+            if (statusIndex < 0) return
+
+            val status = cursor.getInt(statusIndex)
+            if (status != DownloadManager.STATUS_SUCCESSFUL) return
         }
 
-        runCatching { context.startActivity(installIntent) }
+        val apkUri = manager.getUriForDownloadedFile(downloadId) ?: return
+
+        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(apkUri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }
+
+        runCatching {
+            context.startActivity(installIntent)
+        }
     }
 }
