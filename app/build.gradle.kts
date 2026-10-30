@@ -40,6 +40,12 @@ android {
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastfmApiKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastfmSecret\"")
 
+        val paxsenixApiKey =
+            localProperties.getProperty("PAXSENIX_API_KEY")
+                ?: System.getenv("PAXSENIX_API_KEY")
+                ?: ""
+        buildConfigField("String", "PAXSENIX_API_KEY", "\"$paxsenixApiKey\"")
+
         val togetherBearerToken =
             localProperties.getProperty("TOGETHER_BEARER_TOKEN")
                 ?: System.getenv("TOGETHER_BEARER_TOKEN")
@@ -175,15 +181,20 @@ ksp {
 }
 
 dependencies {
+    implementation("io.github.kyant0:backdrop:2.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    
+    // HAZE DEPENDENCIES
     implementation(libs.haze)
     implementation(libs.haze.blur)
+    implementation(libs.haze.blur.material3) // Nayi dependency yahan properly add ki gayi hai
+    
     implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
     implementation(libs.gson)
 
-    // RETROFIT DEPENDENCIES (Added here)
+    // RETROFIT DEPENDENCIES
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
 
@@ -209,12 +220,11 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.material.icons)
     implementation(libs.palette)
+    implementation(libs.kmpalette.core)
     implementation(libs.multiplatform.markdown)
 
     implementation(libs.coil)
     implementation(libs.coil.network.okhttp)
-
-
 
     implementation(libs.shimmer)
 
@@ -242,8 +252,6 @@ dependencies {
     implementation(project(":lastfm"))
     implementation(project(":betterlyrics"))
 
-    // Accompanist lyrics core: models such as KaraokeSyllable used by the vendored lyrics UI.
-    implementation("com.mocharealm.accompanist:lyrics-core:0.4.7")
     implementation(project(":kizzy"))
     implementation(project(":simpmusic"))
     implementation(project(":canvas"))
