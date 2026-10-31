@@ -1,0 +1,234 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+package com.j.m3play.ui.screens.search
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.j.m3play.LocalDatabase
+import com.j.m3play.LocalPlayerConnection
+import com.j.m3play.R
+import com.j.m3play.extensions.togglePlayPause
+import com.j.m3play.innertube.models.*
+import com.j.m3play.models.toMediaMetadata
+import com.j.m3play.playback.queues.YouTubeQueue
+import com.j.m3play.ui.component.LocalMenuState
+import com.j.m3play.ui.component.YouTubeListItem
+import com.j.m3play.ui.menu.*
+import com.j.m3play.viewmodels.OnlineSearchSuggestionViewModel
+import kotlinx.coroutines.flow.drop
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun OnlineSearchScreen(
+    query: String,
+    onQueryChange: (TextFieldValue) -> Unit,
+    navController: NavController,
+    onSearch: (String) -> Unit,
+    onDismiss: () -> Unit,
+    pureBlack: Boolean,
+    viewModel: OnlineSearchSuggestionViewModel = hiltViewModel(),
+) {
+    val database = LocalDatabase.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val menuState = LocalMenuState.current
+    val playerConnection = LocalPlayerConnection.current ?: return
+
+    val scope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+    val isPlaying by playerConnection.isPlaying.collectAsState()
+    val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
+
+    val viewState by viewModel.viewState.collectAsState()
+    val lazyListState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
+            .drop(1)
+            .collect { keyboardController?.hide() }
+    }
+
+    LaunchedEffect(query) {
+        viewModel.query.value = query
+    }
+
+    LazyColumn(
+        state = lazyListState,
+        contentPadding = PaddingValues(
+            top = 8.dp,
+            bottom = WindowInsets.systemBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding() + 80.dp
+        ),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent) // Blends with search bar background
+    ) {
+        
+        itemsIndexed(viewState.history, key = { _, it -> "history_${it.query}" }) { _, history ->
+            SuggestionItem(
+                query = history.query,
+                online = false,
+                onClick = {
+                    onSearch(history.query)
+                    onDismiss()
+                },
+                onDelete = { database.query { delete(history) } },
+                onFillTextField = { onQueryChange(TextFieldValue(history.query, TextRange(history.query.length))) },
+                pureBlack = pureBlack
+            )
+        }
+
+        if (viewState.items.isNotEmpty()) {
+            item(key = "search_divider") {
+                Text(
+                    text = stringResource(R.string.top_results),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+                )
+            }
+        }
+
+        val distinctItems = viewState.items.distinctBy { it.id }
+        itemsIndexed(distinctItems, key = { _, it -> "item_${it.id}" }) { _, item ->
+            YouTubeListItem(
+                item = item,
+                isActive = when (item) {
+                    is SongItem -> mediaMetadata?.id == item.id
+                    is AlbumItem -> mediaMetadata?.album?.id == item.id
+                    else -> false
+                },
+                isPlaying = isPlaying,
+                trailingContent = {
+                    IconButton(
+                        onClick = {
+                            menuState.show {
+                                when (item) {
+                                    is SongItem -> YouTubeSongMenu(song = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is AlbumItem -> YouTubeAlbumMenu(albumItem = item, navController = navController, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is ArtistItem -> YouTubeArtistMenu(artist = item, onDismiss = { menuState.dismiss(); onDismiss() })
+                                    is PlaylistItem -> YouTubePlaylistMenu(playlist = item, coroutineScope = scope, onDismiss = { menuState.dismiss(); onDismiss() })
+                                }
+                            }
+                        }
+                    ) { Icon(painterResource(R.drawable.more_vert), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground) }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        when (item) {
+                            is SongItem -> {
+                                if (item.id == mediaMetadata?.id) playerConnection.player.togglePlayPause()
+                                else { playerConnection.playQueue(YouTubeQueue.radio(item.toMediaMetadata())); onDismiss() }
+                            }
+                            is AlbumItem -> { navController.navigate("album/${item.id}"); onDismiss() }
+                            is ArtistItem -> { navController.navigate("artist/${item.id}"); onDismiss() }
+                            is PlaylistItem -> { navController.navigate("online_playlist/${item.id}"); onDismiss() }
+                        }
+                    }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SuggestionItem(
+    modifier: Modifier = Modifier,
+    query: String,
+    online: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit = {},
+    onFillTextField: () -> Unit,
+    pureBlack: Boolean
+) {
+    val haptic = LocalHapticFeedback.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Remove from history?") },
+            text = { Text("Do you want to remove \"$query\" from your search history?") },
+            confirmButton = { TextButton(onClick = { onDelete(); showDeleteDialog = false }) { Text("Remove") } },
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") } },
+            containerColor = if (pureBlack) Color.DarkGray else MaterialTheme.colorScheme.surface
+        )
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .background(Color.Transparent) 
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { 
+                    if (!online) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showDeleteDialog = true
+                    }
+                }
+            )
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)),
+    ) {
+        Icon(
+            painterResource(if (online) R.drawable.search else R.drawable.history),
+            contentDescription = null,
+            modifier = Modifier.padding(horizontal = 16.dp).size(22.dp),
+            tint = if (pureBlack) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Text(
+            text = query,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+            color = if (pureBlack) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+
+        IconButton(onClick = onFillTextField, modifier = Modifier.alpha(0.7f)) {
+            Icon(
+                painter = painterResource(R.drawable.arrow_top_left), 
+                contentDescription = null, 
+                modifier = Modifier.size(24.dp),
+                tint = if (pureBlack) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}

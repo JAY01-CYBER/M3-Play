@@ -1,0 +1,52 @@
+image: eclipse-temurin:21-jdk
+
+stages:
+  - build
+
+variables:
+  ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
+  ANDROID_SDK_ROOT: "$CI_PROJECT_DIR/android-sdk"
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+.android_build:
+  stage: build
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends wget unzip
+    - mkdir -p "$ANDROID_HOME/cmdline-tools"
+    - wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+    - unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
+    - mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+    - export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+    # Ignore yes receiving SIGPIPE, while preserving sdkmanager failures.
+    - (set +o pipefail; yes | sdkmanager --licenses > /dev/null)
+    - sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+build_debug:
+  extends: .android_build
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED != "true" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    # Compile Kotlin in the Gradle JVM to fit runners with 8 GB RAM.
+    - >-
+      bash ./gradlew --no-daemon --console=plain --max-workers=2
+      '-Dorg.gradle.jvmargs=-Xmx4096M -Dfile.encoding=UTF-8 -Djava.awt.headless=true -XX:+UseParallelGC'
+      -Pkotlin.compiler.execution.strategy=in-process
+      :app:assembleUniversalDebug
+  artifacts:
+    paths:
+      - app/build/outputs/apk/universal/debug/*.apk
+    expire_in: 1 week
+
+# Signing variables are Protected in GitLab. Release only from a protected ref.
+build_release:
+  extends: .android_build
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_PIPELINE_SOURCE != "merge_request_event"'
+  script:
+    - bash scripts/ci/build-release.sh
+  artifacts:
+    name: "M3Play-release-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - app/build/outputs/apk/universal/release/M3Play-release.apk
+      - app/build/outputs/mapping/universalRelease/mapping.txt
+    expire_in: 1 week

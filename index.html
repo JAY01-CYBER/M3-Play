@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>M3Play</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+      background: linear-gradient(135deg, #0f172a, #020617);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.35), rgba(56, 189, 248, 0.18), transparent 60%);
+      animation: moveBg 12s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes moveBg {
+      0% { transform: translate(-10%, -10%) rotate(0deg); }
+      50% { transform: translate(10%, 10%) rotate(180deg); }
+      100% { transform: translate(-10%, -10%) rotate(360deg); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 48px 20px 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      width: 96px;
+      height: 96px;
+      object-fit: cover;
+      border-radius: 24px;
+      margin-bottom: 18px;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.35);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .logo:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.45);
+    }
+
+    h1 {
+      font-size: 58px;
+      margin: 8px 0 10px;
+      line-height: 1;
+      background: linear-gradient(45deg, #38bdf8, #8b5cf6, #22c55e);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .subtitle {
+      color: #cbd5e1;
+      font-size: 20px;
+      margin: 0 auto 28px;
+      max-width: 700px;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 16px 30px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 17px;
+      background: linear-gradient(45deg, #22c55e, #38bdf8);
+      color: #04111d;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      box-shadow: 0 10px 30px rgba(56, 189, 248, 0.28);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 14px 36px rgba(56, 189, 248, 0.4);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 42px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.24);
+      animation: fadeUp 0.7s ease;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card h2 {
+      margin: 0 0 18px;
+      font-size: 30px;
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 14px;
+      text-align: left;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .feature {
+      font-size: 19px;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .screenshots {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding: 6px 2px 6px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .screenshots img {
+      width: 220px;
+      max-width: 72vw;
+      border-radius: 20px;
+      flex: 0 0 auto;
+      scroll-snap-align: center;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+      transition: transform 0.28s ease, box-shadow 0.28s ease;
+    }
+
+    .screenshots img:hover {
+      transform: scale(1.04);
+      box-shadow: 0 18px 40px rgba(56, 189, 248, 0.22);
+    }
+
+    .screenshots::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .screenshots::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    .dev-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 8px;
+    }
+
+    .dev-role {
+      color: #94a3b8;
+      font-size: 17px;
+      margin: 0;
+    }
+
+    .footer {
+      margin-top: 34px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    @media (max-width: 820px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 46px;
+      }
+
+      .subtitle {
+        font-size: 18px;
+      }
+
+      .card h2 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="assets/logo.png" alt="M3Play Logo" class="logo" />
+
+    <h1>M3Play</h1>
+    <p class="subtitle">Modern Music Player with Dynamic UI, Lyrics, and Music Recognition</p>
+
+    <a class="btn" href="https://github.com/JAY01-CYBER/M3-Play/releases/latest">
+      Download APK 🚀
+    </a>
+
+    <div class="grid">
+      <div class="card">
+        <h2>✨ Features</h2>
+        <div class="feature-list">
+          <div class="feature">🎵 Music Streaming</div>
+          <div class="feature">🎨 Dynamic UI</div>
+          <div class="feature">📝 Lyrics Support</div>
+          <div class="feature">🔍 Music Recognition</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🔥 Premium Experience</h2>
+        <p style="color:#cbd5e1; line-height:1.8; margin:0;">
+          Built with a modern Material 3 feel, smooth visuals, expressive UI elements,
+          and a clean experience focused on music lovers.
+        </p>
+      </div>
+
+      <div class="card full">
+        <h2>📱 Screenshots</h2>
+        <div class="screenshots">
+          <img src="assets/ss1.jpg" alt="M3Play Screenshot 1" />
+          <img src="assets/ss2.jpg" alt="M3Play Screenshot 2" />
+          <img src="assets/ss3.jpg" alt="M3Play Screenshot 3" />
+        </div>
+      </div>
+
+      <div class="card full">
+        <h2>👨‍💻 Developer</h2>
+        <div class="dev-name">JAY01-CYBER</div>
+        <p class="dev-role">Android Developer 🚀</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      Made with ❤️ for M3Play
+    </div>
+  </div>
+</body>
+</html>

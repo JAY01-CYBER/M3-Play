@@ -1,0 +1,24 @@
+A modern and expressive Material 3 YouTube Music client for Android, designed for performance and extensibility.
+
+Features:
+
+- Play any song or video from YouTube Music
+- Background playback
+- Personalized quick picks
+- Library management
+- Download and save songs for offline playback
+- Search songs, albums, artists, videos, and playlists
+- Real-time synced lyrics
+- Login support with YouTube Music account
+- Sync songs, artists, albums, and playlists with your account
+- Skip silence
+- Import playlists
+- Audio normalization
+- Adjust tempo and pitch
+- Local playlist management
+- Reorder songs in playlist or queue
+- Light, Dark, Black, and Dynamic themes
+- Sleep timer
+- Material 3 design
+- Custom Discord Rich Presence
+- And more...

@@ -1,0 +1,19 @@
+name: Fix Duplicates
+on: workflow_dispatch
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete duplicate copy_link
+        run: |
+          find app/src/main/res -name "archivetune_strings.xml" -type f -exec sed -i '/name="copy_link"/d' {} +
+      - name: Save Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Fix duplicate copy_link error" || echo "No changes"
+          git push

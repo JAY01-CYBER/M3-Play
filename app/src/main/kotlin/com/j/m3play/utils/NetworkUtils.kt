@@ -1,0 +1,35 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Utility Module
+ *
+ * Internal helper functions
+ * Signature: M3PLAY::UTILITY::V1
+ */
+
+package com.j.m3play.utils
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import androidx.core.content.getSystemService
+
+fun isInternetAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService<ConnectivityManager>() ?: return false
+    val activeNetwork = connectivityManager.activeNetwork ?: return false
+    val networkCapabilities =
+        connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
+
+    return when {
+        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+        networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+        else -> false
+    }
+}

@@ -1,0 +1,18 @@
+Accompanist Lyrics Phonetics
+Copyright 2026 Accompanist contributors
+
+Library, compiler code and original dictionary additions: Apache License, Version 2.0.
+Language data is independently licensed. See docs/DATA.md and each data pack's
+sources.json, NOTICE and retained upstream licenses.
+
+Runtime number grammars (source IDs accompanist-chinese-numbers and
+accompanist-japanese-numbers) and context selection rules are original
+Apache-2.0 code. Counter/compound readings queried from language packs retain
+their upstream source IDs and licenses. The Japanese pack's compact IPADIC
+grammatical metadata retains NAIST/ICOT licensing; see its NOTICE and COPYING.
+
+The common-polyphone regression cases overlap the original additions. They measure
+regression coverage, not independent or representative lyrics accuracy. Japanese
+corpus diagnostics informed the fixes; repeated corpus scores are development
+validation rather than held-out lyrics accuracy. Evaluation corpora are not
+included in release dictionaries.
