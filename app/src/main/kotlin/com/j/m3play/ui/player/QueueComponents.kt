@@ -45,6 +45,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Surface
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -1097,6 +1103,187 @@ fun QueueCollapsedContentV4(
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1
                     )
+                }
+            }
+        }
+    }
+}
+
+
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun QueueCollapsedContentV9(
+    showCodecOnPlayer: Boolean,
+    currentFormat: FormatEntity?,
+    textBackgroundColor: Color,
+    sleepTimerEnabled: Boolean,
+    sleepTimerTimeLeft: Long,
+    shuffleModeEnabled: Boolean,
+    repeatMode: Int,
+    onShuffleClick: () -> Unit,
+    onRepeatModeClick: () -> Unit,
+    onMenuClick: () -> Unit,
+    onSleepTimerClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    val railContainerColor = textBackgroundColor.copy(alpha = 0.14f)
+    val buttonContainerColor = textBackgroundColor.copy(alpha = 0.08f)
+    val selectedButtonContainerColor = textBackgroundColor.copy(alpha = 0.18f)
+    val uncheckedColors = ToggleButtonDefaults.colors(
+        containerColor = buttonContainerColor,
+        contentColor = textBackgroundColor.copy(alpha = 0.76f),
+    )
+    val checkedColors = ToggleButtonDefaults.colors(
+        checkedContainerColor = selectedButtonContainerColor,
+        checkedContentColor = textBackgroundColor,
+        containerColor = buttonContainerColor,
+        contentColor = textBackgroundColor.copy(alpha = 0.76f),
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(
+                WindowInsets.systemBars.only(
+                    WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
+                ),
+            )
+            .padding(bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (showCodecOnPlayer && currentFormat != null) {
+            val codec = currentFormat.mimeType.substringAfter("/").uppercase()
+            val bitrate = if (currentFormat.bitrate > 0) "${currentFormat.bitrate / 1000} kbps" else "Unknown"
+            CodecInfoRow(
+                codec = codec,
+                bitrate = bitrate,
+                fileSize = "",
+                textColor = textBackgroundColor.copy(alpha = 0.6f),
+            )
+        }
+
+        if (sleepTimerEnabled) {
+            Surface(
+                onClick = onSleepTimerClick,
+                shape = RoundedCornerShape(18.dp),
+                color = textBackgroundColor.copy(alpha = 0.08f),
+                modifier = Modifier.padding(bottom = 8.dp).height(34.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.bedtime),
+                        contentDescription = stringResource(R.string.sleep_timer),
+                        tint = textBackgroundColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = makeTimeString(sleepTimerTimeLeft.coerceAtLeast(0L)),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = textBackgroundColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(42.dp),
+            color = railContainerColor,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 52.dp)
+                .height(72.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+            ) {
+                ToggleButton(
+                    checked = shuffleModeEnabled,
+                    onCheckedChange = {
+                        view.performHapticFeedback(
+                            android.view.HapticFeedbackConstants.CONTEXT_CLICK,
+                            android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                        )
+                        onShuffleClick()
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                    colors = if (shuffleModeEnabled) checkedColors else uncheckedColors,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.shuffle),
+                        contentDescription = stringResource(
+                            if (shuffleModeEnabled) R.string.action_shuffle_on else R.string.action_shuffle_off,
+                        ),
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+
+                ToggleButton(
+                    checked = repeatMode != Player.REPEAT_MODE_OFF,
+                    onCheckedChange = {
+                        view.performHapticFeedback(
+                            android.view.HapticFeedbackConstants.CONTEXT_CLICK,
+                            android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                        )
+                        onRepeatModeClick()
+                    },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
+                    colors = if (repeatMode != Player.REPEAT_MODE_OFF) checkedColors else uncheckedColors,
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            when (repeatMode) {
+                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                else -> R.drawable.repeat
+                            },
+                        ),
+                        contentDescription = stringResource(
+                            when (repeatMode) {
+                                Player.REPEAT_MODE_ONE -> R.string.repeat_mode_one
+                                Player.REPEAT_MODE_ALL -> R.string.repeat_mode_all
+                                else -> R.string.repeat_mode_off
+                            },
+                        ),
+                        modifier = Modifier.size(26.dp),
+                    )
+                }
+
+                Surface(
+                    onClick = {
+                        view.performHapticFeedback(
+                            android.view.HapticFeedbackConstants.CONTEXT_CLICK,
+                            android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                        )
+                        onMenuClick()
+                    },
+                    shape = RoundedCornerShape(
+                        topStart = 12.dp,
+                        bottomStart = 12.dp,
+                        topEnd = 34.dp,
+                        bottomEnd = 34.dp,
+                    ),
+                    color = buttonContainerColor,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.more_horiz),
+                            contentDescription = stringResource(R.string.more_options),
+                            tint = textBackgroundColor,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
             }
         }
