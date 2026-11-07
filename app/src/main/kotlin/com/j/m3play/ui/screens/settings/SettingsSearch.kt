@@ -1,0 +1,45 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+package com.j.m3play.ui.screens.settings
+
+fun filterSettingsGroups(
+    groups: List<SettingsGroup>,
+    query: String,
+): List<SettingsGroup> {
+    if (query.isBlank()) return groups
+    return groups.mapNotNull { group ->
+        if (group.title.contains(query, ignoreCase = true)) {
+            group
+        } else {
+            val filtered = group.items.filter { matchesQuery(it, query) }
+            if (filtered.isEmpty()) null else group.copy(items = filtered)
+        }
+    }
+}
+
+fun matchesQuery(
+    item: SettingsItem,
+    query: String,
+): Boolean {
+    if (item.title.contains(query, ignoreCase = true)) return true
+    if (item.subtitle?.contains(query, ignoreCase = true) == true) return true
+    if (item.badge?.contains(query, ignoreCase = true) == true) return true
+    return item.keywords.any { keyword ->
+        keyword.contains(query, ignoreCase = true) ||
+            query.contains(keyword, ignoreCase = true)
+    }
+}
+
+fun filterInternalItems(
+    items: List<SettingsItem>,
+    query: String,
+): List<SettingsItem> {
+    if (query.isBlank()) return emptyList()
+    return items.filter { matchesQuery(it, query) }
+}
