@@ -1,0 +1,15 @@
+Material Extended player style (V7)
+
+Integrated into this M3-Play source:
+- Added PlayerDesignStyle.V7 and Appearance Settings label "Material Extended".
+- Added a dedicated expressive transport row with animated button weighting,
+  Material 3 primary/secondary container colors, previous/play-next actions,
+  shuffle and repeat controls.
+- Uses M3-Play PlayerConnection and current playback state.
+- Reuses existing title/actions, artwork, progress slider, time labels, queue,
+  and M3-Play lyrics screen.
+- Added V7 to queue collapsed-style handling.
+- No files in the lyrics UI/source tree were modified.
+
+Build verification: not yet run. The ZIP is structurally validated; please run
+the project's normal Gradle build to confirm compilation in your environment.

@@ -1,0 +1,41 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Component Module
+ *
+ * Reusable UI building block
+ * Signature: M3PLAY::COMPONENT::V1
+ */
+
+package com.j.m3play.ui.component
+
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.painterResource
+import com.j.m3play.R
+
+/**
+ * Returns a `Material3SettingsItem` that can be placed inside a `Material3SettingsGroup`.
+ * The caller should supply composables or values for the dynamic content.
+ */
+@Composable
+fun DebugPanelItem(
+    title: @Composable () -> Unit,
+    description: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable () -> Unit)? = null
+): Material3SettingsItem {
+    return Material3SettingsItem(
+        icon = painterResource(R.drawable.info),
+        title = title,
+        description = description,
+        trailingContent = trailingContent,
+        isHighlighted = true
+    )
+}
