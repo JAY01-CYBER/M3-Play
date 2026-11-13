@@ -506,7 +506,7 @@ private fun ThemeHeroPreview(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)est),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -795,7 +795,7 @@ private fun ThemeRichPreview(
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)est),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -911,7 +911,7 @@ private fun ThemeRichPreview(
                                         Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp))
                                     },
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)est,
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
                                         labelColor = MaterialTheme.colorScheme.onSurface,
                                         leadingIconContentColor = MaterialTheme.colorScheme.onSurface,
                                     ),

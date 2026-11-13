@@ -723,7 +723,7 @@ private fun WelcomeDialog(
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)Low,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -1586,7 +1586,7 @@ private fun SessionInfoCard(
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)est.copy(alpha = 0.6f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
@@ -1645,7 +1645,7 @@ private fun ParticipantsCard(
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)est.copy(alpha = 0.6f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth(),
