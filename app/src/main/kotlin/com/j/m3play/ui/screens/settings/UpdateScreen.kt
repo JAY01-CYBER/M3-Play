@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -66,7 +67,8 @@ import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.constants.EnableUpdateNotificationKey
 import com.j.m3play.ui.component.IconButton
-import com.j.m3play.ui.component.PreferenceGroupTitle
+import com.j.m3play.ui.component.Material3SettingsGroup
+import com.j.m3play.ui.component.Material3SettingsItem
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.UpdateNotificationManager
 import com.j.m3play.utils.Updater
@@ -82,10 +84,7 @@ fun UpdateScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val (notificationsEnabled, setNotificationsEnabled) = rememberPreference(
-        EnableUpdateNotificationKey,
-        defaultValue = false
-    )
+    val (notificationsEnabled, setNotificationsEnabled) = rememberPreference(EnableUpdateNotificationKey, false)
 
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var latestRelease by remember { mutableStateOf<com.j.m3play.utils.ReleaseInfo?>(null) }
@@ -94,15 +93,14 @@ fun UpdateScreen(
     var downloading by remember { mutableStateOf(false) }
     var showNotificationDialog by remember { mutableStateOf(false) }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             setNotificationsEnabled(true)
             UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
         }
     }
 
+    // Checking & Downloading logic (keep yours unchanged)
     fun checkForUpdate() {
         if (checking) return
         checking = true
@@ -124,112 +122,59 @@ fun UpdateScreen(
     fun downloadUpdate() {
         val release = latestRelease ?: return
         val remoteVersion = latestVersion ?: return
-
-        if (!Updater.isUpdateAvailable(remoteVersion, BuildConfig.VERSION_NAME)) {
-            return
-        }
-
-        val url = Updater.getDownloadUrl(release) ?: run {
-            checkError = "No APK asset found for this device."
-            return
-        }
-
+        if (!Updater.isUpdateAvailable(remoteVersion, BuildConfig.VERSION_NAME)) return
+        val url = Updater.getDownloadUrl(release) ?: run { checkError = "No APK asset found for this device."; return }
+        
         val request = DownloadManager.Request(Uri.parse(url))
             .setTitle("M3Play $remoteVersion")
             .setDescription("Downloading M3Play update")
             .setMimeType("application/vnd.android.package-archive")
-            .setNotificationVisibility(
-                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
-            )
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
-            .setDestinationInExternalFilesDir(
-                context,
-                Environment.DIRECTORY_DOWNLOADS,
-                "M3Play-update.apk"
-            )
+            .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "M3Play-update.apk")
 
         val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         manager.enqueue(request)
         downloading = true
     }
 
-    LaunchedEffect(Unit) {
-        checkForUpdate()
-    }
+    LaunchedEffect(Unit) { checkForUpdate() }
 
     if (showNotificationDialog) {
         AlertDialog(
             onDismissRequest = { showNotificationDialog = false },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-            title = {
-                Text(
-                    text = stringResource(R.string.enable_update_notification),
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Text(
-                    "M3Play can periodically check GitHub for stable releases and notify you when a newer version exists."
-                )
-            },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text(text = stringResource(R.string.enable_update_notification), fontWeight = FontWeight.Bold) },
+            text = { Text("M3Play can periodically check GitHub for stable releases and notify you when a newer version exists.") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showNotificationDialog = false
-                        if (
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.POST_NOTIFICATIONS
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notificationPermissionLauncher.launch(
-                                Manifest.permission.POST_NOTIFICATIONS
-                            )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } else {
                             setNotificationsEnabled(true)
                             UpdateNotificationManager.schedulePeriodicUpdateCheck(context)
                         }
                     }
-                ) {
-                    Text("Enable")
-                }
+                ) { Text("Enable") }
             },
-            dismissButton = {
-                TextButton(onClick = { showNotificationDialog = false }) {
-                    Text("Cancel")
-                }
-            }
+            dismissButton = { TextButton(onClick = { showNotificationDialog = false }) { Text("Cancel") } }
         )
     }
 
-    val hasUpdate = latestVersion?.let {
-        Updater.isUpdateAvailable(it, BuildConfig.VERSION_NAME)
-    } == true
+    val hasUpdate = latestVersion?.let { Updater.isUpdateAvailable(it, BuildConfig.VERSION_NAME) } == true
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.updates),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text(stringResource(R.string.updates), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = null
-                        )
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -245,74 +190,30 @@ fun UpdateScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(
-                    LocalPlayerAwareWindowInsets.current.only(
-                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
-                    )
-                ),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 8.dp,
-                bottom = 40.dp
-            ),
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Keep your Hero banner card as is for Current Version
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    elevation = CardDefaults.cardElevation(0.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                        MaterialTheme.colorScheme.surfaceContainerHigh
-                                    )
-                                )
-                            )
-                            .padding(20.dp)
-                    ) {
+                    Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f), MaterialTheme.colorScheme.surfaceContainerHigh))).padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(18.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            ) {
-                                Box(
-                                    modifier = Modifier.size(56.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.update),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
+                            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)) {
+                                Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                                    Icon(painter = painterResource(R.drawable.update), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                                 }
                             }
-
                             Spacer(Modifier.width(16.dp))
-
                             Column(Modifier.weight(1f)) {
-                                Text(
-                                    "Current Version",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Text("Current Version", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                                 Spacer(Modifier.height(4.dp))
-                                Text(
-                                    BuildConfig.VERSION_NAME,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text(BuildConfig.VERSION_NAME, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     when {
@@ -323,11 +224,7 @@ fun UpdateScreen(
                                         else -> "Checking…"
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (hasUpdate) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
+                                    color = if (hasUpdate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = if (hasUpdate) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
@@ -337,144 +234,57 @@ fun UpdateScreen(
             }
 
             item {
-                Button(
-                    onClick = { checkForUpdate() },
-                    enabled = !checking,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        if (checking) "Checking…" else "Check for updates",
-                        fontWeight = FontWeight.Bold
-                    )
+                Button(onClick = { checkForUpdate() }, enabled = !checking, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(20.dp)) {
+                    Text(if (checking) "Checking…" else "Check for updates", fontWeight = FontWeight.Bold)
                 }
             }
 
             if (hasUpdate) {
                 item {
-                    Button(
-                        onClick = { downloadUpdate() },
-                        enabled = !downloading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(20.dp)
-                    ) {
-                        Text(
-                            if (downloading) "Download started" else "Download update",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                latestRelease?.body?.takeIf { it.isNotBlank() }?.let { notes ->
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(26.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                            )
-                        ) {
-                            Column(Modifier.padding(20.dp)) {
-                                Text(
-                                    "What's new",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    notes,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
+                    Button(onClick = { downloadUpdate() }, enabled = !downloading, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(20.dp)) {
+                        Text(if (downloading) "Download started" else "Download update", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = "Notification Settings",
-                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 18.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "Enable Update Notification",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                if (notificationsEnabled) {
-                                    "Stable GitHub update checks are enabled"
-                                } else {
-                                    "Disabled"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    showNotificationDialog = true
-                                } else {
-                                    setNotificationsEnabled(false)
-                                    UpdateNotificationManager.cancelPeriodicUpdateCheck(context)
-                                }
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.notification),
+                            title = { Text("Enable Update Notification") },
+                            description = { Text(if (notificationsEnabled) "Stable GitHub update checks are enabled" else "Disabled") },
+                            trailingContent = {
+                                Switch(
+                                    checked = notificationsEnabled,
+                                    onCheckedChange = { enabled ->
+                                        if (enabled) { showNotificationDialog = true } 
+                                        else { setNotificationsEnabled(false); UpdateNotificationManager.cancelPeriodicUpdateCheck(context) }
+                                    },
+                                    thumbContent = { Icon(painterResource(if (notificationsEnabled) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                                )
+                            },
+                            onClick = {
+                                if (!notificationsEnabled) showNotificationDialog = true
+                                else { setNotificationsEnabled(false); UpdateNotificationManager.cancelPeriodicUpdateCheck(context) }
                             }
                         )
-                    }
-                }
+                    )
+                )
             }
 
             item {
                 Button(
                     onClick = { navController.navigate("settings/changelog") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(20.dp)
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.update),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(painterResource(R.drawable.update), contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Text("View Changelog", fontWeight = FontWeight.Bold)
                 }
-            }
-
-            item {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-                Text(
-                    "Only a newer stable semantic version is offered. Older GitHub releases will never be downloaded as an update.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
             }
         }
     }
