@@ -1,23 +1,5 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,70 +13,50 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.j.m3play.LocalDatabase
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
-import com.j.m3play.constants.ArtistSeparatorsKey
-import com.j.m3play.constants.ExternalDownloaderEnabledKey
-import com.j.m3play.constants.ExternalDownloaderPackageKey
-import com.j.m3play.constants.AudioNormalizationKey
-import com.j.m3play.constants.AudioOffload
-import com.j.m3play.constants.AudioQuality
-import com.j.m3play.constants.AudioQualityKey
-import com.j.m3play.constants.NetworkMeteredKey
-import com.j.m3play.constants.AutoDownloadOnLikeKey
-import com.j.m3play.constants.AutoStartOnBluetoothKey
-import com.j.m3play.constants.AutoSkipNextOnErrorKey
-import com.j.m3play.constants.PauseOnDeviceMuteKey
-import com.j.m3play.constants.PermanentShuffleKey
-import com.j.m3play.constants.PersistentQueueKey
-import com.j.m3play.constants.SkipSilenceKey
-import com.j.m3play.constants.StopMusicOnTaskClearKey
-import com.j.m3play.constants.WakelockKey
-import com.j.m3play.constants.HistoryDuration
-import com.j.m3play.constants.AudioCrossfadeDurationKey
-import com.j.m3play.constants.PlayerStreamClient
-import com.j.m3play.constants.PlayerStreamClientKey
-import com.j.m3play.constants.SeekExtraSeconds
+import com.j.m3play.constants.*
+import com.j.m3play.ui.component.ActionPromptDialog
 import com.j.m3play.ui.component.ArtistSeparatorsDialog
+import com.j.m3play.ui.component.EnumDialog
+import com.j.m3play.ui.component.IconButton
+import com.j.m3play.ui.component.M3PlaySlider
+import com.j.m3play.ui.component.Material3SettingsGroup
+import com.j.m3play.ui.component.Material3SettingsItem
 import com.j.m3play.ui.component.TagsManagementDialog
 import com.j.m3play.ui.component.TextFieldDialog
-import com.j.m3play.ui.component.EnumListPreference
-import com.j.m3play.ui.component.IconButton
-import com.j.m3play.ui.component.ListDialog
-import com.j.m3play.ui.component.PreferenceEntry
-import com.j.m3play.ui.component.PreferenceGroupTitle
-import com.j.m3play.ui.component.SliderPreference
-import com.j.m3play.ui.component.CrossfadeSliderPreference
-import com.j.m3play.ui.component.SwitchPreference
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberEnumPreference
 import com.j.m3play.utils.rememberPreference
-import com.j.m3play.LocalDatabase
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,92 +64,116 @@ fun PlayerSettings(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
-        AudioQualityKey,
-        defaultValue = AudioQuality.AUTO
-    )
-    val (playerStreamClient, onPlayerStreamClientChange) = rememberEnumPreference(
-        PlayerStreamClientKey,
-        defaultValue = PlayerStreamClient.ANDROID_VR
-    )
-    val (networkMetered, onNetworkMeteredChange) = rememberPreference(
-        NetworkMeteredKey,
-        defaultValue = true
-    )
-    val (persistentQueue, onPersistentQueueChange) = rememberPreference(
-        PersistentQueueKey,
-        defaultValue = true
-    )
-    val (permanentShuffle, onPermanentShuffleChange) = rememberPreference(
-        PermanentShuffleKey,
-        defaultValue = false
-    )
-    val (skipSilence, onSkipSilenceChange) = rememberPreference(
-        SkipSilenceKey,
-        defaultValue = false
-    )
-    val (audioNormalization, onAudioNormalizationChange) = rememberPreference(
-        AudioNormalizationKey,
-        defaultValue = true
-    )
-    val (audioOffload, onAudioOffloadChange) = rememberPreference(
-        AudioOffload,
-        defaultValue = false
-    )
-    val (seekExtraSeconds, onSeekExtraSeconds) = rememberPreference(
-        SeekExtraSeconds,
-        defaultValue = false
-    )
-    val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(
-        AutoDownloadOnLikeKey,
-        defaultValue = false
-    )
-    val (autoSkipNextOnError, onAutoSkipNextOnErrorChange) = rememberPreference(
-        AutoSkipNextOnErrorKey,
-        defaultValue = false
-    )
-    val (pauseOnDeviceMute, onPauseOnDeviceMuteChange) = rememberPreference(
-        PauseOnDeviceMuteKey,
-        defaultValue = false
-    )
-    val (autoStartOnBluetooth, onAutoStartOnBluetoothChange) = rememberPreference(
-        AutoStartOnBluetoothKey,
-        defaultValue = false
-    )
-    val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(
-        StopMusicOnTaskClearKey,
-        defaultValue = false
-    )
-    val (historyDuration, onHistoryDurationChange) = rememberPreference(
-        HistoryDuration,
-        defaultValue = 30f
-    )
-    val (audioCrossfadeSeconds, onAudioCrossfadeSecondsChange) = rememberPreference(
-        AudioCrossfadeDurationKey,
-        defaultValue = 0
-    )
-    val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(
-        ArtistSeparatorsKey,
-        defaultValue = ",;/&"
-    )
-    val (externalDownloaderEnabled, onExternalDownloaderEnabledChange) = rememberPreference(
-        ExternalDownloaderEnabledKey,
-        defaultValue = false
-    )
-    val (externalDownloaderPackage, onExternalDownloaderPackageChange) = rememberPreference(
-        ExternalDownloaderPackageKey,
-        defaultValue = ""
-    )
-    val (wakelockEnabled, onWakelockChange) = rememberPreference(
-        WakelockKey,
-        defaultValue = false
-    )
+    val (audioQuality, onAudioQualityChange) = rememberEnumPreference(AudioQualityKey, defaultValue = AudioQuality.AUTO)
+    val (playerStreamClient, onPlayerStreamClientChange) = rememberEnumPreference(PlayerStreamClientKey, defaultValue = PlayerStreamClient.ANDROID_VR)
+    val (networkMetered, onNetworkMeteredChange) = rememberPreference(NetworkMeteredKey, defaultValue = true)
+    val (persistentQueue, onPersistentQueueChange) = rememberPreference(PersistentQueueKey, defaultValue = true)
+    val (permanentShuffle, onPermanentShuffleChange) = rememberPreference(PermanentShuffleKey, defaultValue = false)
+    val (skipSilence, onSkipSilenceChange) = rememberPreference(SkipSilenceKey, defaultValue = false)
+    val (audioNormalization, onAudioNormalizationChange) = rememberPreference(AudioNormalizationKey, defaultValue = true)
+    val (audioOffload, onAudioOffloadChange) = rememberPreference(AudioOffload, defaultValue = false)
+    val (seekExtraSeconds, onSeekExtraSeconds) = rememberPreference(SeekExtraSeconds, defaultValue = false)
+    val (autoDownloadOnLike, onAutoDownloadOnLikeChange) = rememberPreference(AutoDownloadOnLikeKey, defaultValue = false)
+    val (autoSkipNextOnError, onAutoSkipNextOnErrorChange) = rememberPreference(AutoSkipNextOnErrorKey, defaultValue = false)
+    val (pauseOnDeviceMute, onPauseOnDeviceMuteChange) = rememberPreference(PauseOnDeviceMuteKey, defaultValue = false)
+    val (autoStartOnBluetooth, onAutoStartOnBluetoothChange) = rememberPreference(AutoStartOnBluetoothKey, defaultValue = false)
+    val (stopMusicOnTaskClear, onStopMusicOnTaskClearChange) = rememberPreference(StopMusicOnTaskClearKey, defaultValue = false)
+    val (historyDuration, onHistoryDurationChange) = rememberPreference(HistoryDuration, defaultValue = 30f)
+    val (audioCrossfadeSeconds, onAudioCrossfadeSecondsChange) = rememberPreference(AudioCrossfadeDurationKey, defaultValue = 0)
+    val (artistSeparators, onArtistSeparatorsChange) = rememberPreference(ArtistSeparatorsKey, defaultValue = ",;/&")
+    val (externalDownloaderEnabled, onExternalDownloaderEnabledChange) = rememberPreference(ExternalDownloaderEnabledKey, defaultValue = false)
+    val (externalDownloaderPackage, onExternalDownloaderPackageChange) = rememberPreference(ExternalDownloaderPackageKey, defaultValue = "")
+    val (wakelockEnabled, onWakelockChange) = rememberPreference(WakelockKey, defaultValue = false)
 
+    var showAudioQualityDialog by remember { mutableStateOf(false) }
+    var showPlayerStreamClientDialog by remember { mutableStateOf(false) }
+    var showHistoryDurationDialog by remember { mutableStateOf(false) }
+    var showCrossfadeDialog by remember { mutableStateOf(false) }
     var showArtistSeparatorsDialog by remember { mutableStateOf(false) }
     var showTagsManagementDialog by remember { mutableStateOf(false) }
-    var showPlayerStreamClientDialog by remember { mutableStateOf(false) }
     var showExternalDownloaderPackageDialog by remember { mutableStateOf(false) }
+    
     val database = LocalDatabase.current
+
+    // --- DIALOGS ---
+    if (showAudioQualityDialog) {
+        EnumDialog(
+            onDismiss = { showAudioQualityDialog = false },
+            onSelect = { onAudioQualityChange(it); showAudioQualityDialog = false },
+            title = stringResource(R.string.audio_quality),
+            current = audioQuality,
+            values = AudioQuality.values().toList(),
+            valueText = {
+                when (it) {
+                    AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_max)
+                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
+                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+                }
+            }
+        )
+    }
+
+    if (showPlayerStreamClientDialog) {
+        EnumDialog(
+            onDismiss = { showPlayerStreamClientDialog = false },
+            onSelect = { onPlayerStreamClientChange(it); showPlayerStreamClientDialog = false },
+            title = stringResource(R.string.player_stream_client),
+            current = playerStreamClient,
+            values = listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX),
+            valueText = {
+                when (it) {
+                    PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                    else -> stringResource(R.string.player_stream_client_web_remix)
+                }
+            },
+            valueDescription = {
+                when (it) {
+                    PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
+                    else -> stringResource(R.string.player_stream_client_web_remix_desc)
+                }
+            }
+        )
+    }
+
+    if (showHistoryDurationDialog) {
+        var sliderValue by remember { mutableFloatStateOf(historyDuration) }
+        ActionPromptDialog(
+            titleBar = { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Text(text = stringResource(R.string.history_duration), style = MaterialTheme.typography.headlineSmall) } },
+            onDismiss = { showHistoryDurationDialog = false },
+            onConfirm = { onHistoryDurationChange(sliderValue); showHistoryDurationDialog = false },
+            onCancel = { sliderValue = historyDuration; showHistoryDurationDialog = false },
+            onReset = { sliderValue = 30f },
+            content = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = pluralStringResource(R.plurals.seconds, sliderValue.roundToInt(), sliderValue.roundToInt()), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(16.dp))
+                    M3PlaySlider(value = sliderValue, onValueChange = { sliderValue = it }, valueRange = 15f..60f, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        )
+    }
+
+    if (showCrossfadeDialog) {
+        var sliderValue by remember { mutableFloatStateOf(audioCrossfadeSeconds.toFloat()) }
+        ActionPromptDialog(
+            titleBar = { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Text(text = stringResource(R.string.audio_crossfade_dialog_title), style = MaterialTheme.typography.headlineSmall) } },
+            onDismiss = { showCrossfadeDialog = false },
+            onConfirm = { onAudioCrossfadeSecondsChange(sliderValue.roundToInt().coerceIn(0, 10)); showCrossfadeDialog = false },
+            onCancel = { sliderValue = audioCrossfadeSeconds.toFloat(); showCrossfadeDialog = false },
+            onReset = { sliderValue = 0f },
+            content = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val rounded = sliderValue.roundToInt().coerceIn(0, 10)
+                    Text(text = if (rounded == 0) stringResource(R.string.dark_theme_off) else pluralStringResource(R.plurals.seconds, rounded, rounded), style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.height(12.dp))
+                    Text(text = stringResource(R.string.audio_crossfade_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(16.dp))
+                    M3PlaySlider(value = sliderValue, onValueChange = { sliderValue = it.coerceIn(0f, 10f) }, valueRange = 0f..10f, steps = 9, modifier = Modifier.fillMaxWidth())
+                }
+            }
+        )
+    }
 
     if (showArtistSeparatorsDialog) {
         ArtistSeparatorsDialog(
@@ -220,73 +206,18 @@ fun PlayerSettings(
         )
     }
 
-    if (showPlayerStreamClientDialog) {
-        ListDialog(
-            onDismiss = { showPlayerStreamClientDialog = false },
-            modifier = Modifier.padding(horizontal = 8.dp),
-        ) {
-            items(listOf(PlayerStreamClient.ANDROID_VR, PlayerStreamClient.WEB_REMIX)) { value ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onPlayerStreamClientChange(value)
-                            showPlayerStreamClientDialog = false
-                        }
-                        .padding(horizontal = 16.dp, vertical = 16.dp), // Increased padding for A17
-                ) {
-                    RadioButton(
-                        selected = value == playerStreamClient,
-                        onClick = null,
-                    )
-
-                    Column(modifier = Modifier.padding(start = 16.dp)) {
-                        Text(
-                            text = when (value) {
-                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                                else -> stringResource(R.string.player_stream_client_web_remix)
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = when (value) {
-                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr_desc)
-                                else -> stringResource(R.string.player_stream_client_web_remix_desc)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            // ANDROID 17 STYLE: Large Top App Bar gives that bold, modern look
             TopAppBar(
-                title = { 
-                    Text(
-                        stringResource(R.string.player_and_audio),
-                        fontWeight = FontWeight.Bold
-                    ) 
-                },
+                title = { Text(stringResource(R.string.player_and_audio), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(
                         onClick = navController::navigateUp,
                         onLongClick = navController::backToMain
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.arrow_back),
-                            contentDescription = null
-                        )
-                    }
+                    ) { Icon(painterResource(R.drawable.arrow_back), null) }
                 },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -295,7 +226,7 @@ fun PlayerSettings(
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface // Modern base color
+        containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -303,244 +234,195 @@ fun PlayerSettings(
                 .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
             contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp), 
-            verticalArrangement = Arrangement.spacedBy(16.dp) // Spacing between card groups
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // --- PLAYER SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.player),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp) // Indented title
-                )
-                // ANDROID 17 STYLE: Ultra-rounded 32.dp cards, SurfaceContainerHigh
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        EnumListPreference(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.graphic_eq),
                             title = { Text(stringResource(R.string.audio_quality)) },
-                            icon = { Icon(painterResource(R.drawable.graphic_eq), null) },
-                            selectedValue = audioQuality,
-                            onValueSelected = onAudioQualityChange,
-                            valueText = {
-                                when (it) {
-                                    AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_max)
-                                    AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
-                                    AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
-                                    AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
-                                }
-                            }
-                        )
-                        PreferenceEntry(
-                            title = { Text(stringResource(R.string.player_stream_client)) },
-                            description = when (playerStreamClient) {
-                                PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
-                                else -> stringResource(R.string.player_stream_client_web_remix)
+                            description = {
+                                Text(
+                                    when (audioQuality) {
+                                        AudioQuality.HIGHEST -> stringResource(R.string.audio_quality_max)
+                                        AudioQuality.HIGH -> stringResource(R.string.audio_quality_high)
+                                        AudioQuality.AUTO -> stringResource(R.string.audio_quality_auto)
+                                        AudioQuality.LOW -> stringResource(R.string.audio_quality_low)
+                                    }
+                                )
                             },
-                            icon = { Icon(painterResource(R.drawable.integration), null) },
+                            onClick = { showAudioQualityDialog = true }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.integration),
+                            title = { Text(stringResource(R.string.player_stream_client)) },
+                            description = {
+                                Text(
+                                    when (playerStreamClient) {
+                                        PlayerStreamClient.ANDROID_VR -> stringResource(R.string.player_stream_client_android_vr)
+                                        else -> stringResource(R.string.player_stream_client_web_remix)
+                                    }
+                                )
+                            },
                             onClick = { showPlayerStreamClientDialog = true }
                         )
-                    }
-                }
+                    )
+                )
             }
 
-            // --- PLAYBACK & AUDIO SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = "Playback & Audio",
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        SwitchPreference(
+                    items = buildList {
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.android_cell),
                             title = { Text(stringResource(R.string.network_metered_title)) },
-                            description = stringResource(R.string.network_metered_description),
-                            icon = { Icon(painterResource(R.drawable.android_cell), null) },
-                            checked = networkMetered,
-                            onCheckedChange = onNetworkMeteredChange
-                        )
-                        SliderPreference(
+                            description = { Text(stringResource(R.string.network_metered_description)) },
+                            trailingContent = { Switch(checked = networkMetered, onCheckedChange = onNetworkMeteredChange, thumbContent = { Icon(painterResource(if (networkMetered) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onNetworkMeteredChange(!networkMetered) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.history),
                             title = { Text(stringResource(R.string.history_duration)) },
-                            icon = { Icon(painterResource(R.drawable.history), null) },
-                            value = historyDuration,
-                            onValueChange = onHistoryDurationChange,
-                        )
-                        CrossfadeSliderPreference(
-                            value = audioCrossfadeSeconds,
-                            onValueChange = onAudioCrossfadeSecondsChange,
-                            isEnabled = !audioOffload,
-                        )
-                        SwitchPreference(
+                            description = { Text(historyDuration.roundToInt().toString()) },
+                            onClick = { showHistoryDurationDialog = true }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.graphic_eq),
+                            title = { Text(stringResource(R.string.audio_crossfade_title)) },
+                            description = { Text(if (audioCrossfadeSeconds <= 0) stringResource(R.string.dark_theme_off) else pluralStringResource(R.plurals.seconds, audioCrossfadeSeconds, audioCrossfadeSeconds)) },
+                            enabled = !audioOffload,
+                            onClick = { showCrossfadeDialog = true }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.fast_forward),
                             title = { Text(stringResource(R.string.skip_silence)) },
-                            icon = { Icon(painterResource(R.drawable.fast_forward), null) },
-                            checked = skipSilence,
-                            onCheckedChange = onSkipSilenceChange,
-                            isEnabled = !audioOffload,
-                        )
-                        SwitchPreference(
+                            enabled = !audioOffload,
+                            trailingContent = { Switch(checked = skipSilence, onCheckedChange = onSkipSilenceChange, enabled = !audioOffload, thumbContent = { Icon(painterResource(if (skipSilence) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { if (!audioOffload) onSkipSilenceChange(!skipSilence) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.volume_up),
                             title = { Text(stringResource(R.string.audio_normalization)) },
-                            icon = { Icon(painterResource(R.drawable.volume_up), null) },
-                            checked = audioNormalization,
-                            onCheckedChange = onAudioNormalizationChange
-                        )
-                        SwitchPreference(
+                            trailingContent = { Switch(checked = audioNormalization, onCheckedChange = onAudioNormalizationChange, thumbContent = { Icon(painterResource(if (audioNormalization) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onAudioNormalizationChange(!audioNormalization) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.speed),
                             title = { Text(stringResource(R.string.audio_offload)) },
-                            description = stringResource(R.string.audio_offload_desc),
-                            icon = { Icon(painterResource(R.drawable.speed), null) },
-                            checked = audioOffload,
-                            onCheckedChange = { enabled ->
-                                onAudioOffloadChange(enabled)
-                                if (enabled) onSkipSilenceChange(false)
-                            }
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.audio_offload_desc)) },
+                            trailingContent = { Switch(checked = audioOffload, onCheckedChange = { onAudioOffloadChange(it); if (it) onSkipSilenceChange(false) }, thumbContent = { Icon(painterResource(if (audioOffload) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { val enabled = !audioOffload; onAudioOffloadChange(enabled); if (enabled) onSkipSilenceChange(false) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.arrow_forward),
                             title = { Text(stringResource(R.string.seek_seconds_addup)) },
-                            description = stringResource(R.string.seek_seconds_addup_description),
-                            icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
-                            checked = seekExtraSeconds,
-                            onCheckedChange = onSeekExtraSeconds
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.seek_seconds_addup_description)) },
+                            trailingContent = { Switch(checked = seekExtraSeconds, onCheckedChange = onSeekExtraSeconds, thumbContent = { Icon(painterResource(if (seekExtraSeconds) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onSeekExtraSeconds(!seekExtraSeconds) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.volume_off),
                             title = { Text(stringResource(R.string.pause_on_device_mute)) },
-                            description = stringResource(R.string.pause_on_device_mute_desc),
-                            icon = { Icon(painterResource(R.drawable.volume_off), null) },
-                            checked = pauseOnDeviceMute,
-                            onCheckedChange = onPauseOnDeviceMuteChange
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.pause_on_device_mute_desc)) },
+                            trailingContent = { Switch(checked = pauseOnDeviceMute, onCheckedChange = onPauseOnDeviceMuteChange, thumbContent = { Icon(painterResource(if (pauseOnDeviceMute) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onPauseOnDeviceMuteChange(!pauseOnDeviceMute) }
+                        ))
+                        add(Material3SettingsItem(
+                            icon = painterResource(R.drawable.bluetooth),
                             title = { Text(stringResource(R.string.auto_start_on_bluetooth)) },
-                            description = stringResource(R.string.auto_start_on_bluetooth_desc),
-                            icon = { Icon(painterResource(R.drawable.bluetooth), null) },
-                            checked = autoStartOnBluetooth,
-                            onCheckedChange = onAutoStartOnBluetoothChange
-                        )
+                            description = { Text(stringResource(R.string.auto_start_on_bluetooth_desc)) },
+                            trailingContent = { Switch(checked = autoStartOnBluetooth, onCheckedChange = onAutoStartOnBluetoothChange, thumbContent = { Icon(painterResource(if (autoStartOnBluetooth) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onAutoStartOnBluetoothChange(!autoStartOnBluetooth) }
+                        ))
                     }
-                }
+                )
             }
 
-            // --- QUEUE SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.queue),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        SwitchPreference(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.queue_music),
                             title = { Text(stringResource(R.string.persistent_queue)) },
-                            description = stringResource(R.string.persistent_queue_desc),
-                            icon = { Icon(painterResource(R.drawable.queue_music), null) },
-                            checked = persistentQueue,
-                            onCheckedChange = onPersistentQueueChange
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.persistent_queue_desc)) },
+                            trailingContent = { Switch(checked = persistentQueue, onCheckedChange = onPersistentQueueChange, thumbContent = { Icon(painterResource(if (persistentQueue) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onPersistentQueueChange(!persistentQueue) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.shuffle),
                             title = { Text(stringResource(R.string.permanent_shuffle)) },
-                            description = stringResource(R.string.permanent_shuffle_desc),
-                            icon = { Icon(painterResource(R.drawable.shuffle), null) },
-                            checked = permanentShuffle,
-                            onCheckedChange = onPermanentShuffleChange
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.permanent_shuffle_desc)) },
+                            trailingContent = { Switch(checked = permanentShuffle, onCheckedChange = onPermanentShuffleChange, thumbContent = { Icon(painterResource(if (permanentShuffle) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onPermanentShuffleChange(!permanentShuffle) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.download),
                             title = { Text(stringResource(R.string.auto_download_on_like)) },
-                            description = stringResource(R.string.auto_download_on_like_desc),
-                            icon = { Icon(painterResource(R.drawable.download), null) },
-                            checked = autoDownloadOnLike,
-                            onCheckedChange = onAutoDownloadOnLikeChange
-                        )
-                        SwitchPreference(
+                            description = { Text(stringResource(R.string.auto_download_on_like_desc)) },
+                            trailingContent = { Switch(checked = autoDownloadOnLike, onCheckedChange = onAutoDownloadOnLikeChange, thumbContent = { Icon(painterResource(if (autoDownloadOnLike) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onAutoDownloadOnLikeChange(!autoDownloadOnLike) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.skip_next),
                             title = { Text(stringResource(R.string.auto_skip_next_on_error)) },
-                            description = stringResource(R.string.auto_skip_next_on_error_desc),
-                            icon = { Icon(painterResource(R.drawable.skip_next), null) },
-                            checked = autoSkipNextOnError,
-                            onCheckedChange = onAutoSkipNextOnErrorChange
+                            description = { Text(stringResource(R.string.auto_skip_next_on_error_desc)) },
+                            trailingContent = { Switch(checked = autoSkipNextOnError, onCheckedChange = onAutoSkipNextOnErrorChange, thumbContent = { Icon(painterResource(if (autoSkipNextOnError) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onAutoSkipNextOnErrorChange(!autoSkipNextOnError) }
                         )
-                    }
-                }
+                    )
+                )
             }
 
-            // --- MISCELLANEOUS SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.misc),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-                    ),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        SwitchPreference(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.clear_all),
                             title = { Text(stringResource(R.string.stop_music_on_task_clear)) },
-                            icon = { Icon(painterResource(R.drawable.clear_all), null) },
-                            checked = stopMusicOnTaskClear,
-                            onCheckedChange = onStopMusicOnTaskClearChange
-                        )
-                        SwitchPreference(
+                            trailingContent = { Switch(checked = stopMusicOnTaskClear, onCheckedChange = onStopMusicOnTaskClearChange, thumbContent = { Icon(painterResource(if (stopMusicOnTaskClear) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onStopMusicOnTaskClearChange(!stopMusicOnTaskClear) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.bolt),
                             title = { Text(stringResource(R.string.wakelock)) },
-                            description = stringResource(R.string.wakelock_desc),
-                            icon = { Icon(painterResource(R.drawable.bolt), null) },
-                            checked = wakelockEnabled,
-                            onCheckedChange = onWakelockChange
-                        )
-                        PreferenceEntry(
+                            description = { Text(stringResource(R.string.wakelock_desc)) },
+                            trailingContent = { Switch(checked = wakelockEnabled, onCheckedChange = onWakelockChange, thumbContent = { Icon(painterResource(if (wakelockEnabled) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onWakelockChange(!wakelockEnabled) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.artist),
                             title = { Text(stringResource(R.string.artist_separators)) },
-                            description = artistSeparators.map { "\"$it\"" }.joinToString("  "),
-                            icon = { Icon(painterResource(R.drawable.artist), null) },
+                            description = { Text(artistSeparators.map { "\"$it\"" }.joinToString("  ")) },
                             onClick = { showArtistSeparatorsDialog = true }
-                        )
-                        PreferenceEntry(
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.style),
                             title = { Text(stringResource(R.string.manage_playlist_tags)) },
-                            description = stringResource(R.string.manage_playlist_tags_desc),
-                            icon = { Icon(painterResource(R.drawable.style), null) },
+                            description = { Text(stringResource(R.string.manage_playlist_tags_desc)) },
                             onClick = { showTagsManagementDialog = true }
-                        )
-                        SwitchPreference(
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.download),
                             title = { Text(stringResource(R.string.external_downloader)) },
-                            description = stringResource(R.string.external_downloader_desc),
-                            icon = { Icon(painterResource(R.drawable.download), null) },
-                            checked = externalDownloaderEnabled,
-                            onCheckedChange = onExternalDownloaderEnabledChange
-                        )
-                        PreferenceEntry(
+                            description = { Text(stringResource(R.string.external_downloader_desc)) },
+                            trailingContent = { Switch(checked = externalDownloaderEnabled, onCheckedChange = onExternalDownloaderEnabledChange, thumbContent = { Icon(painterResource(if (externalDownloaderEnabled) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { onExternalDownloaderEnabledChange(!externalDownloaderEnabled) }
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.integration),
                             title = { Text(stringResource(R.string.external_downloader_package)) },
-                            description = externalDownloaderPackage.ifEmpty { stringResource(R.string.external_downloader_package_desc) },
-                            icon = { Icon(painterResource(R.drawable.integration), null) },
-                            onClick = { showExternalDownloaderPackageDialog = true },
-                            isEnabled = externalDownloaderEnabled
+                            description = { Text(externalDownloaderPackage.ifEmpty { stringResource(R.string.external_downloader_package_desc) }) },
+                            enabled = externalDownloaderEnabled,
+                            onClick = { showExternalDownloaderPackageDialog = true }
                         )
-                    }
-                }
+                    )
+                )
             }
         }
     }
