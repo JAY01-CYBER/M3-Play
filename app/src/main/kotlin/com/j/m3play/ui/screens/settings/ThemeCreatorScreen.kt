@@ -1,20 +1,3 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import android.widget.Toast
@@ -29,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -126,29 +108,16 @@ import com.j.m3play.ui.theme.ThemeSeedPaletteCodec
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberPreference
 
-private enum class SeedRole {
-    PRIMARY,
-    SECONDARY,
-    TERTIARY,
-    NEUTRAL,
-}
+private enum class SeedRole { PRIMARY, SECONDARY, TERTIARY, NEUTRAL }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ThemeCreatorScreen(
-    navController: NavController,
-) {
+fun ThemeCreatorScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val (customThemeValue, setCustomThemeValue) = rememberPreference(
-        key = CustomThemeColorKey,
-        defaultValue = ThemePalettes.Default.id,
-    )
-    val (_, setDynamicThemeEnabled) = rememberPreference(
-        key = DynamicThemeKey,
-        defaultValue = true,
-    )
+    val (customThemeValue, setCustomThemeValue) = rememberPreference(key = CustomThemeColorKey, defaultValue = ThemePalettes.Default.id)
+    val (_, setDynamicThemeEnabled) = rememberPreference(key = DynamicThemeKey, defaultValue = true)
 
     val seedFromPrefs = remember(customThemeValue) {
         ThemeSeedPaletteCodec.decodeFromPreference(customThemeValue)
@@ -156,23 +125,13 @@ fun ThemeCreatorScreen(
             ?: ThemePalettes.Default.toSeedPalette()
     }
 
-    var themeName by rememberSaveable(customThemeValue) {
-        mutableStateOf(ThemeSeedPaletteCodec.extractNameFromPreference(customThemeValue) ?: "")
-    }
-
+    var themeName by rememberSaveable(customThemeValue) { mutableStateOf(ThemeSeedPaletteCodec.extractNameFromPreference(customThemeValue) ?: "") }
     var primary by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.primary) }
     var secondary by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.secondary) }
     var tertiary by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.tertiary) }
     var neutral by rememberSaveable(customThemeValue, stateSaver = ColorSaver) { mutableStateOf(seedFromPrefs.neutral) }
 
-    val currentPalette =
-        ThemeSeedPalette(
-            primary = primary,
-            secondary = secondary,
-            tertiary = tertiary,
-            neutral = neutral,
-        )
-
+    val currentPalette = ThemeSeedPalette(primary = primary, secondary = secondary, tertiary = tertiary, neutral = neutral)
     var activeRole by rememberSaveable { mutableStateOf(SeedRole.PRIMARY) }
     var showImportErrorDialog by rememberSaveable { mutableStateOf(false) }
     var importErrorText by rememberSaveable { mutableStateOf("") }
@@ -183,68 +142,45 @@ fun ThemeCreatorScreen(
         Toast.makeText(context, context.getString(R.string.theme_applied), Toast.LENGTH_SHORT).show()
     }
 
-    val exportLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            scope.launch {
-                val payload = ThemeSeedPaletteCodec.encodeAsJson(currentPalette, themeName.takeIf { it.isNotBlank() })
-                val ok =
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            context.contentResolver.openOutputStream(uri)?.use { out ->
-                                out.write(payload.toByteArray(Charsets.UTF_8))
-                                out.flush()
-                            } ?: error("No output stream")
-                        }.isSuccess
-                    }
-                if (ok) {
-                    Toast.makeText(context, context.getString(R.string.theme_export_success), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, context.getString(R.string.theme_export_failed), Toast.LENGTH_SHORT).show()
-                }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val payload = ThemeSeedPaletteCodec.encodeAsJson(currentPalette, themeName.takeIf { it.isNotBlank() })
+            val ok = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out -> out.write(payload.toByteArray(Charsets.UTF_8)); out.flush() } ?: error("No output stream")
+                }.isSuccess
             }
+            if (ok) Toast.makeText(context, context.getString(R.string.theme_export_success), Toast.LENGTH_SHORT).show()
+            else Toast.makeText(context, context.getString(R.string.theme_export_failed), Toast.LENGTH_SHORT).show()
         }
+    }
 
-    val importLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            scope.launch {
-                val text =
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty()
-                        }.getOrNull().orEmpty()
-                    }
-                val importedPalette = ThemeSeedPaletteCodec.decodeFromJson(text)
-                if (importedPalette != null) {
-                    val name = ThemeSeedPaletteCodec.extractNameFromJsonOrNull(text)
-                    setDynamicThemeEnabled(false)
-                    setCustomThemeValue(ThemeSeedPaletteCodec.encodeForPreference(importedPalette, name))
-                    Toast.makeText(context, context.getString(R.string.theme_import_success), Toast.LENGTH_SHORT).show()
-                } else {
-                    importErrorText = text.take(1200)
-                    showImportErrorDialog = true
-                }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val text = withContext(Dispatchers.IO) { runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }.orEmpty() }.getOrNull().orEmpty() }
+            val importedPalette = ThemeSeedPaletteCodec.decodeFromJson(text)
+            if (importedPalette != null) {
+                val name = ThemeSeedPaletteCodec.extractNameFromJsonOrNull(text)
+                setDynamicThemeEnabled(false)
+                setCustomThemeValue(ThemeSeedPaletteCodec.encodeForPreference(importedPalette, name))
+                Toast.makeText(context, context.getString(R.string.theme_import_success), Toast.LENGTH_SHORT).show()
+            } else {
+                importErrorText = text.take(1200)
+                showImportErrorDialog = true
             }
         }
+    }
 
     if (showImportErrorDialog) {
         AlertDialog(
             onDismissRequest = { showImportErrorDialog = false },
-            shape = RoundedCornerShape(26.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-            confirmButton = {
-                TextButton(onClick = { showImportErrorDialog = false }) {
-                    Text(text = stringResource(android.R.string.ok))
-                }
-            },
+            shape = RoundedCornerShape(32.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            confirmButton = { TextButton(onClick = { showImportErrorDialog = false }) { Text(text = stringResource(android.R.string.ok)) } },
             title = { Text(text = stringResource(R.string.theme_import_failed_title)) },
-            text = {
-                Text(
-                    text = if (importErrorText.isBlank()) stringResource(R.string.theme_import_failed) else importErrorText,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            },
+            text = { Text(text = if (importErrorText.isBlank()) stringResource(R.string.theme_import_failed) else importErrorText, style = MaterialTheme.typography.bodySmall) }
         )
     }
 
@@ -254,44 +190,20 @@ fun ThemeCreatorScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { 
-                    Text(
-                        text = stringResource(R.string.theme_creator_title),
-                        fontWeight = FontWeight.Bold
-                    ) 
-                },
+                title = { Text(text = stringResource(R.string.theme_creator_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back),
-                            contentDescription = null,
-                        )
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
                     }
                 },
                 actions = {
-                    TextButton(
-                        onClick = {
-                            primary = ThemePalettes.Default.primary
-                            secondary = ThemePalettes.Default.secondary
-                            tertiary = ThemePalettes.Default.tertiary
-                            neutral = ThemePalettes.Default.neutral
-                            themeName = ""
-                        }
-                    ) {
+                    TextButton(onClick = { primary = ThemePalettes.Default.primary; secondary = ThemePalettes.Default.secondary; tertiary = ThemePalettes.Default.tertiary; neutral = ThemePalettes.Default.neutral; themeName = "" }) {
                         Text(text = stringResource(R.string.reset))
                     }
-                    TextButton(onClick = { applyThemeToPrefs() }) {
-                        Text(text = stringResource(R.string.save))
-                    }
+                    TextButton(onClick = { applyThemeToPrefs() }) { Text(text = stringResource(R.string.save)) }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
             )
         },
         containerColor = MaterialTheme.colorScheme.surface,
@@ -300,23 +212,19 @@ fun ThemeCreatorScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
             ) {
                 ExtendedFloatingActionButton(
                     text = { Text(stringResource(R.string.import_theme)) },
                     icon = { Icon(painter = painterResource(R.drawable.restore), contentDescription = null) },
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     shape = RoundedCornerShape(20.dp)
                 )
                 ExtendedFloatingActionButton(
                     onClick = {
-                        val safeName = themeName
-                            .trim()
-                            .ifBlank { "M3Play Theme" }
-                            .replace(Regex("[^a-zA-Z0-9 _\\-]"), "_")
-                            .take(64)
+                        val safeName = themeName.trim().ifBlank { "M3Play Theme" }.replace(Regex("[^a-zA-Z0-9 _\\-]"), "_").take(64)
                         exportLauncher.launch("$safeName.json")
                     },
                     text = { Text(stringResource(R.string.export_theme)) },
@@ -333,33 +241,18 @@ fun ThemeCreatorScreen(
                 .fillMaxWidth()
                 .padding(paddingValues)
                 .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
         ) {
-            ThemeHeroPreview(
-                palette = currentPalette,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp, top = 8.dp),
-            )
-            ThemeRichPreview(
-                palette = currentPalette,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            )
+            ThemeHeroPreview(palette = currentPalette, modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp, top = 8.dp))
+            ThemeRichPreview(palette = currentPalette, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
 
             Card(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
                 Column(Modifier.padding(20.dp)) {
-                    Text(
-                        text = stringResource(R.string.theme_meta_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                    Text(text = stringResource(R.string.theme_meta_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(14.dp))
                     OutlinedTextField(
                         value = themeName,
@@ -371,21 +264,13 @@ fun ThemeCreatorScreen(
                         shape = RoundedCornerShape(16.dp)
                     )
                     Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = { applyThemeToPrefs() },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
+                    Button(onClick = { applyThemeToPrefs() }, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(16.dp)) {
                         Text(text = stringResource(R.string.theme_apply_button), fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            SeedRolePicker(
-                activeRole = activeRole,
-                onRoleChange = { activeRole = it },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            SeedRolePicker(activeRole = activeRole, onRoleChange = { activeRole = it }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
             val activeColor by remember(activeRole, primary, secondary, tertiary, neutral) {
                 derivedStateOf {
@@ -411,218 +296,78 @@ fun ThemeCreatorScreen(
                 },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-
             Spacer(Modifier.height(96.dp))
         }
     }
 }
 
-private fun ThemePalette.toSeedPalette(): ThemeSeedPalette =
-    ThemeSeedPalette(
-        primary = primary,
-        secondary = secondary,
-        tertiary = tertiary,
-        neutral = neutral,
-    )
+private fun ThemePalette.toSeedPalette(): ThemeSeedPalette = ThemeSeedPalette(primary = primary, secondary = secondary, tertiary = tertiary, neutral = neutral)
 
 @Composable
-private fun ThemeHeroPreview(
-    palette: ThemeSeedPalette,
-    modifier: Modifier = Modifier,
-) {
+private fun ThemeHeroPreview(palette: ThemeSeedPalette, modifier: Modifier = Modifier) {
     val isDark = isSystemInDarkTheme()
     val animatedPrimary by animateColorAsState(palette.primary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "previewPrimary")
     val animatedSecondary by animateColorAsState(palette.secondary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "previewSecondary")
     val animatedTertiary by animateColorAsState(palette.tertiary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "previewTertiary")
     val animatedNeutral by animateColorAsState(palette.neutral, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "previewNeutral")
 
-    M3PlayTheme(
-        darkTheme = isDark,
-        seedPalette = ThemeSeedPalette(animatedPrimary, animatedSecondary, animatedTertiary, animatedNeutral),
-    ) {
+    M3PlayTheme(darkTheme = isDark, seedPalette = ThemeSeedPalette(animatedPrimary, animatedSecondary, animatedTertiary, animatedNeutral)) {
         Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(320.dp)
-                .shadow(18.dp, RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
+            modifier = modifier.fillMaxWidth().height(320.dp).shadow(18.dp, RoundedCornerShape(32.dp)),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(Modifier.fillMaxWidth()) {
-                val glow =
-                    Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                            Color.Transparent,
-                        )
-                    )
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .background(glow)
-                )
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                val glow = Brush.radialGradient(colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), Color.Transparent))
+                Box(Modifier.matchParentSize().background(glow))
+                Column(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.theme_preview),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = stringResource(R.string.theme_creator_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Text(text = stringResource(R.string.theme_preview), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(text = stringResource(R.string.theme_creator_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        Surface(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                            shadowElevation = 6.dp,
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.palette),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(10.dp).size(20.dp),
-                            )
+                        Surface(color = MaterialTheme.colorScheme.primary, shape = CircleShape, shadowElevation = 6.dp) {
+                            Icon(painter = painterResource(R.drawable.palette), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(10.dp).size(20.dp))
                         }
                     }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
+                        shape = RoundedCornerShape(24.dp), // Inner card rounding 24dp
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Box(
-                                    Modifier
-                                        .size(48.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.tertiary,
-                                                )
-                                            )
-                                        )
-                                )
+                                Box(Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))))
                                 Column(Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(R.string.now_playing),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.theme_preview_trackline),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
+                                    Text(text = stringResource(R.string.now_playing), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(text = stringResource(R.string.theme_preview_trackline), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shadowElevation = 4.dp,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.play),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.padding(10.dp).size(20.dp),
-                                    )
+                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
+                                    Icon(painter = painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(10.dp).size(20.dp))
                                 }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                ).forEach { c ->
-                                    Box(
-                                        Modifier
-                                            .weight(1f)
-                                            .height(10.dp)
-                                            .clip(RoundedCornerShape(99.dp))
-                                            .background(c)
-                                    )
+                                listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.surfaceVariant).forEach { c ->
+                                    Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(99.dp)).background(c))
                                 }
                             }
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            shadowElevation = 4.dp,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.style),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    text = stringResource(R.string.theme_preview_primary_action),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                        Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(painter = painterResource(R.drawable.style), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(18.dp))
+                                Text(text = stringResource(R.string.theme_preview_primary_action), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                            shadowElevation = 0.dp,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.tune),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    text = stringResource(R.string.theme_preview_secondary_action),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                        Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest, shadowElevation = 0.dp) {
+                            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(painter = painterResource(R.drawable.tune), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                                Text(text = stringResource(R.string.theme_preview_secondary_action), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -634,10 +379,7 @@ private fun ThemeHeroPreview(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ThemeRichPreview(
-    palette: ThemeSeedPalette,
-    modifier: Modifier = Modifier,
-) {
+private fun ThemeRichPreview(palette: ThemeSeedPalette, modifier: Modifier = Modifier) {
     val systemDark = isSystemInDarkTheme()
     var isDark by rememberSaveable { mutableStateOf(systemDark) }
 
@@ -646,13 +388,9 @@ private fun ThemeRichPreview(
     val animatedTertiary by animateColorAsState(palette.tertiary, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewTertiary")
     val animatedNeutral by animateColorAsState(palette.neutral, animationSpec = spring(stiffness = Spring.StiffnessMediumLow), label = "richPreviewNeutral")
 
-    M3PlayTheme(
-        darkTheme = isDark,
-        seedPalette = ThemeSeedPalette(animatedPrimary, animatedSecondary, animatedTertiary, animatedNeutral),
-    ) {
+    M3PlayTheme(darkTheme = isDark, seedPalette = ThemeSeedPalette(animatedPrimary, animatedSecondary, animatedTertiary, animatedNeutral)) {
         val localScope = rememberCoroutineScope()
         val scrollState = rememberScrollState()
-
         var navSelected by rememberSaveable { mutableStateOf(0) }
         var chipSelected by rememberSaveable { mutableStateOf(true) }
         var switchOn by rememberSaveable { mutableStateOf(true) }
@@ -662,487 +400,138 @@ private fun ThemeRichPreview(
         var query by rememberSaveable { mutableStateOf("M3Play") }
 
         Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(560.dp)
-                .shadow(18.dp, RoundedCornerShape(26.dp)),
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
+            modifier = modifier.fillMaxWidth().height(560.dp).shadow(18.dp, RoundedCornerShape(32.dp)),
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Box(Modifier.fillMaxSize()) {
-                val glow =
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
-                            Color.Transparent,
-                        )
-                    )
-                Box(
-                    Modifier
-                        .matchParentSize()
-                        .background(glow)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
+                val glow = Brush.linearGradient(colors = listOf(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f), MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f), Color.Transparent))
+                Box(Modifier.matchParentSize().background(glow))
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.theme_preview),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "Components & surfaces",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Text(text = stringResource(R.string.theme_preview), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(text = "Components & surfaces", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        Surface(
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                PreviewSegment(
-                                    selected = !isDark,
-                                    text = "Light",
-                                    onClick = { isDark = false },
-                                )
-                                PreviewSegment(
-                                    selected = isDark,
-                                    text = "Dark",
-                                    onClick = { isDark = true },
-                                )
+                        Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                            Row(modifier = Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                PreviewSegment(selected = !isDark, text = "Light", onClick = { isDark = false })
+                                PreviewSegment(selected = isDark, text = "Dark", onClick = { isDark = true })
                             }
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.arrow_back),
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(10.dp).size(18.dp),
-                                    )
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                                    Icon(painter = painterResource(R.drawable.arrow_back), contentDescription = null, modifier = Modifier.padding(10.dp).size(18.dp))
                                 }
                                 Spacer(Modifier.width(10.dp))
-                                Text(
-                                    text = "Premium look",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                BadgedBox(
-                                    badge = { Badge { Text("3") } },
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.new_release),
-                                            contentDescription = null,
-                                            modifier = Modifier.padding(10.dp).size(18.dp),
-                                        )
+                                Text(text = "Premium look", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                BadgedBox(badge = { Badge { Text("3") } }) {
+                                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                                        Icon(painter = painterResource(R.drawable.new_release), contentDescription = null, modifier = Modifier.padding(10.dp).size(18.dp))
                                     }
                                 }
                                 Spacer(Modifier.width(10.dp))
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_vert),
-                                        contentDescription = null,
-                                        modifier = Modifier.padding(10.dp).size(18.dp),
-                                    )
+                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+                                    Icon(painter = painterResource(R.drawable.more_vert), contentDescription = null, modifier = Modifier.padding(10.dp).size(18.dp))
                                 }
                             }
-
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(52.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        MaterialTheme.colorScheme.primary,
-                                                        MaterialTheme.colorScheme.tertiary,
-                                                    )
-                                                )
-                                            )
-                                    )
+                            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)) {
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary))))
                                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(
-                                            text = "Now playing",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                        Text(
-                                            text = "Hues, contrasts, and elevation",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
+                                        Text(text = "Now playing", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(text = "Hues, contrasts, and elevation", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shadowElevation = 4.dp,
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.padding(10.dp).size(20.dp),
-                                        )
+                                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, shadowElevation = 4.dp) {
+                                        Icon(painter = painterResource(R.drawable.play), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(10.dp).size(20.dp))
                                     }
                                 }
                             }
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Buttons")
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                Button(
-                                    onClick = { },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                ) {
-                                    Text("Primary")
-                                }
-                                ElevatedButton(
-                                    onClick = { },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                ) {
-                                    Text("Elevated")
-                                }
+                                Button(onClick = { }, modifier = Modifier.weight(1f).height(48.dp)) { Text("Primary") }
+                                ElevatedButton(onClick = { }, modifier = Modifier.weight(1f).height(48.dp)) { Text("Elevated") }
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                OutlinedButton(
-                                    onClick = { },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                ) {
-                                    Text("Outlined")
-                                }
-                                TextButton(
-                                    onClick = {
-                                        localScope.launch {
-                                            chipSelected = !chipSelected
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                ) {
-                                    Text("Text")
-                                }
+                                OutlinedButton(onClick = { }, modifier = Modifier.weight(1f).height(48.dp)) { Text("Outlined") }
+                                TextButton(onClick = { localScope.launch { chipSelected = !chipSelected } }, modifier = Modifier.weight(1f).height(48.dp)) { Text("Text") }
                             }
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Chips")
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                AssistChip(
-                                    onClick = { },
-                                    label = { Text("Assist") },
-                                    leadingIcon = {
-                                        Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp))
-                                    },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-                                        labelColor = MaterialTheme.colorScheme.onSurface,
-                                        leadingIconContentColor = MaterialTheme.colorScheme.onSurface,
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                FilterChip(
-                                    selected = chipSelected,
-                                    onClick = { chipSelected = !chipSelected },
-                                    label = { Text(if (chipSelected) "Selected" else "Filter") },
-                                    leadingIcon = {
-                                        Icon(
-                                            painter = painterResource(if (chipSelected) R.drawable.check else R.drawable.filter_alt),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp),
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                AssistChip(
-                                    onClick = { },
-                                    label = { Text("Tertiary") },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                        labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
+                            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                AssistChip(onClick = { }, label = { Text("Assist") }, leadingIcon = { Icon(painter = painterResource(R.drawable.tune), contentDescription = null, modifier = Modifier.size(18.dp)) }, colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, labelColor = MaterialTheme.colorScheme.onSurface, leadingIconContentColor = MaterialTheme.colorScheme.onSurface), shape = RoundedCornerShape(12.dp))
+                                FilterChip(selected = chipSelected, onClick = { chipSelected = !chipSelected }, label = { Text(if (chipSelected) "Selected" else "Filter") }, leadingIcon = { Icon(painter = painterResource(if (chipSelected) R.drawable.check else R.drawable.filter_alt), contentDescription = null, modifier = Modifier.size(18.dp)) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer, selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer, selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer), shape = RoundedCornerShape(12.dp))
+                                AssistChip(onClick = { }, label = { Text("Tertiary") }, colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer, labelColor = MaterialTheme.colorScheme.onTertiaryContainer), shape = RoundedCornerShape(12.dp))
                             }
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Inputs")
-                            TextField(
-                                value = query,
-                                onValueChange = { query = it.take(32) },
-                                singleLine = true,
-                                leadingIcon = { Icon(painter = painterResource(R.drawable.search), contentDescription = null) },
-                                trailingIcon = {
-                                    if (query.isNotBlank()) {
-                                        Surface(
-                                            shape = CircleShape,
-                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                            modifier = Modifier
-                                                .clip(CircleShape)
-                                                .clickable { query = "" },
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.close),
-                                                contentDescription = null,
-                                                modifier = Modifier.padding(8.dp).size(18.dp),
-                                            )
-                                        }
-                                    }
-                                },
-                                placeholder = { Text("Search") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            OutlinedTextField(
-                                value = "Outline",
-                                onValueChange = { },
-                                singleLine = true,
-                                enabled = false,
-                                label = { Text("Disabled") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp)
-                            )
+                            TextField(value = query, onValueChange = { query = it.take(32) }, singleLine = true, leadingIcon = { Icon(painter = painterResource(R.drawable.search), contentDescription = null) }, trailingIcon = { if (query.isNotBlank()) { Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.clip(CircleShape).clickable { query = "" }) { Icon(painter = painterResource(R.drawable.close), contentDescription = null, modifier = Modifier.padding(8.dp).size(18.dp)) } } }, placeholder = { Text("Search") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
+                            OutlinedTextField(value = "Outline", onValueChange = { }, singleLine = true, enabled = false, label = { Text("Disabled") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Toggles")
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text("Switch", style = MaterialTheme.typography.labelLarge)
-                                    Text("On/off states", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                androidx.compose.material3.Switch(
-                                    checked = switchOn,
-                                    onCheckedChange = { switchOn = it },
-                                )
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) { Text("Switch", style = MaterialTheme.typography.labelLarge); Text("On/off states", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                androidx.compose.material3.Switch(checked = switchOn, onCheckedChange = { switchOn = it })
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = checkboxOn, onCheckedChange = { checkboxOn = it })
                                 Text("Checkbox", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                                 RadioButton(selected = radioSelected == 0, onClick = { radioSelected = 0 })
                                 RadioButton(selected = radioSelected == 1, onClick = { radioSelected = 1 })
                             }
-                            M3PlaySlider(
-                                value = sliderValue,
-                                onValueChange = { sliderValue = it },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
+                            M3PlaySlider(value = sliderValue, onValueChange = { sliderValue = it }, modifier = Modifier.fillMaxWidth())
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             PreviewSectionTitle("Progress")
-                            LinearProgressIndicator(
-                                progress = { sliderValue }, 
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            LinearProgressIndicator(progress = { sliderValue }, modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Loading", style = MaterialTheme.typography.labelLarge)
                                 CircularProgressIndicator(strokeWidth = 3.dp, modifier = Modifier.size(24.dp))
                             }
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             PreviewSectionTitle("List")
-                            ListItem(
-                                headlineContent = { Text("Playlist", fontWeight = FontWeight.SemiBold) },
-                                supportingContent = { Text("Curated picks • 24 tracks") },
-                                leadingContent = {
-                                    Surface(
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.library_filled),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.padding(10.dp).size(20.dp),
-                                        )
-                                    }
-                                },
-                                trailingContent = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.navigate_next),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            )
+                            ListItem(headlineContent = { Text("Playlist", fontWeight = FontWeight.SemiBold) }, supportingContent = { Text("Curated picks • 24 tracks") }, leadingContent = { Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.secondaryContainer) { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(10.dp).size(20.dp)) } }, trailingContent = { Icon(painter = painterResource(R.drawable.navigate_next), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) })
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
-                            ListItem(
-                                headlineContent = { Text("Liked songs", fontWeight = FontWeight.SemiBold) },
-                                supportingContent = { Text("Smart collection") },
-                                leadingContent = {
-                                    Surface(
-                                        shape = RoundedCornerShape(14.dp),
-                                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.favorite),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                            modifier = Modifier.padding(10.dp).size(20.dp),
-                                        )
-                                    }
-                                },
-                            )
+                            ListItem(headlineContent = { Text("Liked songs", fontWeight = FontWeight.SemiBold) }, supportingContent = { Text("Smart collection") }, leadingContent = { Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.tertiaryContainer) { Icon(painter = painterResource(R.drawable.favorite), contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.padding(10.dp).size(20.dp)) } })
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
                         NavigationBar(containerColor = Color.Transparent) {
-                            NavigationBarItem(
-                                selected = navSelected == 0,
-                                onClick = { navSelected = 0 },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(if (navSelected == 0) R.drawable.home_filled else R.drawable.home_outlined),
-                                        contentDescription = null
-                                    )
-                                },
-                                label = { Text("Home", fontWeight = FontWeight.Medium) },
-                            )
-                            NavigationBarItem(
-                                selected = navSelected == 1,
-                                onClick = { navSelected = 1 },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(if (navSelected == 1) R.drawable.explore_filled else R.drawable.explore_outlined),
-                                        contentDescription = null
-                                    )
-                                },
-                                label = { Text("Explore", fontWeight = FontWeight.Medium) },
-                            )
-                            NavigationBarItem(
-                                selected = navSelected == 2,
-                                onClick = { navSelected = 2 },
-                                icon = { Icon(painter = painterResource(R.drawable.library_filled), contentDescription = null) },
-                                label = { Text("Library", fontWeight = FontWeight.Medium) },
-                            )
+                            NavigationBarItem(selected = navSelected == 0, onClick = { navSelected = 0 }, icon = { Icon(painterResource(if (navSelected == 0) R.drawable.home_filled else R.drawable.home_outlined), null) }, label = { Text("Home", fontWeight = FontWeight.Medium) })
+                            NavigationBarItem(selected = navSelected == 1, onClick = { navSelected = 1 }, icon = { Icon(painterResource(if (navSelected == 1) R.drawable.explore_filled else R.drawable.explore_outlined), null) }, label = { Text("Explore", fontWeight = FontWeight.Medium) })
+                            NavigationBarItem(selected = navSelected == 2, onClick = { navSelected = 2 }, icon = { Icon(painterResource(R.drawable.library_filled), null) }, label = { Text("Library", fontWeight = FontWeight.Medium) })
                         }
                     }
-
                     Spacer(Modifier.height(10.dp))
                 }
             }
@@ -1151,147 +540,55 @@ private fun ThemeRichPreview(
 }
 
 @Composable
-private fun PreviewSegment(
-    selected: Boolean,
-    text: String,
-    onClick: () -> Unit,
-) {
-    val container =
-        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val content =
-        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = container,
-        contentColor = content,
-        shadowElevation = if (selected) 8.dp else 0.dp,
-        modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable(onClick = onClick),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+private fun PreviewSegment(selected: Boolean, text: String, onClick: () -> Unit) {
+    val container = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val content = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Surface(shape = RoundedCornerShape(999.dp), color = container, contentColor = content, shadowElevation = if (selected) 8.dp else 0.dp, modifier = Modifier.clip(RoundedCornerShape(999.dp)).clickable(onClick = onClick)) {
+        Text(text = text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun PreviewSectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-    )
+    Text(text = text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
 }
 
 @Composable
-private fun SeedRolePicker(
-    activeRole: SeedRole,
-    onRoleChange: (SeedRole) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-    ) {
+private fun SeedRolePicker(activeRole: SeedRole, onRoleChange: (SeedRole) -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(
-                text = stringResource(R.string.theme_seed_colors),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SeedChip(
-                    label = stringResource(R.string.theme_seed_primary),
-                    selected = activeRole == SeedRole.PRIMARY,
-                    onClick = { onRoleChange(SeedRole.PRIMARY) },
-                    modifier = Modifier.weight(1f),
-                )
-                SeedChip(
-                    label = stringResource(R.string.theme_seed_secondary),
-                    selected = activeRole == SeedRole.SECONDARY,
-                    onClick = { onRoleChange(SeedRole.SECONDARY) },
-                    modifier = Modifier.weight(1f),
-                )
+            Text(text = stringResource(R.string.theme_seed_colors), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SeedChip(label = stringResource(R.string.theme_seed_primary), selected = activeRole == SeedRole.PRIMARY, onClick = { onRoleChange(SeedRole.PRIMARY) }, modifier = Modifier.weight(1f))
+                SeedChip(label = stringResource(R.string.theme_seed_secondary), selected = activeRole == SeedRole.SECONDARY, onClick = { onRoleChange(SeedRole.SECONDARY) }, modifier = Modifier.weight(1f))
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SeedChip(
-                    label = stringResource(R.string.theme_seed_tertiary),
-                    selected = activeRole == SeedRole.TERTIARY,
-                    onClick = { onRoleChange(SeedRole.TERTIARY) },
-                    modifier = Modifier.weight(1f),
-                )
-                SeedChip(
-                    label = stringResource(R.string.theme_seed_neutral),
-                    selected = activeRole == SeedRole.NEUTRAL,
-                    onClick = { onRoleChange(SeedRole.NEUTRAL) },
-                    modifier = Modifier.weight(1f),
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SeedChip(label = stringResource(R.string.theme_seed_tertiary), selected = activeRole == SeedRole.TERTIARY, onClick = { onRoleChange(SeedRole.TERTIARY) }, modifier = Modifier.weight(1f))
+                SeedChip(label = stringResource(R.string.theme_seed_neutral), selected = activeRole == SeedRole.NEUTRAL, onClick = { onRoleChange(SeedRole.NEUTRAL) }, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun SeedChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val container =
-        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
-    val content =
-        if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp)) 
-            .clickable(onClick = onClick),
-        color = container,
-        contentColor = content,
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = if (selected) 6.dp else 0.dp,
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+private fun SeedChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val container = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest
+    val content = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Surface(modifier = modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick), color = container, contentColor = content, shape = RoundedCornerShape(16.dp), shadowElevation = if (selected) 6.dp else 0.dp) {
+        Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
-private fun SeedColorEditor(
-    role: SeedRole,
-    color: Color,
-    onColorChange: (Color) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun SeedColorEditor(role: SeedRole, color: Color, onColorChange: (Color) -> Unit, modifier: Modifier = Modifier) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
-    val roleLabel =
-        when (role) {
-            SeedRole.PRIMARY -> stringResource(R.string.theme_seed_primary)
-            SeedRole.SECONDARY -> stringResource(R.string.theme_seed_secondary)
-            SeedRole.TERTIARY -> stringResource(R.string.theme_seed_tertiary)
-            SeedRole.NEUTRAL -> stringResource(R.string.theme_seed_neutral)
-        }
+    val roleLabel = when (role) {
+        SeedRole.PRIMARY -> stringResource(R.string.theme_seed_primary)
+        SeedRole.SECONDARY -> stringResource(R.string.theme_seed_secondary)
+        SeedRole.TERTIARY -> stringResource(R.string.theme_seed_tertiary)
+        SeedRole.NEUTRAL -> stringResource(R.string.theme_seed_neutral)
+    }
 
     val r0 = ((color.toArgb() shr 16) and 0xFF)
     val g0 = ((color.toArgb() shr 8) and 0xFF)
@@ -1312,54 +609,22 @@ private fun SeedColorEditor(
     var hexInput by rememberSaveable(role.name) { mutableStateOf(hex) }
     var hexError by rememberSaveable(role.name) { mutableStateOf(false) }
 
-    LaunchedEffect(hex) {
-        if (!hexError) hexInput = hex
-    }
+    LaunchedEffect(hex) { if (!hexError) hexInput = hex }
 
-    fun commitRgb() {
-        hexError = false
-        onColorChange(Color((0xFF shl 24) or (r shl 16) or (g shl 8) or b))
-    }
+    fun commitRgb() { hexError = false; onColorChange(Color((0xFF shl 24) or (r shl 16) or (g shl 8) or b)) }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-    ) {
+    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = stringResource(R.string.theme_editor_title, roleLabel),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(text = stringResource(R.string.theme_editor_title, roleLabel), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .shadow(8.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(color)
-                        .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                )
+                Box(modifier = Modifier.size(56.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(color).border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(text = stringResource(R.string.theme_editor_hex), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(text = hex, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clickable {
-                                clipboard.setText(AnnotatedString(hex))
-                                Toast.makeText(context, context.getString(R.string.copied), Toast.LENGTH_SHORT).show()
-                            }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                    Row(modifier = Modifier.clickable { clipboard.setText(AnnotatedString(hex)); Toast.makeText(context, context.getString(R.string.copied), Toast.LENGTH_SHORT).show() }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(painter = painterResource(R.drawable.copy), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
                         Text(text = stringResource(R.string.copy), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                     }
@@ -1370,17 +635,8 @@ private fun SeedColorEditor(
                 value = hexInput,
                 onValueChange = { next ->
                     hexInput = next.take(12)
-                    val parsed =
-                        runCatching {
-                            val normalized = hexInput.trim().let { if (it.startsWith("#")) it else "#$it" }
-                            Color(android.graphics.Color.parseColor(normalized))
-                        }.getOrNull()
-                    if (parsed != null) {
-                        hexError = false
-                        onColorChange(parsed)
-                    } else {
-                        hexError = true
-                    }
+                    val parsed = runCatching { Color(android.graphics.Color.parseColor(hexInput.trim().let { if (it.startsWith("#")) it else "#$it" })) }.getOrNull()
+                    if (parsed != null) { hexError = false; onColorChange(parsed) } else { hexError = true }
                 },
                 label = { Text(stringResource(R.string.theme_editor_hex_input)) },
                 isError = hexError,
@@ -1391,119 +647,35 @@ private fun SeedColorEditor(
             )
 
             Spacer(Modifier.height(4.dp))
-
-            RgbSlider(
-                label = "R",
-                value = r,
-                color = Color(0xFFE53935),
-                onValueChange = {
-                    r = it
-                    commitRgb()
-                },
-            )
-            RgbSlider(
-                label = "G",
-                value = g,
-                color = Color(0xFF43A047),
-                onValueChange = {
-                    g = it
-                    commitRgb()
-                },
-            )
-            RgbSlider(
-                label = "B",
-                value = b,
-                color = Color(0xFF1E88E5),
-                onValueChange = {
-                    b = it
-                    commitRgb()
-                },
-            )
-
+            RgbSlider(label = "R", value = r, color = Color(0xFFE53935), onValueChange = { r = it; commitRgb() })
+            RgbSlider(label = "G", value = g, color = Color(0xFF43A047), onValueChange = { g = it; commitRgb() })
+            RgbSlider(label = "B", value = b, color = Color(0xFF1E88E5), onValueChange = { b = it; commitRgb() })
             Spacer(Modifier.height(8.dp))
-            PresetSwatches(
-                current = color,
-                onPick = onColorChange,
-            )
+            PresetSwatches(current = color, onPick = onColorChange)
         }
     }
 }
 
 @Composable
-private fun RgbSlider(
-    label: String,
-    value: Int,
-    color: Color,
-    onValueChange: (Int) -> Unit,
-) {
+private fun RgbSlider(label: String, value: Int, color: Color, onValueChange: (Int) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = color.copy(alpha = 0.18f),
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            )
+        Surface(shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.18f)) {
+            Text(text = label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
         }
-        M3PlaySlider(
-            value = value.toFloat(),
-            onValueChange = { onValueChange(it.toInt().coerceIn(0, 255)) },
-            valueRange = 0f..255f,
-            colors = SliderDefaults.colors(
-                thumbColor = color,
-                activeTrackColor = color,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(44.dp),
-        )
+        M3PlaySlider(value = value.toFloat(), onValueChange = { onValueChange(it.toInt().coerceIn(0, 255)) }, valueRange = 0f..255f, colors = SliderDefaults.colors(thumbColor = color, activeTrackColor = color, inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.weight(1f))
+        Text(text = value.toString(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(44.dp))
     }
 }
 
 @Composable
-private fun PresetSwatches(
-    current: Color,
-    onPick: (Color) -> Unit,
-) {
-    val swatches = remember {
-        ThemePalettes.allPalettes
-            .map { it.primary }
-            .distinctBy { it.toArgb() }
-            .take(18)
-    }
-
+private fun PresetSwatches(current: Color, onPick: (Color) -> Unit) {
+    val swatches = remember { ThemePalettes.allPalettes.map { it.primary }.distinctBy { it.toArgb() }.take(18) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = stringResource(R.string.theme_presets_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(text = stringResource(R.string.theme_presets_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             swatches.forEach { c ->
                 val selected = c.toArgb() == current.toArgb()
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .shadow(if (selected) 8.dp else 2.dp, CircleShape)
-                        .clip(CircleShape)
-                        .background(c)
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
-                            shape = CircleShape,
-                        )
-                        .clickable { onPick(c) }
-                )
+                Box(modifier = Modifier.size(36.dp).shadow(if (selected) 8.dp else 2.dp, CircleShape).clip(CircleShape).background(c).border(width = if (selected) 2.dp else 1.dp, color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant, shape = CircleShape).clickable { onPick(c) })
             }
         }
     }
