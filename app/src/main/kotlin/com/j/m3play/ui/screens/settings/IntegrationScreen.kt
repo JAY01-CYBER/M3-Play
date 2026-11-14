@@ -1,41 +1,22 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -43,7 +24,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,13 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
-import com.j.m3play.ui.component.PreferenceGroupTitle
 import com.j.m3play.constants.ListenBrainzEnabledKey
 import com.j.m3play.constants.ListenBrainzTokenKey
 import com.j.m3play.ui.component.IconButton
 import com.j.m3play.ui.component.InfoLabel
-import com.j.m3play.ui.component.PreferenceEntry
-import com.j.m3play.ui.component.SwitchPreference
+import com.j.m3play.ui.component.Material3SettingsGroup
+import com.j.m3play.ui.component.Material3SettingsItem
 import com.j.m3play.ui.component.TextFieldDialog
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberPreference
@@ -68,8 +47,6 @@ fun IntegrationScreen(
     navController: NavController,
     scrollBehavior: TopAppBarScrollBehavior,
 ) {
-    val context = LocalContext.current
-
     val (listenBrainzEnabled, onListenBrainzEnabledChange) = rememberPreference(ListenBrainzEnabledKey, false)
     val (listenBrainzToken, onListenBrainzTokenChange) = rememberPreference(ListenBrainzTokenKey, "")
 
@@ -125,60 +102,50 @@ fun IntegrationScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // --- GENERAL SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.general),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        PreferenceEntry(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.discord),
                             title = { Text(stringResource(R.string.discord_integration)) },
-                            icon = { Icon(painterResource(R.drawable.discord), null) },
+                            showChevron = true,
                             onClick = { navController.navigate("settings/discord") },
                         )
-                    }
-                }
+                    )
+                )
             }
 
-            // --- SCROBBLING SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.scrobbling),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        PreferenceEntry(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.token),
                             title = { Text(stringResource(R.string.lastfm_integration)) },
-                            icon = { Icon(painterResource(R.drawable.token), null) },
+                            showChevron = true,
                             onClick = { navController.navigate("settings/lastfm") },
-                        )
-                        SwitchPreference(
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.token),
                             title = { Text(stringResource(R.string.listenbrainz_scrobbling)) },
-                            description = stringResource(R.string.listenbrainz_scrobbling_description),
-                            icon = { Icon(painterResource(R.drawable.token), null) },
-                            checked = listenBrainzEnabled,
-                            onCheckedChange = onListenBrainzEnabledChange,
-                        )
-                        PreferenceEntry(
+                            description = { Text(stringResource(R.string.listenbrainz_scrobbling_description)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = listenBrainzEnabled,
+                                    onCheckedChange = onListenBrainzEnabledChange,
+                                    thumbContent = { Icon(painterResource(if (listenBrainzEnabled) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                                )
+                            },
+                            onClick = { onListenBrainzEnabledChange(!listenBrainzEnabled) },
+                        ),
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.token),
                             title = { Text(if (listenBrainzToken.isBlank()) stringResource(R.string.set_listenbrainz_token) else stringResource(R.string.edit_listenbrainz_token)) },
-                            icon = { Icon(painterResource(R.drawable.token), null) },
                             onClick = { showListenBrainzTokenEditor.value = true },
                         )
-                    }
-                }
+                    )
+                )
             }
         }
     }
