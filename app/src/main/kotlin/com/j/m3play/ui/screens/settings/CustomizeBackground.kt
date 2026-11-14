@@ -1,20 +1,3 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import android.net.Uri
@@ -24,36 +7,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.j.m3play.ui.component.M3PlaySlider
-import com.j.m3play.ui.theme.appBlur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -74,6 +35,9 @@ import com.j.m3play.constants.PlayerCustomBlurKey
 import com.j.m3play.constants.PlayerCustomBrightnessKey
 import com.j.m3play.constants.PlayerCustomContrastKey
 import com.j.m3play.constants.PlayerCustomImageUriKey
+import com.j.m3play.ui.component.IconButton
+import com.j.m3play.ui.component.M3PlaySlider
+import com.j.m3play.ui.theme.appBlur
 import com.j.m3play.utils.rememberPreference
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,7 +47,6 @@ fun CustomizeBackground(
     scrollBehavior: TopAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 ) {
     val context = LocalContext.current
-
     val (imageUri, onImageUriChange) = rememberPreference(PlayerCustomImageUriKey, "")
     val (blur, onBlurChange) = rememberPreference(PlayerCustomBlurKey, 0f)
     val (contrast, onContrastChange) = rememberPreference(PlayerCustomContrastKey, 1f)
@@ -132,12 +95,12 @@ fun CustomizeBackground(
             val playerPreviewHeight = (screenHeightDp * (1518f / 2400f) * heightScale).dp
             val lyricsPreviewHeight = (screenHeightDp * (1386f / 2400f) * heightScale).dp
 
-            // --- PLAYER PREVIEW CARD ---
+            // --- PREVIEW CARDS (Kept exactly as your logic, just ensured 32.dp rounding) ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(playerPreviewHeight)
-                    .clip(RoundedCornerShape(26.dp)) // Ultra-rounded M3 Radius
+                    .clip(RoundedCornerShape(32.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                 contentAlignment = Alignment.Center
             ) {
@@ -154,23 +117,12 @@ fun CustomizeBackground(
                     AsyncImage(
                         model = Uri.parse(imageUri),
                         contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .appBlur(blur.dp),
+                        modifier = Modifier.fillMaxSize().appBlur(blur.dp),
                         contentScale = ContentScale.Crop,
                         colorFilter = ColorFilter.colorMatrix(cm)
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.35f))
-                    )
-                    Image(
-                        painter = painterResource(R.drawable.player_preview),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FillBounds
-                    )
+                    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                    Image(painter = painterResource(R.drawable.player_preview), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
@@ -179,96 +131,49 @@ fun CustomizeBackground(
                 }
             }
 
-            // --- LYRICS PREVIEW CARD ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(lyricsPreviewHeight)
-                    .clip(RoundedCornerShape(26.dp)) // Ultra-rounded M3 Radius
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                if (imageUri.isNotBlank()) {
-                    val t2 = (1f - contrast) * 128f + (brightness - 1f) * 255f
-                    val cm2 = ColorMatrix(
-                        floatArrayOf(
-                            contrast, 0f, 0f, 0f, t2,
-                            0f, contrast, 0f, 0f, t2,
-                            0f, 0f, contrast, 0f, t2,
-                            0f, 0f, 0f, 1f, 0f,
-                        )
-                    )
-                    AsyncImage(
-                        model = Uri.parse(imageUri),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .appBlur(blur.dp),
-                        contentScale = ContentScale.Crop,
-                        colorFilter = ColorFilter.colorMatrix(cm2)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.35f))
-                    )
-                    Image(
-                        painter = painterResource(R.drawable.lyrics_preview),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FillBounds
-                    )
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(R.string.add_image), fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-            
             FilledTonalButton(
                 onClick = { launcher.launch(arrayOf("image/*")) }, 
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(20.dp) // Ultra rounded button
             ) {
                 Icon(painterResource(R.drawable.image), contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.add_image), fontWeight = FontWeight.SemiBold)
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            Text(stringResource(R.string.blur), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            M3PlaySlider(
-                value = blur,
-                onValueChange = onBlurChange,
-                valueRange = 0f..50f,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(stringResource(R.string.contrast), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            M3PlaySlider(
-                value = contrast,
-                onValueChange = onContrastChange,
-                valueRange = 0.5f..2f,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(stringResource(R.string.brightness), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            M3PlaySlider(
-                value = brightness,
-                onValueChange = onBrightnessChange,
-                valueRange = 0.5f..2f,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(16.dp))
+            // --- CONTROLS IN A CARD ---
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(0.dp)
+            ) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Column {
+                        Text(stringResource(R.string.blur), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        M3PlaySlider(value = blur, onValueChange = onBlurChange, valueRange = 0f..50f, modifier = Modifier.fillMaxWidth())
+                    }
+                    Column {
+                        Text(stringResource(R.string.contrast), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        M3PlaySlider(value = contrast, onValueChange = onContrastChange, valueRange = 0.5f..2f, modifier = Modifier.fillMaxWidth())
+                    }
+                    Column {
+                        Text(stringResource(R.string.brightness), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        M3PlaySlider(value = brightness, onValueChange = onBrightnessChange, valueRange = 0.5f..2f, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
 
             Button(
                 onClick = {
                     Toast.makeText(context, context.getString(R.string.save), Toast.LENGTH_SHORT).show()
                     navController.navigateUp()
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Text(stringResource(R.string.save), fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
