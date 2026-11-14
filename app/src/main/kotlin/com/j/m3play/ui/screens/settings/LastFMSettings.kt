@@ -1,27 +1,9 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
-/*
- * ╭────────────────────────────────────────────╮
- * │             M3Play UI System               │
- * │--------------------------------------------│
- * │  Crafted for expressive music experience   │
- * │  Style: ANDROID 17 (Ultra-Rounded, M3)     │
- * ╰────────────────────────────────────────────╯
- */
-
 package com.j.m3play.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,8 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -81,9 +63,8 @@ import com.j.m3play.constants.ScrobbleDelayPercentKey
 import com.j.m3play.constants.ScrobbleMinSongDurationKey
 import com.j.m3play.constants.ScrobbleDelaySecondsKey
 import com.j.m3play.ui.component.IconButton
-import com.j.m3play.ui.component.PreferenceEntry
-import com.j.m3play.ui.component.PreferenceGroupTitle
-import com.j.m3play.ui.component.SwitchPreference
+import com.j.m3play.ui.component.Material3SettingsGroup
+import com.j.m3play.ui.component.Material3SettingsItem
 import com.j.m3play.ui.utils.backToMain
 import com.j.m3play.utils.rememberPreference
 import com.j.m3play.utils.reportException
@@ -102,9 +83,7 @@ fun LastFMSettings(
     var lastfmUsername by rememberPreference(LastFMUsernameKey, "")
     var lastfmSession by rememberPreference(LastFMSessionKey, "")
 
-    val isLoggedIn = remember(lastfmSession) {
-        lastfmSession.isNotEmpty()
-    }
+    val isLoggedIn = remember(lastfmSession) { lastfmSession.isNotEmpty() }
 
     val (useNowPlaying, onUseNowPlayingChange) = rememberPreference(key = LastFMUseNowPlaying, defaultValue = false)
     val (lastfmScrobbling, onlastfmScrobblingChange) = rememberPreference(key = EnableLastFMScrobblingKey, defaultValue = false)
@@ -121,8 +100,8 @@ fun LastFMSettings(
         var tempPassword by rememberSaveable { mutableStateOf("") }
 
         AlertDialog(
-            shape = RoundedCornerShape(26.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
+            shape = RoundedCornerShape(32.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             onDismissRequest = { 
                 if (!isLoggingIn) {
                     showLoginDialog = false
@@ -134,10 +113,7 @@ fun LastFMSettings(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = tempUsername,
-                        onValueChange = { 
-                            tempUsername = it
-                            loginError = null
-                        },
+                        onValueChange = { tempUsername = it; loginError = null },
                         label = { Text(stringResource(R.string.username)) },
                         singleLine = true,
                         enabled = !isLoggingIn,
@@ -146,10 +122,7 @@ fun LastFMSettings(
                     )
                     OutlinedTextField(
                         value = tempPassword,
-                        onValueChange = { 
-                            tempPassword = it
-                            loginError = null
-                        },
+                        onValueChange = { tempPassword = it; loginError = null },
                         label = { Text(stringResource(R.string.password)) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
@@ -158,22 +131,11 @@ fun LastFMSettings(
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
-
                     loginError?.let { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                        Text(text = error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
                     }
-
                     if (isLoggingIn) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                             Text(text = stringResource(R.string.logging_in), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
                         }
@@ -183,19 +145,9 @@ fun LastFMSettings(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (tempUsername.isBlank() || tempPassword.isBlank()) {
-                            loginError = "Please enter username and password"
-                            return@TextButton
-                        }
-                        if (!LastFM.isInitialized()) {
-                            loginError = "Last.fm API key not configured"
-                            Timber.e("Last.fm API key not configured")
-                            return@TextButton
-                        }
-                        
-                        isLoggingIn = true
-                        loginError = null
-                        
+                        if (tempUsername.isBlank() || tempPassword.isBlank()) { loginError = "Please enter username and password"; return@TextButton }
+                        if (!LastFM.isInitialized()) { loginError = "Last.fm API key not configured"; return@TextButton }
+                        isLoggingIn = true; loginError = null
                         coroutineScope.launch(Dispatchers.IO) {
                             LastFM.getMobileSession(tempUsername, tempPassword)
                                 .onSuccess { auth ->
@@ -203,52 +155,23 @@ fun LastFMSettings(
                                         lastfmUsername = auth.session.name
                                         lastfmSession = auth.session.key
                                         LastFM.sessionKey = auth.session.key
-                                        isLoggingIn = false
-                                        showLoginDialog = false
-                                        loginError = null
-                                        Timber.d("Last.fm login successful for user: \${auth.session.name}")
+                                        isLoggingIn = false; showLoginDialog = false; loginError = null
                                     }
                                 }
                                 .onFailure { exception ->
                                     withContext(Dispatchers.Main) {
                                         isLoggingIn = false
-                                        val errorMessage = when (exception) {
-                                            is LastFM.LastFmException -> {
-                                                when (exception.code) {
-                                                    4 -> "Invalid username or password"
-                                                    10 -> "Invalid API key. Please contact the developer."
-                                                    13 -> "Authentication error. Please try again."
-                                                    26 -> "API key suspended. Please contact the developer."
-                                                    else -> exception.message
-                                                }
-                                            }
-                                            else -> when {
-                                                exception.message?.contains("network", ignoreCase = true) == true ||
-                                                exception.message?.contains("connect", ignoreCase = true) == true ->
-                                                    "Network error. Check your connection."
-                                                else -> exception.message ?: "Login failed. Please try again."
-                                            }
-                                        }
-                                        loginError = errorMessage
-                                        Timber.e(exception, "Last.fm login failed")
+                                        loginError = exception.message ?: "Login failed"
                                         reportException(exception)
                                     }
                                 }
                         }
                     },
                     enabled = !isLoggingIn && tempUsername.isNotBlank() && tempPassword.isNotBlank()
-                ) {
-                    Text(stringResource(R.string.login), fontWeight = FontWeight.Bold)
-                }
+                ) { Text(stringResource(R.string.login), fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showLoginDialog = false
-                        loginError = null
-                    },
-                    enabled = !isLoggingIn
-                ) {
+                TextButton(onClick = { showLoginDialog = false; loginError = null }, enabled = !isLoggingIn) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -256,25 +179,17 @@ fun LastFMSettings(
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.lastfm_integration), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = navController::navigateUp,
-                        onLongClick = navController::backToMain,
-                    ) {
-                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                    IconButton(onClick = navController::navigateUp, onLongClick = navController::backToMain) {
+                        Icon(painterResource(R.drawable.arrow_back), null)
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface, scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
             )
         },
         containerColor = MaterialTheme.colorScheme.surface
@@ -287,96 +202,60 @@ fun LastFMSettings(
             contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
-            // --- ACCOUNT SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.account),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        PreferenceEntry(
+                    items = listOf(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.token),
                             title = {
                                 Text(
                                     text = if (isLoggedIn) lastfmUsername else stringResource(R.string.not_logged_in),
                                     modifier = Modifier.alpha(if (isLoggedIn) 1f else 0.5f),
                                 )
                             },
-                            description = null,
-                            icon = { Icon(painterResource(R.drawable.token), null) },
                             trailingContent = {
                                 if (isLoggedIn) {
                                     OutlinedButton(onClick = {
                                         lastfmSession = ""
                                         lastfmUsername = ""
                                         LastFM.sessionKey = null
-                                        Timber.d("Last.fm session cleared")
-                                    }) {
-                                        Text(stringResource(R.string.action_logout))
-                                    }
+                                    }) { Text(stringResource(R.string.action_logout)) }
                                 } else {
-                                    OutlinedButton(onClick = { showLoginDialog = true }) {
-                                        Text(stringResource(R.string.action_login))
-                                    }
+                                    OutlinedButton(onClick = { showLoginDialog = true }) { Text(stringResource(R.string.action_login)) }
                                 }
-                            },
+                            }
                         )
-                    }
-                }
+                    )
+                )
             }
 
-            // --- OPTIONS SECTION ---
             item {
-                PreferenceGroupTitle(
+                Material3SettingsGroup(
                     title = stringResource(R.string.options),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        SwitchPreference(
+                    items = listOf(
+                        Material3SettingsItem(
                             title = { Text(stringResource(R.string.enable_scrobbling)) },
-                            checked = lastfmScrobbling,
-                            onCheckedChange = onlastfmScrobblingChange,
-                            isEnabled = isLoggedIn,
-                        )
-                        SwitchPreference(
+                            trailingContent = { Switch(checked = lastfmScrobbling, onCheckedChange = onlastfmScrobblingChange, enabled = isLoggedIn, thumbContent = { Icon(painterResource(if (lastfmScrobbling) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { if (isLoggedIn) onlastfmScrobblingChange(!lastfmScrobbling) }
+                        ),
+                        Material3SettingsItem(
                             title = { Text(stringResource(R.string.lastfm_now_playing)) },
-                            checked = useNowPlaying,
-                            onCheckedChange = onUseNowPlayingChange,
-                            isEnabled = isLoggedIn && lastfmScrobbling,
+                            trailingContent = { Switch(checked = useNowPlaying, onCheckedChange = onUseNowPlayingChange, enabled = isLoggedIn && lastfmScrobbling, thumbContent = { Icon(painterResource(if (useNowPlaying) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }) },
+                            onClick = { if (isLoggedIn && lastfmScrobbling) onUseNowPlayingChange(!useNowPlaying) }
                         )
-                    }
-                }
+                    )
+                )
             }
 
-            // --- SCROBBLING CONFIGURATION SECTION ---
             item {
-                PreferenceGroupTitle(
-                    title = stringResource(R.string.scrobbling_configuration),
-                    modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
-                )
-
                 var showMinTrackDurationDialog by rememberSaveable { mutableStateOf(false) }
                 if (showMinTrackDurationDialog) {
                     var tempMinTrackDuration by remember { mutableIntStateOf(minTrackDuration) }
                     AlertDialog(
-                        shape = RoundedCornerShape(26.dp),
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-                        onDismissRequest = {
-                            tempMinTrackDuration = minTrackDuration
-                            showMinTrackDurationDialog = false
-                        },
+                        shape = RoundedCornerShape(32.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        onDismissRequest = { showMinTrackDurationDialog = false },
                         title = { Text(stringResource(R.string.scrobble_min_track_duration)) },
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
@@ -384,12 +263,7 @@ fun LastFMSettings(
                                 M3PlaySlider(value = tempMinTrackDuration.toFloat(), onValueChange = { tempMinTrackDuration = it.toInt() }, valueRange = 10f..60f, modifier = Modifier.fillMaxWidth())
                             }
                         },
-                        confirmButton = {
-                            TextButton(onClick = { onMinTrackDurationChange(tempMinTrackDuration); showMinTrackDurationDialog = false }) { Text(stringResource(android.R.string.ok)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { tempMinTrackDuration = minTrackDuration; showMinTrackDurationDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                        }
+                        confirmButton = { TextButton(onClick = { onMinTrackDurationChange(tempMinTrackDuration); showMinTrackDurationDialog = false }) { Text(stringResource(android.R.string.ok)) } },
                     )
                 }
 
@@ -397,12 +271,9 @@ fun LastFMSettings(
                 if (showScrobbleDelayPercentDialog) {
                     var tempScrobbleDelayPercent by remember { mutableFloatStateOf(scrobbleDelayPercent) }
                     AlertDialog(
-                        shape = RoundedCornerShape(26.dp),
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-                        onDismissRequest = {
-                            tempScrobbleDelayPercent = scrobbleDelayPercent
-                            showScrobbleDelayPercentDialog = false
-                        },
+                        shape = RoundedCornerShape(32.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        onDismissRequest = { showScrobbleDelayPercentDialog = false },
                         title = { Text(stringResource(R.string.scrobble_delay_percent)) },
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
@@ -410,12 +281,7 @@ fun LastFMSettings(
                                 M3PlaySlider(value = tempScrobbleDelayPercent, onValueChange = { tempScrobbleDelayPercent = it }, valueRange = 0.3f..0.95f, modifier = Modifier.fillMaxWidth())
                             }
                         },
-                        confirmButton = {
-                            TextButton(onClick = { onScrobbleDelayPercentChange(tempScrobbleDelayPercent); showScrobbleDelayPercentDialog = false }) { Text(stringResource(android.R.string.ok)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { tempScrobbleDelayPercent = scrobbleDelayPercent; showScrobbleDelayPercentDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                        }
+                        confirmButton = { TextButton(onClick = { onScrobbleDelayPercentChange(tempScrobbleDelayPercent); showScrobbleDelayPercentDialog = false }) { Text(stringResource(android.R.string.ok)) } },
                     )
                 }
 
@@ -423,12 +289,9 @@ fun LastFMSettings(
                 if (showScrobbleDelaySecondsDialog) {
                     var tempScrobbleDelaySeconds by remember { mutableIntStateOf(scrobbleDelaySeconds) }
                     AlertDialog(
-                        shape = RoundedCornerShape(26.dp),
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
-                        onDismissRequest = {
-                            tempScrobbleDelaySeconds = scrobbleDelaySeconds
-                            showScrobbleDelaySecondsDialog = false
-                        },
+                        shape = RoundedCornerShape(32.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        onDismissRequest = { showScrobbleDelaySecondsDialog = false },
                         title = { Text(stringResource(R.string.scrobble_delay_minutes)) },
                         text = {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
@@ -436,39 +299,30 @@ fun LastFMSettings(
                                 M3PlaySlider(value = tempScrobbleDelaySeconds.toFloat(), onValueChange = { tempScrobbleDelaySeconds = it.toInt() }, valueRange = 30f..360f, modifier = Modifier.fillMaxWidth())
                             }
                         },
-                        confirmButton = {
-                            TextButton(onClick = { onScrobbleDelaySecondsChange(tempScrobbleDelaySeconds); showScrobbleDelaySecondsDialog = false }) { Text(stringResource(android.R.string.ok)) }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { tempScrobbleDelaySeconds = scrobbleDelaySeconds; showScrobbleDelaySecondsDialog = false }) { Text(stringResource(android.R.string.cancel)) }
-                        }
+                        confirmButton = { TextButton(onClick = { onScrobbleDelaySecondsChange(tempScrobbleDelaySeconds); showScrobbleDelaySecondsDialog = false }) { Text(stringResource(android.R.string.ok)) } },
                     )
                 }
 
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)),
-                    elevation = CardDefaults.cardElevation(0.dp)
-                ) {
-                    Column(Modifier.padding(vertical = 12.dp)) {
-                        PreferenceEntry(
+                Material3SettingsGroup(
+                    title = stringResource(R.string.scrobbling_configuration),
+                    items = listOf(
+                        Material3SettingsItem(
                             title = { Text(stringResource(R.string.scrobble_min_track_duration)) },
-                            description = "${minTrackDuration}s",
+                            description = { Text("${minTrackDuration}s") },
                             onClick = { showMinTrackDurationDialog = true }
-                        )
-                        PreferenceEntry(
+                        ),
+                        Material3SettingsItem(
                             title = { Text(stringResource(R.string.scrobble_delay_percent)) },
-                            description = "${(scrobbleDelayPercent * 100).roundToInt()}%",
+                            description = { Text("${(scrobbleDelayPercent * 100).roundToInt()}%") },
                             onClick = { showScrobbleDelayPercentDialog = true }
-                        )
-                        PreferenceEntry(
+                        ),
+                        Material3SettingsItem(
                             title = { Text(stringResource(R.string.scrobble_delay_minutes)) },
-                            description = "${scrobbleDelaySeconds}s",
+                            description = { Text("${scrobbleDelaySeconds}s") },
                             onClick = { showScrobbleDelaySecondsDialog = true }
                         )
-                    }
-                }
+                    )
+                )
             }
         }
     }
