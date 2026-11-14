@@ -1,30 +1,44 @@
-/*
- * M3Play — Music, thoughtfully crafted.
- * SPDX-License-Identifier: GPL-3.0-only
- *
- * This file is part of M3Play. See the repository LICENSE for terms.
- * Existing copyright and attribution notices are preserved below.
- */
-
 package com.j.m3play.ui.screens.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
 import androidx.navigation.NavController
+import com.j.m3play.LocalPlayerAwareWindowInsets
 import com.j.m3play.R
 import com.j.m3play.constants.ShowSpotifyPlaylistKey
 import com.j.m3play.constants.SpotifyConnectedKey
 import com.j.m3play.constants.SpotifyTokenKey
 import com.j.m3play.constants.SpotifyUserNameKey
+import com.j.m3play.ui.component.IconButton
+import com.j.m3play.ui.component.Material3SettingsGroup
+import com.j.m3play.ui.component.Material3SettingsItem
 import com.j.m3play.utils.dataStore
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -42,85 +56,84 @@ fun SpotifySettingsScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Spotify Integration") },
+                title = { Text("Spotify Integration", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(painterResource(R.drawable.arrow_back), contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.surface
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
+            contentPadding = PaddingValues(bottom = 40.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "External Service",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.padding(bottom = 8.dp, start = 16.dp)
-            )
-
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Column {
-                    if (!isConnected) {
-                        ListItem(
-                            headlineContent = { Text("Connect Spotify") },
-                            supportingContent = { Text("Spotify is not connected") },
-                            leadingContent = { 
-                                Icon(painterResource(R.drawable.library_music), contentDescription = null, modifier = Modifier.size(24.dp)) 
-                            },
-                            modifier = Modifier.clickable { 
-                                navController.navigate("spotify_login") 
-                            }
-                        )
-                    } else {
-                        ListItem(
-                            headlineContent = { Text("Connected as $userName") },
-                            supportingContent = { Text("Spotify account linked") },
-                            leadingContent = { 
-                                Icon(painterResource(R.drawable.library_music), contentDescription = null, modifier = Modifier.size(24.dp), tint = Color(0xFF1DB954)) 
-                            }
-                        )
-                        
-                        ListItem(
-                            headlineContent = { Text("Show Playlist") },
-                            supportingContent = { Text("Show Spotify playlists in Library.") },
-                            leadingContent = { Icon(painterResource(R.drawable.library_music), contentDescription = null) },
-                            trailingContent = {
-                                Switch(
-                                    checked = showPlaylist,
-                                    onCheckedChange = { isChecked ->
-                                        coroutineScope.launch {
-                                            context.dataStore.edit { it[ShowSpotifyPlaylistKey] = isChecked }
-                                        }
+            item {
+                Material3SettingsGroup(
+                    title = "External Service",
+                    items = buildList {
+                        if (!isConnected) {
+                            add(Material3SettingsItem(
+                                icon = painterResource(R.drawable.library_music),
+                                title = { Text("Connect Spotify") },
+                                description = { Text("Spotify is not connected") },
+                                onClick = { navController.navigate("spotify_login") },
+                                showChevron = true
+                            ))
+                        } else {
+                            add(Material3SettingsItem(
+                                icon = painterResource(R.drawable.library_music),
+                                title = { Text("Connected as $userName") },
+                                description = { Text("Spotify account linked") },
+                            ))
+                            add(Material3SettingsItem(
+                                icon = painterResource(R.drawable.library_music),
+                                title = { Text("Show Playlist") },
+                                description = { Text("Show Spotify playlists in Library.") },
+                                trailingContent = {
+                                    Switch(
+                                        checked = showPlaylist,
+                                        onCheckedChange = { isChecked ->
+                                            coroutineScope.launch {
+                                                context.dataStore.edit { it[ShowSpotifyPlaylistKey] = isChecked }
+                                            }
+                                        },
+                                        thumbContent = { Icon(painterResource(if (showPlaylist) R.drawable.check else R.drawable.close), null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                                    )
+                                },
+                                onClick = {
+                                    coroutineScope.launch {
+                                        context.dataStore.edit { it[ShowSpotifyPlaylistKey] = !showPlaylist }
                                     }
-                                )
-                            }
-                        )
-                        
-                        ListItem(
-                            headlineContent = { Text("Log out") },
-                            leadingContent = { Icon(painterResource(R.drawable.close), contentDescription = null) },
-                            modifier = Modifier.clickable {
-                                coroutineScope.launch {
-                                    context.dataStore.edit {
-                                        it[SpotifyConnectedKey] = false
-                                        it[SpotifyTokenKey] = ""
-                                        it[SpotifyUserNameKey] = ""
-                                    }
-                                    com.j.m3play.spotify.Spotify.accessToken = null
                                 }
-                            }
-                        )
+                            ))
+                            add(Material3SettingsItem(
+                                icon = painterResource(R.drawable.close),
+                                title = { Text("Log out") },
+                                onClick = {
+                                    coroutineScope.launch {
+                                        context.dataStore.edit {
+                                            it[SpotifyConnectedKey] = false
+                                            it[SpotifyTokenKey] = ""
+                                            it[SpotifyUserNameKey] = ""
+                                        }
+                                        com.j.m3play.spotify.Spotify.accessToken = null
+                                    }
+                                }
+                            ))
+                        }
                     }
-                }
+                )
             }
         }
     }
