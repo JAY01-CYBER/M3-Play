@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude
+        domain="file"
+        path="./exoplayer" />
+    <exclude
+        domain="file"
+        path="./download" />
+    <!-- DataStore contains account/session credentials; do not back them up. -->
+    <exclude
+        domain="file"
+        path="datastore/" />
+    <exclude
+        domain="file"
+        path="app_webview/" />
+    <exclude
+        domain="database"
+        path="exoplayer_internal.db" />
+</full-backup-content>

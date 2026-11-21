@@ -1,0 +1,82 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Data Layer
+ *
+ * Handles data, network & storage
+ * Signature: M3PLAY::DATA::CORE::V1
+ */
+
+package com.j.m3play.innertube.models
+
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
+
+@Serializable
+data class SectionListRenderer(
+    val header: Header?,
+    val contents: List<Content>?,
+    val continuations: List<Continuation>?,
+) {
+    @Serializable
+    data class Header(
+        val chipCloudRenderer: ChipCloudRenderer?,
+    ) {
+        @Serializable
+        data class ChipCloudRenderer(
+            val chips: List<Chip>,
+        ) {
+            @Serializable
+            data class Chip(
+                val chipCloudChipRenderer: ChipCloudChipRenderer,
+            ) {
+                @Serializable
+                data class ChipCloudChipRenderer(
+                    val isSelected: Boolean,
+                    val navigationEndpoint: NavigationEndpoint,
+                    val onDeselectedCommand: NavigationEndpoint? = null,
+                    // The close button doesn't have the following two fields
+                    val text: Runs?,
+                    val uniqueId: String?,
+                )
+            }
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable
+    data class Content(
+        @JsonNames("musicImmersiveCarouselShelfRenderer")
+        val musicCarouselShelfRenderer: MusicCarouselShelfRenderer?,
+        val musicShelfRenderer: MusicShelfRenderer?,
+        val musicCardShelfRenderer: MusicCardShelfRenderer?,
+        val musicPlaylistShelfRenderer: MusicPlaylistShelfRenderer?,
+        val musicDescriptionShelfRenderer: MusicDescriptionShelfRenderer?,
+        val musicResponsiveHeaderRenderer: MusicResponsiveHeaderRenderer?,
+        val musicEditablePlaylistDetailHeaderRenderer: MusicEditablePlaylistDetailHeaderRenderer?,
+        val gridRenderer: GridRenderer?,
+        val itemSectionRenderer: ItemSectionRenderer?,
+        val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
+        val musicTwoRowItemRenderer: MusicTwoRowItemRenderer? = null,
+    )
+
+    @Serializable
+    data class ItemSectionRenderer(
+        val contents: List<ItemSectionContent>?,
+    ) {
+        @Serializable
+        data class ItemSectionContent(
+            val gridRenderer: GridRenderer? = null,
+            val musicShelfRenderer: MusicShelfRenderer? = null,
+            val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
+            val musicTwoRowItemRenderer: MusicTwoRowItemRenderer? = null,
+        )
+    }
+}

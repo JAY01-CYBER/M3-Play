@@ -1,0 +1,44 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+package com.j.m3play.spotify
+
+import retrofit2.Response
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Url
+
+interface SpotifyApiService {
+    
+    // REAL SPOTIFY TOKEN URL
+    @FormUrlEncoded
+    @POST
+    suspend fun getUserToken(
+        @Url url: String = "https://accounts.spotify.com/api/token", 
+        @Field("grant_type") grantType: String = "authorization_code",
+        @Field("client_id") clientId: String,
+        @Field("code") code: String,
+        @Field("redirect_uri") redirectUri: String,
+        @Field("code_verifier") codeVerifier: String
+    ): Response<TokenResponse>
+
+    @GET("v1/me/playlists")
+    suspend fun getUserPlaylists(
+        @Header("Authorization") token: String
+    ): Response<UserPlaylistsResponse>
+
+    @GET("v1/playlists/{playlist_id}/tracks")
+    suspend fun getPlaylistTracks(
+        @Path("playlist_id") playlistId: String,
+        @Header("Authorization") token: String
+    ): Response<SpotifyPlaylistResponse>
+}

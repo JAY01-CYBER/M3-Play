@@ -1,0 +1,119 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play Utility Module
+ *
+ * Internal helper functions
+ * Signature: M3PLAY::UTILITY::V1
+ */
+
+package com.j.m3play.extensions
+
+import android.os.Bundle
+import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC
+import com.j.m3play.innertube.models.SongItem
+import com.j.m3play.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_OMV
+import com.j.m3play.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_UGC
+import com.j.m3play.db.entities.Song
+import com.j.m3play.models.MediaMetadata
+import com.j.m3play.models.toMediaMetadata
+import com.j.m3play.ui.utils.resize
+
+const val ExtraIsMusicVideo = "com.j.m3play.extra.IS_MUSIC_VIDEO"
+
+val MediaItem.metadata: MediaMetadata?
+    get() = localConfiguration?.tag as? MediaMetadata
+
+fun Song.toMediaItem() =
+    MediaItem
+        .Builder()
+        .setMediaId(song.id)
+        .setUri(song.id)
+        .setCustomCacheKey(song.id)
+        .setTag(toMediaMetadata())
+        .setMediaMetadata(
+            androidx.media3.common.MediaMetadata
+                .Builder()
+                .setTitle(song.title)
+                .setSubtitle(artists.joinToString { it.name })
+                .setArtist(artists.joinToString { it.name })
+                .setArtworkUri(song.thumbnailUrl?.toUri())
+                .setAlbumTitle(song.albumName)
+                .setAlbumArtist(artists.firstOrNull()?.name)
+                .setDisplayTitle(song.title)
+                .setMediaType(MEDIA_TYPE_MUSIC)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .setExtras(Bundle().apply {
+                    putBoolean(ExtraIsMusicVideo, false)
+                    song.thumbnailUrl?.let { putString("artwork_uri", it) }
+                })
+                .build(),
+        ).build()
+
+fun SongItem.toMediaItem() =
+    MediaItem
+        .Builder()
+        .setMediaId(id)
+        .setUri(id)
+        .setCustomCacheKey(id)
+        .setTag(toMediaMetadata())
+        .setMediaMetadata(
+            androidx.media3.common.MediaMetadata
+                .Builder()
+                .setTitle(title)
+                .setSubtitle(artists.joinToString { it.name })
+                .setArtist(artists.joinToString { it.name })
+                .setArtworkUri(thumbnail.resize(1080, 1080).toUri())
+                .setAlbumTitle(album?.name)
+                .setAlbumArtist(artists.firstOrNull()?.name)
+                .setDisplayTitle(title)
+                .setMediaType(MEDIA_TYPE_MUSIC)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .setExtras(Bundle().apply {
+                    putBoolean(ExtraIsMusicVideo, isMusicVideo())
+                    putString("artwork_uri", thumbnail.resize(1080, 1080))
+                })
+                .build(),
+        ).build()
+
+fun MediaMetadata.toMediaItem() =
+    MediaItem
+        .Builder()
+        .setMediaId(id)
+        .setUri(id)
+        .setCustomCacheKey(id)
+        .setTag(this)
+        .setMediaMetadata(
+            androidx.media3.common.MediaMetadata
+                .Builder()
+                .setTitle(title)
+                .setSubtitle(artists.joinToString { it.name })
+                .setArtist(artists.joinToString { it.name })
+                .setArtworkUri(thumbnailUrl?.toUri())
+                .setAlbumTitle(album?.title)
+                .setAlbumArtist(artists.firstOrNull()?.name)
+                .setDisplayTitle(title)
+                .setMediaType(MEDIA_TYPE_MUSIC)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .setExtras(Bundle().apply {
+                    putBoolean(ExtraIsMusicVideo, false)
+                    thumbnailUrl?.let { putString("artwork_uri", it) }
+                })
+                .build(),
+        ).build()
+
+private fun SongItem.isMusicVideo(): Boolean {
+    val musicVideoType = endpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType
+    return musicVideoType == MUSIC_VIDEO_TYPE_OMV || musicVideoType == MUSIC_VIDEO_TYPE_UGC
+}
