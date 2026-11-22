@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- YT Music mostly dark theme use karta hai -->
+    <solid android:color="#212121" />
+    <corners android:radius="32dp" />
+</shape>

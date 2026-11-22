@@ -1,0 +1,19 @@
+M3-Play SoundCloud + JioSaavn integration update
+
+Implemented in this source package:
+- Player & Audio settings now has a separate Music source selector: YouTube Music, SoundCloud, JioSaavn.
+- Online search reads the selected source and searches SoundCloud tracks or JioSaavn tracks.
+- External results are converted to M3-Play SongItem/MediaItem metadata and queued through ListQueue.
+- MusicService detects SoundCloud URLs and JioSaavn track IDs and resolves them through the matching provider instead of sending them to the YouTube resolver.
+- SoundCloud playback request headers and stream markers are handled by the media OkHttp interceptor.
+- SoundCloud progressive transcodings are preferred to match M3-Play's progressive MediaSource path.
+- Fixed duplicate SoundCloudAudioQuality/JioSaavnAudioQuality enum declarations: definitions remain in ExternalAudioQualities.kt.
+
+How to select:
+Settings > Player & Audio > Music source > choose YouTube Music / SoundCloud / JioSaavn.
+Then open Online Search and search a track. Existing YouTube stream client selection remains a separate setting and applies only to YouTube.
+
+Verification:
+- Static source inspection completed; no Kotlin parser 'expecting' syntax errors were reported in the modified files.
+- A Gradle compile could not be run because Gradle 9.8.0 is not present locally and the environment cannot reach services.gradle.org.
+- Runtime playback against SoundCloud/JioSaavn endpoints has not been device-tested. Provider API availability, region restrictions, and network responses can still affect playback.

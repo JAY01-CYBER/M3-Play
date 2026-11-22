@@ -1,0 +1,40 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play - Modern Music Player
+ *
+ * Copyright (c) 2026 JAY01-CYBER
+ * Signature: M3PLAY::GENERAL::V1
+ */
+
+import com.j.m3play.betterlyrics.TTMLParser
+
+fun main(args: Array<String>) {
+    val ttml = """
+    <?xml version="1.0" encoding="utf-8"?>
+    <tt xmlns="http://www.w3.org/ns/ttml">
+      <body>
+        <div>
+          <p begin="00:00:01.000" end="00:00:05.000">
+            <span begin="00:00:01.000" end="00:00:02.000">mi</span>
+            <span begin="00:00:02.000" end="00:00:03.000">ne,</span>
+          </p>
+        </div>
+      </body>
+    </tt>
+    """.trimIndent()
+    
+    val lines = TTMLParser.parseTTML(ttml)
+    lines.forEach { line ->
+        println("Line: '${line.text}'")
+        line.words.forEach { word ->
+            println("  Word: '${word.text}' (bg=${word.isBackground}) [${word.startTime} -> ${word.endTime}]")
+        }
+    }
+}

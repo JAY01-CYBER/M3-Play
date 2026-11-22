@@ -1,0 +1,17 @@
+M3-Play external audio provider port status
+
+Included:
+- SoundCloudAudioProvider source port
+- JioSaavnAudioProvider source port
+- SoundCloud auth helper
+- External audio preference definitions
+- Basic SoundCloud/JioSaavn settings screens and navigation entries
+- YouTube client selector changes from the prior port
+
+Important:
+This is a PARTIAL PORT, not a verified end-to-end integration.
+The OnlineSearchViewModel/search UI and MusicService playback resolver have not
+been fully routed for SoundCloud/JioSaavn. Therefore external-provider search,
+queueing, and playback are not guaranteed to work.
+Gradle compilation was not verified in this environment because the Gradle
+distribution/dependencies could not be downloaded.

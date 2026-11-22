@@ -1,0 +1,129 @@
+/*
+ * M3Play — Music, thoughtfully crafted.
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * This file is part of M3Play. See the repository LICENSE for terms.
+ * Existing copyright and attribution notices are preserved below.
+ */
+
+/*
+ * M3Play - Modern Music Player
+ *
+ * Copyright (c) 2026 JAY01-CYBER
+ * Signature: M3PLAY::GENERAL::V1
+ */
+
+package com.j.m3play.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.j.m3play.db.MusicDatabase
+import com.j.m3play.db.entities.LyricsEntity
+import com.j.m3play.lyrics.LyricsHelper
+import com.j.m3play.lyrics.LyricsResult
+import com.j.m3play.models.MediaMetadata
+import com.j.m3play.utils.NetworkConnectivityObserver
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+ 
+import javax.inject.Inject
+
+@HiltViewModel
+class LyricsMenuViewModel
+@Inject
+constructor(
+    private val lyricsHelper: LyricsHelper,
+    val database: MusicDatabase,
+    private val networkConnectivity: NetworkConnectivityObserver,
+) : ViewModel() {
+    private var job: Job? = null
+    val results = MutableStateFlow(emptyList<LyricsResult>())
+    val isLoading = MutableStateFlow(false)
+
+    private val _isNetworkAvailable = MutableStateFlow(false)
+    val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            networkConnectivity.networkStatus.collect { isConnected ->
+                _isNetworkAvailable.value = isConnected
+            }
+        }
+  
+        // Set initial state using synchronous check
+        _isNetworkAvailable.value = try {
+            networkConnectivity.isCurrentlyConnected()
+        } catch (e: Exception) {
+            true // Assume connected as fallback
+        }
+    }
+
+    fun search(
+        mediaId: String,
+        title: String,
+        artist: String,
+        duration: Int,
+    ) {
+        isLoading.value = true
+        results.value = emptyList()
+        job?.cancel()
+        job =
+            viewModelScope.launch(Dispatchers.IO) {
+                lyricsHelper.getAllLyrics(mediaId, title, artist, null, duration) { result ->
+                    results.update {
+                        it + result
+                    }
+                }
+                isLoading.value = false
+            }
+    }
+
+    fun cancelSearch() {
+        job?.cancel()
+        job = null
+    }
+
+    fun refetchLyrics(
+        mediaMetadata: MediaMetadata,
+        lyricsEntity: LyricsEntity?,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                
+                val result = lyricsHelper.getLyrics(mediaMetadata)
+                database.query {
+                    lyricsEntity?.let(::delete)
+                    
+                    upsert(LyricsEntity(
+                        id = mediaMetadata.id, 
+                        lyrics = result.lyrics, 
+                        provider = result.providerName
+                    ))
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun updateLyrics(
+        mediaMetadata: MediaMetadata,
+        lyrics: String,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.query {
+                
+                upsert(LyricsEntity(
+                    id = mediaMetadata.id, 
+                    lyrics = lyrics, 
+                    provider = "Local"
+                ))
+            }
+        }
+    }
+}
